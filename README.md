@@ -16,13 +16,16 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 
 ---
 
-## Features (Planned)
+## Features
 
-- **Authentication** — sign up / sign in with username + password or Google OAuth
-- **Player Catalog** — full database of eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/), including position, overall rating, club, nationality, height, weight, and age
-- **Game Plans** — each user can create up to 20 game plans of 23 players (11 starters + 12 subs)
-- **Ban & Pick Session** — real-time or turn-based draft between two users
+- **Authentication** — sign up / sign in with username + hashed password (bcryptjs)
+- **Player Catalog** — full database of ~41 k eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/), including position, overall rating, club, nationality, height, weight, and age
+- **My Team** — build a personal squad: search, sort, and filter the catalog; add or remove players; manage your roster with multi-select delete
+- **Team Search & Filter** — client-side search, sort (name, overall, position, height, weight, age, club, nationality), and position multi-filter for your own team list
+- **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
+- **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; incremental runs only fetch newly added cards
+- **Ban & Pick Session** *(planned)* — real-time or turn-based draft between two users
 
 ---
 
@@ -34,7 +37,7 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 | Server | Express.js |
 | Database | MySQL 8+ |
 | Scraper | `cheerio` (HTML parsing) + native `fetch` |
-| Auth | bcrypt (password hashing) + Google OAuth (planned) |
+| Auth | `bcryptjs` (password hashing) |
 | Frontend | Vanilla HTML / CSS / JS |
 
 ---
@@ -47,13 +50,14 @@ ban-pick-efb/
 │   └── schema.sql          # All CREATE TABLE statements
 ├── public/
 │   ├── css/
-│   │   ├── styles.css
-│   │   └── signin.css
+│   │   ├── home.css        # Home page styles
+│   │   └── signin.css      # Sign-in / sign-up styles
 │   ├── js/
-│   │   └── signin.js
+│   │   ├── home.js         # Home page logic
+│   │   └── signin.js       # Auth modal logic
 │   ├── logo/
-│   ├── index.html
-│   ├── signin.html
+│   ├── home.html           # Main app page
+│   ├── signin.html         # Sign-in / sign-up page
 │   └── 404.html
 ├── src/
 │   ├── db.js               # MySQL connection pool
@@ -71,7 +75,7 @@ ban-pick-efb/
 scrape_logs        — history of every scrape run
 players_catalog    — all eFootball players (from pesdb.net)
 users              — registered accounts
-players            — user-owned player selections
+players            — user-owned team rosters
 game_plans         — up to 20 plans per user (11 starters + 12 subs)
 game_plan_players  — junction: which players are in which plan
 ```
@@ -170,17 +174,39 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
-| `GET` | `/api/top-players` | Top 20 players by overall rating |
-| `GET` | `/api/players` | Searchable player list (see params below) |
+| `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
+| `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
+| `GET` | `/api/players/distinct` | Distinct values for autocomplete (club, nationality) |
+| `GET` | `/api/my-players` | Get a user's team roster |
+| `POST` | `/api/my-players` | Add a player to a user's team |
+| `DELETE` | `/api/my-players` | Remove one or more players from a user's team |
+| `GET` | `/api/game-plans` | Get a user's game plans |
+| `POST` | `/api/signup` | Register a new account |
+| `POST` | `/api/signin` | Sign in and return user info |
 
 ### `GET /api/players` query params
 
 | Param | Example | Description |
 |---|---|---|
 | `q` | `?q=mbappe` | Search by name |
-| `position` | `?position=CF` | Filter by position |
-| `limit` | `?limit=50` | Results per page (default 50) |
-| `offset` | `?offset=100` | Pagination offset |
+| `positions` | `?positions=CF,SS,RWF` | Filter by one or more positions (comma-separated) |
+| `sortBy` | `?sortBy=overall_desc` | Sort order (see values below) |
+| `club` | `?club=Barcelona` | Filter by club name |
+| `nationality` | `?nationality=France` | Filter by nationality |
+| `minHeight` / `maxHeight` | `?minHeight=180&maxHeight=195` | Height range in cm |
+| `minWeight` / `maxWeight` | `?minWeight=70&maxWeight=90` | Weight range in kg |
+| `minAge` / `maxAge` | `?minAge=20&maxAge=30` | Age range |
+| `limit` | `?limit=50` | Results per page (default 30) |
+| `offset` | `?offset=60` | Pagination offset |
+
+**`sortBy` values:** `overall_desc`, `overall_asc`, `name_asc`, `name_desc`, `position_asc`, `height_desc`, `height_asc`, `weight_desc`, `weight_asc`, `age_desc`, `age_asc`, `club_asc`, `nationality_asc`
+
+### `GET /api/players/distinct` query params
+
+| Param | Example | Description |
+|---|---|---|
+| `field` | `?field=club` | Field to get distinct values for (`club` or `nationality`) |
+| `q` | `?q=barca` | Prefix search for autocomplete |
 
 ---
 
@@ -196,10 +222,13 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ## Roadmap
 
-- [x] Sign-in page UI
+- [x] Sign-in / sign-up page with hashed passwords
 - [x] Player catalog (scraped + stored in MySQL)
 - [x] Incremental scraper with resume support and scrape logs
-- [ ] User registration & authentication (bcrypt + sessions)
+- [x] Home page with My Team panel and Game Plans panel
+- [x] Add / remove players from team with search, sort, and multi-filter
+- [x] Player detail popup with card art and full stats
+- [x] Team-side search, sort, and position filter
 - [ ] Google OAuth sign-in
 - [ ] Game plan builder (drag-and-drop formation view)
 - [ ] Ban & pick session (real-time with WebSockets)
