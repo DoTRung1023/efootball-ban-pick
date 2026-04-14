@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS players_catalog (
   pesdb_id     BIGINT UNSIGNED   NOT NULL,
   name         VARCHAR(100)      NOT NULL,
   position     VARCHAR(15)       NULL,
-  overall      SMALLINT UNSIGNED NULL,
+  overall      SMALLINT UNSIGNED NULL,          -- renamed from overall_max
   club         VARCHAR(100)      NULL,
   nationality  VARCHAR(100)      NULL,
   height       SMALLINT UNSIGNED NULL COMMENT 'cm',
@@ -65,7 +65,11 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
--- 2. PLAYERS
+-- 2. PLAYERS  (user's personal squad roster)
+-- Migration for existing databases:
+--   ALTER TABLE players
+--     ADD COLUMN pesdb_id BIGINT UNSIGNED NULL AFTER overall,
+--     ADD UNIQUE KEY uq_players_user_pesdb (user_id, pesdb_id);
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS players (
   id           INT UNSIGNED    NOT NULL AUTO_INCREMENT,
@@ -74,10 +78,14 @@ CREATE TABLE IF NOT EXISTS players (
   -- e.g. GK | CB | LB | RB | CDM | CM | CAM | LW | RW | ST
   position     VARCHAR(10)     NOT NULL,
   club         VARCHAR(100)    NULL,
-  overall      TINYINT UNSIGNED NULL CHECK (overall BETWEEN 1 AND 99),
+  overall      SMALLINT UNSIGNED NULL,   -- same range as players_catalog.overall
+  -- links to players_catalog.pesdb_id (nullable for manually added players)
+  pesdb_id     BIGINT UNSIGNED  NULL,
   created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
+  -- prevent adding the same catalog player twice per user
+  UNIQUE KEY uq_players_user_pesdb (user_id, pesdb_id),
   CONSTRAINT fk_players_user
     FOREIGN KEY (user_id) REFERENCES users (id)
     ON DELETE CASCADE ON UPDATE CASCADE

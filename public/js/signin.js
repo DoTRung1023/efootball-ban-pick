@@ -6,16 +6,27 @@ const CARD_IMG = (id) => `https://pesdb.net/assets/img/card/f${id}.png`;
 
 // Fallback list shown while the API loads or if it fails
 const FALLBACK_PLAYERS = [
-  { id: "110718", name: "Mbappé"       },
-  { id: "133543", name: "Haaland"      },
-  { id: "117047", name: "Vinícius Jr." },
-  { id: "110644", name: "Raphinha"     },
-  { id: "47287",  name: "H. Kane"      },
-  { id: "162114", name: "L. Yamal"     },
-  { id: "135067", name: "Vitinha"      },
-  { id: "133157", name: "Pedri"        },
-  { id: "127544", name: "B. Saka"      },
-  { id: "110815", name: "Rodri"        },
+  { id: "89136409091415",  name: "Lionel Messi"       },
+  { id: "89137214427270",  name: "Eden Hazard"         },
+  { id: "89136677522134",  name: "George Best"         },
+  { id: "89136140651034",  name: "Zlatan Ibrahimović"  },
+  { id: "88040387119495",  name: "Pelé"                },
+  { id: "88039581945329",  name: "Franco Baresi"       },
+  { id: "88039581945324",  name: "Franz Beckenbauer"   },
+  { id: "88039581945323",  name: "Johan Cruyff"        },
+  { id: "106771008057263", name: "Victor Osimhen"      },
+  { id: "89134261635137",  name: "Luis Suárez"         },
+  { id: "89133724764840",  name: "Gareth Bale"         },
+  { id: "88040655690467",  name: "Jaap Stam"           },
+  { id: "88040655554922",  name: "Gerd Müller"         },
+  { id: "88040655554414",  name: "Gianfranco Zola"     },
+  { id: "88040387251641",  name: "Carles Puyol"        },
+  { id: "88040387126189",  name: "Pepe"                },
+  { id: "88040387120247",  name: "Petr Čech"           },
+  { id: "88040387119839",  name: "Michel Platini"      },
+  { id: "88040387118039",  name: "Gianluigi Buffon"    },
+  { id: "88039850289220",  name: "Raphaël Varane"      },
+  { id: "88039850384095",  name: "Marcel Desailly"     },
 ];
 
 /* ============================================================
@@ -250,17 +261,197 @@ function initForm() {
     btn.disabled = true;
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const res = await fetch("/api/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: usernameInput.value.trim(),
+          password: passwordInput.value,
+        }),
+      });
 
-      showToast("Signing in… Welcome back!", "success");
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast(data.error || "Sign in failed.", "error");
+        btn.classList.remove("loading");
+        btn.disabled = false;
+        return;
+      }
+
+      localStorage.setItem("efb_user", JSON.stringify(data));
+      showToast("Welcome back, " + data.username + "!", "success");
 
       setTimeout(() => {
         window.location.href = "/";
-      }, 1500);
+      }, 1000);
     } catch {
-      showToast("Something went wrong. Please try again.", "error");
+      showToast("Network error. Please try again.", "error");
       btn.classList.remove("loading");
       btn.disabled = false;
+    }
+  });
+}
+
+/* ============================================================
+   Sign Up Modal
+   ============================================================ */
+function initSignupModal() {
+  const overlay   = document.getElementById("signupOverlay");
+  const openBtn   = document.querySelector(".signup-link");
+  const closeBtn  = document.getElementById("signupClose");
+  const backBtn   = document.getElementById("backToSignin");
+  const form      = document.getElementById("signupForm");
+  const submitBtn = document.getElementById("signupBtn");
+
+  if (!overlay || !openBtn || !form) return;
+
+  // Password toggle for signup modal
+  const toggleBtn = document.getElementById("toggleSuPassword");
+  const pwInput   = document.getElementById("su-password");
+  if (toggleBtn && pwInput) {
+    toggleBtn.addEventListener("click", () => {
+      const isText = pwInput.type === "text";
+      pwInput.type = isText ? "password" : "text";
+      const icon = toggleBtn.querySelector(".eye-icon");
+      if (icon) {
+        icon.innerHTML = isText
+          ? `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`
+          : `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+      }
+    });
+  }
+
+  function openModal() {
+    overlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+    setTimeout(() => document.getElementById("su-username")?.focus(), 80);
+  }
+
+  function closeModal() {
+    overlay.classList.remove("open");
+    document.body.style.overflow = "";
+    form.reset();
+    form.querySelectorAll(".field-input").forEach((el) => {
+      el.classList.remove("invalid");
+    });
+    form.querySelectorAll(".field-error").forEach((el) => {
+      el.textContent = "";
+      el.classList.remove("show");
+    });
+  }
+
+  openBtn.addEventListener("click", (e) => { e.preventDefault(); openModal(); });
+  closeBtn?.addEventListener("click", closeModal);
+  backBtn?.addEventListener("click", (e) => { e.preventDefault(); closeModal(); });
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+  });
+
+  // Inline field validation for signup
+  function validateSignupField(input) {
+    const value = input.value.trim();
+    let error = "";
+
+    if (input.id === "su-username") {
+      if (!value) error = "Username is required.";
+      else if (value.length < 3) error = "Username must be at least 3 characters.";
+      else if (value.length > 50) error = "Username must be 50 characters or fewer.";
+    }
+
+    if (input.id === "su-email") {
+      if (!value) error = "Email is required.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Enter a valid email address.";
+    }
+
+    if (input.id === "su-password") {
+      if (!value) error = "Password is required.";
+      else if (value.length < 6) error = "Password must be at least 6 characters.";
+    }
+
+    if (input.id === "su-confirm") {
+      const pw = document.getElementById("su-password")?.value || "";
+      if (!value) error = "Please confirm your password.";
+      else if (value !== pw) error = "Passwords do not match.";
+    }
+
+    const wrap = input.closest(".field-group");
+    let errEl  = wrap?.querySelector(".field-error");
+    if (!errEl) {
+      errEl = document.createElement("p");
+      errEl.className = "field-error";
+      wrap?.appendChild(errEl);
+    }
+
+    if (error) {
+      input.classList.add("invalid");
+      errEl.textContent = error;
+      errEl.classList.add("show");
+      return false;
+    }
+    input.classList.remove("invalid");
+    errEl.textContent = "";
+    errEl.classList.remove("show");
+    return true;
+  }
+
+  const signupFields = ["su-username", "su-email", "su-password", "su-confirm"].map(
+    (id) => document.getElementById(id),
+  ).filter(Boolean);
+
+  signupFields.forEach((input) => {
+    input.addEventListener("blur", () => validateSignupField(input));
+    input.addEventListener("input", () => {
+      if (input.classList.contains("invalid")) validateSignupField(input);
+      // Re-validate confirm when password changes
+      if (input.id === "su-password") {
+        const confirm = document.getElementById("su-confirm");
+        if (confirm?.classList.contains("invalid")) validateSignupField(confirm);
+      }
+    });
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const allValid = signupFields.map((f) => validateSignupField(f)).every(Boolean);
+    if (!allValid) return;
+
+    submitBtn.classList.add("loading");
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("su-username").value.trim(),
+          email:    document.getElementById("su-email").value.trim().toLowerCase(),
+          password: document.getElementById("su-password").value,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast(data.error || "Sign up failed.", "error");
+        submitBtn.classList.remove("loading");
+        submitBtn.disabled = false;
+        return;
+      }
+
+      showToast("Account created! You can now sign in.", "success");
+      setTimeout(() => closeModal(), 1800);
+    } catch {
+      showToast("Network error. Please try again.", "error");
+    } finally {
+      submitBtn.classList.remove("loading");
+      submitBtn.disabled = false;
     }
   });
 }
@@ -273,4 +464,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initPlayers();
   initPasswordToggle();
   initForm();
+  initSignupModal();
 });

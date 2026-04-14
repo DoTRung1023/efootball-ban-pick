@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>eFOOTBALL Ban &amp; Pick</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/home.css" />
+  </head>
+  <body>
+
+    <!-- Background -->
+    <div class="pitch-bg">
+      <div class="pitch-lines"></div>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-halfway"></div>
+    </div>
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+
+    <!-- App Shell -->
+    <div class="app-shell">
+
+      <!-- ── Top Nav ──────────────────────────────────────── -->
+      <nav class="topbar">
+        <div class="topbar-brand">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK</span>
+        </div>
+
+        <div class="topbar-center">
+          <button class="nav-tab active" data-tab="team">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            MY TEAM
+          </button>
+          <button class="nav-tab" data-tab="plans">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            GAME PLANS
+          </button>
+        </div>
+
+        <div class="topbar-right">
+          <button class="create-room-btn" id="openRoomBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            CREATE ROOM
+          </button>
+
+          <div class="user-menu" id="userMenu">
+            <button class="user-trigger" id="userTrigger" aria-haspopup="true" aria-expanded="false">
+              <span class="user-name" id="userName">Loading…</span>
+              <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-username" id="dropUsername"></div>
+              <div class="dropdown-email" id="dropEmail"></div>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item sign-out" id="signOutBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- ── Main Content ─────────────────────────────────── -->
+      <main class="main-content">
+
+        <!-- MY TEAM Panel -->
+        <section class="tab-panel active" id="teamPanel">
+
+          <!-- Search / Sort / Filter bar -->
+          <div class="team-search-bar">
+            <div class="team-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="teamSearch" placeholder="Search players..." autocomplete="off">
+            </div>
+            <div class="sort-group" id="teamSortGroup">
+              <div class="ap-dd-wrap" id="teamSortWrap">
+                <button class="ap-dd-btn" id="teamSortBtn" aria-haspopup="true" aria-expanded="false">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                    <line x1="8" y1="18" x2="21" y2="18"/>
+                    <polyline points="3 6 4.5 8 6 6"/><polyline points="3 12 4.5 14 6 12"/>
+                  </svg>
+                  <span id="teamSortLabel">Overall Rating</span>
+                  <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+              </div>
+              <button class="sort-dir-btn" id="teamSortDirBtn" title="Toggle direction">
+                <span id="teamSortDirIcon">↓</span>
+              </button>
+            </div>
+            <div class="ap-dd-wrap" id="teamFilterWrap">
+              <button class="ap-dd-btn" id="teamFilterBtn" aria-haspopup="true" aria-expanded="false">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                <span>FILTER</span>
+                <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+                <span class="dd-active-dot" id="teamFilterDot" style="display:none;"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Default toolbar -->
+          <div class="panel-toolbar" id="teamToolbar">
+            <div class="team-count">
+              <span id="teamCount">0 PLAYERS</span>
+            </div>
+            <div class="toolbar-actions">
+              <button class="select-mode-btn" id="selectModeBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="5" height="5" rx="1"/>
+                  <polyline points="9 5 10.5 6.5 13 4"/>
+                  <rect x="3" y="10" width="5" height="5" rx="1"/>
+                  <rect x="3" y="17" width="5" height="5" rx="1"/>
+                  <line x1="17" y1="5" x2="21" y2="5"/>
+                  <line x1="17" y1="12" x2="21" y2="12"/>
+                  <line x1="17" y1="19" x2="21" y2="19"/>
+                </svg>
+                SELECT
+              </button>
+              <button class="add-player-btn" id="openAddPlayerBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                ADD PLAYER
+              </button>
+            </div>
+          </div>
+
+          <!-- Selection toolbar (visible in select mode) -->
+          <div class="panel-toolbar selection-toolbar" id="selectionToolbar" style="display:none;">
+            <div class="selection-info">
+              <span id="selectedCount">0</span> SELECTED
+            </div>
+            <div class="toolbar-actions">
+              <button class="select-all-btn" id="selectAllBtn">SELECT ALL</button>
+              <button class="ghost-btn" id="cancelSelectBtn">CANCEL</button>
+              <button class="delete-selected-btn" id="deleteSelectedBtn" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/>
+                  <path d="M9 6V4h6v2"/>
+                </svg>
+                DELETE SELECTED
+              </button>
+            </div>
+          </div>
+
+          <div class="player-grid" id="teamGrid">
+            <div class="player-card skeleton"></div>
+            <div class="player-card skeleton"></div>
+            <div class="player-card skeleton"></div>
+            <div class="player-card skeleton"></div>
+            <div class="player-card skeleton"></div>
+            <div class="player-card skeleton"></div>
+          </div>
+        </section>
+
+        <!-- GAME PLANS Panel -->
+        <section class="tab-panel" id="plansPanel">
+          <div class="plans-grid" id="plansGrid">
+            <!-- plan cards injected by JS -->
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ── Create Room Modal ────────────────────────────── -->
+    <div class="modal-overlay" id="roomOverlay" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
+      <div class="modal-card room-modal">
+        <div class="card-glow"></div>
+        <div class="modal-inner">
+          <div class="modal-header">
+            <h2 class="card-title" id="roomTitle">CREATE ROOM</h2>
+            <p class="card-subtitle">Set up your ban &amp; pick session</p>
+            <button class="modal-close" id="roomClose" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="room-body">
+            <!-- Room Code -->
+            <div class="field-group">
+              <label class="field-label">ROOM CODE</label>
+              <div class="room-code-row">
+                <input type="text" id="roomCode" class="field-input room-code-input" readonly />
+                <button type="button" class="icon-action-btn" id="regenCode" title="Regenerate code">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                  </svg>
+                </button>
+                <button type="button" class="icon-action-btn" id="copyCode" title="Copy code">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Settings row -->
+            <div class="room-settings-row">
+              <div class="field-group">
+                <label class="field-label">BANS PER SIDE</label>
+                <div class="number-picker" id="bansCounter" data-min="1" data-max="6" data-val="3">
+                  <button type="button" class="num-btn num-dec">−</button>
+                  <span class="num-val">3</span>
+                  <button type="button" class="num-btn num-inc">+</button>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">PICKS PER SIDE</label>
+                <div class="number-picker" id="picksCounter" data-min="1" data-max="11" data-val="5">
+                  <button type="button" class="num-btn num-dec">−</button>
+                  <span class="num-val">5</span>
+                  <button type="button" class="num-btn num-inc">+</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="room-actions">
+              <button type="button" class="ghost-btn" id="roomCancel">CANCEL</button>
+              <button type="button" class="signin-btn" id="startRoomBtn">
+                <span class="btn-text">START ROOM</span>
+                <span class="btn-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </span>
+                <span class="btn-shine"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Add Player Modal ─────────────────────────────── -->
+    <div class="modal-overlay add-player-overlay" id="addPlayerOverlay" role="dialog" aria-modal="true" aria-labelledby="apTitle">
+      <div class="modal-card add-player-modal">
+        <div class="card-glow"></div>
+        <div class="add-player-inner">
+
+          <!-- Sticky header -->
+          <div class="ap-header">
+            <div class="ap-title-row">
+              <div>
+                <h2 class="card-title" id="apTitle">ADD PLAYERS</h2>
+                <p class="card-subtitle">Search all players and add to your team</p>
+              </div>
+              <button class="modal-close" id="addPlayerClose" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="ap-toolbar">
+              <div class="search-box ap-search">
+                <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="search" id="apSearch" class="search-input" placeholder="Search players…" autocomplete="off" />
+              </div>
+              <div class="ap-filter-row">
+                <!-- Sort dropdown + direction toggle -->
+                <div class="sort-group">
+                  <div class="ap-dd-wrap" id="sortDropWrap">
+                    <button class="ap-dd-btn" id="sortDropBtn" aria-haspopup="true" aria-expanded="false">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                        <line x1="8" y1="18" x2="21" y2="18"/>
+                        <polyline points="3 6 4.5 8 6 6"/><polyline points="3 12 4.5 14 6 12"/>
+                      </svg>
+                      <span id="sortDropLabel">SORT</span>
+                      <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    <!-- sort panel injected by JS -->
+                  </div>
+                  <button class="sort-dir-btn" id="sortDirBtn" style="display:none;" title="Toggle sort direction">
+                    <span id="sortDirIcon">↓</span>
+                  </button>
+                </div>
+
+                <!-- Filter dropdown -->
+                <div class="ap-dd-wrap" id="filterDropWrap">
+                  <button class="ap-dd-btn" id="filterDropBtn" aria-haspopup="true" aria-expanded="false">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    <span>FILTER</span>
+                    <span class="dd-active-dot" id="activeFilterDot" style="display:none;"></span>
+                    <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  <!-- filter panel injected by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scrollable player list -->
+          <div class="catalog-list" id="catalogList">
+            <!-- rows injected by JS -->
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Player detail popup -->
+    <div class="player-popup-overlay" id="playerPopupOverlay">
+      <div class="player-popup" id="playerPopup">
+        <button class="player-popup-close" id="playerPopupClose" title="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div class="player-popup-img" id="playerPopupImg"></div>
+        <div class="player-popup-body">
+          <div class="player-popup-name" id="playerPopupName"></div>
+          <div class="player-popup-club" id="playerPopupClub"></div>
+          <div class="player-popup-stats" id="playerPopupStats"></div>
+          <button class="player-popup-add" id="playerPopupAdd">+ ADD TO TEAM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="/js/home.js"></script>
+  </body>
+</html>
