@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png">
+    <link rel="stylesheet" href="/css/signin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&amp;family=Orbitron:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Pitch Grid Background -->
+    <div class="pitch-bg">
+      <div class="pitch-lines"></div>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-halfway"></div>
+    </div>
+
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Floating Player Cards Background -->
+    <div class="player-cards-bg" id="playerCardsBg">
+      <!-- Cards injected by JS -->
+    </div>
+
+    <!-- Green glow orbs -->
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+
+    <!-- Main Content -->
+    <div class="signin-wrapper">
+      <!-- Brand Header -->
+      <div class="brand-header">
+        <!-- <div class="brand-logo">
+          <img src="/logo/logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+          <div class="logo-icon">⚽</div>
+        </div> -->
+        <div class="brand-text">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK</span>
+        </div>
+        <!-- <div class="brand-badge">2026</div> -->
+      </div>
+
+      <!-- Sign In Card -->
+      <div class="signin-card">
+        <div class="card-glow"></div>
+        <div class="card-inner">
+          <div class="card-header">
+            <h1 class="card-title">WELCOME BACK</h1>
+            <p class="card-subtitle">Sign in to your account to continue</p>
+          </div>
+
+          <form class="signin-form" id="signinForm" novalidate>
+            <div class="field-group">
+              <label class="field-label" for="username">USERNAME / EMAIL</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  class="field-input"
+                  placeholder="Enter your username"
+                  autocomplete="username"
+                  required>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="password">PASSWORD</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="field-input"
+                  placeholder="Enter your password"
+                  autocomplete="current-password"
+                  required>
+                <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
+                  <svg class="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-options">
+              <label class="remember-me">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <span class="checkbox-custom"></span>
+                <span class="remember-label">Remember me</span>
+              </label>
+              <a href="#" class="forgot-link">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="signin-btn" id="signinBtn">
+              <span class="btn-text">SIGN IN</span>
+              <span class="btn-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </span>
+              <span class="btn-shine"></span>
+            </button>
+          </form>
+
+          <div class="divider">
+            <span class="divider-line"></span>
+            <span class="divider-text">OR</span>
+            <span class="divider-line"></span>
+          </div>
+
+          <div class="social-login">
+            <button class="social-btn social-google" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+          </div>
+
+          <p class="signup-prompt">
+            Don't have an account?
+            <a href="#" class="signup-link">Create one</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Featured Players Strip -->
+      <div class="featured-strip">
+        <div class="strip-label">TOP PLAYERS THIS SEASON</div>
+        <div class="strip-players" id="stripPlayers"></div>
+      </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/signin.js"></script>
+  </body>
+</html>
