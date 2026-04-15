@@ -230,7 +230,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] Player detail popup with card art and full stats
 - [x] Team-side search, sort, and position filter
 - [x] edit profile
-- [ ] Game plan builder (drag-and-drop formation view)
+- [x] Game plan builder (drag-and-drop formation view)
 - [ ] create room
 - [ ] room design
 - [ ] Ban & pick session (real-time with WebSockets)
