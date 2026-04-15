@@ -52,20 +52,27 @@ const POS_GROUPS = {
   FWD: ["RWF", "LWF", "CF", "SS"],
 };
 
+/** Match client POSITION_LINE_ORDER: CF…GK forward, reverse for DESC. */
+const POSITION_ORDER_FIELD =
+  "FIELD(UPPER(TRIM(IFNULL(position,''))), 'CF','SS','RWF','LWF','AMF','RMF','LMF','CMF','DMF','RB','LB','CB','GK')";
+
 const SORT_MAP = {
-  overall_desc:    "overall DESC, name ASC",
-  overall_asc:     "overall ASC,  name ASC",
-  name_asc:        "name ASC",
-  name_desc:       "name DESC",
-  position_asc:    "position ASC, overall DESC",
-  height_desc:     "height DESC",
-  height_asc:      "ISNULL(height), height ASC",
-  weight_desc:     "weight DESC",
-  weight_asc:      "ISNULL(weight), weight ASC",
-  age_asc:         "ISNULL(age), age ASC",
-  age_desc:        "age DESC",
-  club_asc:        "ISNULL(club), club ASC, overall DESC",
-  nationality_asc: "ISNULL(nationality), nationality ASC, overall DESC",
+  overall_desc:    `overall DESC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
+  overall_asc:     `overall ASC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
+  name_asc:        "name ASC, overall DESC",
+  name_desc:       "name DESC, overall DESC",
+  position_asc:    `CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, overall DESC, name ASC`,
+  position_desc:   `${POSITION_ORDER_FIELD} DESC, overall DESC, name ASC`,
+  height_desc:     "height DESC, overall DESC, name ASC",
+  height_asc:      "ISNULL(height), height ASC, overall DESC, name ASC",
+  weight_desc:     "weight DESC, overall DESC, name ASC",
+  weight_asc:      "ISNULL(weight), weight ASC, overall DESC, name ASC",
+  age_asc:         "ISNULL(age), age ASC, overall DESC, name ASC",
+  age_desc:        "age DESC, overall DESC, name ASC",
+  club_asc:        "ISNULL(club), club ASC, overall DESC, name ASC",
+  club_desc:       "ISNULL(club), club DESC, overall DESC, name ASC",
+  nationality_asc: "ISNULL(nationality), nationality ASC, overall DESC, name ASC",
+  nationality_desc: "ISNULL(nationality), nationality DESC, overall DESC, name ASC",
 };
 
 // Returns distinct club / nationality values for autocomplete
@@ -266,6 +273,55 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
+// ── Edit Profile ─────────────────────────────────────────────
+app.put("/api/profile", async (req, res) => {
+  const { userId, username, email, password } = req.body;
+  if (!userId) return res.status(400).json({ error: "userId required." });
+
+  const updates = [];
+  const params  = [];
+
+  if (username !== undefined) {
+    if (username.length < 3 || username.length > 50)
+      return res.status(400).json({ error: "Username must be 3–50 characters.", field: "username" });
+    updates.push("username = ?");
+    params.push(username.trim());
+  }
+
+  if (email !== undefined) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: "Invalid email address.", field: "email" });
+    updates.push("email = ?");
+    params.push(email.trim().toLowerCase());
+  }
+
+  if (password !== undefined && password !== "") {
+    if (password.length < 6)
+      return res.status(400).json({ error: "Password must be at least 6 characters.", field: "password" });
+    const hashed = await bcrypt.hash(password, 12);
+    updates.push("password = ?");
+    params.push(hashed);
+  }
+
+  if (updates.length === 0)
+    return res.status(400).json({ error: "No changes provided." });
+
+  try {
+    params.push(userId);
+    await db.query(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, params);
+
+    const [[user]] = await db.query("SELECT id, username, email FROM users WHERE id = ?", [userId]);
+    res.json({ message: "Profile updated.", user });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      const field = err.message.includes("uq_users_email") ? "email" : "username";
+      return res.status(409).json({ error: `That ${field} is already taken.`, field });
+    }
+    console.error("profile update error:", err.message);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
 // ── Game Plans ───────────────────────────────────────────────
 app.get("/api/game-plans", async (req, res) => {
   const userId = Number(req.query.userId);
@@ -273,16 +329,226 @@ app.get("/api/game-plans", async (req, res) => {
 
   try {
     const [plans] = await db.query(
-      `SELECT id, name, formation, created_at
-       FROM   game_plans
-       WHERE  user_id = ?
-       ORDER  BY created_at DESC`,
+      `SELECT gp.id, gp.name, gp.formation, gp.created_at,
+              COALESCE(SUM(gpp.role = 'LINEUP'), 0) AS lineup_count,
+              COALESCE(SUM(gpp.role = 'SUB'), 0)    AS sub_count
+       FROM   game_plans gp
+       LEFT JOIN game_plan_players gpp ON gpp.game_plan_id = gp.id
+       WHERE  gp.user_id = ?
+       GROUP  BY gp.id
+       ORDER  BY gp.created_at ASC`,
       [userId],
     );
     res.json({ plans });
   } catch (err) {
     console.error("game-plans error:", err.message);
     res.status(503).json({ error: "Database unavailable", plans: [] });
+  }
+});
+
+app.post("/api/game-plans", async (req, res) => {
+  const { userId, name } = req.body;
+  if (!userId || !name?.trim())
+    return res.status(400).json({ error: "userId and name required." });
+
+  try {
+    const [[{ count }]] = await db.query(
+      "SELECT COUNT(*) AS count FROM game_plans WHERE user_id = ?",
+      [Number(userId)],
+    );
+    if (count >= 20)
+      return res.status(400).json({ error: "Maximum 20 game plans allowed." });
+
+    const [result] = await db.query(
+      "INSERT INTO game_plans (user_id, name, formation) VALUES (?, ?, '4-3-3')",
+      [Number(userId), name.trim()],
+    );
+    const [[plan]] = await db.query(
+      `SELECT id, name, formation, created_at, 0 AS lineup_count, 0 AS sub_count
+       FROM game_plans WHERE id = ?`,
+      [result.insertId],
+    );
+    res.status(201).json({ plan });
+  } catch (err) {
+    console.error("create game-plan error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+const ALLOWED_FORMATIONS = new Set([
+  "4-3-3", "4-4-2", "4-5-1", "3-6-1", "3-4-3", "3-5-2", "5-2-3", "5-3-2", "5-4-1",
+]);
+
+app.put("/api/game-plans/:id", async (req, res) => {
+  const planId = Number(req.params.id);
+  const { userId, name, formation } = req.body;
+  if (!userId) return res.status(400).json({ error: "userId required." });
+
+  const sets = [];
+  const vals = [];
+  if (name !== undefined) {
+    if (!String(name).trim()) return res.status(400).json({ error: "Name cannot be empty." });
+    sets.push("name = ?");
+    vals.push(String(name).trim());
+  }
+  if (formation !== undefined) {
+    const f = formation === null || formation === "" ? "4-3-3" : String(formation);
+    if (!ALLOWED_FORMATIONS.has(f)) return res.status(400).json({ error: "Invalid formation." });
+    sets.push("formation = ?");
+    vals.push(f);
+  }
+  if (!sets.length) return res.status(400).json({ error: "Nothing to update." });
+
+  vals.push(planId, Number(userId));
+
+  try {
+    const [result] = await db.query(
+      `UPDATE game_plans SET ${sets.join(", ")} WHERE id = ? AND user_id = ?`,
+      vals,
+    );
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Plan not found." });
+    res.json({ message: "Plan updated." });
+  } catch (err) {
+    console.error("update game-plan error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.delete("/api/game-plans/:id", async (req, res) => {
+  const planId = Number(req.params.id);
+  const userId = Number(req.query.userId);
+  if (!userId) return res.status(400).json({ error: "userId required." });
+
+  try {
+    const [result] = await db.query(
+      "DELETE FROM game_plans WHERE id = ? AND user_id = ?",
+      [planId, userId],
+    );
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Plan not found." });
+    res.json({ message: "Plan deleted." });
+  } catch (err) {
+    console.error("delete game-plan error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.get("/api/game-plans/:id/players", async (req, res) => {
+  const planId = Number(req.params.id);
+  const userId = Number(req.query.userId);
+  if (!userId) return res.status(400).json({ error: "userId required." });
+
+  try {
+    const [rows] = await db.query(
+      `SELECT gpp.slot, gpp.role,
+              p.id AS player_id, p.name, p.position, p.overall, p.club, p.pesdb_id
+       FROM   game_plan_players gpp
+       JOIN   players p    ON p.id    = gpp.player_id
+       JOIN   game_plans gp ON gp.id  = gpp.game_plan_id
+       WHERE  gpp.game_plan_id = ? AND gp.user_id = ?
+       ORDER  BY gpp.slot ASC`,
+      [planId, userId],
+    );
+    res.json({ players: rows });
+  } catch (err) {
+    console.error("game-plan players error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.put("/api/game-plans/:id/swap", async (req, res) => {
+  const planId = Number(req.params.id);
+  const { userId, slotA, slotB } = req.body;
+
+  if (!userId) return res.status(400).json({ error: "userId required." });
+  if (slotA < 1 || slotA > 23 || slotB < 1 || slotB > 23)
+    return res.status(400).json({ error: "Invalid slot (1–23)." });
+
+  try {
+    const [[plan]] = await db.query(
+      "SELECT id FROM game_plans WHERE id = ? AND user_id = ?",
+      [planId, Number(userId)],
+    );
+    if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+    const [[rowA]] = await db.query(
+      "SELECT player_id FROM game_plan_players WHERE game_plan_id = ? AND slot = ?",
+      [planId, slotA],
+    );
+    const [[rowB]] = await db.query(
+      "SELECT player_id FROM game_plan_players WHERE game_plan_id = ? AND slot = ?",
+      [planId, slotB],
+    );
+
+    const playerA = rowA?.player_id ?? null;
+    const playerB = rowB?.player_id ?? null;
+
+    // Delete both slots first to avoid unique-key conflicts during swap
+    await db.query(
+      "DELETE FROM game_plan_players WHERE game_plan_id = ? AND slot IN (?, ?)",
+      [planId, slotA, slotB],
+    );
+
+    const roleA = slotA <= 11 ? "LINEUP" : "SUB";
+    const roleB = slotB <= 11 ? "LINEUP" : "SUB";
+
+    if (playerB !== null) {
+      await db.query(
+        "INSERT INTO game_plan_players (game_plan_id, player_id, role, slot) VALUES (?, ?, ?, ?)",
+        [planId, playerB, roleA, slotA],
+      );
+    }
+    if (playerA !== null) {
+      await db.query(
+        "INSERT INTO game_plan_players (game_plan_id, player_id, role, slot) VALUES (?, ?, ?, ?)",
+        [planId, playerA, roleB, slotB],
+      );
+    }
+
+    res.json({ message: "Slots swapped." });
+  } catch (err) {
+    console.error("swap slots error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.put("/api/game-plans/:id/players/:slot", async (req, res) => {
+  const planId = Number(req.params.id);
+  const slot   = Number(req.params.slot);
+  const { userId, playerId } = req.body;
+
+  if (!userId) return res.status(400).json({ error: "userId required." });
+  if (slot < 1 || slot > 23) return res.status(400).json({ error: "Invalid slot (1–23)." });
+
+  const role = slot <= 11 ? "LINEUP" : "SUB";
+
+  try {
+    const [[plan]] = await db.query(
+      "SELECT id FROM game_plans WHERE id = ? AND user_id = ?",
+      [planId, Number(userId)],
+    );
+    if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+    if (playerId == null) {
+      await db.query(
+        "DELETE FROM game_plan_players WHERE game_plan_id = ? AND slot = ?",
+        [planId, slot],
+      );
+    } else {
+      await db.query(
+        `INSERT INTO game_plan_players (game_plan_id, player_id, role, slot)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE player_id = VALUES(player_id), role = VALUES(role)`,
+        [planId, Number(playerId), role, slot],
+      );
+    }
+    res.json({ message: "Slot updated." });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY")
+      return res.status(409).json({ error: "Player is already in this game plan." });
+    console.error("update slot error:", err.message);
+    res.status(500).json({ error: "Something went wrong." });
   }
 });
 

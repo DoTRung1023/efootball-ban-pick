@@ -229,7 +229,12 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] Add / remove players from team with search, sort, and multi-filter
 - [x] Player detail popup with card art and full stats
 - [x] Team-side search, sort, and position filter
-- [ ] Google OAuth sign-in
+- [x] edit profile
 - [ ] Game plan builder (drag-and-drop formation view)
+- [ ] create room
+- [ ] room design
 - [ ] Ban & pick session (real-time with WebSockets)
-- [ ] Match history & stats
+- [ ] admin page 
+- [ ] responsive design
+- [ ] security
+- [ ] deploy
