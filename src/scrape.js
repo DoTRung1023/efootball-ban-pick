@@ -37,7 +37,9 @@ const MIN_MS_BETWEEN_PLAYERS  = 2000 / MAX_PLAYERS_PER_SEC;
 const PAGE_DELAY              = 3000;
 /** ms between level-1 and max-level detail requests for the same player (usually 0). */
 const DETAIL_INNER_GAP_MS     = 1000;
-const RETRY_MAX               = 4;
+const RETRY_MAX               = 6;
+const FETCH_TIMEOUT_MS        = 30_000;
+const RETRY_BASE_DELAY_MS    = 2_000;
 /** Upsert this many enriched rows before counting as a flush (matches batching pressure). */
 const FLUSH_EVERY             = 50;
 const BATCH_SIZE              = 500;
@@ -83,8 +85,45 @@ async function pacePlayerRate() {
   lastPacedPlayerAt = Date.now();
 }
 
+function isRetryableFetchError(err) {
+  const name = err?.name;
+  const code = err?.code;
+  const msg = String(err?.message ?? "");
+
+  // Node's fetch uses undici under the hood; low-level failures are thrown (not returned as HTTP status).
+  return (
+    name === "AbortError" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNRESET" ||
+    code === "EAI_AGAIN" ||
+    code === "ENOTFOUND" ||
+    code === "ECONNREFUSED" ||
+    msg.includes("fetch failed") ||
+    msg.includes("timed out") ||
+    msg.includes("socket")
+  );
+}
+
 async function fetchHTML(url, attempt = 1) {
-  const res = await fetch(url, { headers: HEADERS });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let res;
+  try {
+    res = await fetch(url, { headers: HEADERS, signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (attempt < RETRY_MAX && isRetryableFetchError(err)) {
+      const exp = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), 60_000);
+      const jitter = Math.floor(Math.random() * 750);
+      const wait = exp + jitter;
+      process.stdout.write(`\n  ⚠ network error – waiting ${Math.round(wait / 1000)}s…\n`);
+      await sleep(wait);
+      return fetchHTML(url, attempt + 1);
+    }
+    throw new Error(`fetch failed for ${url}: ${err?.message ?? String(err)}`);
+  }
+  clearTimeout(timeout);
 
   if (res.status === 429) {
     const wait = Math.min(attempt * 15_000, 60_000);
@@ -404,10 +443,18 @@ async function runFull(logId, resumeState) {
   let lastProgressDraw = 0;
 
   while (emptyStreak < 3) {
-    const html =
-      nextPage === 1 && rowInPage === 0 && firstHTML
-        ? firstHTML
-        : await fetchHTML(pageURL(nextPage));
+    let html;
+    if (nextPage === 1 && rowInPage === 0 && firstHTML) {
+      html = firstHTML;
+    } else {
+      try {
+        html = await fetchHTML(pageURL(nextPage));
+      } catch (err) {
+        console.error(`\n  ⚠ list fetch failed (page ${nextPage}): ${err.message}`);
+        await sleep(PAGE_DELAY);
+        continue; // retry same page
+      }
+    }
 
     const list = parsePlayers(html);
 
@@ -425,7 +472,15 @@ async function runFull(logId, resumeState) {
       const idStr = list[i].pesdb_id;
       // NOTE: Uncomment to limit the rate of detail fetches.
       await pacePlayerRate();
-      const enriched = await enrichPlayer(idStr);
+
+      let enriched = null;
+      try {
+        enriched = await enrichPlayer(idStr);
+      } catch (err) {
+        console.error(`\n  ⚠ detail fetch failed (id ${idStr}): ${err.message}`);
+        enriched = null; // keep going; state will still advance
+      }
+
       if (enriched) {
         buffer.push(enriched);
         const id = BigInt(enriched.pesdb_id);
@@ -493,7 +548,15 @@ async function runIncremental(logId, cutoffId, lastFinishedAt = null) {
   let lastProgressDraw = 0;
 
   while (true) {
-    const html = await fetchHTML(pageURL(page, true));
+    let html;
+    try {
+      html = await fetchHTML(pageURL(page, true));
+    } catch (err) {
+      console.error(`\n  ⚠ list fetch failed (page ${page}): ${err.message}`);
+      await sleep(PAGE_DELAY);
+      continue; // retry same page
+    }
+
     const list = parsePlayers(html);
 
     if (list.length === 0) break;
@@ -506,7 +569,14 @@ async function runIncremental(logId, cutoffId, lastFinishedAt = null) {
       // NOTE: Uncomment to limit the rate of detail fetches.
       await pacePlayerRate();
 
-      const enriched = await enrichPlayer(row.pesdb_id);
+      let enriched = null;
+      try {
+        enriched = await enrichPlayer(row.pesdb_id);
+      } catch (err) {
+        console.error(`\n  ⚠ detail fetch failed (id ${row.pesdb_id}): ${err.message}`);
+        enriched = null;
+      }
+
       if (enriched) {
         buffer.push(enriched);
         const id = BigInt(enriched.pesdb_id);
