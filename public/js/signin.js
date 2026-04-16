@@ -2,7 +2,7 @@
    eFootball Ban & Pick — Sign In Page Scripts
    ============================================================ */
 
-const CARD_IMG = (id) => `https://pesdb.net/assets/img/card/f${id}.png`;
+const CARD_IMG = (id) => `/img/card/${id}.png`;
 
 // Fallback list shown while the API loads or if it fails
 const FALLBACK_PLAYERS = [

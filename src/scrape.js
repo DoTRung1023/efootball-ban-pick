@@ -31,12 +31,12 @@ const STATE_FILE = new URL("../.scrape-state.json", import.meta.url).pathname;
 // NOTE: Uncomment to limit the rate of detail fetches.
 /** Max detail fetches per second (spaces each `enrichPlayer` start). */
 const MAX_PLAYERS_PER_SEC     = 1;
-const MIN_MS_BETWEEN_PLAYERS  = 1000 / MAX_PLAYERS_PER_SEC;
+const MIN_MS_BETWEEN_PLAYERS  = 2000 / MAX_PLAYERS_PER_SEC;
 
 /** ms between list-page HTTP requests (pagination). */
 const PAGE_DELAY              = 3000;
 /** ms between level-1 and max-level detail requests for the same player (usually 0). */
-const DETAIL_INNER_GAP_MS     = 500;
+const DETAIL_INNER_GAP_MS     = 1000;
 const RETRY_MAX               = 4;
 /** Upsert this many enriched rows before counting as a flush (matches batching pressure). */
 const FLUSH_EVERY             = 50;

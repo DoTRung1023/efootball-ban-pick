@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import db from "./db.js";
+import { handleCardImage } from "./cardImageCacheS3.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -11,6 +12,9 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Card image proxy + S3/R2 cache (frontend uses /img/card/:id.png)
+app.get("/img/card/:id.png", handleCardImage);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });

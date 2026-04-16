@@ -2,7 +2,7 @@
    eFootball Ban & Pick — Home Page
    ============================================================ */
 
-const CARD_IMG    = (id) => `https://pesdb.net/assets/img/card/f${id}.png`;
+const CARD_IMG    = (id) => `/img/card/${id}.png`;
 const PAGE_SIZE   = 50;
 const POS_DEF     = ["CB","LB","RB","LWB","RWB"];
 const POS_MID     = ["CMF","DMF","AMF"];

@@ -61,6 +61,7 @@ ban-pick-efb/
 │   └── 404.html
 ├── src/
 │   ├── db.js               # MySQL connection pool
+│   ├── cardImageCacheS3.js # S3/R2 card image cache (/img/card/:id.png)
 │   ├── scrape.js           # Player catalog scraper
 │   └── server.js           # Express app + API routes
 ├── .env.example            # Environment variable template
@@ -119,6 +120,31 @@ DB_NAME=ban_pick_efb
 PORT=3000
 ```
 
+### (Optional) Card image caching (Cloudflare R2 / S3-compatible)
+
+By default the UI loads card images via your server at `/img/card/<pesdb_id>.png`.
+
+- If R2/S3 is **not** configured, the server will fall back to redirecting to pesdb.net.
+- If R2/S3 **is** configured, the server will cache each image as `cards/f<pesdb_id>.png`.
+- If you set `R2_PUBLIC_BASE_URL` (or `S3_PUBLIC_BASE_URL`), the server will **302 redirect** to:
+  `R2_PUBLIC_BASE_URL/cards/f<pesdb_id>.png` after the first cache fill (best for production + CDN).
+
+Required environment variables:
+
+```
+R2_BUCKET=
+R2_REGION=auto
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+```
+
+Recommended (public bucket or CDN):
+
+```
+R2_PUBLIC_BASE_URL=
+```
+
 ### 4. Set up the database
 
 Create the database user and tables:
@@ -174,6 +200,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
+| `GET` | `/img/card/:id.png` | Player card image (cached to S3/R2 if configured) |
 | `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
 | `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
 | `GET` | `/api/players/distinct` | Distinct values for autocomplete (club, nationality) |
@@ -254,12 +281,14 @@ Visit [http://localhost:3000](http://localhost:3000).
    + [ ] procedure: finalise rules -> start ban category -> ban players & pick loop
    + [ ] rule: 
       + [ ] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
+      + [ ] allow: card type: number of players, overall rating
+      + [ ] compulsory: card type: number of players, overall rating
       + [ ] ban players: ban exact player card
       + [ ] pick players: pick exact player card
    + [ ] a player can see opponent's team then ban/pick
    + [ ] players can view their game plans to build accordingly
    + [ ] a list of my current squad / all my players / all other players
-   + [ ] after finish picking, done then show two squad on screen
+   + [ ] after finish picking, done then show two squads on screen
 - [ ] update database
 - [ ] admin page 
 - [ ] responsive design
