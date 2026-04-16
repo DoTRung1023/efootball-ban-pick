@@ -4,6 +4,7 @@
 -- To refresh player data run:  npm run scrape
 -- ============================================================
 
+DROP DATABASE IF EXISTS ban_pick_efb;
 CREATE DATABASE IF NOT EXISTS ban_pick_efb
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
@@ -34,19 +35,38 @@ CREATE TABLE IF NOT EXISTS players_catalog (
   pesdb_id     BIGINT UNSIGNED   NOT NULL,
   name         VARCHAR(100)      NOT NULL,
   position     VARCHAR(15)       NULL,
-  overall      SMALLINT UNSIGNED NULL,          -- renamed from overall_max
+  -- Dream Team – Level 1 overall (from player detail ?id=)
+  overall      SMALLINT UNSIGNED NULL,
+  -- Dream Team – Max Level overall (?id=&mode=max_level); NULL if unknown
+  overall_max  SMALLINT UNSIGNED NULL,
   club         VARCHAR(100)      NULL,
+  league       VARCHAR(120)      NULL,
   nationality  VARCHAR(100)      NULL,
   height       SMALLINT UNSIGNED NULL COMMENT 'cm',
   weight       SMALLINT UNSIGNED NULL COMMENT 'kg',
   age          TINYINT UNSIGNED  NULL,
-  updated_at   TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                 ON UPDATE CURRENT_TIMESTAMP,
+  card_label   VARCHAR(120)      NULL COMMENT 'Standard, Highlight, featured pool, etc.',
+  region       VARCHAR(80)       NULL,
+  foot         VARCHAR(40)       NULL,
+  playing_style VARCHAR(80)      NULL,
 
   PRIMARY KEY (id),
   UNIQUE KEY uq_catalog_pesdb_id (pesdb_id),
-  KEY idx_catalog_overall (overall)
+  KEY idx_catalog_overall (overall),
+  KEY idx_catalog_overall_max (overall_max),
+  KEY idx_catalog_league (league)
 ) ENGINE=InnoDB;
+
+-- Existing DBs created before detail columns: run in mysql once (skip columns that already exist):
+-- ALTER TABLE players_catalog
+--   ADD COLUMN overall_max     SMALLINT UNSIGNED NULL COMMENT 'Dream Team overall at max level' AFTER overall,
+--   ADD COLUMN league          VARCHAR(120)      NULL AFTER club,
+--   ADD COLUMN card_label      VARCHAR(120)      NULL COMMENT 'Standard, Highlight, or featured pool name' AFTER age,
+--   ADD COLUMN region          VARCHAR(80)       NULL AFTER card_label,
+--   ADD COLUMN foot            VARCHAR(40)       NULL AFTER region,
+--   ADD COLUMN playing_style   VARCHAR(80)       NULL AFTER foot,
+--   ADD KEY idx_catalog_overall_max (overall_max),
+--   ADD KEY idx_catalog_league (league);
 
 -- ------------------------------------------------------------
 -- 1. USERS

@@ -129,7 +129,10 @@ app.get("/api/players", async (req, res) => {
     const order = SORT_MAP[sortBy] ?? SORT_MAP.overall_desc;
 
     const [rows] = await db.query(
-      `SELECT pesdb_id AS id, name, position, overall, club, nationality, height, weight, age
+      `SELECT pesdb_id AS id, name, position,
+              overall, overall_max,
+              club, league, nationality, height, weight, age,
+              card_label, region, foot, playing_style
        FROM   players_catalog
        ${where}
        ORDER  BY ${order}
@@ -152,7 +155,8 @@ app.get("/api/my-players", async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT p.id, p.name, p.position, p.overall, p.club, p.pesdb_id,
-              c.nationality, c.height, c.weight, c.age
+              c.league, c.nationality, c.height, c.weight, c.age,
+              c.overall_max, c.card_label, c.region, c.foot, c.playing_style
        FROM   players p
        LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
        WHERE  p.user_id = ?
@@ -442,10 +446,12 @@ app.get("/api/game-plans/:id/players", async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT gpp.slot, gpp.role,
-              p.id AS player_id, p.name, p.position, p.overall, p.club, p.pesdb_id
+              p.id AS player_id, p.name, p.position, p.overall, p.club, p.pesdb_id,
+              c.overall_max
        FROM   game_plan_players gpp
        JOIN   players p    ON p.id    = gpp.player_id
        JOIN   game_plans gp ON gp.id  = gpp.game_plan_id
+       LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
        WHERE  gpp.game_plan_id = ? AND gp.user_id = ?
        ORDER  BY gpp.slot ASC`,
       [planId, userId],

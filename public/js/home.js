@@ -161,12 +161,6 @@ function initEditProfile() {
     inp.type = inp.type === "password" ? "text" : "password";
   });
 
-  // Confirm password toggle
-  document.getElementById("epConfirmToggle")?.addEventListener("click", () => {
-    const inp = document.getElementById("epConfirm");
-    inp.type = inp.type === "password" ? "text" : "password";
-  });
-
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearEpErrors();
@@ -501,6 +495,7 @@ function makeSquadCard(player) {
   footer.className = "pc-footer";
   footer.innerHTML = `
     <div class="pc-footer-name">${player.name}</div>
+    <div class="pc-footer-ovr">${ovrPairInnerHtml(player)}</div>
     <div class="pc-footer-club">
       <span>${player.club || "—"}</span>
       ${player.nationality ? `<span class="pc-footer-sep">·</span><span>${player.nationality}</span>` : ""}
@@ -533,6 +528,7 @@ function makeSquadCard(player) {
         position:    player.position,
         club:        player.club,
         overall:     player.overall,
+        overall_max: player.overall_max,
         nationality: player.nationality,
         height:      player.height,
         weight:      player.weight,
@@ -1136,8 +1132,8 @@ function makeCatalogRow(player) {
   pos.textContent = player.position || "?";
 
   const ovr = document.createElement("span");
-  ovr.className   = "cr-ovr";
-  ovr.textContent = player.overall ?? "—";
+  ovr.className = `cr-ovr${hasDistinctMaxOvr(player) ? " cr-ovr-dual" : ""}`;
+  ovr.innerHTML = ovrPairInnerHtml(player);
 
   const addBtn = document.createElement("button");
   addBtn.className = `cr-add-btn ${isAdded ? "added" : ""}`;
@@ -1198,6 +1194,7 @@ async function addPlayerToSquad(player, btn) {
       position:    player.position,
       club:        player.club,
       overall:     player.overall,
+      overall_max: player.overall_max ?? null,
       pesdb_id:    player.id,
       nationality: player.nationality ?? null,
       height:      player.height      ?? null,
@@ -1527,6 +1524,7 @@ function openPlayerPopup(player, rowAddBtn) {
   const nameEl  = document.getElementById("playerPopupName");
   const clubEl  = document.getElementById("playerPopupClub");
   const statsEl = document.getElementById("playerPopupStats");
+  const ovrEl   = document.getElementById("playerPopupOvr");
   const addBtn  = document.getElementById("playerPopupAdd");
 
   // Image
@@ -1544,6 +1542,8 @@ function openPlayerPopup(player, rowAddBtn) {
     <span>${player.club || "—"}</span>
     ${player.nationality ? `<span class="pp-sep">·</span><span>${player.nationality}</span>` : ""}
   `;
+
+  if (ovrEl) ovrEl.innerHTML = ovrPairInnerHtml(player);
 
   const parts = [];
   if (player.height)  parts.push(`<span>${player.height} cm</span>`);
@@ -1852,6 +1852,27 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+function hasDistinctMaxOvr(p) {
+  const l1 = p?.overall;
+  const mx = p?.overall_max;
+  if (l1 == null || mx == null) return false;
+  return Number(mx) !== Number(l1);
+}
+
+/** HTML snippet: Level 1 and max OVR (uses overall + overall_max from API). */
+function ovrPairInnerHtml(p) {
+  if (p?.overall == null && p?.overall_max == null) return "—";
+  if (p?.overall == null) return escapeHtml(String(p.overall_max ?? ""));
+  if (!hasDistinctMaxOvr(p)) return escapeHtml(String(p.overall));
+  return (
+    `<span class="ovr-pair" title="Level 1 / Max level">` +
+    `<span class="ovr-l1">${escapeHtml(String(p.overall))}</span>` +
+    `<span class="ovr-slash">/</span>` +
+    `<span class="ovr-max">${escapeHtml(String(p.overall_max))}</span>` +
+    `</span>`
+  );
+}
+
 async function loadGamePlans(userId) {
   const grid = document.getElementById("plansGrid");
   if (!grid) return;
@@ -2067,18 +2088,20 @@ function makePitchSlotEl(slot, player) {
 
   if (player) {
     const hasImg = !!player.pesdb_id;
+    const ovrH   = ovrPairInnerHtml(player);
     el.innerHTML = `
       <div class="pitch-card-wrap">
         ${hasImg
           ? `<img class="pitch-card-img" src="${CARD_IMG(player.pesdb_id)}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="" />
+               onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';const bd=this.parentElement.querySelector('.pitch-card-ovr-badge');if(bd)bd.style.display='none';" alt="" />
              <div class="pitch-card-fallback ${posClass(player.position)}" style="display:none;">
                <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${player.overall ?? "—"}</span>
-             </div>`
+               <span class="pitch-card-ovr">${ovrH}</span>
+             </div>
+             <div class="pitch-card-ovr-badge">${ovrH}</div>`
           : `<div class="pitch-card-fallback ${posClass(player.position)}" style="display:flex;">
                <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${player.overall ?? "—"}</span>
+               <span class="pitch-card-ovr">${ovrH}</span>
              </div>`
         }
         <button class="pitch-remove-btn" title="Remove">
@@ -2111,18 +2134,20 @@ function makeBenchSlotEl(slot, player) {
 
   if (player) {
     const hasImg = !!player.pesdb_id;
+    const ovrH   = ovrPairInnerHtml(player);
     el.innerHTML = `
       <div class="pitch-card-wrap">
         ${hasImg
           ? `<img class="pitch-card-img" src="${CARD_IMG(player.pesdb_id)}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="" />
+               onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';const bd=this.parentElement.querySelector('.pitch-card-ovr-badge');if(bd)bd.style.display='none';" alt="" />
              <div class="pitch-card-fallback ${posClass(player.position)}" style="display:none;">
                <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${player.overall ?? "—"}</span>
-             </div>`
+               <span class="pitch-card-ovr">${ovrH}</span>
+             </div>
+             <div class="pitch-card-ovr-badge">${ovrH}</div>`
           : `<div class="pitch-card-fallback ${posClass(player.position)}" style="display:flex;">
                <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${player.overall ?? "—"}</span>
+               <span class="pitch-card-ovr">${ovrH}</span>
              </div>`
         }
         <button class="pitch-remove-btn" title="Remove">
@@ -2530,8 +2555,8 @@ function renderPlanPicker() {
     pos.textContent = p.position || "?";
 
     const ovr = document.createElement("span");
-    ovr.className   = "cr-ovr";
-    ovr.textContent = p.overall ?? "—";
+    ovr.className = `cr-ovr${hasDistinctMaxOvr(p) ? " cr-ovr-dual" : ""}`;
+    ovr.innerHTML = ovrPairInnerHtml(p);
 
     row.appendChild(imgWrap);
     row.appendChild(info);
@@ -2594,9 +2619,13 @@ async function assignToSlot(slot, player) {
     const data = await res.json();
     if (!res.ok) { showToast(data.error || "Could not assign player.", "error"); return; }
     gamePlans.slots[slot] = {
-      player_id: player.id, name:     player.name,
-      position:  player.position,     overall:  player.overall,
-      club:      player.club,         pesdb_id: player.pesdb_id,
+      player_id:   player.id,
+      name:        player.name,
+      position:    player.position,
+      overall:     player.overall,
+      overall_max: player.overall_max ?? null,
+      club:        player.club,
+      pesdb_id:    player.pesdb_id,
     };
     // Deselect slot after successful assignment
     gamePlans.activeSlot = null;

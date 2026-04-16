@@ -588,6 +588,19 @@ body {
   line-height: 1.2;
 }
 
+.pc-footer-ovr {
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.pc-footer-ovr .ovr-max {
+  color: var(--green);
+}
+
 .pc-footer-club {
   display: flex;
   align-items: center;
@@ -1297,6 +1310,41 @@ body {
   color: var(--green);
 }
 
+.pitch-card-ovr-badge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 3px 2px 4px;
+  text-align: center;
+  pointer-events: none;
+  font-size: 0.56rem;
+  line-height: 1.15;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.15) 55%, transparent);
+}
+
+.pitch-card-ovr-badge .ovr-pair {
+  font-size: 0.56rem;
+  font-weight: 700;
+}
+
+.pitch-card-ovr-badge .ovr-l1 {
+  color: #f0faf3;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+
+.pitch-card-ovr-badge .ovr-slash {
+  opacity: 0.65;
+  color: rgba(240, 250, 243, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.pitch-card-ovr-badge .ovr-max {
+  color: var(--green);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+
 .pitch-slot.active .pitch-card-wrap { filter: drop-shadow(0 0 8px rgba(0,230,118,0.5)); }
 
 .pitch-player-name {
@@ -1940,10 +1988,19 @@ body {
 
 .player-popup-ovr {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--text);
-  line-height: 1;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.player-popup-ovr .ovr-pair {
+  font-size: 1.35rem;
+}
+
+.player-popup-ovr .ovr-max {
+  color: var(--green);
 }
 
 .player-popup-name {
@@ -2986,9 +3043,35 @@ body {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
-  width: 36px;
+  min-width: 36px;
+  width: auto;
+  max-width: 80px;
   text-align: center;
   flex-shrink: 0;
+  line-height: 1.15;
+}
+
+.cr-ovr-dual {
+  font-size: 0.78rem;
+  max-width: 88px;
+}
+
+.cr-ovr .ovr-pair {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.cr-ovr .ovr-slash {
+  opacity: 0.45;
+  font-weight: 600;
+  padding: 0 1px;
+}
+
+.cr-ovr .ovr-max {
+  color: var(--green);
 }
 
 .cr-add-btn {

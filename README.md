@@ -19,7 +19,7 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 ## Features
 
 - **Authentication** — sign up / sign in with username + hashed password (bcryptjs)
-- **Player Catalog** — full database of ~41 k eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/), including position, overall rating, club, nationality, height, weight, and age
+- **Player Catalog** — full database of ~41 k eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/), including position, overall rating, club, **league**, nationality, height, weight, age, and more detail fields
 - **My Team** — build a personal squad: search, sort, and filter the catalog; add or remove players; manage your roster with multi-select delete
 - **Team Search & Filter** — client-side search, sort (name, overall, position, height, weight, age, club, nationality), and position multi-filter for your own team list
 - **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
@@ -193,9 +193,9 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `sortBy` | `?sortBy=overall_desc` | Sort order (see values below) |
 | `club` | `?club=Barcelona` | Filter by club name |
 | `nationality` | `?nationality=France` | Filter by nationality |
-| `minHeight` / `maxHeight` | `?minHeight=180&maxHeight=195` | Height range in cm |
-| `minWeight` / `maxWeight` | `?minWeight=70&maxWeight=90` | Weight range in kg |
-| `minAge` / `maxAge` | `?minAge=20&maxAge=30` | Age range |
+| `heightMin` / `heightMax` | `?heightMin=180&heightMax=195` | Height range in cm |
+| `weightMin` / `weightMax` | `?weightMin=70&weightMax=90` | Weight range in kg |
+| `ageMin` / `ageMax` | `?ageMin=20&ageMax=30` | Age range |
 | `limit` | `?limit=50` | Results per page (default 30) |
 | `offset` | `?offset=60` | Pagination offset |
 
@@ -220,6 +220,18 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ---
 
+## Bug found
+
+- [ ] username length to 50 characters
+- [ ] player list info: region - country / league - club / foot - playing style / height - weight - age
+- [ ] in databased, change card label = card type
+- [ ] sort: overall, overall max
+- [ ] filter: foot, playing style, overall, overall max, card type, league
+- [ ] select mode in game plans: tick box should always show, an abandon tick box appears on that select string
+- [ ] change my team to my players on section strip
+
+---
+
 ## Roadmap
 
 - [x] Sign-in / sign-up page with hashed passwords
@@ -231,9 +243,24 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] Team-side search, sort, and position filter
 - [x] edit profile
 - [x] Game plan builder (drag-and-drop formation view)
-- [ ] create room
-- [ ] room design
+- [ ] clean data
+- [ ] a separate section:
+   + [ ] create room
+   + [ ] room design
 - [ ] Ban & pick session (real-time with WebSockets)
+   + [ ] mode: reaveal after finishing or show after every turn
+   + [ ] host: determine the rules of ban pick, can kick other roomates
+   + [ ] finalise rules: ban categories, number of ban players
+   + [ ] procedure: finalise rules -> start ban category -> ban players & pick loop
+   + [ ] rule: 
+      + [ ] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
+      + [ ] ban players: ban exact player card
+      + [ ] pick players: pick exact player card
+   + [ ] a player can see opponent's team then ban/pick
+   + [ ] players can view their game plans to build accordingly
+   + [ ] a list of my current squad / all my players / all other players
+   + [ ] after finish picking, done then show two squad on screen
+- [ ] update database
 - [ ] admin page 
 - [ ] responsive design
 - [ ] security
