@@ -61,7 +61,7 @@ ban-pick-efb/
 │   └── 404.html
 ├── src/
 │   ├── db.js               # MySQL connection pool
-│   ├── cardImageCacheS3.js # S3/R2 card image cache (/img/card/:id.png)
+│   ├── cardImageCacheR2.js # R2 card image cache (/img/card/:id.png)
 │   ├── scrape.js           # Player catalog scraper
 │   └── server.js           # Express app + API routes
 ├── .env.example            # Environment variable template
@@ -120,13 +120,13 @@ DB_NAME=ban_pick_efb
 PORT=3000
 ```
 
-### (Optional) Card image caching (Cloudflare R2 / S3-compatible)
+### (Optional) Card image caching (Cloudflare R2)
 
 By default the UI loads card images via your server at `/img/card/<pesdb_id>.png`.
 
-- If R2/S3 is **not** configured, the server will fall back to redirecting to pesdb.net.
-- If R2/S3 **is** configured, the server will cache each image as `cards/f<pesdb_id>.png`.
-- If you set `R2_PUBLIC_BASE_URL` (or `S3_PUBLIC_BASE_URL`), the server will **302 redirect** to:
+- If R2 is **not** configured, the server will fall back to redirecting to pesdb.net.
+- If R2 **is** configured, the server will cache each image as `cards/f<pesdb_id>.png`.
+- If you set `R2_PUBLIC_BASE_URL`, the server will **302 redirect** to:
   `R2_PUBLIC_BASE_URL/cards/f<pesdb_id>.png` after the first cache fill (best for production + CDN).
 
 Required environment variables:
@@ -216,7 +216,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
-| `GET` | `/img/card/:id.png` | Player card image (cached to S3/R2 if configured) |
+| `GET` | `/img/card/:id.png` | Player card image (cached to R2 if configured) |
 | `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
 | `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
 | `GET` | `/api/players/distinct` | Distinct values for autocomplete (club, nationality) |
