@@ -166,6 +166,22 @@ mysql -u root < database/schema.sql
 npm run scrape
 ```
 
+Additional scraping commands:
+
+- **`npm run scrape`**: Smart scrape
+  - First run: **full** catalog scrape (walks all list pages + fetches detail pages)
+  - Subsequent runs: **incremental** (only fetches newly added cards since last finished run)
+  - Resume: if interrupted, re-run `npm run scrape` to resume from `.scrape-state.json`
+
+- **`npm run scrape:missing`**: Missing-only repair
+  - Scans pesdb list pages to collect all `pesdb_id`s
+  - Diffs against `players_catalog`
+  - Fetches detail pages and upserts **only missing IDs**
+
+Optional environment flags:
+
+- **`SCRAPE_SHOW_LOGS=1`**: print the “last 5 runs” scrape log table at the end of `npm run scrape`
+
 **First run** — full scrape (~41 k players, ~40 minutes):
 ```
 📦 Mode: FULL  (first run — fetching all players)

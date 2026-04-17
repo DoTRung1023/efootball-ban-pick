@@ -23,6 +23,7 @@
 import "dotenv/config";
 import * as cheerio from "cheerio";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import db from "./db.js";
 
 const BASE       = "https://pesdb.net/efootball/";
@@ -40,6 +41,8 @@ const DETAIL_INNER_GAP_MS     = 1000;
 const RETRY_MAX               = 6;
 const FETCH_TIMEOUT_MS        = 30_000;
 const RETRY_BASE_DELAY_MS    = 2_000;
+const EMPTY_PAGE_RETRY_MAX    = 5;
+const EMPTY_PAGE_RETRY_DELAY_MS = 6_000;
 /** Upsert this many enriched rows before counting as a flush (matches batching pressure). */
 const FLUSH_EVERY             = 50;
 const BATCH_SIZE              = 500;
@@ -423,11 +426,16 @@ function writeProgressLine(done, total, listPage, elapsedSec) {
 async function runFull(logId, resumeState) {
   console.log("📦 Mode: FULL  (list by overall_rating + Dream Team detail per player)");
 
-  // Only prefetch page 1 when starting from scratch (saves one request on resume).
+  // Always fetch page 1 once to estimate total pages.
+  // (Empty/blocked pages can happen mid-run; using a page-count bound prevents early termination.)
   let firstHTML = null;
-  if (!resumeState) {
+  try {
     firstHTML = await fetchHTML(pageURL(1));
+  } catch (err) {
+    console.error(`\n  ⚠ list fetch failed (page 1): ${err.message}`);
+    firstHTML = null;
   }
+
   const total = firstHTML ? detectTotal(firstHTML) : null;
   const estPages = total ? Math.ceil(total / 35) : 1300;
   console.log(`   ${total?.toLocaleString() ?? "?"} players · ~${estPages} pages\n`);
@@ -438,11 +446,11 @@ async function runFull(logId, resumeState) {
   let nextPage = resumeState?.nextPage ?? 1;
   let rowInPage = resumeState?.rowInPage ?? 0;
 
-  let emptyStreak = 0;
   const startTime = Date.now();
   let lastProgressDraw = 0;
 
-  while (emptyStreak < 3) {
+  // Scan through expected page range; tolerate sporadic empty pages by retrying.
+  while (nextPage <= estPages) {
     let html;
     if (nextPage === 1 && rowInPage === 0 && firstHTML) {
       html = firstHTML;
@@ -456,17 +464,33 @@ async function runFull(logId, resumeState) {
       }
     }
 
-    const list = parsePlayers(html);
+    let list = parsePlayers(html);
 
     if (list.length === 0) {
-      emptyStreak++;
-      nextPage++;
-      rowInPage = 0;
-      await sleep(PAGE_DELAY);
-      continue;
-    }
+      let recovered = false;
+      for (let a = 1; a <= EMPTY_PAGE_RETRY_MAX; a++) {
+        process.stdout.write(`\n  ⚠ empty page ${nextPage} – retry ${a}/${EMPTY_PAGE_RETRY_MAX}…\n`);
+        await sleep(EMPTY_PAGE_RETRY_DELAY_MS * a);
+        try {
+          const retryHTML = await fetchHTML(pageURL(nextPage));
+          list = parsePlayers(retryHTML);
+          if (list.length > 0) {
+            recovered = true;
+            break;
+          }
+        } catch (err) {
+          console.error(`  ⚠ list fetch failed (page ${nextPage}, retry ${a}): ${err.message}`);
+        }
+      }
 
-    emptyStreak = 0;
+      if (!recovered) {
+        console.error(`\n  ⚠ giving up on empty page ${nextPage}; continuing…`);
+        nextPage++;
+        rowInPage = 0;
+        await sleep(PAGE_DELAY);
+        continue;
+      }
+    }
 
     for (let i = rowInPage; i < list.length; i++) {
       const idStr = list[i].pesdb_id;
@@ -662,30 +686,51 @@ async function main() {
 
   console.log(`\n✅ Done!  ${label}  (${elapsed}s)`);
 
-  const [logs] = await db.query(
-    `SELECT id, scrape_type, started_at, finished_at,
-            players_upserted, max_pesdb_id
-     FROM scrape_logs
-     ORDER BY id DESC
-     LIMIT 5`,
-  );
-  console.log("\n── Scrape log (last 5 runs) ──────────────────────────────");
-  console.table(
-    logs.map((r) => ({
-      id:       r.id,
-      type:     r.scrape_type,
-      started:  r.started_at?.toISOString().slice(0, 19).replace("T", " "),
-      finished: r.finished_at?.toISOString().slice(0, 19).replace("T", " "),
-      upserted: r.players_upserted?.toLocaleString() ?? "-",
-    })),
-  );
+  if (process.env.SCRAPE_SHOW_LOGS === "1") {
+    const [logs] = await db.query(
+      `SELECT id, scrape_type, started_at, finished_at,
+              players_upserted, max_pesdb_id
+       FROM scrape_logs
+       ORDER BY id DESC
+       LIMIT 5`,
+    );
+    console.log("\n── Scrape log (last 5 runs) ──────────────────────────────");
+    console.table(
+      logs.map((r) => ({
+        id:       r.id,
+        type:     r.scrape_type,
+        started:  r.started_at?.toISOString().slice(0, 19).replace("T", " "),
+        finished: r.finished_at?.toISOString().slice(0, 19).replace("T", " "),
+        upserted: r.players_upserted?.toLocaleString() ?? "-",
+      })),
+    );
+  }
 
   await db.end();
 }
 
-main().catch(async (err) => {
-  console.error("\nFatal:", err.message);
-  console.error("Run `npm run scrape` again to resume.");
-  await db.end().catch(() => {});
-  process.exit(1);
-});
+export {
+  fetchHTML,
+  parsePlayers,
+  detectTotal,
+  pageURL,
+  enrichPlayer,
+  pacePlayerRate,
+  upsertPlayers,
+};
+
+const IS_MAIN = (() => {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try { return pathToFileURL(argv1).href === import.meta.url; }
+  catch { return false; }
+})();
+
+if (IS_MAIN) {
+  main().catch(async (err) => {
+    console.error("\nFatal:", err.message);
+    console.error("Run `npm run scrape` again to resume.");
+    await db.end().catch(() => {});
+    process.exit(1);
+  });
+}
