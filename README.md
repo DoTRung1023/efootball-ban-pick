@@ -233,7 +233,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 |---|---|---|
 | `q` | `?q=mbappe` | Search by name |
 | `positions` | `?positions=CF,SS,RWF` | Filter by one or more positions (comma-separated) |
-| `sortBy` | `?sortBy=overall_desc` | Sort order (see values below) |
+| `sortBy` | `?sortBy=overall_max_desc` | Sort order (see values below; default is max rating descending) |
 | `club` | `?club=Barcelona` | Filter by club name |
 | `nationality` | `?nationality=France` | Filter by nationality |
 | `heightMin` / `heightMax` | `?heightMin=180&heightMax=195` | Height range in cm |
@@ -242,7 +242,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `limit` | `?limit=50` | Results per page (default 30) |
 | `offset` | `?offset=60` | Pagination offset |
 
-**`sortBy` values:** `overall_desc`, `overall_asc`, `name_asc`, `name_desc`, `position_asc`, `height_desc`, `height_asc`, `weight_desc`, `weight_asc`, `age_desc`, `age_asc`, `club_asc`, `nationality_asc`
+**`sortBy` values:** `overall_max_desc`, `overall_max_asc`, `overall_desc`, `overall_asc`, `name_asc`, `name_desc`, `position_asc`, `position_desc`, `height_desc`, `height_asc`, `weight_desc`, `weight_asc`, `age_desc`, `age_asc`, `club_asc`, `club_desc`, `nationality_asc`, `nationality_desc`
 
 ### `GET /api/players/distinct` query params
 
@@ -265,13 +265,13 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ## Bug found
 
-- [ ] username length to 50 characters
-- [ ] player list info: region - country / league - club / foot - playing style / height - weight - age
-- [ ] in databased, change card label = card type
-- [ ] sort: overall, overall max
-- [ ] filter: foot, playing style, overall, overall max, card type, league
-- [ ] select mode in game plans: tick box should always show, an abandon tick box appears on that select string
-- [ ] change my team to my players on section strip
+- [x] username length to 50 characters
+- [x] player list info: region - country / league - club / foot - playing style / height - weight - age
+- [x] in databased, change card label = card type
+- [x] sort: overall, overall max
+- [x] filter: foot, playing style, overall, overall max, card type, league
+- [x] select mode in game plans: tick box should always show, an abandon tick box appears on that select string
+- [x] change my team to my players on section strip
 
 ---
 

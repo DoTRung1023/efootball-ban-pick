@@ -3,10 +3,26 @@
    ============================================================ */
 
 const CARD_IMG    = (id) => `/img/card/${id}.png`;
+const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
 const PAGE_SIZE   = 50;
 const POS_DEF     = ["CB","LB","RB","LWB","RWB"];
 const POS_MID     = ["CMF","DMF","AMF"];
 const POS_FWD     = ["RWF","LWF","CF","SS"];
+
+function makePlayerImg(src, alt = "Player image") {
+  const img = document.createElement("img");
+  img.src = src || ANON_PLAYER_IMG;
+  img.alt = alt;
+  img.loading = "lazy";
+  img.addEventListener("error", () => {
+    if (img.dataset.fallbackApplied === "1") {
+      return;
+    }
+    img.dataset.fallbackApplied = "1";
+    img.src = ANON_PLAYER_IMG;
+  });
+  return img;
+}
 
 /* ============================================================
    Auth
@@ -180,6 +196,10 @@ function initEditProfile() {
       document.getElementById("epUsernameErr").textContent = "Username must be at least 3 characters.";
       document.getElementById("epUsername").classList.add("error");
       valid = false;
+    } else if (username.length > 50) {
+      document.getElementById("epUsernameErr").textContent = "Username must be 50 characters or fewer.";
+      document.getElementById("epUsername").classList.add("error");
+      valid = false;
     }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       document.getElementById("epEmailErr").textContent = "Enter a valid email address.";
@@ -280,11 +300,19 @@ const squad = {
   selected:   new Set(),
   selectMode: false,
   search:     "",
-  sortKey:    "overall",   // overall | name | position | height | weight | age
+  sortKey:    "overall_max", // overall_max | overall | name | position | height | weight | age
   sortDir:    "desc",
   filterPositions: new Set(),
+  filterFoot:          new Set(),
+  filterPlayingStyle:  new Set(),
+  filterCardType:      new Set(),
+  filterLeague:        new Set(),
   filterClub:      "",
   filterNation:    "",
+  filterOverallMin:     "",
+  filterOverallMax:     "",
+  filterMaxOverallMin:  "",
+  filterMaxOverallMax:  "",
   filterHeightMin: "",
   filterHeightMax: "",
   filterWeightMin: "",
@@ -310,6 +338,14 @@ function tiebreakOverallDescThenName(a, b) {
   return (a.name || "").localeCompare(b.name || "");
 }
 
+/** Max OVR for sorting; falls back to level-1 overall when max is unknown. */
+function ovrMaxForSort(p) {
+  const mx = p?.overall_max;
+  if (mx != null && Number.isFinite(Number(mx))) return Number(mx);
+  if (p?.overall != null && Number.isFinite(Number(p.overall))) return Number(p.overall);
+  return -1;
+}
+
 /** When overall rating ties: line order CF→…→GK, then name. */
 function tiebreakPositionLineThenName(a, b) {
   const ra = positionLineRank(a.position);
@@ -326,6 +362,8 @@ function compareByPositionLine(a, b, forwardCfToGk) {
 }
 
 const SQUAD_SORT_MAP = {
+  overall_max: { desc: (a,b) => { const c = ovrMaxForSort(b) - ovrMaxForSort(a); return c !== 0 ? c : tiebreakPositionLineThenName(a, b); },
+                  asc:  (a,b) => { const c = ovrMaxForSort(a) - ovrMaxForSort(b); return c !== 0 ? c : tiebreakPositionLineThenName(a, b); } },
   overall:  { desc: (a,b) => { const c = (b.overall||0)-(a.overall||0); return c !== 0 ? c : tiebreakPositionLineThenName(a, b); },
               asc:  (a,b) => { const c = (a.overall||0)-(b.overall||0); return c !== 0 ? c : tiebreakPositionLineThenName(a, b); } },
   name:     { asc:  (a,b) => { const c = a.name.localeCompare(b.name);   return c !== 0 ? c : tiebreakOverallDescThenName(a, b); },
@@ -352,6 +390,30 @@ function getFilteredSortedSquad() {
   if (squad.filterWeightMax) list = list.filter(p => (p.weight||0) <= Number(squad.filterWeightMax));
   if (squad.filterAgeMin)    list = list.filter(p => (p.age||0)    >= Number(squad.filterAgeMin));
   if (squad.filterAgeMax)    list = list.filter(p => (p.age||0)    <= Number(squad.filterAgeMax));
+  if (squad.filterFoot.size) {
+    list = list.filter((p) => p.foot != null && squad.filterFoot.has(p.foot));
+  }
+  if (squad.filterPlayingStyle.size) {
+    list = list.filter((p) => p.playing_style != null && squad.filterPlayingStyle.has(p.playing_style));
+  }
+  if (squad.filterCardType.size) {
+    list = list.filter((p) => p.card_type != null && squad.filterCardType.has(p.card_type));
+  }
+  if (squad.filterLeague.size) {
+    list = list.filter((p) => p.league != null && squad.filterLeague.has(p.league));
+  }
+  if (squad.filterOverallMin) {
+    list = list.filter((p) => p.overall != null && p.overall >= Number(squad.filterOverallMin));
+  }
+  if (squad.filterOverallMax) {
+    list = list.filter((p) => p.overall != null && p.overall <= Number(squad.filterOverallMax));
+  }
+  if (squad.filterMaxOverallMin) {
+    list = list.filter((p) => p.overall_max != null && p.overall_max >= Number(squad.filterMaxOverallMin));
+  }
+  if (squad.filterMaxOverallMax) {
+    list = list.filter((p) => p.overall_max != null && p.overall_max <= Number(squad.filterMaxOverallMax));
+  }
   const fn = SQUAD_SORT_MAP[squad.sortKey]?.[squad.sortDir];
   if (fn) list.sort(fn);
   return list;
@@ -401,7 +463,7 @@ async function loadSquad(userId) {
     const data = await res.json();
     squad.players = data.players ?? [];
   } catch {
-    showToast("Could not load your team.", "error");
+    showToast("Could not load your players.", "error");
     squad.players = [];
   }
 
@@ -425,8 +487,8 @@ function renderSquad() {
             <line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
           </svg>
         </div>
-        <h3>YOUR TEAM IS EMPTY</h3>
-        <p>Add players from the catalog to build your team.</p>
+        <h3>YOUR PLAYERS LIST IS EMPTY</h3>
+        <p>Add players from the catalog to build your players list.</p>
         <button class="add-player-btn" id="emptyAddBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -453,22 +515,17 @@ function makeSquadCard(player) {
   const card = document.createElement("div");
   card.className = "player-card";
   card.dataset.id = player.id;
+  card.title = player.name || "";
   if (squad.selected.has(player.id)) card.classList.add("selected");
 
   const imgWrap = document.createElement("div");
   imgWrap.className = "pc-img-wrap";
   imgWrap.dataset.initial = player.name[0] || "?";
 
-  if (player.pesdb_id) {
-    const img = document.createElement("img");
-    img.src     = CARD_IMG(player.pesdb_id);
-    img.alt     = player.name;
-    img.loading = "lazy";
-    img.onerror = () => imgWrap.classList.add("no-img");
-    imgWrap.appendChild(img);
-  } else {
-    imgWrap.classList.add("no-img");
-  }
+  imgWrap.appendChild(makePlayerImg(
+    player.pesdb_id ? CARD_IMG(player.pesdb_id) : ANON_PLAYER_IMG,
+    player.name,
+  ));
 
   // Delete button (single delete)
   const delBtn = document.createElement("button");
@@ -490,21 +547,11 @@ function makeSquadCard(player) {
 
   card.appendChild(imgWrap);
 
-  // Info footer
+  // Info footer (name + OVR on card art only; text = region/country / league/club / …)
   const footer = document.createElement("div");
   footer.className = "pc-footer";
   footer.innerHTML = `
-    <div class="pc-footer-name">${player.name}</div>
-    <div class="pc-footer-ovr">${ovrPairInnerHtml(player)}</div>
-    <div class="pc-footer-club">
-      <span>${player.club || "—"}</span>
-      ${player.nationality ? `<span class="pc-footer-sep">·</span><span>${player.nationality}</span>` : ""}
-    </div>
-    <div class="pc-footer-meta">
-      ${player.height  ? `<span>${player.height} cm</span><span class="pc-footer-sep">·</span>` : ""}
-      ${player.weight  ? `<span>${player.weight} kg</span><span class="pc-footer-sep">·</span>` : ""}
-      ${player.age     ? `<span>${player.age} yo</span>` : ""}
-    </div>
+    <div class="pc-footer-meta pmeta-in-card pc-footer-detail-only">${playerDetailSublineHtml(player)}</div>
   `;
   card.appendChild(footer);
 
@@ -523,16 +570,21 @@ function makeSquadCard(player) {
     } else {
       // Open detail popup — normalise squad player to catalog-player shape
       const catalogShape = {
-        id:          player.pesdb_id,
-        name:        player.name,
-        position:    player.position,
-        club:        player.club,
-        overall:     player.overall,
-        overall_max: player.overall_max,
-        nationality: player.nationality,
-        height:      player.height,
-        weight:      player.weight,
-        age:         player.age,
+        id:             player.pesdb_id,
+        name:           player.name,
+        position:       player.position,
+        club:           player.club,
+        league:         player.league,
+        overall:        player.overall,
+        overall_max:    player.overall_max,
+        nationality:    player.nationality,
+        region:         player.region,
+        card_type:      player.card_type,
+        foot:           player.foot,
+        playing_style:  player.playing_style,
+        height:         player.height,
+        weight:         player.weight,
+        age:            player.age,
       };
       openPlayerPopup(catalogShape, null);
     }
@@ -563,7 +615,8 @@ function exitSelectMode() {
 }
 
 const SQUAD_SORT_CATEGORIES = [
-  { key: "overall",  label: "Overall Rating", bidir: true  },
+  { key: "overall_max", label: "Overall Max",      bidir: true  },
+  { key: "overall",     label: "Overall Level 1", bidir: true  },
   { key: "name",     label: "Player Name",    bidir: true  },
   { key: "position", label: "Position",       bidir: true  },
   { key: "height",   label: "Height",         bidir: true  },
@@ -579,7 +632,7 @@ function updateSquadSortUI() {
   const dirBtn  = document.getElementById("teamSortDirBtn");
   const dirIcon = document.getElementById("teamSortDirIcon");
   if (labelEl) labelEl.textContent = cat ? cat.label : "Sort";
-  if (btn) btn.classList.toggle("has-active", squad.sortKey !== "overall" || squad.sortDir !== "desc");
+  if (btn) btn.classList.toggle("has-active", squad.sortKey !== "overall_max" || squad.sortDir !== "desc");
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
     dirIcon.textContent  = squad.sortDir === "desc" ? "↓" : "↑";
@@ -593,7 +646,10 @@ function updateSquadFilterDot() {
   const dot = document.getElementById("teamFilterDot");
   const btn = document.getElementById("teamFilterBtn");
   const active = squad.filterPositions.size > 0
+    || squad.filterFoot.size || squad.filterPlayingStyle.size || squad.filterCardType.size || squad.filterLeague.size
     || !!squad.filterClub || !!squad.filterNation
+    || !!squad.filterOverallMin || !!squad.filterOverallMax
+    || !!squad.filterMaxOverallMin || !!squad.filterMaxOverallMax
     || !!squad.filterHeightMin || !!squad.filterHeightMax
     || !!squad.filterWeightMin || !!squad.filterWeightMax
     || !!squad.filterAgeMin    || !!squad.filterAgeMax;
@@ -635,6 +691,62 @@ function buildSquadFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="squadPosMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="sqfFootMs">
+        <button class="pos-ms-btn" id="sqfFootMsBtn" type="button">
+          <span id="sqfFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="sqfPsMs">
+        <button class="pos-ms-btn" id="sqfPsMsBtn" type="button">
+          <span id="sqfPsMsLabel">Any playing style</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfPsMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">CARD TYPE</div>
+      <div class="pos-multiselect" id="sqfCtMs">
+        <button class="pos-ms-btn" id="sqfCtMsBtn" type="button">
+          <span id="sqfCtMsLabel">Any card type</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfCtMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="sqfLgMs">
+        <button class="pos-ms-btn" id="sqfLgMsBtn" type="button">
+          <span id="sqfLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL LEVEL 1</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="sqfOvrMin" placeholder="Min" value="${squad.filterOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="sqfOvrMax" placeholder="Max" value="${squad.filterOverallMax}">
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL MAX</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="sqfOvrMaxMin" placeholder="Min" value="${squad.filterMaxOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="sqfOvrMaxMax" placeholder="Max" value="${squad.filterMaxOverallMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -730,12 +842,58 @@ function buildSquadFilterPanel() {
   }
   onSqfInput("sqfClub",      "filterClub");
   onSqfInput("sqfNation",    "filterNation");
+  onSqfInput("sqfOvrMin",    "filterOverallMin");
+  onSqfInput("sqfOvrMax",    "filterOverallMax");
+  onSqfInput("sqfOvrMaxMin", "filterMaxOverallMin");
+  onSqfInput("sqfOvrMaxMax", "filterMaxOverallMax");
   onSqfInput("sqfHeightMin", "filterHeightMin");
   onSqfInput("sqfHeightMax", "filterHeightMax");
   onSqfInput("sqfWeightMin", "filterWeightMin");
   onSqfInput("sqfWeightMax", "filterWeightMax");
   onSqfInput("sqfAgeMin",    "filterAgeMin");
   onSqfInput("sqfAgeMax",    "filterAgeMax");
+
+  const runSquadMs = (o) =>
+    wireAttributeMultiselects(panel, o, [
+      {
+        optionsKey: "foot",
+        stateSet: squad.filterFoot,
+        panelSel: "#sqfFootMsPanel",
+        btnSel: "#sqfFootMsBtn",
+        labelSel: "#sqfFootMsLabel",
+        allLabel: "Any foot",
+        onChange: () => { updateSquadFilterDot(); renderSquad(); },
+      },
+      {
+        optionsKey: "playing_style",
+        stateSet: squad.filterPlayingStyle,
+        panelSel: "#sqfPsMsPanel",
+        btnSel: "#sqfPsMsBtn",
+        labelSel: "#sqfPsMsLabel",
+        allLabel: "Any playing style",
+        onChange: () => { updateSquadFilterDot(); renderSquad(); },
+      },
+      {
+        optionsKey: "card_type",
+        stateSet: squad.filterCardType,
+        panelSel: "#sqfCtMsPanel",
+        btnSel: "#sqfCtMsBtn",
+        labelSel: "#sqfCtMsLabel",
+        allLabel: "Any card type",
+        onChange: () => { updateSquadFilterDot(); renderSquad(); },
+      },
+      {
+        optionsKey: "league",
+        stateSet: squad.filterLeague,
+        panelSel: "#sqfLgMsPanel",
+        btnSel: "#sqfLgMsBtn",
+        labelSel: "#sqfLgMsLabel",
+        allLabel: "Any league",
+        onChange: () => { updateSquadFilterDot(); renderSquad(); },
+      },
+    ]);
+  if (playerFilterOptionsCache) runSquadMs(playerFilterOptionsCache);
+  else getPlayerFilterOptions().then(runSquadMs);
 
   // Autocomplete for club & nationality
   initAutocomplete(panel.querySelector("#sqfClub"), panel.querySelector("#sqfClubAc"), "club", (val) => {
@@ -752,7 +910,13 @@ function buildSquadFilterPanel() {
   // Clear all
   panel.querySelector("#squadClearFiltersBtn")?.addEventListener("click", () => {
     squad.filterPositions.clear();
+    squad.filterFoot.clear();
+    squad.filterPlayingStyle.clear();
+    squad.filterCardType.clear();
+    squad.filterLeague.clear();
     squad.filterClub = squad.filterNation = "";
+    squad.filterOverallMin = squad.filterOverallMax = "";
+    squad.filterMaxOverallMin = squad.filterMaxOverallMax = "";
     squad.filterHeightMin = squad.filterHeightMax = "";
     squad.filterWeightMin = squad.filterWeightMax = "";
     squad.filterAgeMin    = squad.filterAgeMax    = "";
@@ -887,7 +1051,8 @@ async function deletePlayers(playerIds, userId) {
    ============================================================ */
 // descVal / ascVal map to server SORT_MAP; descTip / ascTip are shown on the direction button
 const SORT_CATEGORIES = [
-  { key: "overall",     label: "Overall Rating", descVal: "overall_desc",    ascVal: "overall_asc",     bidir: true,  descTip: "Highest rating first",  ascTip: "Lowest rating first"   },
+  { key: "overall_max", label: "Overall Max",       descVal: "overall_max_desc", ascVal: "overall_max_asc", bidir: true,  descTip: "Highest max rating first", ascTip: "Lowest max rating first" },
+  { key: "overall",     label: "Overall Level 1",   descVal: "overall_desc",     ascVal: "overall_asc",     bidir: true,  descTip: "Highest Level 1 first",    ascTip: "Lowest Level 1 first"    },
   { key: "name",        label: "Player Name",    descVal: "name_asc",        ascVal: "name_desc",       bidir: true,  descTip: "A → Z",                 ascTip: "Z → A"                 },
   { key: "position",    label: "Position",       descVal: "position_asc",    ascVal: "position_desc",   bidir: true,  descTip: "CF → SS → … → GK",     ascTip: "GK → … → SS → CF"       },
   { key: "height",      label: "Height",         descVal: "height_desc",     ascVal: "height_asc",      bidir: true,  descTip: "Tallest first",          ascTip: "Shortest first"        },
@@ -902,11 +1067,19 @@ const catalog = {
   offset:        0,
   query:         "",
   filterPositions: new Set(),
-  sortCategory:  "overall",
+  filterFoot:          new Set(),
+  filterPlayingStyle:  new Set(),
+  filterCardType:      new Set(),
+  filterLeague:        new Set(),
+  sortCategory:  "overall_max",
   sortDir:       "desc",
-  sortBy:        "overall_desc",
+  sortBy:        "overall_max_desc",
   filterClub:       "",
   filterNation:     "",
+  filterOverallMin:     "",
+  filterOverallMax:     "",
+  filterMaxOverallMin:  "",
+  filterMaxOverallMax:  "",
   filterHeightMin:  "",
   filterHeightMax:  "",
   filterWeightMin:  "",
@@ -955,11 +1128,88 @@ function initAutocomplete(inputEl, listEl, field, onPick) {
   });
 }
 
+let playerFilterOptionsCache = null;
+
+async function getPlayerFilterOptions() {
+  if (playerFilterOptionsCache) return playerFilterOptionsCache;
+  try {
+    const res = await fetch("/api/players/filter-options");
+    playerFilterOptionsCache = res.ok ? await res.json() : null;
+  } catch {
+    playerFilterOptionsCache = null;
+  }
+  if (!playerFilterOptionsCache) {
+    playerFilterOptionsCache = { foot: [], playing_style: [], card_type: [], league: [] };
+  }
+  return playerFilterOptionsCache;
+}
+
+/** Multiselect dropdowns backed by distinct catalog values (foot, style, card type, league). */
+function wireAttributeMultiselects(panel, optionsByKey, configs) {
+  for (const cfg of configs) {
+    const values = optionsByKey[cfg.optionsKey] ?? [];
+    const msPanel = panel.querySelector(cfg.panelSel);
+    const msBtn = panel.querySelector(cfg.btnSel);
+    const msLabel = panel.querySelector(cfg.labelSel);
+    if (!msPanel || !msBtn || !msLabel) continue;
+
+    const stateSet = cfg.stateSet;
+    msPanel.innerHTML = "";
+
+    function updateLabel() {
+      const sel = [...stateSet];
+      msLabel.textContent =
+        sel.length === 0
+          ? cfg.allLabel
+          : sel.length <= 3
+            ? sel.join(", ")
+            : `${sel.slice(0, 3).join(", ")} +${sel.length - 3}`;
+      msBtn.classList.toggle("has-pos-filter", sel.length > 0);
+    }
+
+    values.forEach((val) => {
+      const item = document.createElement("div");
+      item.className = `pos-ms-item${stateSet.has(val) ? " checked" : ""}`;
+      item.innerHTML = `<span class="pos-ms-check"></span><span>${escapeHtml(val)}</span>`;
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (stateSet.has(val)) {
+          stateSet.delete(val);
+          item.classList.remove("checked");
+        } else {
+          stateSet.add(val);
+          item.classList.add("checked");
+        }
+        updateLabel();
+        cfg.onChange();
+      });
+      msPanel.appendChild(item);
+    });
+
+    msBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = msPanel.classList.toggle("open");
+      msBtn.classList.toggle("open", open);
+    });
+    document.addEventListener("click", () => {
+      msPanel.classList.remove("open");
+      msBtn.classList.remove("open");
+    });
+    msPanel.addEventListener("click", (e) => e.stopPropagation());
+
+    updateLabel();
+  }
+}
+
 function hasActiveFilters() {
-  return catalog.filterPositions.size || catalog.filterClub || catalog.filterNation ||
-    catalog.filterHeightMin || catalog.filterHeightMax ||
-    catalog.filterWeightMin || catalog.filterWeightMax ||
-    catalog.filterAgeMin    || catalog.filterAgeMax;
+  return catalog.filterPositions.size || catalog.filterFoot.size || catalog.filterPlayingStyle.size
+    || catalog.filterCardType.size || catalog.filterLeague.size
+    || catalog.filterClub || catalog.filterNation
+    || catalog.filterOverallMin || catalog.filterOverallMax
+    || catalog.filterMaxOverallMin || catalog.filterMaxOverallMax
+    || catalog.filterHeightMin || catalog.filterHeightMax
+    || catalog.filterWeightMin || catalog.filterWeightMax
+    || catalog.filterAgeMin    || catalog.filterAgeMax;
 }
 
 function updateFilterBadge() {
@@ -972,7 +1222,7 @@ function updateFilterBadge() {
 
 function getSortVal() {
   const cat = SORT_CATEGORIES.find((c) => c.key === catalog.sortCategory);
-  if (!cat) return "overall_desc";
+  if (!cat) return "overall_max_desc";
   return catalog.sortDir === "asc" ? cat.ascVal : cat.descVal;
 }
 
@@ -997,7 +1247,7 @@ function updateSortUI() {
   const dirIcon = document.getElementById("sortDirIcon");
 
   if (labelEl) labelEl.textContent = cat ? cat.label : "SORT";
-  if (btn)     btn.classList.toggle("has-active", catalog.sortCategory !== "overall" || catalog.sortDir !== "desc");
+  if (btn)     btn.classList.toggle("has-active", catalog.sortCategory !== "overall_max" || catalog.sortDir !== "desc");
 
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
@@ -1043,6 +1293,14 @@ async function fetchCatalog(reset = false) {
   if (catalog.filterWeightMax) params.set("weightMax",   catalog.filterWeightMax);
   if (catalog.filterAgeMin)   params.set("ageMin",       catalog.filterAgeMin);
   if (catalog.filterAgeMax)   params.set("ageMax",       catalog.filterAgeMax);
+  if (catalog.filterFoot.size)         params.set("foot",         [...catalog.filterFoot].join(","));
+  if (catalog.filterPlayingStyle.size)  params.set("playingStyle", [...catalog.filterPlayingStyle].join(","));
+  if (catalog.filterCardType.size)      params.set("cardType",     [...catalog.filterCardType].join(","));
+  if (catalog.filterLeague.size)        params.set("league",       [...catalog.filterLeague].join(","));
+  if (catalog.filterOverallMin)        params.set("overallMin",        catalog.filterOverallMin);
+  if (catalog.filterOverallMax)        params.set("overallMax",        catalog.filterOverallMax);
+  if (catalog.filterMaxOverallMin)     params.set("maxOverallMin",     catalog.filterMaxOverallMin);
+  if (catalog.filterMaxOverallMax)     params.set("maxOverallMax",     catalog.filterMaxOverallMax);
 
   try {
     const res   = await fetch("/api/players?" + params);
@@ -1100,31 +1358,13 @@ function makeCatalogRow(player) {
   const imgWrap = document.createElement("div");
   imgWrap.className = "cr-img";
   imgWrap.dataset.initial = player.name[0] || "?";
-  const img = document.createElement("img");
-  img.src     = CARD_IMG(player.id);
-  img.alt     = player.name;
-  img.loading = "lazy";
-  img.onerror = () => { imgWrap.classList.add("no-img"); imgWrap.textContent = player.name[0] || "?"; };
-  imgWrap.appendChild(img);
+  imgWrap.appendChild(makePlayerImg(CARD_IMG(player.id), player.name));
 
   const info = document.createElement("div");
   info.className = "cr-info";
   info.innerHTML = `
-    <div class="cr-name">${player.name}</div>
-    <div class="cr-club">
-      <span>${player.club || "—"}</span>
-      ${player.nationality ? `<span class="cr-meta-sep">·</span><span class="cr-nationality">${player.nationality}</span>` : ""}
-    </div>
-  `;
-
-  const meta = document.createElement("div");
-  meta.className = "cr-meta";
-  meta.innerHTML = `
-    <span class="cr-meta-item" title="Height">${player.height ? player.height + " cm" : "—"}</span>
-    <span class="cr-meta-sep">·</span>
-    <span class="cr-meta-item" title="Weight">${player.weight ? player.weight + " kg" : "—"}</span>
-    <span class="cr-meta-sep">·</span>
-    <span class="cr-meta-item" title="Age">${player.age ? player.age + " yo" : "—"}</span>
+    <div class="cr-name">${escapeHtml(player.name)}</div>
+    <div class="cr-detail">${playerDetailSublineHtml(player)}</div>
   `;
 
   const pos = document.createElement("span");
@@ -1132,7 +1372,7 @@ function makeCatalogRow(player) {
   pos.textContent = player.position || "?";
 
   const ovr = document.createElement("span");
-  ovr.className = `cr-ovr${hasDistinctMaxOvr(player) ? " cr-ovr-dual" : ""}`;
+  ovr.className = `cr-ovr${hasFullOvrPair(player) ? " cr-ovr-dual" : ""}`;
   ovr.innerHTML = ovrPairInnerHtml(player);
 
   const addBtn = document.createElement("button");
@@ -1154,7 +1394,6 @@ function makeCatalogRow(player) {
   // Click row → open detail popup
   row.addEventListener("click", () => openPlayerPopup(player, addBtn));
 
-  info.appendChild(meta);
   row.appendChild(imgWrap);
   row.appendChild(info);
   row.appendChild(pos);
@@ -1183,23 +1422,28 @@ async function addPlayerToSquad(player, btn) {
     const data = await res.json();
 
     if (!res.ok) {
-      if (res.status === 409) { showToast("Already in your team.", "error"); markAdded(btn, player.id); }
+      if (res.status === 409) { showToast("Already in your players.", "error"); markAdded(btn, player.id); }
       else { showToast(data.error || "Could not add player.", "error"); btn.disabled = false; }
       return;
     }
 
     squad.players.push({
-      id:          data.id,
-      name:        player.name,
-      position:    player.position,
-      club:        player.club,
-      overall:     player.overall,
-      overall_max: player.overall_max ?? null,
-      pesdb_id:    player.id,
-      nationality: player.nationality ?? null,
-      height:      player.height      ?? null,
-      weight:      player.weight      ?? null,
-      age:         player.age         ?? null,
+      id:             data.id,
+      name:           player.name,
+      position:       player.position,
+      club:           player.club,
+      league:         player.league ?? null,
+      overall:        player.overall,
+      overall_max:    player.overall_max ?? null,
+      pesdb_id:       player.id,
+      nationality:    player.nationality ?? null,
+      region:         player.region ?? null,
+      card_type:      player.card_type ?? null,
+      foot:           player.foot ?? null,
+      playing_style:  player.playing_style ?? null,
+      height:         player.height ?? null,
+      weight:         player.weight ?? null,
+      age:            player.age ?? null,
     });
 
     markAdded(btn, player.id);
@@ -1312,6 +1556,62 @@ function buildFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="posMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="fcFootMs">
+        <button class="pos-ms-btn" id="fcFootMsBtn" type="button">
+          <span id="fcFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="fcPsMs">
+        <button class="pos-ms-btn" id="fcPsMsBtn" type="button">
+          <span id="fcPsMsLabel">Any playing style</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcPsMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">CARD TYPE</div>
+      <div class="pos-multiselect" id="fcCtMs">
+        <button class="pos-ms-btn" id="fcCtMsBtn" type="button">
+          <span id="fcCtMsLabel">Any card type</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcCtMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="fcLgMs">
+        <button class="pos-ms-btn" id="fcLgMsBtn" type="button">
+          <span id="fcLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL LEVEL 1</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="fcOvrMin" placeholder="Min" value="${catalog.filterOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="fcOvrMax" placeholder="Max" value="${catalog.filterOverallMax}">
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL MAX</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="fcOvrMaxMin" placeholder="Min" value="${catalog.filterMaxOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="fcOvrMaxMax" placeholder="Max" value="${catalog.filterMaxOverallMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -1430,6 +1730,10 @@ function buildFilterPanel() {
     "nationality",
     (val) => { catalog.filterNation = val; updateFilterBadge(); reloadCatalog(); }
   );
+  onFilterInput("fcOvrMin",    "filterOverallMin");
+  onFilterInput("fcOvrMax",    "filterOverallMax");
+  onFilterInput("fcOvrMaxMin", "filterMaxOverallMin");
+  onFilterInput("fcOvrMaxMax", "filterMaxOverallMax");
   onFilterInput("fcHeightMin", "filterHeightMin");
   onFilterInput("fcHeightMax", "filterHeightMax");
   onFilterInput("fcWeightMin", "filterWeightMin");
@@ -1437,10 +1741,58 @@ function buildFilterPanel() {
   onFilterInput("fcAgeMin",    "filterAgeMin");
   onFilterInput("fcAgeMax",    "filterAgeMax");
 
+  const runCatMs = (o) =>
+    wireAttributeMultiselects(panel, o, [
+      {
+        optionsKey: "foot",
+        stateSet: catalog.filterFoot,
+        panelSel: "#fcFootMsPanel",
+        btnSel: "#fcFootMsBtn",
+        labelSel: "#fcFootMsLabel",
+        allLabel: "Any foot",
+        onChange: () => { updateFilterBadge(); reloadCatalog(); },
+      },
+      {
+        optionsKey: "playing_style",
+        stateSet: catalog.filterPlayingStyle,
+        panelSel: "#fcPsMsPanel",
+        btnSel: "#fcPsMsBtn",
+        labelSel: "#fcPsMsLabel",
+        allLabel: "Any playing style",
+        onChange: () => { updateFilterBadge(); reloadCatalog(); },
+      },
+      {
+        optionsKey: "card_type",
+        stateSet: catalog.filterCardType,
+        panelSel: "#fcCtMsPanel",
+        btnSel: "#fcCtMsBtn",
+        labelSel: "#fcCtMsLabel",
+        allLabel: "Any card type",
+        onChange: () => { updateFilterBadge(); reloadCatalog(); },
+      },
+      {
+        optionsKey: "league",
+        stateSet: catalog.filterLeague,
+        panelSel: "#fcLgMsPanel",
+        btnSel: "#fcLgMsBtn",
+        labelSel: "#fcLgMsLabel",
+        allLabel: "Any league",
+        onChange: () => { updateFilterBadge(); reloadCatalog(); },
+      },
+    ]);
+  if (playerFilterOptionsCache) runCatMs(playerFilterOptionsCache);
+  else getPlayerFilterOptions().then(runCatMs);
+
   // Clear all
   panel.querySelector("#clearFiltersBtn")?.addEventListener("click", () => {
     catalog.filterPositions.clear();
+    catalog.filterFoot.clear();
+    catalog.filterPlayingStyle.clear();
+    catalog.filterCardType.clear();
+    catalog.filterLeague.clear();
     catalog.filterClub = catalog.filterNation = "";
+    catalog.filterOverallMin = catalog.filterOverallMax = "";
+    catalog.filterMaxOverallMin = catalog.filterMaxOverallMax = "";
     catalog.filterHeightMin = catalog.filterHeightMax = "";
     catalog.filterWeightMin = catalog.filterWeightMax = "";
     catalog.filterAgeMin    = catalog.filterAgeMax    = "";
@@ -1489,6 +1841,7 @@ function openAddPlayerModal() {
   if (addPlayerModalOpen) return;
   addPlayerModalOpen = true;
   syncAddedPesdbIds();
+  getPlayerFilterOptions();
   reloadCatalog();
   document.getElementById("addPlayerOverlay")?.classList.add("open");
   document.body.style.overflow = "hidden";
@@ -1530,26 +1883,15 @@ function openPlayerPopup(player, rowAddBtn) {
   // Image
   imgWrap.innerHTML = "";
   imgWrap.classList.remove("no-img");
-  const img = document.createElement("img");
-  img.src     = CARD_IMG(player.id);
-  img.alt     = player.name;
-  img.onerror = () => { imgWrap.innerHTML = player.name[0] || "?"; imgWrap.classList.add("no-img"); };
-  imgWrap.appendChild(img);
+  imgWrap.appendChild(makePlayerImg(player.id ? CARD_IMG(player.id) : ANON_PLAYER_IMG, player.name));
 
   nameEl.textContent = player.name;
 
-  clubEl.innerHTML = `
-    <span>${player.club || "—"}</span>
-    ${player.nationality ? `<span class="pp-sep">·</span><span>${player.nationality}</span>` : ""}
-  `;
+  clubEl.innerHTML = playerDetailSublineHtml(player);
 
-  if (ovrEl) ovrEl.innerHTML = ovrPairInnerHtml(player);
+  if (ovrEl) ovrEl.innerHTML = "";
 
-  const parts = [];
-  if (player.height)  parts.push(`<span>${player.height} cm</span>`);
-  if (player.weight)  parts.push(`<span>${player.weight} kg</span>`);
-  if (player.age)     parts.push(`<span>${player.age} yo</span>`);
-  statsEl.innerHTML = parts.join('<span class="pp-sep"> · </span>');
+  statsEl.innerHTML = "";
 
   const fromSquad = (rowAddBtn === null);
   const isAdded   = fromSquad || catalog.addedPesdbIds.has(String(player.id));
@@ -1824,11 +2166,17 @@ function initFormationDropdown(userId) {
 
 const ppState = {
   query:           "",
-  sortCategory:    "overall",
+  sortCategory:    "overall_max",
   sortDir:         "desc",
   filterPositions: new Set(),
+  filterFoot:          new Set(),
+  filterPlayingStyle:  new Set(),
+  filterCardType:      new Set(),
+  filterLeague:        new Set(),
   filterClub:      "",
   filterNation:    "",
+  filterOverallMin:     "", filterOverallMax:     "",
+  filterMaxOverallMin:  "", filterMaxOverallMax:  "",
   filterHeightMin: "", filterHeightMax: "",
   filterWeightMin: "", filterWeightMax: "",
   filterAgeMin:    "", filterAgeMax:    "",
@@ -1836,11 +2184,17 @@ const ppState = {
 
 function resetPpState() {
   ppState.query         = "";
-  ppState.sortCategory  = "overall";
+  ppState.sortCategory  = "overall_max";
   ppState.sortDir       = "desc";
   ppState.filterPositions.clear();
+  ppState.filterFoot.clear();
+  ppState.filterPlayingStyle.clear();
+  ppState.filterCardType.clear();
+  ppState.filterLeague.clear();
   ppState.filterClub      = "";
   ppState.filterNation    = "";
+  ppState.filterOverallMin = ppState.filterOverallMax = "";
+  ppState.filterMaxOverallMin = ppState.filterMaxOverallMax = "";
   ppState.filterHeightMin = ppState.filterHeightMax = "";
   ppState.filterWeightMin = ppState.filterWeightMax = "";
   ppState.filterAgeMin    = ppState.filterAgeMax    = "";
@@ -1852,25 +2206,59 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
-function hasDistinctMaxOvr(p) {
-  const l1 = p?.overall;
-  const mx = p?.overall_max;
-  if (l1 == null || mx == null) return false;
-  return Number(mx) !== Number(l1);
+/**
+ * Stacked lines (each "/" in the spec = newline): region - country; league - club; foot - style; H - W - age.
+ * Hyphens only within a line. Catalog, popup, plan picker, squad footer.
+ */
+function playerDetailSublineHtml(player) {
+  const h = (s) => (s != null && String(s).trim() ? escapeHtml(String(s).trim()) : "");
+  const hyph = `<span class="pmeta-sep pmeta-hyphen"> - </span>`;
+
+  function dashLine(...raw) {
+    const bits = raw
+      .filter((v) => v != null && String(v).trim())
+      .map((v) => h(String(v).trim()));
+    return bits.length ? bits.join(hyph) : "";
+  }
+
+  const phys = [
+    player.height ? `${player.height} cm` : null,
+    player.weight ? `${player.weight} kg` : null,
+    player.age ? `${player.age} yo` : null,
+  ];
+
+  const rows = [
+    dashLine(player.region, player.nationality),
+    dashLine(player.league, player.club),
+    dashLine(player.foot, player.playing_style),
+    dashLine(...phys),
+  ].filter(Boolean);
+
+  if (!rows.length) {
+    return `<div class="pmeta-stack"><div class="pmeta-row pmeta-empty">—</div></div>`;
+  }
+  return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
+}
+
+/** Both ratings known — show level 1 and max side by side (compact layout in catalog rows). */
+function hasFullOvrPair(p) {
+  return p?.overall != null && p?.overall_max != null;
 }
 
 /** HTML snippet: Level 1 and max OVR (uses overall + overall_max from API). */
 function ovrPairInnerHtml(p) {
   if (p?.overall == null && p?.overall_max == null) return "—";
-  if (p?.overall == null) return escapeHtml(String(p.overall_max ?? ""));
-  if (!hasDistinctMaxOvr(p)) return escapeHtml(String(p.overall));
-  return (
-    `<span class="ovr-pair" title="Level 1 / Max level">` +
-    `<span class="ovr-l1">${escapeHtml(String(p.overall))}</span>` +
-    `<span class="ovr-slash">/</span>` +
-    `<span class="ovr-max">${escapeHtml(String(p.overall_max))}</span>` +
-    `</span>`
-  );
+  if (hasFullOvrPair(p)) {
+    return (
+      `<span class="ovr-pair" title="Level 1 / Max level">` +
+      `<span class="ovr-l1">${escapeHtml(String(p.overall))}</span>` +
+      `<span class="ovr-slash">/</span>` +
+      `<span class="ovr-max">${escapeHtml(String(p.overall_max))}</span>` +
+      `</span>`
+    );
+  }
+  if (p?.overall != null) return escapeHtml(String(p.overall));
+  return escapeHtml(String(p.overall_max ?? ""));
 }
 
 async function loadGamePlans(userId) {
@@ -2021,6 +2409,7 @@ async function openPlanDetail(userId, plan) {
 
   // Reset picker state
   resetPpState();
+  getPlayerFilterOptions();
   const ppSearch = document.getElementById("ppSearch");
   if (ppSearch) ppSearch.value = "";
   rebuildPpPanels();
@@ -2088,22 +2477,10 @@ function makePitchSlotEl(slot, player) {
 
   if (player) {
     const hasImg = !!player.pesdb_id;
-    const ovrH   = ovrPairInnerHtml(player);
     el.innerHTML = `
       <div class="pitch-card-wrap">
-        ${hasImg
-          ? `<img class="pitch-card-img" src="${CARD_IMG(player.pesdb_id)}" loading="lazy"
-               onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';const bd=this.parentElement.querySelector('.pitch-card-ovr-badge');if(bd)bd.style.display='none';" alt="" />
-             <div class="pitch-card-fallback ${posClass(player.position)}" style="display:none;">
-               <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${ovrH}</span>
-             </div>
-             <div class="pitch-card-ovr-badge">${ovrH}</div>`
-          : `<div class="pitch-card-fallback ${posClass(player.position)}" style="display:flex;">
-               <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${ovrH}</span>
-             </div>`
-        }
+        <img class="pitch-card-img" src="${hasImg ? CARD_IMG(player.pesdb_id) : ANON_PLAYER_IMG}" loading="lazy"
+             onerror="if(this.dataset.fallbackApplied==='1')return;this.dataset.fallbackApplied='1';this.src='${ANON_PLAYER_IMG}';" alt="" />
         <button class="pitch-remove-btn" title="Remove">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -2134,22 +2511,10 @@ function makeBenchSlotEl(slot, player) {
 
   if (player) {
     const hasImg = !!player.pesdb_id;
-    const ovrH   = ovrPairInnerHtml(player);
     el.innerHTML = `
       <div class="pitch-card-wrap">
-        ${hasImg
-          ? `<img class="pitch-card-img" src="${CARD_IMG(player.pesdb_id)}" loading="lazy"
-               onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';const bd=this.parentElement.querySelector('.pitch-card-ovr-badge');if(bd)bd.style.display='none';" alt="" />
-             <div class="pitch-card-fallback ${posClass(player.position)}" style="display:none;">
-               <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${ovrH}</span>
-             </div>
-             <div class="pitch-card-ovr-badge">${ovrH}</div>`
-          : `<div class="pitch-card-fallback ${posClass(player.position)}" style="display:flex;">
-               <span class="pitch-card-pos">${player.position || "?"}</span>
-               <span class="pitch-card-ovr">${ovrH}</span>
-             </div>`
-        }
+        <img class="pitch-card-img" src="${hasImg ? CARD_IMG(player.pesdb_id) : ANON_PLAYER_IMG}" loading="lazy"
+             onerror="if(this.dataset.fallbackApplied==='1')return;this.dataset.fallbackApplied='1';this.src='${ANON_PLAYER_IMG}';" alt="" />
         <button class="pitch-remove-btn" title="Remove">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -2262,7 +2627,7 @@ function updatePpSortUI() {
   const dirBtn  = document.getElementById("ppSortDirBtn");
   const dirIcon = document.getElementById("ppSortDirIcon");
   if (lbl)     lbl.textContent = cat ? cat.label : "SORT";
-  if (btn)     btn.classList.toggle("has-active", ppState.sortCategory !== "overall");
+  if (btn)     btn.classList.toggle("has-active", ppState.sortCategory !== "overall_max" || ppState.sortDir !== "desc");
   if (dirBtn)  dirBtn.style.display  = "flex";
   if (dirIcon) dirIcon.textContent   = ppState.sortDir === "desc" ? "↓" : "↑";
   if (dirBtn) {
@@ -2275,8 +2640,12 @@ function updatePpSortUI() {
 }
 
 function updatePpFilterDot() {
-  const hasFilter = ppState.filterPositions.size > 0 || ppState.filterClub
-    || ppState.filterNation || ppState.filterHeightMin || ppState.filterHeightMax
+  const hasFilter = ppState.filterPositions.size > 0 || ppState.filterFoot.size
+    || ppState.filterPlayingStyle.size || ppState.filterCardType.size || ppState.filterLeague.size
+    || ppState.filterClub || ppState.filterNation
+    || ppState.filterOverallMin || ppState.filterOverallMax
+    || ppState.filterMaxOverallMin || ppState.filterMaxOverallMax
+    || ppState.filterHeightMin || ppState.filterHeightMax
     || ppState.filterWeightMin || ppState.filterWeightMax || ppState.filterAgeMin || ppState.filterAgeMax;
   const dot = document.getElementById("ppFilterDot");
   const btn = document.getElementById("ppFilterBtn");
@@ -2330,6 +2699,62 @@ function buildPpFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="ppPosMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="ppFootMs">
+        <button class="pos-ms-btn" id="ppFootMsBtn" type="button">
+          <span id="ppFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="ppPsMs">
+        <button class="pos-ms-btn" id="ppPsMsBtn" type="button">
+          <span id="ppPsMsLabel">Any playing style</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppPsMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">CARD TYPE</div>
+      <div class="pos-multiselect" id="ppCtMs">
+        <button class="pos-ms-btn" id="ppCtMsBtn" type="button">
+          <span id="ppCtMsLabel">Any card type</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppCtMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="ppLgMs">
+        <button class="pos-ms-btn" id="ppLgMsBtn" type="button">
+          <span id="ppLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL LEVEL 1</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="ppFcOvrMin" placeholder="Min" value="${ppState.filterOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="ppFcOvrMax" placeholder="Max" value="${ppState.filterOverallMax}">
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">OVERALL MAX</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="ppFcOvrMaxMin" placeholder="Min" value="${ppState.filterMaxOverallMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="ppFcOvrMaxMax" placeholder="Max" value="${ppState.filterMaxOverallMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -2415,9 +2840,53 @@ function buildPpFilterPanel() {
     });
   }
   onIn("ppFcClub",  "filterClub");   onIn("ppFcNation", "filterNation");
+  onIn("ppFcOvrMin", "filterOverallMin"); onIn("ppFcOvrMax", "filterOverallMax");
+  onIn("ppFcOvrMaxMin", "filterMaxOverallMin"); onIn("ppFcOvrMaxMax", "filterMaxOverallMax");
   onIn("ppFcHMin",  "filterHeightMin"); onIn("ppFcHMax", "filterHeightMax");
   onIn("ppFcWMin",  "filterWeightMin"); onIn("ppFcWMax", "filterWeightMax");
   onIn("ppFcAMin",  "filterAgeMin");    onIn("ppFcAMax", "filterAgeMax");
+
+  const runPpMs = (o) =>
+    wireAttributeMultiselects(panel, o, [
+      {
+        optionsKey: "foot",
+        stateSet: ppState.filterFoot,
+        panelSel: "#ppFootMsPanel",
+        btnSel: "#ppFootMsBtn",
+        labelSel: "#ppFootMsLabel",
+        allLabel: "Any foot",
+        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+      },
+      {
+        optionsKey: "playing_style",
+        stateSet: ppState.filterPlayingStyle,
+        panelSel: "#ppPsMsPanel",
+        btnSel: "#ppPsMsBtn",
+        labelSel: "#ppPsMsLabel",
+        allLabel: "Any playing style",
+        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+      },
+      {
+        optionsKey: "card_type",
+        stateSet: ppState.filterCardType,
+        panelSel: "#ppCtMsPanel",
+        btnSel: "#ppCtMsBtn",
+        labelSel: "#ppCtMsLabel",
+        allLabel: "Any card type",
+        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+      },
+      {
+        optionsKey: "league",
+        stateSet: ppState.filterLeague,
+        panelSel: "#ppLgMsPanel",
+        btnSel: "#ppLgMsBtn",
+        labelSel: "#ppLgMsLabel",
+        allLabel: "Any league",
+        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+      },
+    ]);
+  if (playerFilterOptionsCache) runPpMs(playerFilterOptionsCache);
+  else getPlayerFilterOptions().then(runPpMs);
 
   panel.querySelector("#ppClearFilters")?.addEventListener("click", () => {
     resetPpState();
@@ -2452,6 +2921,14 @@ function renderPlanPicker() {
     if (ppState.filterWeightMax && (p.weight == null || p.weight > +ppState.filterWeightMax)) return false;
     if (ppState.filterAgeMin    && (p.age    == null || p.age    < +ppState.filterAgeMin))    return false;
     if (ppState.filterAgeMax    && (p.age    == null || p.age    > +ppState.filterAgeMax))    return false;
+    if (ppState.filterFoot.size && (p.foot == null || !ppState.filterFoot.has(p.foot))) return false;
+    if (ppState.filterPlayingStyle.size && (p.playing_style == null || !ppState.filterPlayingStyle.has(p.playing_style))) return false;
+    if (ppState.filterCardType.size && (p.card_type == null || !ppState.filterCardType.has(p.card_type))) return false;
+    if (ppState.filterLeague.size && (p.league == null || !ppState.filterLeague.has(p.league))) return false;
+    if (ppState.filterOverallMin && (p.overall == null || p.overall < +ppState.filterOverallMin)) return false;
+    if (ppState.filterOverallMax && (p.overall == null || p.overall > +ppState.filterOverallMax)) return false;
+    if (ppState.filterMaxOverallMin && (p.overall_max == null || p.overall_max < +ppState.filterMaxOverallMin)) return false;
+    if (ppState.filterMaxOverallMax && (p.overall_max == null || p.overall_max > +ppState.filterMaxOverallMax)) return false;
     if (q && !p.name.toLowerCase().includes(q) &&
         !(p.position || "").toLowerCase().includes(q) &&
         !(p.club     || "").toLowerCase().includes(q)) return false;
@@ -2487,8 +2964,17 @@ function renderPlanPicker() {
         const p = dir * (a.nationality || "").localeCompare(b.nationality || "");
         return p !== 0 ? p : tiebreakOverallDescThenName(a, b);
       }
+      case "overall": {
+        const p = ppState.sortDir === "desc"
+          ? (b.overall ?? -1) - (a.overall ?? -1)
+          : (a.overall ?? -1) - (b.overall ?? -1);
+        return p !== 0 ? p : tiebreakPositionLineThenName(a, b);
+      }
+      case "overall_max":
       default: {
-        const p = dir * ((b.overall ?? -1) - (a.overall ?? -1));
+        const p = ppState.sortDir === "desc"
+          ? ovrMaxForSort(b) - ovrMaxForSort(a)
+          : ovrMaxForSort(a) - ovrMaxForSort(b);
         return p !== 0 ? p : tiebreakPositionLineThenName(a, b);
       }
     }
@@ -2520,48 +3006,20 @@ function renderPlanPicker() {
     const imgWrap = document.createElement("div");
     imgWrap.className = "cr-img";
     imgWrap.dataset.initial = p.name[0] || "?";
-    if (p.pesdb_id) {
-      const img = document.createElement("img");
-      img.src     = CARD_IMG(p.pesdb_id);
-      img.alt     = p.name;
-      img.loading = "lazy";
-      img.onerror = () => { imgWrap.classList.add("no-img"); imgWrap.textContent = p.name[0] || "?"; };
-      imgWrap.appendChild(img);
-    } else {
-      imgWrap.classList.add("no-img");
-      imgWrap.textContent = p.name[0] || "?";
-    }
+    imgWrap.appendChild(makePlayerImg(
+      p.pesdb_id ? CARD_IMG(p.pesdb_id) : ANON_PLAYER_IMG,
+      p.name,
+    ));
 
     // Info block
     const info = document.createElement("div");
     info.className = "cr-info";
     info.innerHTML = `
       <div class="cr-name">${escapeHtml(p.name)}</div>
-      <div class="cr-club">
-        <span>${escapeHtml(p.club || "—")}</span>
-        ${p.nationality ? `<span class="cr-meta-sep">·</span><span class="cr-nationality">${escapeHtml(p.nationality)}</span>` : ""}
-      </div>
-      <div class="cr-meta">
-        <span class="cr-meta-item">${p.height ? p.height + " cm" : "—"}</span>
-        <span class="cr-meta-sep">·</span>
-        <span class="cr-meta-item">${p.weight ? p.weight + " kg" : "—"}</span>
-        <span class="cr-meta-sep">·</span>
-        <span class="cr-meta-item">${p.age ? p.age + " yo" : "—"}</span>
-      </div>`;
-
-    // Position + OVR
-    const pos = document.createElement("span");
-    pos.className   = `cr-pos ${posClass(p.position)}`;
-    pos.textContent = p.position || "?";
-
-    const ovr = document.createElement("span");
-    ovr.className = `cr-ovr${hasDistinctMaxOvr(p) ? " cr-ovr-dual" : ""}`;
-    ovr.innerHTML = ovrPairInnerHtml(p);
+      <div class="cr-detail">${playerDetailSublineHtml(p)}</div>`;
 
     row.appendChild(imgWrap);
     row.appendChild(info);
-    row.appendChild(pos);
-    row.appendChild(ovr);
 
     row.addEventListener("click", () => {
       if (gamePlans.activeSlot) {
@@ -2843,6 +3301,27 @@ function initGamePlans(userId) {
 /* ============================================================
    Create Room Modal
    ============================================================ */
+function normalizeRoomCode(raw) {
+  const code = String(raw || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .replace(/[IO]/g, ""); // avoid ambiguous chars
+  return code;
+}
+
+function goToRoom({ code, bans, picks, mode }) {
+  const c = normalizeRoomCode(code);
+  if (!c || c.length < 4) {
+    showToast("Enter a valid room code.", "info");
+    return;
+  }
+  const url = new URL(window.location.origin + `/room/${encodeURIComponent(c)}`);
+  if (bans != null) url.searchParams.set("bans", String(bans));
+  if (picks != null) url.searchParams.set("picks", String(picks));
+  if (mode) url.searchParams.set("mode", String(mode));
+  window.location.href = url.pathname + url.search;
+}
+
 function genCode(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
@@ -2881,6 +3360,7 @@ function initRoomModal() {
   const close = () => { overlay.classList.remove("open"); document.body.style.overflow = ""; };
 
   document.getElementById("openRoomBtn")?.addEventListener("click", open);
+  document.getElementById("roomHubCreateBtn")?.addEventListener("click", open);
   document.getElementById("roomClose")?.addEventListener("click", close);
   document.getElementById("roomCancel")?.addEventListener("click", close);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
@@ -2902,9 +3382,28 @@ function initRoomModal() {
     const code  = codeInput?.value;
     const bans  = document.getElementById("bansCounter")?.dataset.val ?? 3;
     const picks = document.getElementById("picksCounter")?.dataset.val ?? 5;
-    showToast(`Room ${code} — ${bans} bans, ${picks} picks per side`, "success");
     close();
+    goToRoom({ code, bans, picks, mode: "host" });
   });
+}
+
+/* ============================================================
+   Room Hub (Create / Join)
+   ============================================================ */
+function initRoomHub() {
+  const input = document.getElementById("joinRoomCode");
+  const btn   = document.getElementById("joinRoomBtn");
+  if (!input || !btn) return;
+
+  const submit = () => goToRoom({ code: input.value, mode: "join" });
+
+  input.addEventListener("input", () => {
+    input.value = normalizeRoomCode(input.value).slice(0, 10);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+  btn.addEventListener("click", submit);
 }
 
 /* ============================================================
@@ -2917,6 +3416,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUserMenu(user);
   initEditProfile();
   initTabs();
+  initRoomHub();
   initRoomModal();
   initAddPlayerModal();
   initSquadSearchSortFilter();

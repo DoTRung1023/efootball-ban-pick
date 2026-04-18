@@ -4,7 +4,7 @@
  * ── First run  ──────────────────────────────────────────────────────────────
  *   Full scrape: walks list pages sorted by overall_rating (~41 k rows), then
  *   fetches each player detail (?id=) for Dream Team stats (overall_max, card
- *   label, region, foot, playing style). Saves the highest pesdb_id seen as the
+ *   type, region, foot, playing style). Saves the highest pesdb_id seen as the
  *   cutoff for the next run.
  *
  * ── Subsequent runs ─────────────────────────────────────────────────────────
@@ -208,8 +208,8 @@ function thText($th) {
   return $th.text().replace(/\s+/g, " ").trim();
 }
 
-/** First column of player table: card image row ends with label text (Standard, Highlight, …). */
-function parseCardLabel($, $root) {
+/** First column of player table: card image row ends with type text (Standard, Highlight, …). */
+function parseCardType($, $root) {
   const $firstCell = $root.find("> tbody > tr").first().find("> td").first()
     .find("table tr").first().find("td").first();
   if (!$firstCell.length) return null;
@@ -285,7 +285,7 @@ function parseDetailLevel1(html, pesdb_id) {
   const overall = parseOverallNumeric(html);
   if (overall == null) return null;
 
-  const card_label    = parseCardLabel($, $player);
+  const card_type     = parseCardType($, $player);
   const region        = rowValue($, $player, "Region");
   const foot          = rowValue($, $player, "Foot");
   const playing_style = parsePlayingStyle($);
@@ -304,7 +304,7 @@ function parseDetailLevel1(html, pesdb_id) {
     overall, // Level 1
     overall_max: maxLevelCap > 1 ? null : overall,
     _maxLevelCap: maxLevelCap, // internal: cap for enrichPlayer fetch only (not stored)
-    card_label,
+    card_type,
     region,
     foot,
     playing_style,
@@ -348,7 +348,7 @@ async function upsertPlayers(players) {
       p.age,
       p.overall,
       p.overall_max,
-      p.card_label,
+      p.card_type,
       p.region,
       p.foot,
       p.playing_style,
@@ -357,7 +357,7 @@ async function upsertPlayers(players) {
       `INSERT INTO players_catalog
          (pesdb_id, name, position, club, league, nationality, height, weight, age,
           overall, overall_max,
-          card_label, region, foot, playing_style)
+          card_type, region, foot, playing_style)
        VALUES ?
        ON DUPLICATE KEY UPDATE
          name           = VALUES(name),
@@ -370,7 +370,7 @@ async function upsertPlayers(players) {
          age            = VALUES(age),
          overall        = VALUES(overall),
          overall_max    = VALUES(overall_max),
-         card_label     = VALUES(card_label),
+         card_type      = VALUES(card_type),
          region         = VALUES(region),
          foot           = VALUES(foot),
          playing_style  = VALUES(playing_style)`,

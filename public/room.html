@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Room • eFOOTBALL Ban &amp; Pick</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/room.css" />
+  </head>
+  <body>
+    <div class="bg">
+      <div class="glow g1"></div>
+      <div class="glow g2"></div>
+      <div class="glow g3"></div>
+    </div>
+
+    <main class="wrap">
+      <header class="top">
+        <a class="brand" href="/" aria-label="Back to home">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK</span>
+        </a>
+        <a class="back" href="/">BACK</a>
+      </header>
+
+      <section class="card" aria-label="Room info">
+        <div class="card-title">ROOM</div>
+        <div class="room-code" id="roomCodeLabel">—</div>
+
+        <div class="meta">
+          <div class="meta-item">
+            <div class="meta-k">MODE</div>
+            <div class="meta-v" id="roomModeLabel">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-k">BANS / SIDE</div>
+            <div class="meta-v" id="roomBansLabel">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-k">PICKS / SIDE</div>
+            <div class="meta-v" id="roomPicksLabel">—</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="copyInviteBtn" type="button">COPY INVITE LINK</button>
+          <button class="btn ghost" id="copyCodeBtn" type="button">COPY CODE</button>
+        </div>
+
+        <div class="note">
+          This is a lightweight lobby screen. The live ban/pick session logic can be added next.
+        </div>
+      </section>
+
+      <div class="toast" id="toast"></div>
+    </main>
+
+    <script src="/js/room.js"></script>
+  </body>
+</html>

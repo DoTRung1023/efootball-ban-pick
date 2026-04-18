@@ -40,7 +40,7 @@
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            MY TEAM
+            MY PLAYERS
           </button>
           <button class="nav-tab" data-tab="plans">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -48,6 +48,14 @@
               <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             </svg>
             GAME PLANS
+          </button>
+          <button class="nav-tab" data-tab="rooms">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 11l9-7 9 7"/>
+              <path d="M5 10v10h14V10"/>
+              <path d="M9 20v-6h6v6"/>
+            </svg>
+            ROOMS
           </button>
         </div>
 
@@ -94,7 +102,7 @@
       <!-- ── Main Content ─────────────────────────────────── -->
       <main class="main-content">
 
-        <!-- MY TEAM Panel -->
+        <!-- MY PLAYERS Panel -->
         <section class="tab-panel active" id="teamPanel">
 
           <!-- Search / Sort / Filter bar -->
@@ -113,7 +121,7 @@
                     <line x1="8" y1="18" x2="21" y2="18"/>
                     <polyline points="3 6 4.5 8 6 6"/><polyline points="3 12 4.5 14 6 12"/>
                   </svg>
-                  <span id="teamSortLabel">Overall Rating</span>
+                  <span id="teamSortLabel">Overall Max</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
@@ -245,6 +253,39 @@
           </div>
         </section>
 
+        <!-- ROOMS Panel -->
+        <section class="tab-panel" id="roomsPanel">
+          <section class="room-hub" aria-label="Create or join a room">
+            <div class="room-hub-card">
+              <div class="room-hub-left">
+                <div class="room-hub-title">ROOMS</div>
+                <div class="room-hub-sub">Create a room to host, or join with a code.</div>
+              </div>
+              <div class="room-hub-actions">
+                <button class="room-hub-create" id="roomHubCreateBtn" type="button">
+                  CREATE ROOM
+                </button>
+                <div class="room-hub-join">
+                  <input
+                    class="room-hub-join-input"
+                    id="joinRoomCode"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    placeholder="ROOM CODE"
+                    maxlength="10"
+                  />
+                  <button class="room-hub-join-btn" id="joinRoomBtn" type="button">
+                    JOIN
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
       </main>
     </div>
 
@@ -333,7 +374,7 @@
             <div class="ap-title-row">
               <div>
                 <h2 class="card-title" id="apTitle">ADD PLAYERS</h2>
-                <p class="card-subtitle">Search all players and add to your team</p>
+                <p class="card-subtitle">Search all players and add to your players</p>
               </div>
               <button class="modal-close" id="addPlayerClose" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

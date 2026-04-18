@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS players_catalog (
   height       SMALLINT UNSIGNED NULL COMMENT 'cm',
   weight       SMALLINT UNSIGNED NULL COMMENT 'kg',
   age          TINYINT UNSIGNED  NULL,
-  card_label   VARCHAR(120)      NULL COMMENT 'Standard, Highlight, featured pool, etc.',
+  card_type    VARCHAR(120)      NULL COMMENT 'Standard, Highlight, featured pool, etc.',
   region       VARCHAR(80)       NULL,
   foot         VARCHAR(40)       NULL,
   playing_style VARCHAR(80)      NULL,
@@ -61,12 +61,15 @@ CREATE TABLE IF NOT EXISTS players_catalog (
 -- ALTER TABLE players_catalog
 --   ADD COLUMN overall_max     SMALLINT UNSIGNED NULL COMMENT 'Dream Team overall at max level' AFTER overall,
 --   ADD COLUMN league          VARCHAR(120)      NULL AFTER club,
---   ADD COLUMN card_label      VARCHAR(120)      NULL COMMENT 'Standard, Highlight, or featured pool name' AFTER age,
---   ADD COLUMN region          VARCHAR(80)       NULL AFTER card_label,
+--   ADD COLUMN card_type       VARCHAR(120)      NULL COMMENT 'Standard, Highlight, or featured pool name' AFTER age,
+--   ADD COLUMN region          VARCHAR(80)       NULL AFTER card_type,
 --   ADD COLUMN foot            VARCHAR(40)       NULL AFTER region,
 --   ADD COLUMN playing_style   VARCHAR(80)       NULL AFTER foot,
 --   ADD KEY idx_catalog_overall_max (overall_max),
 --   ADD KEY idx_catalog_league (league);
+--
+-- If your DB still has card_label, rename once:
+-- ALTER TABLE players_catalog CHANGE COLUMN card_label card_type VARCHAR(120) NULL COMMENT 'Standard, Highlight, featured pool, etc.';
 
 -- ------------------------------------------------------------
 -- 1. USERS

@@ -61,6 +61,8 @@ const POSITION_ORDER_FIELD =
   "FIELD(UPPER(TRIM(IFNULL(position,''))), 'CF','SS','RWF','LWF','AMF','RMF','LMF','CMF','DMF','RB','LB','CB','GK')";
 
 const SORT_MAP = {
+  overall_max_desc: `ISNULL(overall_max), overall_max DESC, overall DESC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
+  overall_max_asc:  `ISNULL(overall_max), overall_max ASC, overall ASC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
   overall_desc:    `overall DESC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
   overall_asc:     `overall ASC, CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC, name ASC`,
   name_asc:        "name ASC, overall DESC",
@@ -93,13 +95,36 @@ app.get("/api/players/distinct", async (req, res) => {
   res.json(rows.map((r) => r[field]));
 });
 
+/** Distinct values for multiselect filters (Add Player catalog). */
+app.get("/api/players/filter-options", async (_req, res) => {
+  try {
+    const out = {};
+    for (const col of ["foot", "playing_style", "card_type", "league"]) {
+      const [rows] = await db.query(
+        `SELECT DISTINCT ${col} AS v FROM players_catalog
+         WHERE ${col} IS NOT NULL AND TRIM(${col}) != ''
+         ORDER BY ${col} ASC LIMIT 500`,
+      );
+      out[col] = rows.map((r) => r.v).filter(Boolean);
+    }
+    res.json(out);
+  } catch (err) {
+    console.error("filter-options error:", err.message);
+    res.status(503).json({
+      foot: [], playing_style: [], card_type: [], league: [],
+    });
+  }
+});
+
 // Returns players for search / add-player catalog
 app.get("/api/players", async (req, res) => {
   try {
     const {
       q = "", position, positions, posGroup,
-      sortBy = "overall_desc",
+      sortBy = "overall_max_desc",
       club, nationality,
+      foot, playingStyle, cardType, league,
+      overallMin, overallMax, maxOverallMin, maxOverallMax,
       heightMin, heightMax,
       weightMin, weightMax,
       ageMin,    ageMax,
@@ -122,6 +147,51 @@ app.get("/api/players", async (req, res) => {
     }
     if (club)        { conditions.push("club LIKE ?");          params.push(`%${club}%`); }
     if (nationality) { conditions.push("nationality LIKE ?");   params.push(`%${nationality}%`); }
+
+    const footVals = String(foot || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (footVals.length) {
+      conditions.push(`(${footVals.map(() => "foot = ?").join(" OR ")})`);
+      params.push(...footVals);
+    }
+    const styleVals = String(playingStyle || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (styleVals.length) {
+      conditions.push(`(${styleVals.map(() => "playing_style = ?").join(" OR ")})`);
+      params.push(...styleVals);
+    }
+    const cardVals = String(cardType || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (cardVals.length) {
+      conditions.push(`(${cardVals.map(() => "card_type = ?").join(" OR ")})`);
+      params.push(...cardVals);
+    }
+    const leagueVals = String(league || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (leagueVals.length) {
+      conditions.push(`(${leagueVals.map(() => "league = ?").join(" OR ")})`);
+      params.push(...leagueVals);
+    }
+
+    if (overallMin)  { conditions.push("overall >= ?"); params.push(Number(overallMin)); }
+    if (overallMax)  { conditions.push("overall <= ?"); params.push(Number(overallMax)); }
+    if (maxOverallMin) {
+      conditions.push("(overall_max IS NOT NULL AND overall_max >= ?)");
+      params.push(Number(maxOverallMin));
+    }
+    if (maxOverallMax) {
+      conditions.push("(overall_max IS NOT NULL AND overall_max <= ?)");
+      params.push(Number(maxOverallMax));
+    }
+
     if (heightMin)   { conditions.push("height >= ?");          params.push(Number(heightMin)); }
     if (heightMax)   { conditions.push("height <= ?");          params.push(Number(heightMax)); }
     if (weightMin)   { conditions.push("weight >= ?");          params.push(Number(weightMin)); }
@@ -130,13 +200,13 @@ app.get("/api/players", async (req, res) => {
     if (ageMax)      { conditions.push("age <= ?");             params.push(Number(ageMax)); }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-    const order = SORT_MAP[sortBy] ?? SORT_MAP.overall_desc;
+    const order = SORT_MAP[sortBy] ?? SORT_MAP.overall_max_desc;
 
     const [rows] = await db.query(
       `SELECT pesdb_id AS id, name, position,
               overall, overall_max,
               club, league, nationality, height, weight, age,
-              card_label, region, foot, playing_style
+              card_type, region, foot, playing_style
        FROM   players_catalog
        ${where}
        ORDER  BY ${order}
@@ -160,7 +230,7 @@ app.get("/api/my-players", async (req, res) => {
     const [rows] = await db.query(
       `SELECT p.id, p.name, p.position, p.overall, p.club, p.pesdb_id,
               c.league, c.nationality, c.height, c.weight, c.age,
-              c.overall_max, c.card_label, c.region, c.foot, c.playing_style
+              c.overall_max, c.card_type, c.region, c.foot, c.playing_style
        FROM   players p
        LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
        WHERE  p.user_id = ?
@@ -568,6 +638,14 @@ app.get("/", (_req, res) => {
 
 app.get("/signin", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "signin.html"));
+});
+
+// Lightweight room lobby (client-only for now)
+app.get("/room", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "room.html"));
+});
+app.get("/room/:code", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "room.html"));
 });
 
 app.use(express.static(path.join(__dirname, "..", "public")));
