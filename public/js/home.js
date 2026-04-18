@@ -3327,34 +3327,11 @@ function genCode(len = 6) {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-function initNumberPicker(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const dec = el.querySelector(".num-dec");
-  const inc = el.querySelector(".num-inc");
-  const val = el.querySelector(".num-val");
-  const min = Number(el.dataset.min);
-  const max = Number(el.dataset.max);
-  let   cur = Number(el.dataset.val);
-
-  function update() {
-    val.textContent = cur;
-    dec.disabled    = cur <= min;
-    inc.disabled    = cur >= max;
-    el.dataset.val  = cur;
-  }
-  dec?.addEventListener("click", () => { if (cur > min) { cur--; update(); } });
-  inc?.addEventListener("click", () => { if (cur < max) { cur++; update(); } });
-  update();
-}
-
 function initRoomModal() {
   const overlay   = document.getElementById("roomOverlay");
   const codeInput = document.getElementById("roomCode");
 
   if (!overlay) return;
-  initNumberPicker("bansCounter");
-  initNumberPicker("picksCounter");
 
   const open  = () => { if (codeInput) codeInput.value = genCode(); overlay.classList.add("open"); document.body.style.overflow = "hidden"; };
   const close = () => { overlay.classList.remove("open"); document.body.style.overflow = ""; };
@@ -3380,8 +3357,8 @@ function initRoomModal() {
 
   document.getElementById("startRoomBtn")?.addEventListener("click", () => {
     const code  = codeInput?.value;
-    const bans  = document.getElementById("bansCounter")?.dataset.val ?? 3;
-    const picks = document.getElementById("picksCounter")?.dataset.val ?? 5;
+    const bans  = 0;
+    const picks = 0;
     close();
     goToRoom({ code, bans, picks, mode: "host" });
   });
