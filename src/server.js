@@ -593,6 +593,47 @@ app.put("/api/game-plans/:id/swap", async (req, res) => {
   }
 });
 
+// ── Room presence (in-memory; host/guest register so both tabs see each other) ──
+const roomPresence = new Map();
+
+function normalizeRoomCodeParam(raw) {
+  return String(raw || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 10);
+}
+
+/** POST body: { role: "host"|"guest", userId?: string|number, username?: string } */
+app.post("/api/rooms/:code/presence", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const { role, userId, username } = req.body || {};
+  if (!code || code.length < 4)
+    return res.status(400).json({ error: "Invalid room code." });
+  if (!["host", "guest"].includes(role))
+    return res.status(400).json({ error: "role must be host or guest." });
+
+  let entry = roomPresence.get(code);
+  if (!entry) entry = { host: null, guest: null };
+
+  const participant = {
+    id: userId != null && userId !== "" ? String(userId) : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    username: String(username || (role === "host" ? "Host" : "Guest")).trim().slice(0, 50) || (role === "host" ? "Host" : "Guest"),
+  };
+  if (role === "host") entry.host = participant;
+  else entry.guest = participant;
+  entry.updatedAt = Date.now();
+  roomPresence.set(code, entry);
+  res.json({ room: { host: entry.host, guest: entry.guest, updatedAt: entry.updatedAt } });
+});
+
+app.get("/api/rooms/:code", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const entry = roomPresence.get(code);
+  if (!entry)
+    return res.json({ room: { host: null, guest: null } });
+  res.json({ room: { host: entry.host, guest: entry.guest, updatedAt: entry.updatedAt } });
+});
+
 app.put("/api/game-plans/:id/players/:slot", async (req, res) => {
   const planId = Number(req.params.id);
   const slot   = Number(req.params.slot);

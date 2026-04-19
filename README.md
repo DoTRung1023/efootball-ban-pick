@@ -25,7 +25,8 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; incremental runs only fetch newly added cards
-- **Ban & Pick Session** *(planned)* — real-time or turn-based draft between two users
+- **Rooms (lobby)** — **Rooms** tab: create a room (modal only asks for a generated room code) or join with a code. Ban/pick **counts default to 0** at creation; the host sets them on the **room page** before starting a draft. The top bar no longer duplicates “Create room” next to the user menu (use the Rooms tab instead).
+- **Room page** (`/room/:code`) — dedicated full-screen flow: **lobby** (share code, optional **demo opponent** for solo testing, set bans/picks per side, start draft), **draft** (turns, timer, search/filter vs `/api/players`), **summary** when picks complete. Real-time sync is **not** wired yet (local / demo only); WebSocket hooks are called out in `public/js/room.js` for a future server.
 
 ---
 
@@ -51,12 +52,15 @@ ban-pick-efb/
 ├── public/
 │   ├── css/
 │   │   ├── home.css        # Home page styles
+│   │   ├── room.css        # Dedicated room page (lobby / draft / done)
 │   │   └── signin.css      # Sign-in / sign-up styles
 │   ├── js/
-│   │   ├── home.js         # Home page logic
+│   │   ├── home.js         # Home page logic (includes room modal + join)
+│   │   ├── room.js         # Room page: lobby, local draft, demo opponent
 │   │   └── signin.js       # Auth modal logic
 │   ├── logo/
 │   ├── home.html           # Main app page
+│   ├── room.html           # Ban & pick room (lobby → draft → summary)
 │   ├── signin.html         # Sign-in / sign-up page
 │   └── 404.html
 ├── src/
@@ -209,6 +213,12 @@ npm start      # production
 
 Visit [http://localhost:3000](http://localhost:3000).
 
+### Rooms and the room page
+
+1. Sign in, open the **Rooms** tab, then **CREATE ROOM** (or join with a code). Creating a room opens a modal with a generated code; **Start room** navigates to `/room/<CODE>?bans=0&picks=0&mode=host` (or `mode=join` when joining).
+2. On the **room page**, the host sets **bans per side** and **picks per side** (must be at least one total ban or pick step to start). Use **Add demo opponent** to run a draft locally without a second browser; the demo side auto-acts on its turns.
+3. The draft loads player cards from **`GET /api/players`** (search + position filter). While in the lobby, the page registers with **`POST /api/rooms/:code/presence`** and polls **`GET /api/rooms/:code`** every few seconds so the **host sees when a guest has joined** (in-memory on the Node process; two browsers on the same server). Full draft sync still needs WebSockets or similar.
+
 ---
 
 ## API Endpoints
@@ -216,6 +226,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
+| `POST` | `/api/rooms/:code/presence` | Register as host or guest for lobby presence (in-memory) |
+| `GET` | `/api/rooms/:code` | Current host/guest for a room code (for polling) |
 | `GET` | `/img/card/:id.png` | Player card image (cached to R2 if configured) |
 | `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
 | `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
@@ -287,10 +299,9 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] edit profile
 - [x] Game plan builder (drag-and-drop formation view)
 - [x] clean data
-- [ ] a separate section:
-   + [ ] create room
-   + [ ] room design
-- [ ] Ban & pick session (real-time with WebSockets)
+- [x] Rooms tab + create/join flow (home)
+- [x] Dedicated room page (lobby UI, draft UI, end summary; local + demo opponent)
+- [ ] Ban & pick session (real-time with WebSockets; replace local state in `room.js`)
    + [ ] mode: reaveal after finishing or show after every turn
    + [ ] host: determine the rules of ban pick, can kick other roomates
    + [ ] finalise rules: ban categories, number of ban players

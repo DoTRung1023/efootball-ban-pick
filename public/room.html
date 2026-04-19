@@ -11,53 +11,150 @@
     <link rel="stylesheet" href="/css/room.css" />
   </head>
   <body>
-    <div class="bg">
+    <div class="bg" aria-hidden="true">
       <div class="glow g1"></div>
       <div class="glow g2"></div>
       <div class="glow g3"></div>
     </div>
 
-    <main class="wrap">
-      <header class="top">
-        <a class="brand" href="/" aria-label="Back to home">
-          <span class="brand-game">eFOOTBALL</span>
-          <span class="brand-sub">BAN &amp; PICK</span>
-        </a>
-        <a class="back" href="/">BACK</a>
-      </header>
+    <!-- Error -->
+    <div id="viewError" class="view view--fullscreen" hidden>
+      <div class="centered-box">
+        <p class="error-text" id="errorMessage"></p>
+        <a class="btn" href="/">Back to home</a>
+      </div>
+    </div>
 
-      <section class="card" aria-label="Room info">
-        <div class="card-title">ROOM</div>
-        <div class="room-code" id="roomCodeLabel">—</div>
+    <!-- Abandoned (for future socket: room:abandoned) -->
+    <div id="viewAbandoned" class="view view--fullscreen" hidden>
+      <div class="centered-box abandoned-box">
+        <div class="abandoned-icon" aria-hidden="true">🏆</div>
+        <h2 class="abandoned-title">Draft ended</h2>
+        <p class="abandoned-msg" id="abandonedMessage"></p>
+        <a class="btn btn--primary" href="/">Back to home</a>
+      </div>
+    </div>
 
-        <div class="meta">
-          <div class="meta-item">
-            <div class="meta-k">MODE</div>
-            <div class="meta-v" id="roomModeLabel">—</div>
+    <!-- Lobby -->
+    <div id="viewLobby" class="view view--fullscreen" hidden>
+      <div class="lobby-leave">
+        <button type="button" class="btn btn--small btn--ghost" id="lobbyLeaveBtn">Leave</button>
+      </div>
+      <div class="centered-box centered-box--lobby">
+        <div class="room-code-label">ROOM CODE</div>
+        <div class="room-code-big" id="lobbyCodeDisplay">—</div>
+        <p class="lobby-hint" id="lobbyHint"></p>
+
+        <div class="player-slots">
+          <div class="player-slot" id="lobbyHostSlot">
+            <div class="player-slot-label">HOST</div>
+            <div class="player-slot-name" id="lobbyHostName">—</div>
+            <div class="player-slot-status player-slot-status--ok" id="lobbyHostStatus">● Connected</div>
           </div>
-          <div class="meta-item">
-            <div class="meta-k">BANS / SIDE</div>
-            <div class="meta-v" id="roomBansLabel">—</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-k">PICKS / SIDE</div>
-            <div class="meta-v" id="roomPicksLabel">—</div>
+          <div class="player-slot-vs">VS</div>
+          <div class="player-slot" id="lobbyGuestSlot">
+            <div class="player-slot-label">GUEST</div>
+            <div class="player-slot-name" id="lobbyGuestName">Waiting…</div>
+            <div class="player-slot-status" id="lobbyGuestStatus"></div>
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn" id="copyInviteBtn" type="button">COPY INVITE LINK</button>
-          <button class="btn ghost" id="copyCodeBtn" type="button">COPY CODE</button>
+        <div class="lobby-meta" id="lobbyMeta"></div>
+
+        <div class="lobby-settings" id="lobbySettings" hidden>
+          <div class="lobby-field">
+            <label for="lobbyBansInput">Bans / side</label>
+            <input type="number" id="lobbyBansInput" min="0" max="6" value="0" />
+          </div>
+          <div class="lobby-field">
+            <label for="lobbyPicksInput">Picks / side</label>
+            <input type="number" id="lobbyPicksInput" min="0" max="11" value="0" />
+          </div>
         </div>
 
-        <div class="note">
-          This is a lightweight lobby screen. The live ban/pick session logic can be added next.
+        <div class="lobby-copy-row">
+          <button type="button" class="btn btn--ghost" id="copyInviteBtn">Copy invite link</button>
+          <button type="button" class="btn btn--ghost" id="copyCodeBtn">Copy code</button>
         </div>
-      </section>
 
-      <div class="toast" id="toast"></div>
-    </main>
+        <div class="lobby-actions">
+          <button type="button" class="btn btn--ghost" id="demoOpponentBtn" hidden>Add demo opponent</button>
+          <button type="button" class="btn btn--primary" id="startDraftBtn" hidden>START DRAFT</button>
+        </div>
+      </div>
+    </div>
 
+    <!-- Draft -->
+    <div id="viewDraft" class="view view--draft" hidden>
+      <div class="draft-shell">
+        <aside class="draft-side draft-side--left" aria-label="Host bans and picks">
+          <div class="side-panel" id="sidePanelHost"></div>
+        </aside>
+
+        <section class="draft-center">
+          <header class="draft-topbar">
+            <div class="turn-pill" id="turnPill">
+              <span class="turn-pill-k" id="turnPillKicker">BAN 1/16</span>
+              <div class="turn-pill-main" id="turnPillMain">YOUR TURN</div>
+            </div>
+            <div class="timer-ring" id="timerRing" aria-label="Turn timer">
+              <div class="timer-inner" id="timerInner">30</div>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <label class="draft-search-wrap">
+              <span class="visually-hidden">Search players</span>
+              <input type="search" class="draft-search" id="draftSearch" placeholder="Search players…" autocomplete="off" />
+            </label>
+            <select class="draft-select" id="draftPosition" aria-label="Filter by position">
+              <option value="">All positions</option>
+              <option value="GK">GK</option>
+              <option value="CB">CB</option>
+              <option value="LB">LB</option>
+              <option value="RB">RB</option>
+              <option value="DMF">DMF</option>
+              <option value="CMF">CMF</option>
+              <option value="AMF">AMF</option>
+              <option value="LWF">LWF</option>
+              <option value="RWF">RWF</option>
+              <option value="SS">SS</option>
+              <option value="CF">CF</option>
+            </select>
+            <button type="button" class="btn btn--small btn--ghost draft-leave" id="draftLeaveBtn">Leave</button>
+          </header>
+
+          <div class="draft-banner draft-banner--error" id="draftActionError" hidden></div>
+          <div class="draft-banner draft-banner--hint" id="draftHintBanner" hidden></div>
+
+          <div class="draft-grid-wrap">
+            <div class="draft-loading" id="draftLoading" hidden>
+              <div class="spinner"></div>
+            </div>
+            <div class="draft-grid" id="draftGrid"></div>
+          </div>
+        </section>
+
+        <aside class="draft-side draft-side--right" aria-label="Guest bans and picks">
+          <div class="side-panel" id="sidePanelGuest"></div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Done -->
+    <div id="viewDone" class="view view--done" hidden>
+      <div class="done-inner">
+        <div class="done-header">
+          <div class="done-icon" aria-hidden="true">🏁</div>
+          <h2 class="done-title">DRAFT COMPLETE</h2>
+          <p class="done-sub" id="doneRoomCode"></p>
+        </div>
+        <div class="done-columns" id="doneColumns"></div>
+        <a class="btn btn--primary done-back" href="/">Back to home</a>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
     <script src="/js/room.js"></script>
   </body>
 </html>

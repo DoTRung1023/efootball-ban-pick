@@ -248,35 +248,89 @@
 
         <!-- ROOMS Panel -->
         <section class="tab-panel" id="roomsPanel">
-          <section class="room-hub" aria-label="Create or join a room">
-            <div class="room-hub-card">
-              <div class="room-hub-left">
-                <div class="room-hub-title">ROOMS</div>
-                <div class="room-hub-sub">Create a room to host, or join with a code.</div>
-              </div>
-              <div class="room-hub-actions">
-                <button class="room-hub-create" id="roomHubCreateBtn" type="button">
-                  CREATE ROOM
-                </button>
-                <div class="room-hub-join">
-                  <input
-                    class="room-hub-join-input"
-                    id="joinRoomCode"
-                    type="text"
-                    inputmode="text"
-                    autocomplete="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    placeholder="ROOM CODE"
-                    maxlength="10"
-                  />
-                  <button class="room-hub-join-btn" id="joinRoomBtn" type="button">
-                    JOIN
+          <div class="rooms-page">
+            <section class="room-hub" aria-label="Create or join a room">
+              <div class="room-hub-card">
+                <div class="room-hub-left">
+                  <div class="room-hub-title">ROOMS</div>
+                  <div class="room-hub-sub">Create a room to host, or join with a code.</div>
+                </div>
+                <div class="room-hub-actions">
+                  <button class="room-hub-create" id="roomHubCreateBtn" type="button">
+                    CREATE ROOM
                   </button>
+                  <div class="room-hub-join">
+                    <input
+                      class="room-hub-join-input"
+                      id="joinRoomCode"
+                      type="text"
+                      inputmode="text"
+                      autocomplete="off"
+                      autocapitalize="characters"
+                      spellcheck="false"
+                      placeholder="ROOM CODE"
+                      maxlength="10"
+                    />
+                    <button class="room-hub-join-btn" id="joinRoomBtn" type="button">
+                      JOIN
+                    </button>
+                  </div>
                 </div>
               </div>
+            </section>
+
+            <div class="rooms-hero">
+              <div class="rooms-hero-visual" aria-hidden="true">
+                <div class="rooms-reticle">
+                  <span class="rooms-reticle-ring rooms-reticle-ring--outer"></span>
+                  <span class="rooms-reticle-ring rooms-reticle-ring--mid"></span>
+                  <span class="rooms-reticle-ring rooms-reticle-ring--inner"></span>
+                  <span class="rooms-reticle-cross rooms-reticle-cross--v"></span>
+                  <span class="rooms-reticle-cross rooms-reticle-cross--h"></span>
+                </div>
+                <div class="rooms-hero-glow"></div>
+              </div>
+              <div class="rooms-hero-copy">
+                <p class="rooms-hero-kicker">BAN &amp; PICK LOBBY</p>
+                <h2 class="rooms-hero-title">Host or join in seconds</h2>
+                <p class="rooms-hero-text">
+                  Use this tab to open a new session or enter a friend’s code. When you start or join, you’ll continue on the room page—set bans, picks, and squads there with your opponent.
+                </p>
+                <ul class="rooms-hero-bullets">
+                  <li>Share the room code after you create</li>
+                  <li>Host adjusts session rules before you play</li>
+                </ul>
+              </div>
             </div>
-          </section>
+
+            <div class="rooms-steps" role="list">
+              <article class="rooms-step" role="listitem">
+                <div class="rooms-step-num" aria-hidden="true">01</div>
+                <div class="rooms-step-body">
+                  <h3 class="rooms-step-title">Host</h3>
+                  <p class="rooms-step-desc">Create a room, copy the code, and send it to your opponent.</p>
+                </div>
+              </article>
+              <article class="rooms-step" role="listitem">
+                <div class="rooms-step-num" aria-hidden="true">02</div>
+                <div class="rooms-step-body">
+                  <h3 class="rooms-step-title">Join</h3>
+                  <p class="rooms-step-desc">Paste or type the code and hit join to enter the same lobby.</p>
+                </div>
+              </article>
+              <article class="rooms-step" role="listitem">
+                <div class="rooms-step-num" aria-hidden="true">03</div>
+                <div class="rooms-step-body">
+                  <h3 class="rooms-step-title">Play</h3>
+                  <p class="rooms-step-desc">The room page opens in full—ban, pick, and run the session there.</p>
+                </div>
+              </article>
+            </div>
+
+            <p class="rooms-footnote">
+              Tip: keep this tab for quick access; your active match always lives on the dedicated room screen.
+            </p>
+          </div>
         </section>
 
       </main>
