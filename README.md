@@ -286,7 +286,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] Team-side search, sort, and position filter
 - [x] edit profile
 - [x] Game plan builder (drag-and-drop formation view)
-- [ ] clean data
+- [x] clean data
 - [ ] a separate section:
    + [ ] create room
    + [ ] room design
@@ -305,7 +305,7 @@ Visit [http://localhost:3000](http://localhost:3000).
    + [ ] players can view their game plans to build accordingly
    + [ ] a list of my current squad / all my players / all other players
    + [ ] after finish picking, done then show two squads on screen
-- [ ] update database
+- [x] update database
 - [ ] admin page 
 - [ ] responsive design
 - [ ] security
