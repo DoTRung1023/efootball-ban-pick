@@ -5,8 +5,8 @@
 const CARD_IMG    = (id) => `/img/card/${id}.png`;
 const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
 const PAGE_SIZE   = 50;
-const POS_DEF     = ["CB","LB","RB","LWB","RWB"];
-const POS_MID     = ["CMF","DMF","AMF"];
+const POS_DEF     = ["CB","LB","RB"];
+const POS_MID     = ["CMF","DMF", "RMF", "LMF", "AMF"];
 const POS_FWD     = ["RWF","LWF","CF","SS"];
 
 function makePlayerImg(src, alt = "Player image") {
@@ -2715,7 +2715,7 @@ function buildPpFilterPanel() {
   panel.className = "ap-dd-panel filter-dd-panel";
   panel.id = "ppFilterPanel";
 
-  const POS_LIST = ["GK","CB","LB","RB","LWB","RWB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
+  const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 
   panel.innerHTML = `
     <div class="filter-section">

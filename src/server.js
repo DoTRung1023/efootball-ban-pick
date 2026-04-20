@@ -22,7 +22,7 @@ app.get("/api/health", (_req, res) => {
 
 // Fixed carousel players (curated list of featured legends & top stars)
 const TOP_CAROUSEL_PLAYERS = [
-  { id: "89136409091415", name: "Lionel Messi",        position: "RWF", overall: 105, club: "FC Barcelona",      nationality: "Argentina"       },
+  { id: "89136409091415", name: "Lionel Messi",         position: "RWF", overall: 105, club: "FC Barcelona",      nationality: "Argentina"       },
   { id: "89137214427270", name: "Eden Hazard",          position: "AMF", overall: 104, club: "Belgium",           nationality: "Belgium"         },
   { id: "89136677522134", name: "George Best",          position: "RWF", overall: 104, club: "Manchester United", nationality: "Northern Ireland" },
   { id: "89136140651034", name: "Zlatan Ibrahimović",   position: "CF",  overall: 104, club: "AC Milan",          nationality: "Sweden"          },
@@ -51,8 +51,8 @@ app.get("/api/top-players", (_req, res) => {
 
 const POS_GROUPS = {
   GK:  ["GK"],
-  DEF: ["CB", "LB", "RB", "LWB", "RWB"],
-  MID: ["CMF", "DMF", "AMF"],
+  DEF: ["CB", "LB", "RB"],
+  MID: ["CMF", "DMF", "AMF", "LMF", "RMF"],
   FWD: ["RWF", "LWF", "CF", "SS"],
 };
 
@@ -99,7 +99,7 @@ app.get("/api/players/distinct", async (req, res) => {
 app.get("/api/players/filter-options", async (_req, res) => {
   try {
     const out = {};
-    for (const col of ["foot", "playing_style", "card_type", "league"]) {
+    for (const col of ["foot", "playing_style", "card_type", "league", "region"]) {
       const [rows] = await db.query(
         `SELECT DISTINCT ${col} AS v FROM players_catalog
          WHERE ${col} IS NOT NULL AND TRIM(${col}) != ''
@@ -111,7 +111,7 @@ app.get("/api/players/filter-options", async (_req, res) => {
   } catch (err) {
     console.error("filter-options error:", err.message);
     res.status(503).json({
-      foot: [], playing_style: [], card_type: [], league: [],
+      foot: [], playing_style: [], card_type: [], league: [], region: [],
     });
   }
 });
@@ -596,8 +596,16 @@ app.put("/api/game-plans/:id/swap", async (req, res) => {
 // ── Room presence + preparation session (in-memory) ──────────────────────────────
 const roomPresence = new Map();
 const PRESENCE_TTL_MS = 12000;
+const DEFAULT_BAN_DURATION_SECONDS = 15;
+const MIN_BAN_DURATION_SECONDS = 5;
+const MAX_BAN_DURATION_SECONDS = 120;
+const REVEAL_MODE_INSTANT = "instant";
+const REVEAL_MODE_HIDDEN = "hidden";
 const ALLOWANCE_FIELDS = new Set([
   "position",
+  "overall", "overallMax",
+  "height", "weight", "age",
+  // Legacy keys kept for backward compatibility.
   "overallMin", "overallMax",
   "overallMaxMin", "overallMaxMax",
   "club", "league", "nationality",
@@ -606,15 +614,61 @@ const ALLOWANCE_FIELDS = new Set([
   "ageMin", "ageMax",
   "cardType", "region", "foot", "playingStyle",
 ]);
+const POSITION_OPTIONS = new Set(["GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF"]);
+
+function normalizeAllowanceCapValue(raw) {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? String(Math.min(23, Math.floor(n))) : "";
+}
+
+function normalizeBanDurationSec(raw) {
+  const n = Math.floor(Number(raw) || DEFAULT_BAN_DURATION_SECONDS);
+  return Math.max(MIN_BAN_DURATION_SECONDS, Math.min(MAX_BAN_DURATION_SECONDS, n));
+}
+
+function normalizeRevealMode(raw) {
+  return String(raw || "").trim().toLowerCase() === REVEAL_MODE_HIDDEN
+    ? REVEAL_MODE_HIDDEN
+    : REVEAL_MODE_INSTANT;
+}
+
+function normalizePositionCaps(raw) {
+  let obj = {};
+  if (raw && typeof raw === "object") {
+    obj = raw;
+  } else {
+    const text = String(raw || "").trim();
+    if (!text) return "";
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === "object") obj = parsed;
+      else return "";
+    } catch {
+      return "";
+    }
+  }
+
+  const normalized = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const pos = String(k || "").trim().toUpperCase();
+    if (!POSITION_OPTIONS.has(pos)) continue;
+    const cap = normalizeAllowanceCapValue(v);
+    if (cap) normalized[pos] = cap;
+  }
+  return Object.keys(normalized).length ? JSON.stringify(normalized) : "";
+}
 
 function createDefaultRoomConfig() {
   return {
     allowAllPlayers: true,
     banCountPerSide: 0,
+    banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
+    revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: 23,
     allowanceEnabled: [],
-    allowance: {
+    allowanceCaps: {
       position: "",
+      overall: "",
       overallMin: "",
       overallMax: "",
       overallMaxMin: "",
@@ -622,10 +676,37 @@ function createDefaultRoomConfig() {
       club: "",
       league: "",
       nationality: "",
+      height: "",
       heightMin: "",
       heightMax: "",
+      weight: "",
       weightMin: "",
       weightMax: "",
+      age: "",
+      ageMin: "",
+      ageMax: "",
+      cardType: "",
+      region: "",
+      foot: "",
+      playingStyle: "",
+    },
+    allowance: {
+      position: "",
+      overall: "",
+      overallMin: "",
+      overallMax: "",
+      overallMaxMin: "",
+      overallMaxMax: "",
+      club: "",
+      league: "",
+      nationality: "",
+      height: "",
+      heightMin: "",
+      heightMax: "",
+      weight: "",
+      weightMin: "",
+      weightMax: "",
+      age: "",
       ageMin: "",
       ageMax: "",
       cardType: "",
@@ -653,6 +734,21 @@ function ensureRoomEntry(code) {
     roomPresence.set(code, entry);
   }
   if (!entry.config) entry.config = createDefaultRoomConfig();
+  const defaultCfg = createDefaultRoomConfig();
+  entry.config = {
+    ...defaultCfg,
+    ...entry.config,
+    allowanceCaps: {
+      ...defaultCfg.allowanceCaps,
+      ...((entry.config && entry.config.allowanceCaps) || {}),
+    },
+    allowance: {
+      ...defaultCfg.allowance,
+      ...((entry.config && entry.config.allowance) || {}),
+    },
+  };
+  entry.config.banDurationSec = normalizeBanDurationSec(entry.config.banDurationSec);
+  entry.config.revealMode = normalizeRevealMode(entry.config.revealMode);
   if (!Number.isFinite(Number(entry.lastConfigSeq))) entry.lastConfigSeq = 0;
   if (!entry.ready) entry.ready = { guest: false };
   if (entry.closed === undefined) entry.closed = false;
@@ -838,7 +934,7 @@ app.post("/api/rooms/:code/ready", (req, res) => {
   res.json({ room: serializeRoomEntry(entry) });
 });
 
-/** POST body: { requesterId, allowAllPlayers?, banCountPerSide?, allowance? } */
+/** POST body: { requesterId, allowAllPlayers?, banCountPerSide?, allowanceEnabled?, allowance?, allowanceCaps? } */
 app.post("/api/rooms/:code/config", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const {
@@ -846,8 +942,11 @@ app.post("/api/rooms/:code/config", (req, res) => {
     clientSeq,
     allowAllPlayers,
     banCountPerSide,
+    banDurationSec,
+    revealMode,
     allowanceEnabled,
     allowance,
+    allowanceCaps,
   } = req.body || {};
   if (!code || code.length < 4)
     return res.status(400).json({ error: "Invalid room code." });
@@ -871,7 +970,13 @@ app.post("/api/rooms/:code/config", (req, res) => {
     entry.config.allowAllPlayers = Boolean(allowAllPlayers);
 
   if (banCountPerSide !== undefined) {
-    entry.config.banCountPerSide = Math.max(0, Math.min(10, Number(banCountPerSide) || 0));
+    entry.config.banCountPerSide = Math.max(0, Math.floor(Number(banCountPerSide) || 0));
+  }
+  if (banDurationSec !== undefined) {
+    entry.config.banDurationSec = normalizeBanDurationSec(banDurationSec);
+  }
+  if (revealMode !== undefined) {
+    entry.config.revealMode = normalizeRevealMode(revealMode);
   }
   // Picks are fixed for full squad completion.
   entry.config.pickCountPerSide = 23;
@@ -880,6 +985,17 @@ app.post("/api/rooms/:code/config", (req, res) => {
     for (const [k, v] of Object.entries(allowance)) {
       if (!ALLOWANCE_FIELDS.has(k)) continue;
       entry.config.allowance[k] = String(v ?? "").trim().slice(0, 120);
+    }
+  }
+
+  if (allowanceCaps && typeof allowanceCaps === "object") {
+    for (const [k, v] of Object.entries(allowanceCaps)) {
+      if (!ALLOWANCE_FIELDS.has(k)) continue;
+      if (k === "position") {
+        entry.config.allowanceCaps[k] = normalizePositionCaps(v);
+      } else {
+        entry.config.allowanceCaps[k] = normalizeAllowanceCapValue(v);
+      }
     }
   }
 

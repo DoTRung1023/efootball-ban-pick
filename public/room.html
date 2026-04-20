@@ -11,11 +11,14 @@
     <link rel="stylesheet" href="/css/room.css" />
   </head>
   <body>
-    <div class="bg" aria-hidden="true">
-      <div class="glow g1"></div>
-      <div class="glow g2"></div>
-      <div class="glow g3"></div>
+    <div class="pitch-bg" aria-hidden="true">
+      <div class="pitch-lines"></div>
+      <div class="pitch-center-circle"></div>
+      <div class="pitch-halfway"></div>
     </div>
+    <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-3" aria-hidden="true"></div>
 
     <!-- Error -->
     <div id="viewError" class="view view--fullscreen" hidden>
@@ -37,77 +40,118 @@
 
     <!-- Lobby -->
     <div id="viewLobby" class="view view--fullscreen" hidden>
-      <div class="lobby-leave">
-        <button type="button" class="btn btn--small btn--ghost" id="lobbyLeaveBtn">Leave</button>
-      </div>
       <div class="centered-box centered-box--lobby">
-        <div class="room-code-label">ROOM CODE</div>
-        <div class="room-code-big" id="lobbyCodeDisplay">—</div>
-        <p class="lobby-hint" id="lobbyHint"></p>
+        <div class="lobby-board">
+          <section class="lobby-layout">
+            <div class="lobby-left-lane">
+              <div class="lobby-summary">
+                <div class="lobby-leave">
+                  <button type="button" class="btn btn--small btn--ghost" id="lobbyLeaveBtn">Leave</button>
+                </div>
+                <div class="room-code-label">ROOM CODE</div>
+                <div class="room-code-big" id="lobbyCodeDisplay">—</div>
+                <p class="lobby-hint" id="lobbyHint"></p>
 
-        <div class="player-slots">
-          <div class="player-slot" id="lobbyHostSlot">
-            <div class="player-slot-label">HOST</div>
-            <div class="player-slot-name" id="lobbyHostName">—</div>
-            <div class="player-slot-status player-slot-status--ok" id="lobbyHostStatus">● Connected</div>
-          </div>
-          <div class="player-slot-vs">VS</div>
-          <div class="player-slot" id="lobbyGuestSlot">
-            <div class="player-slot-label">GUEST</div>
-            <div class="player-slot-name" id="lobbyGuestName">Waiting…</div>
-            <div class="player-slot-status" id="lobbyGuestStatus"></div>
-          </div>
-        </div>
+                <div class="player-slots">
+                  <div class="player-slot" id="lobbyHostSlot">
+                    <div class="player-slot-label">HOST</div>
+                    <div class="player-slot-name" id="lobbyHostName">—</div>
+                    <div class="player-slot-status player-slot-status--ok" id="lobbyHostStatus">● Connected</div>
+                  </div>
+                  <div class="player-slot-vs">VS</div>
+                  <div class="player-slot" id="lobbyGuestSlot">
+                    <div class="player-slot-label">GUEST</div>
+                    <div class="player-slot-name" id="lobbyGuestName">Waiting…</div>
+                    <div class="player-slot-status" id="lobbyGuestStatus"></div>
+                  </div>
+                </div>
 
-        <div class="lobby-meta" id="lobbyMeta"></div>
+                <div class="lobby-meta" id="lobbyMeta"></div>
 
-        <section class="prep-shell">
-          <div class="prep-col prep-col--settings">
-            <div class="prep-title">PREPARATION</div>
-            <div class="prep-sub">Host configures allowed player pool and ban count before starting.</div>
+                <div class="lobby-copy-row">
+                  <button type="button" class="btn btn--ghost" id="copyInviteBtn">Copy invite link</button>
+                  <button type="button" class="btn btn--ghost" id="copyCodeBtn">Copy code</button>
+                </div>
 
-            <div class="prep-row">
-              <label class="prep-check">
-                <input type="checkbox" id="allowAllPlayersInput" />
-                <span>Allow all players (ignore category filters)</span>
-              </label>
-            </div>
+                <div class="lobby-actions">
+                  <button type="button" class="btn btn--primary" id="startDraftBtn" hidden>START DRAFT</button>
+                </div>
+              </div>
 
-            <div class="lobby-settings" id="lobbySettings" hidden>
-              <div class="lobby-field">
-                <label for="lobbyBansInput">Bans / side</label>
-                <input type="number" id="lobbyBansInput" min="0" max="10" value="0" />
+              <div class="prep-col prep-col--chat">
+                <div class="prep-title">LOBBY CHAT</div>
+                <div class="prep-sub">Use chat to confirm rules.</div>
+                <div class="chat-log" id="chatLog"></div>
+                <form class="chat-compose" id="chatForm">
+                  <input type="text" id="chatInput" maxlength="500" placeholder="Type a message..." autocomplete="off" />
+                  <button type="submit" class="btn btn--small btn--primary">Send</button>
+                </form>
               </div>
             </div>
 
-            <div class="allowance-controls" id="allowanceControls">
-              <select id="allowanceCategorySelect" class="draft-select"></select>
-              <button type="button" class="btn btn--small btn--ghost" id="addAllowanceBtn">Add category</button>
-            </div>
+            <aside class="lobby-right-lane" aria-label="Ban and pick settings">
+              <div class="prep-col prep-col--settings">
+                <div class="prep-title">BAN SETTING</div>
+                <div class="prep-sub">Set draft rules: choose bans per side and player filters.</div>
 
-            <div class="allowance-list" id="allowanceList">
-              <div class="allowance-empty">No categories added. All players are allowed.</div>
-            </div>
-          </div>
+                <div class="prep-section prep-section--ban">
+                  <div class="lobby-settings lobby-settings--ban" id="lobbySettings" hidden>
+                    <div class="lobby-field lobby-field--stack">
+                      <label for="lobbyBansInput">BAN PER SIDE</label>
+                      <input type="number" id="lobbyBansInput" min="0" value="0" />
+                    </div>
+                    <div class="lobby-field lobby-field--stack">
+                      <label for="lobbyBanDurationInput">BAN DURATION (S)</label>
+                      <input type="number" id="lobbyBanDurationInput" min="5" max="120" value="15" />
+                    </div>
+                    <div class="lobby-field lobby-field--stack lobby-field--mode">
+                      <label for="lobbyRevealModeTrigger" class="lobby-mode-label">MODE</label>
+                      <div class="lobby-mode-dd" id="lobbyRevealModeDd">
+                        <input type="hidden" id="lobbyRevealModeInput" value="instant" />
+                        <button type="button" class="lobby-mode-trigger" id="lobbyRevealModeTrigger" aria-haspopup="true" aria-expanded="false">
+                          <span id="lobbyRevealModeLabel">Show picks after each turn</span>
+                          <span class="lobby-mode-caret" aria-hidden="true"></span>
+                        </button>
+                        <div class="lobby-mode-panel" id="lobbyRevealModePanel">
+                          <button type="button" class="lobby-mode-option" data-lobby-reveal-mode-option="instant">
+                            Show picks after each turn
+                          </button>
+                          <button type="button" class="lobby-mode-option" data-lobby-reveal-mode-option="hidden">
+                            Hide picks, reveal squad later
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-          <div class="prep-col prep-col--chat">
-            <div class="prep-title">LOBBY CHAT</div>
-            <div class="prep-sub">Use chat to agree on ban count and allowance categories.</div>
-            <div class="chat-log" id="chatLog"></div>
-            <form class="chat-compose" id="chatForm">
-              <input type="text" id="chatInput" maxlength="500" placeholder="Type a message..." autocomplete="off" />
-              <button type="submit" class="btn btn--small btn--primary">Send</button>
-            </form>
-          </div>
-        </section>
+                <div class="prep-section prep-section--allowance">
+                  <div class="prep-section-title">CATEGORY ALLOWANCE</div>
+                  <div class="prep-section-sub">Add filters. Set max cards per category, or leave it empty for unlimited.</div>
+                  <div class="prep-row">
+                    <label class="prep-check">
+                      <input type="checkbox" id="allowAllPlayersInput" />
+                      <span>Allow all players (ignore category filters)</span>
+                    </label>
+                  </div>
+                  <div class="allowance-controls" id="allowanceControls">
+                    <div class="allowance-category-dd" id="allowanceCategoryDd">
+                      <button type="button" class="draft-select allowance-category-trigger" id="allowanceCategoryTrigger" aria-haspopup="true" aria-expanded="false">
+                        <span id="allowanceCategoryLabel">Select category</span>
+                        <span class="allowance-category-caret" aria-hidden="true"></span>
+                      </button>
+                      <div class="allowance-category-panel" id="allowanceCategoryPanel"></div>
+                    </div>
+                    <button type="button" class="btn btn--small btn--ghost" id="addAllowanceBtn">Add category</button>
+                  </div>
 
-        <div class="lobby-copy-row">
-          <button type="button" class="btn btn--ghost" id="copyInviteBtn">Copy invite link</button>
-          <button type="button" class="btn btn--ghost" id="copyCodeBtn">Copy code</button>
-        </div>
-
-        <div class="lobby-actions">
-          <button type="button" class="btn btn--primary" id="startDraftBtn" hidden>START DRAFT</button>
+                  <div class="allowance-list" id="allowanceList">
+                    <div class="allowance-empty">No categories added. All players are allowed.</div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </section>
         </div>
       </div>
     </div>
@@ -143,6 +187,8 @@
               <option value="RB">RB</option>
               <option value="DMF">DMF</option>
               <option value="CMF">CMF</option>
+              <option value="LMF">LMF</option>
+              <option value="RMF">RMF</option>
               <option value="AMF">AMF</option>
               <option value="LWF">LWF</option>
               <option value="RWF">RWF</option>
