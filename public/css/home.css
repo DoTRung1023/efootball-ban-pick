@@ -659,6 +659,10 @@ body {
   margin-top: 0;
 }
 
+.player-grid.info-hidden .pc-footer {
+  display: none;
+}
+
 .pc-footer-sep {
   color: rgba(123,171,138,0.35) !important;
   font-weight: 400 !important;
@@ -2309,6 +2313,12 @@ body {
 .select-mode-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.toggle-info-btn.is-off {
+  color: rgba(123,171,138,0.75);
+  border-color: rgba(123,171,138,0.35);
+  background: rgba(123,171,138,0.08);
 }
 
 /* Selection toolbar */

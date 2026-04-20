@@ -284,6 +284,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] filter: foot, playing style, overall, overall max, card type, league
 - [x] select mode in game plans: tick box should always show, an abandon tick box appears on that select string
 - [x] change my team to my players on section strip
+- [x] add option in my players tab to show and hide players info
 
 ---
 

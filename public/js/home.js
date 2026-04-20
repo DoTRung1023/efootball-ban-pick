@@ -299,6 +299,13 @@ const squad = {
   players:    [],
   selected:   new Set(),
   selectMode: false,
+  showInfo: (() => {
+    try {
+      return localStorage.getItem("efb_squad_show_info") !== "0";
+    } catch {
+      return true;
+    }
+  })(),
   search:     "",
   sortKey:    "overall_max", // overall_max | overall | name | position | height | weight | age
   sortDir:    "desc",
@@ -451,6 +458,16 @@ function updateSelectionUI() {
   if (selAllBtn) selAllBtn.textContent = (n > 0 && n === total) ? "DESELECT ALL" : "SELECT ALL";
 }
 
+function updateSquadInfoVisibilityUi() {
+  const btn = document.getElementById("toggleSquadInfoBtn");
+  if (btn) {
+    btn.textContent = squad.showInfo ? "HIDE INFO" : "SHOW INFO";
+    btn.classList.toggle("is-off", !squad.showInfo);
+    btn.setAttribute("aria-pressed", squad.showInfo ? "true" : "false");
+  }
+  getSquadGrid()?.classList.toggle("info-hidden", !squad.showInfo);
+}
+
 /* ──────────────── Load squad ──────────────── */
 async function loadSquad(userId) {
   const grid = getSquadGrid();
@@ -476,6 +493,7 @@ function renderSquad() {
   const grid = getSquadGrid();
   if (!grid) return;
   grid.innerHTML = "";
+  updateSquadInfoVisibilityUi();
 
   if (!squad.players.length) {
     grid.innerHTML = `
@@ -977,6 +995,15 @@ function initSquadSearchSortFilter() {
 }
 
 function initSquadControls(userId) {
+  document.getElementById("toggleSquadInfoBtn")?.addEventListener("click", () => {
+    squad.showInfo = !squad.showInfo;
+    try {
+      localStorage.setItem("efb_squad_show_info", squad.showInfo ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    updateSquadInfoVisibilityUi();
+  });
   document.getElementById("selectModeBtn")?.addEventListener("click", enterSelectMode);
   document.getElementById("cancelSelectBtn")?.addEventListener("click", exitSelectMode);
 
@@ -3161,8 +3188,11 @@ function updatePlanSelectionUI() {
   const count   = gamePlans.selected.size;
   const countEl = document.getElementById("planSelectedCount");
   const delBtn  = document.getElementById("planDeleteSelectedBtn");
+  const selAllBtn = document.getElementById("planSelectAllBtn");
+  const total   = gamePlans.plans.length;
   if (countEl) countEl.textContent = count;
   if (delBtn)  delBtn.disabled     = count === 0;
+  if (selAllBtn) selAllBtn.textContent = (count > 0 && count === total) ? "DESELECT ALL" : "SELECT ALL";
 }
 
 async function deleteSelectedPlans(userId) {
@@ -3199,8 +3229,14 @@ function initGamePlans(userId) {
   document.getElementById("planCancelSelectBtn")?.addEventListener("click", exitPlanSelectMode);
   document.getElementById("planSelectAllBtn")?.addEventListener("click", () => {
     const grid = document.getElementById("plansGrid");
-    gamePlans.plans.forEach((p) => gamePlans.selected.add(p.id));
-    grid?.querySelectorAll(".plan-card").forEach((c) => c.classList.add("selected"));
+    const allSelected = gamePlans.plans.length > 0 && gamePlans.selected.size === gamePlans.plans.length;
+    if (allSelected) {
+      gamePlans.selected.clear();
+      grid?.querySelectorAll(".plan-card.selected").forEach((c) => c.classList.remove("selected"));
+    } else {
+      gamePlans.plans.forEach((p) => gamePlans.selected.add(p.id));
+      grid?.querySelectorAll(".plan-card").forEach((c) => c.classList.add("selected"));
+    }
     updatePlanSelectionUI();
   });
   document.getElementById("planDeleteSelectedBtn")?.addEventListener("click", () => deleteSelectedPlans(userId));
