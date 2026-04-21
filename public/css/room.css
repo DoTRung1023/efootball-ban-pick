@@ -197,6 +197,97 @@ body {
   margin-bottom: 8px;
 }
 
+.centered-box--error {
+  max-width: 460px;
+}
+
+#viewError.is-room-closed .centered-box--error {
+  padding: 28px 24px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 108, 108, 0.38);
+  background: linear-gradient(180deg, rgba(34, 10, 10, 0.88), rgba(18, 8, 8, 0.9));
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 92, 92, 0.16) inset;
+}
+
+.error-state-icon {
+  display: none !important;
+}
+
+.error-title {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 232, 232, 0.98);
+}
+
+#viewError.is-room-closed .error-text {
+  color: rgba(255, 194, 194, 0.9);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+#viewError.is-room-closed #errorLeaveBtn {
+  border-color: rgba(255, 112, 112, 0.72);
+  background: linear-gradient(180deg, rgba(255, 98, 98, 0.28), rgba(255, 70, 70, 0.14));
+  color: #fff;
+  min-width: 146px;
+  box-shadow: 0 0 0 1px rgba(255, 116, 116, 0.24) inset, 0 8px 18px rgba(255, 84, 84, 0.24);
+}
+
+#viewError.is-host-lock .centered-box--error {
+  padding: 26px 24px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 190, 92, 0.42);
+  background: linear-gradient(180deg, rgba(30, 22, 8, 0.9), rgba(17, 13, 6, 0.92));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 192, 98, 0.14) inset;
+}
+
+#viewError.is-host-lock .error-title {
+  color: rgba(255, 231, 187, 0.98);
+}
+
+#viewError.is-host-lock .error-text {
+  color: rgba(255, 220, 165, 0.9);
+  margin: 0;
+  font-size: 0.95rem;
+  max-width: 360px;
+}
+
+#viewError.is-host-lock #errorLeaveBtn {
+  border-color: rgba(255, 198, 112, 0.7);
+  background: linear-gradient(180deg, rgba(255, 196, 98, 0.26), rgba(255, 173, 72, 0.12));
+  color: rgba(255, 246, 227, 0.98);
+  min-width: 132px;
+  box-shadow: 0 0 0 1px rgba(255, 208, 132, 0.2) inset, 0 8px 18px rgba(255, 180, 82, 0.22);
+}
+
+#viewError.is-access-denied .centered-box--error {
+  padding: 28px 24px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(107, 176, 255, 0.42);
+  background: linear-gradient(180deg, rgba(8, 20, 34, 0.9), rgba(7, 15, 28, 0.92));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(114, 184, 255, 0.14) inset;
+}
+
+#viewError.is-access-denied .error-title {
+  color: rgba(214, 238, 255, 0.98);
+}
+
+#viewError.is-access-denied .error-text {
+  color: rgba(169, 209, 243, 0.92);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+#viewError.is-access-denied #errorLeaveBtn {
+  border-color: rgba(104, 176, 255, 0.72);
+  background: linear-gradient(180deg, rgba(96, 169, 255, 0.24), rgba(76, 144, 224, 0.12));
+  color: rgba(234, 246, 255, 0.98);
+  min-width: 154px;
+  box-shadow: 0 0 0 1px rgba(120, 187, 255, 0.2) inset, 0 8px 18px rgba(85, 158, 235, 0.24);
+}
+
 /* Spinner */
 .spinner {
   width: 32px;
@@ -284,6 +375,25 @@ body {
   color: rgba(240, 255, 246, 0.98);
   box-shadow: 0 0 0 1px rgba(0, 230, 118, 0.2) inset, 0 6px 16px rgba(0, 230, 118, 0.2);
 }
+
+#lobbyLeaveBtn,
+#lobbyLeaveBtn.is-close-room {
+  border-color: rgba(255, 105, 105, 0.72);
+  background: linear-gradient(180deg, rgba(255, 86, 86, 0.26), rgba(255, 68, 68, 0.12));
+  color: rgba(255, 241, 241, 0.98);
+  box-shadow: 0 0 0 1px rgba(255, 97, 97, 0.3) inset, 0 8px 18px rgba(255, 78, 78, 0.28);
+  text-shadow: 0 0 12px rgba(255, 95, 95, 0.25);
+}
+
+#lobbyLeaveBtn:hover:not(:disabled),
+#lobbyLeaveBtn:focus-visible,
+#lobbyLeaveBtn.is-close-room:hover:not(:disabled),
+#lobbyLeaveBtn.is-close-room:focus-visible {
+  border-color: rgba(255, 132, 132, 0.95);
+  background: linear-gradient(180deg, rgba(255, 102, 102, 0.3), rgba(255, 74, 74, 0.16));
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 120, 120, 0.38) inset, 0 10px 22px rgba(255, 92, 92, 0.34);
+}
 .room-code-label {
   font-size: 12px;
   color: var(--text-muted);
@@ -324,6 +434,10 @@ body {
   padding: 10px 12px;
   text-align: center;
 }
+
+#lobbyGuestSlot {
+  position: relative;
+}
 .player-slot.is-ready {
   background: #0a1a0a;
   border-color: rgba(0, 230, 118, 0.28);
@@ -356,6 +470,26 @@ body {
   font-size: 18px;
   font-weight: 700;
   color: rgba(224, 238, 255, 0.42);
+}
+
+.lobby-kick-btn {
+  position: absolute;
+  right: 0;
+  top: -34px;
+  padding: 4px 10px;
+  min-height: 28px;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  border-color: rgba(255, 96, 96, 0.52);
+  background: linear-gradient(180deg, rgba(255, 90, 90, 0.2), rgba(255, 66, 66, 0.1));
+  color: rgba(255, 228, 228, 0.96);
+}
+
+.lobby-kick-btn:hover:not(:disabled),
+.lobby-kick-btn:focus-visible {
+  border-color: rgba(255, 126, 126, 0.86);
+  background: linear-gradient(180deg, rgba(255, 110, 110, 0.26), rgba(255, 74, 74, 0.14));
+  color: #fff;
 }
 .lobby-meta {
   font-size: 13px;
@@ -695,8 +829,7 @@ body {
 }
 
 .prep-sub {
-  margin-top: 5px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   color: rgba(235, 245, 255, 0.76);
   font-size: 13px;
   font-weight: 600;
@@ -731,6 +864,28 @@ body {
   min-height: 0;
   flex: 1;
   height: 100%;
+}
+
+.prep-col--settings.is-readonly {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.prep-col--settings.is-readonly :is(
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  .allowance-category-dd,
+  .allowance-list,
+  .allowance-pos-dropdown,
+  .allowance-multi-dropdown,
+  .allowance-cap-wrap,
+  .allowance-pos-cap-wrap
+) {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
 }
 
 .prep-section-title {
@@ -1124,15 +1279,18 @@ body {
   grid-template-areas: "main remove";
 }
 
-.allowance-item[data-allowance-key="club"] .allowance-item-row--no-cap {
+.allowance-item:is([data-allowance-key="club"], [data-allowance-key="league"], [data-allowance-key="nationality"]) .allowance-item-row--no-cap {
   grid-template-columns: 1fr;
   grid-template-rows: auto;
   grid-template-areas: "main";
 }
 
-.allowance-item[data-allowance-key="club"] .allowance-remove-btn {
+.allowance-item:is([data-allowance-key="club"], [data-allowance-key="league"], [data-allowance-key="nationality"]) .allowance-remove-btn {
+  grid-area: auto;
   justify-self: end;
   align-self: center;
+  width: auto;
+  max-width: none;
 }
 
 .allowance-item-main {
@@ -1155,7 +1313,7 @@ body {
 
 .allowance-club-add-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 150px auto;
   gap: 8px;
   align-items: center;
 }
@@ -1224,6 +1382,7 @@ body {
 
 .allowance-club-add-btn {
   min-height: 36px;
+  width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(0, 230, 118, 0.2);
   background: rgba(0, 230, 118, 0.07);
@@ -1232,8 +1391,9 @@ body {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
+  white-space: nowrap;
   padding: 0 12px;
-  justify-self: end;
+  justify-self: stretch;
   cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease, color 0.16s ease;
 }
@@ -1258,7 +1418,7 @@ body {
 
 .allowance-club-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 112px auto;
+  grid-template-columns: minmax(0, 1fr) 150px auto;
   gap: 8px;
   align-items: end;
 }
@@ -1287,7 +1447,8 @@ body {
   margin: 0;
 }
 
-.allowance-club-cap-label {
+.allowance-club-row:first-child .allowance-club-cap-col::before {
+  content: "Max cards";
   font-size: 0.62rem;
   line-height: 1;
   letter-spacing: 0.1em;
@@ -1295,6 +1456,10 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   text-align: center;
+}
+
+.allowance-club-cap-label {
+  display: none;
 }
 
 .allowance-club-cap-input {
@@ -1365,7 +1530,7 @@ body {
 
 @media (max-width: 620px) {
   .allowance-club-add-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 150px auto;
   }
 
   .allowance-club-row {
@@ -2324,7 +2489,6 @@ body {
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.52);
   line-height: 1.4;
-  padding: 4px 8px;
   margin: 4px 0 8px;
 }
 
@@ -2936,6 +3100,13 @@ body {
 .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(-6px);
+}
+
+.toast.toast--warn {
+  background: linear-gradient(180deg, rgba(70, 18, 18, 0.95), rgba(44, 12, 12, 0.95));
+  border-color: rgba(255, 112, 112, 0.65);
+  color: rgba(255, 232, 232, 0.98);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 108, 108, 0.25) inset;
 }
 
 @media (max-width: 900px) {

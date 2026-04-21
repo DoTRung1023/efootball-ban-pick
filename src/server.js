@@ -81,10 +81,10 @@ const SORT_MAP = {
   nationality_desc: "ISNULL(nationality), nationality DESC, overall DESC, name ASC",
 };
 
-// Returns distinct club / nationality values for autocomplete
+// Returns distinct values for autocomplete
 app.get("/api/players/distinct", async (req, res) => {
   const { field, q = "" } = req.query;
-  if (!["club", "nationality"].includes(field))
+  if (!["club", "nationality", "league"].includes(field))
     return res.status(400).json({ error: "Invalid field" });
   const [rows] = await db.query(
     `SELECT DISTINCT ${field} FROM players_catalog
@@ -756,6 +756,7 @@ function ensureRoomEntry(code) {
       chat: [],
       closed: false,
       closeReason: "",
+      kickedGuestId: "",
       updatedAt: Date.now(),
     };
     roomPresence.set(code, entry);
@@ -780,6 +781,7 @@ function ensureRoomEntry(code) {
   if (!entry.ready) entry.ready = { guest: false };
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
+  if (entry.kickedGuestId === undefined) entry.kickedGuestId = "";
   if (!Array.isArray(entry.chat)) entry.chat = [];
   return entry;
 }
@@ -839,6 +841,7 @@ app.post("/api/rooms/:code/presence", (req, res) => {
     return res.status(400).json({ error: "role must be host or guest." });
 
   const entry = ensureRoomEntry(code);
+  pruneStalePresence(entry, Date.now());
   if (entry.closed && role !== "host") {
     return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry) });
   }
@@ -846,6 +849,7 @@ app.post("/api/rooms/:code/presence", (req, res) => {
     // Host can reopen same room code by entering again.
     entry.closed = false;
     entry.closeReason = "";
+    entry.kickedGuestId = "";
   }
 
   const participant = {
@@ -855,6 +859,10 @@ app.post("/api/rooms/:code/presence", (req, res) => {
   };
   let hasMeaningfulChange = false;
   if (role === "host") {
+    const activeHostId = entry.host?.id ? String(entry.host.id) : "";
+    if (activeHostId && activeHostId !== participant.id) {
+      return res.status(409).json({ error: "Room already has an active host." });
+    }
     const wasHostId = entry.host?.id ? String(entry.host.id) : "";
     if (!wasHostId || wasHostId !== participant.id) {
       pushSystemChat(entry, `${participant.username} joined as host.`);
@@ -862,6 +870,13 @@ app.post("/api/rooms/:code/presence", (req, res) => {
     }
     entry.host = participant;
   } else {
+    const activeGuestId = entry.guest?.id ? String(entry.guest.id) : "";
+    if (activeGuestId && activeGuestId !== participant.id) {
+      return res.status(409).json({ error: "Room already has an active guest." });
+    }
+    if (entry.kickedGuestId && entry.kickedGuestId === participant.id) {
+      return res.status(403).json({ error: "You were removed from this room by host." });
+    }
     const wasGuestId = entry.guest?.id ? String(entry.guest.id) : "";
     if (!wasGuestId || wasGuestId !== participant.id) {
       if (entry.guest?.username) {
@@ -870,6 +885,9 @@ app.post("/api/rooms/:code/presence", (req, res) => {
       pushSystemChat(entry, `${participant.username} joined the room.`);
       entry.ready.guest = false;
       hasMeaningfulChange = true;
+    }
+    if (entry.kickedGuestId && entry.kickedGuestId !== participant.id) {
+      entry.kickedGuestId = "";
     }
     entry.guest = participant;
   }
@@ -931,12 +949,39 @@ app.post("/api/rooms/:code/leave", (req, res) => {
     entry.closeReason = "Host closed the room.";
     entry.guest = null;
     entry.ready.guest = false;
+    entry.kickedGuestId = "";
   }
   if (entry.guest?.id && String(entry.guest.id) === requesterId) {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
     entry.ready.guest = false;
   }
+  entry.updatedAt = Date.now();
+  res.json({ room: serializeRoomEntry(entry) });
+});
+
+/** POST body: { requesterId } */
+app.post("/api/rooms/:code/kick-guest", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const requesterId = String(req.body?.requesterId || "");
+  if (!code || code.length < 4)
+    return res.status(400).json({ error: "Invalid room code." });
+  if (!requesterId)
+    return res.status(400).json({ error: "requesterId is required." });
+
+  const entry = ensureRoomEntry(code);
+  const hostId = entry.host?.id ? String(entry.host.id) : "";
+  if (!hostId || hostId !== requesterId) {
+    return res.status(403).json({ error: "Only host can kick guest." });
+  }
+  if (!entry.guest?.id) {
+    return res.status(409).json({ error: "No guest to kick." });
+  }
+
+  entry.kickedGuestId = String(entry.guest.id);
+  pushSystemChat(entry, `${entry.guest.username || "Guest"} was removed by host.`);
+  entry.guest = null;
+  entry.ready.guest = false;
   entry.updatedAt = Date.now();
   res.json({ room: serializeRoomEntry(entry) });
 });

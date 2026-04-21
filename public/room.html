@@ -22,7 +22,9 @@
 
     <!-- Error -->
     <div id="viewError" class="view view--fullscreen" hidden>
-      <div class="centered-box">
+      <div class="centered-box centered-box--error" id="errorBox">
+        <div class="error-state-icon" id="errorStateIcon" hidden>⛔</div>
+        <h2 class="error-title" id="errorTitle" hidden>Room closed</h2>
         <p class="error-text" id="errorMessage"></p>
         <a class="btn" id="errorLeaveBtn" href="/">Leave room</a>
       </div>
@@ -63,6 +65,9 @@
                     <div class="player-slot-label">GUEST</div>
                     <div class="player-slot-name" id="lobbyGuestName">Waiting…</div>
                     <div class="player-slot-status" id="lobbyGuestStatus"></div>
+                    <button type="button" class="btn btn--small btn--ghost lobby-kick-btn" id="kickGuestBtn" hidden>
+                      Kick
+                    </button>
                   </div>
                 </div>
 

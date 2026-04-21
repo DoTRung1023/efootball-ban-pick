@@ -3345,15 +3345,13 @@ function normalizeRoomCode(raw) {
   return code;
 }
 
-function goToRoom({ code, bans, picks, mode }) {
+function goToRoom({ code, mode }) {
   const c = normalizeRoomCode(code);
   if (!c || c.length < 4) {
     showToast("Enter a valid room code.", "info");
     return;
   }
   const url = new URL(window.location.origin + `/room/${encodeURIComponent(c)}`);
-  if (bans != null) url.searchParams.set("bans", String(bans));
-  if (picks != null) url.searchParams.set("picks", String(picks));
   if (mode) url.searchParams.set("mode", String(mode));
   window.location.href = url.pathname + url.search;
 }
@@ -3393,10 +3391,8 @@ function initRoomModal() {
 
   document.getElementById("startRoomBtn")?.addEventListener("click", () => {
     const code  = codeInput?.value;
-    const bans  = 0;
-    const picks = 0;
     close();
-    goToRoom({ code, bans, picks, mode: "host" });
+    goToRoom({ code, mode: "host" });
   });
 }
 

@@ -289,9 +289,9 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] add limit number of each categories
 - [x] mode: reveal team after ban pick or in turn
 - [x] categories undone: league, clubs, nationality
+- [ ] host can kick other roomates
 - [ ] fix rooms tab
 - [ ] after scraping, some players have empty playing styles, need to fix the scraper -> need to run backup database and data cleaning, 
-- [ ] host can kick other roomates
 
 ---
 
