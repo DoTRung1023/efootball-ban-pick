@@ -288,9 +288,10 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] create room page: make it prettier and more smoothly
 - [x] add limit number of each categories
 - [x] mode: reveal team after ban pick or in turn
-- [ ] categories undone: league, clubs, nationality
+- [x] categories undone: league, clubs, nationality
 - [ ] fix rooms tab
 - [ ] after scraping, some players have empty playing styles, need to fix the scraper -> need to run backup database and data cleaning, 
+- [ ] host can kick other roomates
 
 ---
 
@@ -309,14 +310,14 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] Rooms tab + create/join flow (home)
 - [x] Dedicated room page (lobby UI, draft UI, end summary; local + demo opponent)
 - [ ] Ban & pick session (real-time with WebSockets; replace local state in `room.js`)
-   + [ ] mode: reaveal after finishing or show after every turn
-   + [ ] host: determine the rules of ban pick, can kick other roomates
-   + [ ] finalise rules: ban categories, number of ban players
+   + [x] mode: reaveal after finishing or show after every turn
+   + [x] host: determine the rules of ban pick, can kick other roomates
+   + [x] finalise rules: ban categories, number of ban players
    + [ ] procedure: finalise rules -> start ban category -> ban players & pick loop
    + [ ] rule: 
-      + [ ] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
-      + [ ] allow: card type: number of players, overall rating
-      + [ ] compulsory: card type: number of players, overall rating
+      + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
+      + [x] allow: card type: number of players, overall rating
+      + [x] compulsory: card type: number of players, overall rating
       + [ ] ban players: ban exact player card
       + [ ] pick players: pick exact player card
    + [ ] a player can see opponent's team then ban/pick

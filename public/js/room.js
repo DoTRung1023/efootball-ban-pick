@@ -95,6 +95,30 @@ function normalizePlayingStyleValue(raw) {
     .filter((v, i, arr) => arr.indexOf(v) === i && PLAYING_STYLE_OPTIONS.includes(v));
 }
 
+function normalizeClubValue(raw) {
+  const seen = new Set();
+  return String(raw || "")
+    .split(",")
+    .map((v) => String(v || "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .filter((v) => {
+      const key = v.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function dedupeCaseInsensitive(values) {
+  const seen = new Set();
+  return values.filter((v) => {
+    const key = String(v || "").toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function positionSummaryText(selected) {
   if (!selected.length) return "All positions";
   if (selected.length <= 7) return selected.join(", ");
@@ -342,6 +366,59 @@ function playingStyleCapSummaryText(capMap, selectedPlayingStyles) {
   return `${active.length} capped`;
 }
 
+function parseClubCapMap(raw, selectedClubs = []) {
+  let parsed = {};
+
+  if (raw && typeof raw === "object") {
+    parsed = raw;
+  } else {
+    const text = String(raw || "").trim();
+    if (text) {
+      const legacyCap = normalizeAllowanceCapValue(text);
+      if (legacyCap) {
+        normalizeClubValue(selectedClubs.join(",")).forEach((club) => {
+          parsed[club] = legacyCap;
+        });
+      } else {
+        try {
+          const obj = JSON.parse(text);
+          if (obj && typeof obj === "object") parsed = obj;
+        } catch {
+          parsed = {};
+        }
+      }
+    }
+  }
+
+  const normalizedParsed = {};
+  for (const [clubRaw, capRaw] of Object.entries(parsed)) {
+    const club = String(clubRaw || "").replace(/\s+/g, " ").trim();
+    if (!club) continue;
+    const cap = normalizeAllowanceCapValue(capRaw);
+    if (!cap) continue;
+    normalizedParsed[club.toLowerCase()] = { club, cap };
+  }
+
+  const normalizedSelection = normalizeClubValue(selectedClubs.join(","));
+  const effectiveSelection = normalizedSelection.length
+    ? normalizedSelection
+    : Object.values(normalizedParsed).map((entry) => entry.club);
+
+  const normalized = {};
+  effectiveSelection.forEach((club) => {
+    const hit = normalizedParsed[club.toLowerCase()];
+    if (hit?.cap) normalized[club] = hit.cap;
+  });
+  return normalized;
+}
+
+function stringifyClubCapMap(map, selectedClubs = []) {
+  const normalized = parseClubCapMap(map, selectedClubs);
+  const keys = Object.keys(normalized);
+  if (!keys.length) return "";
+  return JSON.stringify(normalized);
+}
+
 function splitCsvValue(raw) {
   return String(raw || "")
     .split(",")
@@ -498,8 +575,11 @@ function playerMatchesAllowanceCategory(player, key, valueRaw) {
       const age = parseNumberOrNull(raw.age);
       return max != null && age != null && age <= max;
     }
-    case "club":
-      return matchesAnyIncludes(raw.club, value);
+    case "club": {
+      const clubs = normalizeClubValue(value);
+      if (!clubs.length) return false;
+      return clubs.some((club) => matchesAnyIncludes(raw.club, club));
+    }
     case "league":
       return matchesAnyEquals(raw.league, value);
     case "nationality":
@@ -544,6 +624,21 @@ function getAllowanceCapViolation(room, side, player) {
     }
 
     if (ALLOWANCE_RANGE_KEYS.has(key) || key === "foot") continue;
+    if (key === "club") {
+      const clubs = normalizeClubValue(allowance.club || "");
+      if (!clubs.length) continue;
+      const capMap = parseClubCapMap(caps.club, clubs);
+      const matchedClubs = clubs.filter((club) => matchesAnyIncludes(player?._raw?.club, club));
+      for (const club of matchedClubs) {
+        const cap = Number(normalizeAllowanceCapValue(capMap[club]));
+        if (!Number.isFinite(cap) || cap <= 0) continue;
+        const already = sidePicks.reduce((acc, p) => acc + (matchesAnyIncludes(p?._raw?.club, club) ? 1 : 0), 0);
+        if (already + 1 > cap) {
+          return { key, label: `Club ${club}`, cap };
+        }
+      }
+      continue;
+    }
     const cap = Number(normalizeAllowanceCapValue(caps[key]));
     if (!Number.isFinite(cap) || cap <= 0) continue;
     const value = String(allowance[key] || "").trim();
@@ -584,9 +679,17 @@ const state = {
   openAllowanceCardTypeScrollTop: 0,
   openAllowanceRegionScrollTop: 0,
   openAllowancePlayingStyleScrollTop: 0,
+  clubSearchQuery: "",
+  clubSearchOptions: [],
+  clubSearchOpen: false,
+  clubSearchLoading: false,
+  clubSearchActiveIndex: -1,
+  clubSearchReqSeq: 0,
   openRevealModeMenu: false,
   actionError: "",
 };
+
+let clubSearchDebounceTimer = null;
 
 function getUser() {
   try {
@@ -691,6 +794,7 @@ function normalizeRoomConfig(raw) {
   if (!String(incomingAllowance.age || "").trim()) {
     incomingAllowance.age = normalizeAllowanceRangeValue(incomingAllowance.ageMin, incomingAllowance.ageMax);
   }
+  incomingAllowance.club = normalizeClubValue(incomingAllowance.club).join(",");
   incomingAllowance.foot = normalizeFootValue(incomingAllowance.foot, { defaultAll: true }).join(",");
 
   const normalizedEnabled = Array.isArray(rawCfg.allowanceEnabled)
@@ -705,6 +809,7 @@ function normalizeRoomConfig(raw) {
     ...((rawCfg && rawCfg.allowanceCaps) || {}),
   };
   incomingCaps.position = stringifyPositionCapMap(incomingCaps.position, normalizePositionValue(incomingAllowance.position || ""));
+  incomingCaps.club = stringifyClubCapMap(incomingCaps.club, normalizeClubValue(incomingAllowance.club || ""));
 
   return {
     ...defaults,
@@ -745,6 +850,123 @@ function applyPresenceSnapshot(sr) {
   room.closed = Boolean(sr.closed);
   room.closeReason = sr.closeReason || "";
   state.lastRoomUpdatedAt = Number(sr.updatedAt || state.lastRoomUpdatedAt || Date.now());
+}
+
+function clearClubSearchState() {
+  state.clubSearchQuery = "";
+  state.clubSearchOptions = [];
+  state.clubSearchOpen = false;
+  state.clubSearchLoading = false;
+  state.clubSearchActiveIndex = -1;
+}
+
+function addClubAllowanceValue(rawClub) {
+  const typed = String(rawClub || "").replace(/\s+/g, " ").trim();
+  if (!typed) return false;
+  const clubs = normalizeClubValue(state.room?.config?.allowance?.club || "");
+  if (clubs.some((club) => club.toLowerCase() === typed.toLowerCase())) {
+    showToast("Club already added.");
+    return false;
+  }
+  clubs.push(typed);
+  state.room.config.allowance.club = clubs.join(",");
+  state.room.config.allowanceCaps.club = stringifyClubCapMap(state.room.config.allowanceCaps.club, clubs);
+  clearClubSearchState();
+  return true;
+}
+
+async function fetchClubSuggestions(query) {
+  const q = String(query || "").replace(/\s+/g, " ").trim();
+  if (!q) {
+    state.clubSearchOptions = [];
+    state.clubSearchOpen = false;
+    state.clubSearchLoading = false;
+    state.clubSearchActiveIndex = -1;
+    renderClubSuggestionPanel();
+    return;
+  }
+
+  const reqSeq = ++state.clubSearchReqSeq;
+  state.clubSearchLoading = true;
+  state.clubSearchOpen = true;
+  renderClubSuggestionPanel();
+
+  try {
+    const res = await fetch(`/api/players/distinct?field=club&q=${encodeURIComponent(q)}`);
+    const rows = res.ok ? await res.json() : [];
+    if (reqSeq !== state.clubSearchReqSeq) return;
+    const selected = normalizeClubValue(state.room?.config?.allowance?.club || "");
+    const selectedSet = new Set(selected.map((club) => club.toLowerCase()));
+    const options = dedupeCaseInsensitive(
+      Array.isArray(rows)
+        ? rows.map((row) => String(row || "").replace(/\s+/g, " ").trim()).filter(Boolean)
+        : [],
+    ).filter((club) => !selectedSet.has(club.toLowerCase()));
+    state.clubSearchOptions = options.slice(0, 10);
+    state.clubSearchLoading = false;
+    state.clubSearchOpen = true;
+    state.clubSearchActiveIndex = state.clubSearchOptions.length ? 0 : -1;
+    renderClubSuggestionPanel();
+  } catch {
+    if (reqSeq !== state.clubSearchReqSeq) return;
+    state.clubSearchOptions = [];
+    state.clubSearchLoading = false;
+    state.clubSearchOpen = true;
+    state.clubSearchActiveIndex = -1;
+    renderClubSuggestionPanel();
+  }
+}
+
+function scheduleClubSuggestions(query) {
+  clearTimeout(clubSearchDebounceTimer);
+  state.clubSearchQuery = String(query || "");
+  if (!state.clubSearchQuery.trim()) {
+    state.clubSearchOptions = [];
+    state.clubSearchOpen = false;
+    state.clubSearchLoading = false;
+    state.clubSearchActiveIndex = -1;
+    renderClubSuggestionPanel();
+    return;
+  }
+  state.clubSearchLoading = true;
+  state.clubSearchOpen = true;
+  state.clubSearchActiveIndex = -1;
+  renderClubSuggestionPanel();
+  clubSearchDebounceTimer = setTimeout(() => {
+    void fetchClubSuggestions(state.clubSearchQuery);
+  }, 150);
+}
+
+function renderClubSuggestionPanel() {
+  const input = document.querySelector('.allowance-club-search[data-allowance-club-search="club"]');
+  const panel = document.querySelector("[data-allowance-club-suggest-panel]");
+  if (!input || !panel) return;
+
+  input.value = state.clubSearchQuery || "";
+  panel.classList.toggle("is-open", Boolean(state.clubSearchOpen));
+  if (!state.clubSearchOpen) {
+    panel.innerHTML = "";
+    return;
+  }
+  if (state.clubSearchLoading) {
+    panel.innerHTML = '<div class="allowance-club-suggest-empty">Searching clubs...</div>';
+    return;
+  }
+
+  if (!state.clubSearchOptions.length) {
+    panel.innerHTML = state.clubSearchQuery.trim()
+      ? '<div class="allowance-club-suggest-empty">No clubs found.</div>'
+      : "";
+    return;
+  }
+
+  panel.innerHTML = state.clubSearchOptions.map((club, idx) => `
+    <button
+      type="button"
+      class="allowance-club-suggest-option ${idx === state.clubSearchActiveIndex ? "is-active" : ""}"
+      data-allowance-club-suggestion="${escapeHtml(club)}"
+    >${escapeHtml(club)}</button>
+  `).join("");
 }
 
 function showRoomClosed(message = "Room is closed.") {
@@ -1026,7 +1248,10 @@ async function fetchPlayers() {
     if (enabled.has("overallMax") && a.overallMax) params.set("overallMax", a.overallMax);
     if (enabled.has("overallMaxMin") && a.overallMaxMin) params.set("maxOverallMin", a.overallMaxMin);
     if (enabled.has("overallMaxMax") && a.overallMaxMax) params.set("maxOverallMax", a.overallMaxMax);
-    if (enabled.has("club") && a.club) params.set("club", a.club);
+    if (enabled.has("club") && a.club) {
+      const clubs = normalizeClubValue(a.club);
+      if (clubs.length === 1) params.set("club", clubs[0]);
+    }
     if (enabled.has("league") && a.league) params.set("league", a.league);
     if (enabled.has("nationality") && a.nationality) params.set("nationality", a.nationality);
     if (enabled.has("heightMin") && a.heightMin) params.set("heightMin", a.heightMin);
@@ -1043,6 +1268,9 @@ async function fetchPlayers() {
   if (!res.ok) throw new Error("Players unavailable");
   const data = await res.json();
   let rows = data.players || [];
+  if (!cfg.allowAllPlayers && enabled.has("club") && a.club) {
+    rows = rows.filter((p) => playerMatchesAllowanceCategory({ _raw: p }, "club", a.club));
+  }
   if (!cfg.allowAllPlayers && enabled.has("region") && a.region) {
     const regionQ = String(a.region).toLowerCase();
     rows = rows.filter((p) => String(p.region || "").toLowerCase().includes(regionQ));
@@ -1262,6 +1490,7 @@ function renderLobby() {
     chatInput.placeholder = "Chat unlocks when both users are connected...";
   }
 
+  renderClubSuggestionPanel();
   renderLobbyChat();
 }
 
@@ -1351,9 +1580,10 @@ function renderAllowanceList({ isHost, cfg }) {
     const isCardType = key === "cardType";
     const isRegion = key === "region";
     const isPlayingStyle = key === "playingStyle";
+    const isClub = key === "club";
     const isMultiSelect = isPosition || isFoot || isCardType || isRegion || isPlayingStyle;
     const isRange = def.type === "range";
-    const showCap = !isRange && !isFoot && !isCardType && !isRegion && !isPlayingStyle;
+    const showCap = !isRange && !isFoot && !isCardType && !isRegion && !isPlayingStyle && !isClub;
     
     const selectedPositions = normalizePositionValue(value);
     const effectivePositions = selectedPositions.length ? selectedPositions : POSITION_OPTIONS;
@@ -1726,6 +1956,103 @@ function renderAllowanceList({ isHost, cfg }) {
         </div>
       </div>
     `;
+
+    const selectedClubs = normalizeClubValue(value);
+    const clubCapMap = parseClubCapMap(cfg.allowanceCaps?.club, selectedClubs);
+    const effectiveClubs = selectedClubs.length ? selectedClubs : Object.keys(clubCapMap);
+    const clubCapMapString = stringifyClubCapMap(clubCapMap, effectiveClubs);
+    const clubBuilderHtml = `
+      <div class="allowance-club-builder" data-allowance-club-builder data-allowance-key="${key}">
+        <input
+          type="hidden"
+          class="allowance-item-input allowance-club-hidden"
+          data-allowance-key="${key}"
+          value="${escapeHtml(effectiveClubs.join(","))}"
+        />
+        <input
+          type="hidden"
+          class="allowance-club-cap-hidden"
+          data-allowance-cap-key="${key}"
+          value="${escapeHtml(clubCapMapString)}"
+        />
+        <div class="allowance-club-add-row">
+          <div class="allowance-club-search-wrap" data-allowance-club-search-wrap>
+            <input
+              class="allowance-item-input allowance-club-search"
+              data-allowance-club-search="${key}"
+              type="text"
+              placeholder="Search club and add"
+              value="${escapeHtml(state.clubSearchQuery || "")}"
+              autocomplete="off"
+              ${canEdit ? "" : "disabled"}
+            />
+            <div class="allowance-club-suggest-panel ${state.clubSearchOpen ? "is-open" : ""}" data-allowance-club-suggest-panel>
+              ${state.clubSearchLoading
+                ? '<div class="allowance-club-suggest-empty">Searching clubs...</div>'
+                : (state.clubSearchOptions.length
+                  ? state.clubSearchOptions.map((club, idx) => `
+                    <button
+                      type="button"
+                      class="allowance-club-suggest-option ${idx === state.clubSearchActiveIndex ? "is-active" : ""}"
+                      data-allowance-club-suggestion="${escapeHtml(club)}"
+                    >${escapeHtml(club)}</button>
+                  `).join("")
+                  : (state.clubSearchQuery.trim()
+                    ? '<div class="allowance-club-suggest-empty">No clubs found.</div>'
+                    : ""))}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="allowance-club-add-btn"
+            data-allowance-club-add="${key}"
+            ${canEdit ? "" : "disabled"}
+          >
+            Add club
+          </button>
+          <button
+            type="button"
+            class="allowance-remove-btn allowance-club-remove-category"
+            data-allowance-remove="${key}"
+            ${canEdit ? "" : "disabled"}
+          >
+            Remove
+          </button>
+        </div>
+        <div class="allowance-club-list" data-allowance-club-list="${key}">
+          ${effectiveClubs.length
+            ? effectiveClubs.map((club) => `
+              <div class="allowance-club-row" data-allowance-club-item="${escapeHtml(club)}">
+                <span class="allowance-club-name" title="${escapeHtml(club)}">${escapeHtml(club)}</span>
+                <label class="allowance-club-cap-col">
+                  <span class="allowance-club-cap-label">Max cards</span>
+                  <input
+                    class="allowance-club-cap-input"
+                    data-allowance-club-cap="${escapeHtml(club)}"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    max="23"
+                    step="1"
+                    value="${escapeHtml(clubCapMap[club] || "")}"
+                    placeholder="-"
+                    ${canEdit ? "" : "disabled"}
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="allowance-club-row-remove"
+                  data-allowance-club-remove="${escapeHtml(club)}"
+                  ${canEdit ? "" : "disabled"}
+                >
+                  Remove
+                </button>
+              </div>
+            `).join("")
+            : '<div class="allowance-club-empty">No club added yet.</div>'}
+        </div>
+      </div>
+    `;
     
     const mainHtml = isPosition 
       ? positionSelectHtml 
@@ -1735,6 +2062,8 @@ function renderAllowanceList({ isHost, cfg }) {
           ? regionSelectHtml 
           : isPlayingStyle 
             ? playingStyleSelectHtml 
+            : isClub
+              ? clubBuilderHtml
             : (isRange ? rangeInputHtml : (isFoot ? footChecklistHtml : regularInputHtml));
     
     const capHtmlForCategory = isPosition 
@@ -1746,7 +2075,7 @@ function renderAllowanceList({ isHost, cfg }) {
           : isPlayingStyle 
             ? playingStyleCapHtml
             : null;
-    const hasCapColumn = Boolean(capHtmlForCategory || showCap);
+    const hasCapColumn = !isClub && Boolean(capHtmlForCategory || showCap);
     
     return `
       <div class="allowance-item" data-allowance-key="${key}">
@@ -1769,7 +2098,7 @@ function renderAllowanceList({ isHost, cfg }) {
             />
           </label>
           ` : "")}
-          <button type="button" class="allowance-remove-btn" data-allowance-remove="${key}" ${canEdit ? "" : "disabled"}>Remove</button>
+          ${isClub ? "" : `<button type="button" class="allowance-remove-btn" data-allowance-remove="${key}" ${canEdit ? "" : "disabled"}>Remove</button>`}
         </div>
       </div>
     `;
@@ -1829,6 +2158,7 @@ async function pushLobbyConfig() {
   const allowanceRangeInputs = Array.from(document.querySelectorAll(".allowance-item-range"));
   const allowanceCapInputs = Array.from(document.querySelectorAll(".allowance-item-cap"));
   const allowancePosCapInputs = Array.from(document.querySelectorAll(".allowance-pos-cap-input"));
+  const allowanceClubCapHidden = document.querySelector(".allowance-club-cap-hidden[data-allowance-cap-key='club']");
 
   const allowAllFromDom = allowAllInput ? Boolean(allowAllInput.checked) : null;
   const bansFromDom = bansInput ? Math.max(0, Math.floor(Number(bansInput.value) || 0)) : null;
@@ -1849,6 +2179,7 @@ async function pushLobbyConfig() {
   allowanceCapInputs.forEach((input) => {
     const key = input.dataset.allowanceCapKey;
     if (!key) return;
+    if (key === "club") return;
     allowanceCapsFromDom[key] = normalizeAllowanceCapValue(input.value);
   });
   if (allowancePosCapInputs.length) {
@@ -1860,6 +2191,10 @@ async function pushLobbyConfig() {
       if (cap) posCaps[pos] = cap;
     });
     allowanceCapsFromDom.position = Object.keys(posCaps).length ? JSON.stringify(posCaps) : "";
+  }
+  if (allowanceClubCapHidden) {
+    const clubs = normalizeClubValue(allowanceFromDom.club || "");
+    allowanceCapsFromDom.club = stringifyClubCapMap(allowanceClubCapHidden.value, clubs);
   }
 
   const cfg = state.room.config || defaultRoomConfig();
@@ -2336,6 +2671,8 @@ function initLobby() {
     state.openAllowanceRegionCapKey = "";
     state.openAllowancePlayingStyleKey = "";
     state.openAllowancePlayingStyleCapKey = "";
+    state.clubSearchOpen = false;
+    state.clubSearchActiveIndex = -1;
   };
 
   document.getElementById("lobbyRevealModeTrigger")?.addEventListener("click", (e) => {
@@ -2374,10 +2711,19 @@ function initLobby() {
     state.room.config.allowanceEnabled = [...enabled];
     if (key === "foot") {
       state.room.config.allowance[key] = normalizeFootValue(state.room.config.allowance[key], { defaultAll: true }).join(",");
+    } else if (key === "club") {
+      state.room.config.allowance[key] = normalizeClubValue(state.room.config.allowance[key]).join(",");
     } else {
       state.room.config.allowance[key] = state.room.config.allowance[key] || "";
     }
-    state.room.config.allowanceCaps[key] = normalizeAllowanceCapValue(state.room.config.allowanceCaps[key]);
+    if (key === "club") {
+      state.room.config.allowanceCaps.club = stringifyClubCapMap(
+        state.room.config.allowanceCaps.club,
+        normalizeClubValue(state.room.config.allowance.club),
+      );
+    } else {
+      state.room.config.allowanceCaps[key] = normalizeAllowanceCapValue(state.room.config.allowanceCaps[key]);
+    }
     renderLobby();
     const node = document.querySelector(`[data-allowance-key="${key}"]`);
     if (node) {
@@ -2406,6 +2752,7 @@ function initLobby() {
       cfg.allowanceEnabled = (cfg.allowanceEnabled || []).filter((k) => k !== key);
       cfg.allowance[key] = "";
       cfg.allowanceCaps[key] = "";
+      if (key === "club") clearClubSearchState();
       if (state.openAllowancePosKey === key) state.openAllowancePosKey = "";
       if (state.openAllowancePosCapKey === key) state.openAllowancePosCapKey = "";
       if (state.openAllowanceCardTypeCapKey === key) state.openAllowanceCardTypeCapKey = "";
@@ -2473,6 +2820,58 @@ function initLobby() {
       const hiddenInput = listWrap.querySelector(".allowance-foot-hidden");
       if (hiddenInput) hiddenInput.value = normalized.join(",");
       state.room.config.allowance.foot = normalized.join(",");
+      scheduleLobbyConfigPush();
+      return;
+    }
+
+    const clubAddBtn = e.target.closest("[data-allowance-club-add]");
+    if (clubAddBtn && state.mySide === "host") {
+      if (clubAddBtn.disabled) return;
+      const key = String(clubAddBtn.dataset.allowanceClubAdd || "").trim();
+      if (key !== "club") return;
+      const item = clubAddBtn.closest(".allowance-item");
+      const searchInput = item?.querySelector(".allowance-club-search");
+      if (!searchInput) return;
+
+      const typed = String(searchInput.value || "").replace(/\s+/g, " ").trim();
+      if (!typed) return;
+      if (!addClubAllowanceValue(typed)) return;
+      renderLobby();
+      const nextSearchInput = document.querySelector('.allowance-club-search[data-allowance-club-search="club"]');
+      if (nextSearchInput) nextSearchInput.focus();
+      scheduleLobbyConfigPush();
+      return;
+    }
+
+    const clubSuggestion = e.target.closest("[data-allowance-club-suggestion]");
+    if (clubSuggestion && state.mySide === "host") {
+      const value = String(clubSuggestion.dataset.allowanceClubSuggestion || "").replace(/\s+/g, " ").trim();
+      if (!value) return;
+      state.clubSearchQuery = value;
+      state.clubSearchOpen = false;
+      state.clubSearchActiveIndex = -1;
+      renderClubSuggestionPanel();
+      const searchInput = document.querySelector('.allowance-club-search[data-allowance-club-search="club"]');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+      }
+      return;
+    }
+
+    const clubRemoveBtn = e.target.closest("[data-allowance-club-remove]");
+    if (clubRemoveBtn && state.mySide === "host") {
+      if (clubRemoveBtn.disabled) return;
+      const club = String(clubRemoveBtn.dataset.allowanceClubRemove || "").replace(/\s+/g, " ").trim();
+      if (!club) return;
+      const clubs = normalizeClubValue(state.room.config.allowance.club || "").filter((c) => c.toLowerCase() !== club.toLowerCase());
+      const capMap = parseClubCapMap(state.room.config.allowanceCaps.club, normalizeClubValue(state.room.config.allowance.club || ""));
+      Object.keys(capMap).forEach((name) => {
+        if (name.toLowerCase() === club.toLowerCase()) delete capMap[name];
+      });
+      state.room.config.allowance.club = clubs.join(",");
+      state.room.config.allowanceCaps.club = stringifyClubCapMap(capMap, clubs);
+      renderLobby();
       scheduleLobbyConfigPush();
       return;
     }
@@ -2652,6 +3051,12 @@ function initLobby() {
   });
 
   document.getElementById("allowanceList")?.addEventListener("input", (e) => {
+    const searchInput = e.target.closest(".allowance-club-search");
+    if (searchInput && state.mySide === "host") {
+      scheduleClubSuggestions(searchInput.value);
+      return;
+    }
+
     const input = e.target.closest(".allowance-item-input");
     if (!input || state.mySide !== "host") return;
     const key = input.dataset.allowanceKey;
@@ -2671,6 +3076,21 @@ function initLobby() {
     scheduleLobbyConfigPush();
   });
   document.getElementById("allowanceList")?.addEventListener("change", (e) => {
+    const clubCapInput = e.target.closest(".allowance-club-cap-input");
+    if (clubCapInput && state.mySide === "host") {
+      const club = String(clubCapInput.dataset.allowanceClubCap || "").replace(/\s+/g, " ").trim();
+      if (!club) return;
+      const clubs = normalizeClubValue(state.room.config.allowance.club || "");
+      const capMap = parseClubCapMap(state.room.config.allowanceCaps.club, clubs);
+      const normalizedCap = normalizeAllowanceCapValue(clubCapInput.value);
+      clubCapInput.value = normalizedCap;
+      if (normalizedCap) capMap[club] = normalizedCap;
+      else delete capMap[club];
+      state.room.config.allowanceCaps.club = stringifyClubCapMap(capMap, clubs);
+      scheduleLobbyConfigPush();
+      return;
+    }
+
     const capInput = e.target.closest(".allowance-item-cap");
     if (capInput && state.mySide === "host") {
       const key = capInput.dataset.allowanceCapKey;
@@ -2714,6 +3134,33 @@ function initLobby() {
     scheduleLobbyConfigPush();
   });
   document.getElementById("allowanceList")?.addEventListener("input", (e) => {
+    const clubCapInput = e.target.closest(".allowance-club-cap-input");
+    if (clubCapInput && state.mySide === "host") {
+      const club = String(clubCapInput.dataset.allowanceClubCap || "").replace(/\s+/g, " ").trim();
+      if (!club) return;
+      const clubs = normalizeClubValue(state.room.config.allowance.club || "");
+      const capMap = parseClubCapMap(state.room.config.allowanceCaps.club, clubs);
+      if (clubCapInput.value === "") {
+        delete capMap[club];
+        state.room.config.allowanceCaps.club = stringifyClubCapMap(capMap, clubs);
+        scheduleLobbyConfigPush();
+        return;
+      }
+      const n = Number(clubCapInput.value);
+      if (Number.isFinite(n) && n > FIXED_PICKS_PER_SIDE) {
+        clubCapInput.value = String(FIXED_PICKS_PER_SIDE);
+      }
+      if (Number.isFinite(n) && n < 1) {
+        clubCapInput.value = "";
+      }
+      const normalizedCap = normalizeAllowanceCapValue(clubCapInput.value);
+      if (normalizedCap) capMap[club] = normalizedCap;
+      else delete capMap[club];
+      state.room.config.allowanceCaps.club = stringifyClubCapMap(capMap, clubs);
+      scheduleLobbyConfigPush();
+      return;
+    }
+
     const capInput = e.target.closest(".allowance-item-cap");
     if (capInput && state.mySide === "host") {
       const key = capInput.dataset.allowanceCapKey;
@@ -2764,6 +3211,56 @@ function initLobby() {
       return;
     }
   });
+  document.getElementById("allowanceList")?.addEventListener("keydown", (e) => {
+    const searchInput = e.target.closest(".allowance-club-search");
+    if (!searchInput || state.mySide !== "host") return;
+    if (e.key === "ArrowDown") {
+      if (!state.clubSearchOptions.length) return;
+      e.preventDefault();
+      const next = state.clubSearchActiveIndex < 0
+        ? 0
+        : Math.min(state.clubSearchOptions.length - 1, state.clubSearchActiveIndex + 1);
+      state.clubSearchActiveIndex = next;
+      state.clubSearchOpen = true;
+      renderClubSuggestionPanel();
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      if (!state.clubSearchOptions.length) return;
+      e.preventDefault();
+      const next = state.clubSearchActiveIndex <= 0
+        ? 0
+        : state.clubSearchActiveIndex - 1;
+      state.clubSearchActiveIndex = next;
+      state.clubSearchOpen = true;
+      renderClubSuggestionPanel();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (!state.clubSearchOpen) return;
+      e.preventDefault();
+      state.clubSearchOpen = false;
+      state.clubSearchActiveIndex = -1;
+      renderClubSuggestionPanel();
+      return;
+    }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (state.clubSearchOpen && state.clubSearchActiveIndex >= 0 && state.clubSearchOptions[state.clubSearchActiveIndex]) {
+      state.clubSearchQuery = state.clubSearchOptions[state.clubSearchActiveIndex];
+      state.clubSearchOpen = false;
+      state.clubSearchActiveIndex = -1;
+      renderClubSuggestionPanel();
+      const nextSearchInput = document.querySelector('.allowance-club-search[data-allowance-club-search="club"]');
+      if (nextSearchInput) {
+        nextSearchInput.focus();
+        nextSearchInput.setSelectionRange(nextSearchInput.value.length, nextSearchInput.value.length);
+      }
+      return;
+    }
+    const addBtn = searchInput.closest(".allowance-item")?.querySelector("[data-allowance-club-add='club']");
+    if (addBtn && !addBtn.disabled) addBtn.click();
+  });
   document.addEventListener("click", (e) => {
     if (e.target.closest("#allowanceCategoryDd")) return;
     if (e.target.closest("#allowanceCategoryPanel")) return;
@@ -2771,8 +3268,14 @@ function initLobby() {
     if (e.target.closest("[data-allowance-pos-cap-wrap]")) return;
     if (e.target.closest("[data-allowance-cap-wrap]")) return;
     if (e.target.closest("[data-allowance-multi-dropdown]")) return;
+    if (e.target.closest("[data-allowance-club-search-wrap]")) return;
     if (e.target.closest("#lobbyRevealModeDd")) return;
     closeAllLobbyDropdowns();
+    if (state.clubSearchOpen) {
+      state.clubSearchOpen = false;
+      state.clubSearchActiveIndex = -1;
+      renderClubSuggestionPanel();
+    }
   });
 
   document.getElementById("chatForm")?.addEventListener("submit", async (e) => {

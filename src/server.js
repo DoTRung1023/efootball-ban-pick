@@ -658,6 +658,33 @@ function normalizePositionCaps(raw) {
   return Object.keys(normalized).length ? JSON.stringify(normalized) : "";
 }
 
+function normalizeNamedCaps(raw) {
+  if (raw && typeof raw === "object") {
+    const normalized = {};
+    for (const [k, v] of Object.entries(raw)) {
+      const key = String(k || "").replace(/\s+/g, " ").trim().slice(0, 60);
+      if (!key) continue;
+      const cap = normalizeAllowanceCapValue(v);
+      if (cap) normalized[key] = cap;
+    }
+    return Object.keys(normalized).length ? JSON.stringify(normalized) : "";
+  }
+
+  const text = String(raw || "").trim();
+  if (!text) return "";
+
+  const legacyCap = normalizeAllowanceCapValue(text);
+  if (legacyCap) return legacyCap;
+
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object") return "";
+    return normalizeNamedCaps(parsed);
+  } catch {
+    return "";
+  }
+}
+
 function createDefaultRoomConfig() {
   return {
     allowAllPlayers: true,
@@ -993,6 +1020,8 @@ app.post("/api/rooms/:code/config", (req, res) => {
       if (!ALLOWANCE_FIELDS.has(k)) continue;
       if (k === "position") {
         entry.config.allowanceCaps[k] = normalizePositionCaps(v);
+      } else if (k === "club" || k === "cardType" || k === "region" || k === "playingStyle") {
+        entry.config.allowanceCaps[k] = normalizeNamedCaps(v);
       } else {
         entry.config.allowanceCaps[k] = normalizeAllowanceCapValue(v);
       }

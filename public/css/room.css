@@ -743,7 +743,7 @@ body {
 
 .prep-section-sub {
   margin-top: 3px;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   color: rgba(235, 245, 255, 0.76);
   font-size: 13px;
   font-weight: 600;
@@ -843,7 +843,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  margin: 10px 0 14px;
+  margin: 0 0 14px;
   flex-wrap: wrap;
 }
 
@@ -1124,6 +1124,17 @@ body {
   grid-template-areas: "main remove";
 }
 
+.allowance-item[data-allowance-key="club"] .allowance-item-row--no-cap {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+  grid-template-areas: "main";
+}
+
+.allowance-item[data-allowance-key="club"] .allowance-remove-btn {
+  justify-self: end;
+  align-self: center;
+}
+
 .allowance-item-main {
   grid-area: main;
   width: 100%;
@@ -1134,6 +1145,234 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.allowance-club-builder {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
+.allowance-club-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.allowance-club-search-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.allowance-club-search {
+  display: block;
+  width: 100%;
+}
+
+.allowance-club-suggest-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 70;
+  background: rgba(4, 14, 9, 0.98);
+  border: 1px solid rgba(0, 230, 118, 0.22);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 230, 118, 0.06);
+  display: none;
+}
+
+.allowance-club-suggest-panel.is-open {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.allowance-club-suggest-option {
+  border: none;
+  border-bottom: 1px solid rgba(0, 230, 118, 0.08);
+  background: transparent;
+  color: rgba(226, 239, 231, 0.92);
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.allowance-club-suggest-option:last-child {
+  border-bottom: none;
+}
+
+.allowance-club-suggest-option:hover,
+.allowance-club-suggest-option.is-active {
+  background: rgba(0, 230, 118, 0.12);
+  color: var(--green);
+}
+
+.allowance-club-suggest-empty {
+  font-size: 0.75rem;
+  color: rgba(198, 216, 206, 0.62);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.allowance-club-add-btn {
+  min-height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  background: rgba(0, 230, 118, 0.07);
+  color: rgba(225, 241, 231, 0.9);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 12px;
+  justify-self: end;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.allowance-club-add-btn:hover:not(:disabled) {
+  color: var(--green);
+  border-color: rgba(0, 230, 118, 0.4);
+  background: rgba(0, 230, 118, 0.12);
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.12);
+}
+
+.allowance-club-add-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.allowance-club-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.allowance-club-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.allowance-club-name {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  background: rgba(0, 230, 118, 0.05);
+  color: rgba(225, 241, 231, 0.9);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.allowance-club-cap-col {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 4px;
+  margin: 0;
+}
+
+.allowance-club-cap-label {
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: rgba(198, 216, 206, 0.82);
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-align: center;
+}
+
+.allowance-club-cap-input {
+  width: 100%;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  background: rgba(0, 230, 118, 0.05);
+  color: rgba(225, 241, 231, 0.9);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0 10px;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.allowance-club-cap-input::-webkit-outer-spin-button,
+.allowance-club-cap-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.allowance-club-cap-input:focus {
+  outline: none;
+  color: var(--green);
+  border-color: rgba(0, 230, 118, 0.45);
+  background: rgba(0, 230, 118, 0.1);
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.14);
+}
+
+.allowance-club-row-remove {
+  min-height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 91, 91, 0.42);
+  background: rgba(255, 68, 68, 0.08);
+  color: rgba(255, 218, 218, 0.88);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.allowance-club-row-remove:hover:not(:disabled) {
+  border-color: rgba(255, 91, 91, 0.62);
+  background: rgba(255, 68, 68, 0.16);
+  color: rgba(255, 238, 238, 0.98);
+}
+
+.allowance-club-row-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.allowance-club-empty {
+  text-align: center;
+  font-size: 0.72rem;
+  color: rgba(198, 216, 206, 0.6);
+  padding: 6px 8px;
+  border: 1px dashed rgba(0, 230, 118, 0.2);
+  border-radius: 10px;
+}
+
+@media (max-width: 620px) {
+  .allowance-club-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .allowance-club-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    align-items: stretch;
+  }
 }
 
 .allowance-item-range-col {
