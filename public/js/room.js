@@ -881,9 +881,31 @@ function applyPresenceSnapshot(sr) {
     ...(sr.ready || {}),
   };
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
+  room.status = String(sr.status || room.status || "lobby");
+  room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);
+  room.turnEndsAt = sr.turnEndsAt ? Number(sr.turnEndsAt) : null;
   room.closed = Boolean(sr.closed);
   room.closeReason = sr.closeReason || "";
   state.lastRoomUpdatedAt = Number(sr.updatedAt || state.lastRoomUpdatedAt || Date.now());
+}
+
+function tryEnterDraftFromRoomSnapshot() {
+  const room = state.room;
+  if (!room || state.phase !== "lobby") return false;
+  if (String(room.status || "") !== "drafting") return false;
+
+  const bansPerSide = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
+  state.schedule = buildTurnSchedule(bansPerSide, FIXED_PICKS_PER_SIDE);
+  syncCurrentTurnFromIndex(room);
+
+  state.phase = "draft";
+  stopPresencePolling();
+  showView("viewDraft");
+  renderDraftUi();
+  attachDraftGridHandlers();
+  void loadDraftPlayers();
+  startTurnTimer();
+  return true;
 }
 
 function clearClubSearchState() {
@@ -1168,6 +1190,7 @@ async function pollPresence() {
       prevChatLen !== nextChatLen;
     const configChanged = nextUpdatedAt > prevUpdatedAt;
 
+    if (tryEnterDraftFromRoomSnapshot()) return;
     if (snap.changed || presenceChanged || configChanged) renderLobby();
   } catch {
     /* ignore */
@@ -1183,6 +1206,7 @@ async function registerAndPollPresence() {
     console.warn("Room presence register failed", e);
     return;
   }
+  if (tryEnterDraftFromRoomSnapshot()) return;
   stopPresencePolling();
   state.presencePollId = setInterval(pollPresence, LOBBY_PRESENCE_POLL_MS);
   renderLobby();
@@ -2692,20 +2716,27 @@ function startDraftFromLobby() {
     return;
   }
 
-  state.schedule = buildTurnSchedule(b, p);
-  const room = state.room;
-  room.status = "drafting";
-  room.turnIndex = 0;
-  syncCurrentTurnFromIndex(room);
-  room.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[0], room.config) * 1000;
-  state.phase = "draft";
-  stopPresencePolling();
-
-  showView("viewDraft");
-  renderDraftUi();
-  attachDraftGridHandlers();
-  loadDraftPlayers();
-  startTurnTimer();
+  const me = getCurrentIdentity();
+  void (async () => {
+    try {
+      const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requesterId: me.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data.error || "Could not start draft.", "warn");
+        return;
+      }
+      if (data.room) applyPresenceSnapshot(data.room);
+      if (!tryEnterDraftFromRoomSnapshot()) {
+        showToast("Draft started. Waiting for room sync...", "warn");
+      }
+    } catch {
+      showToast("Could not start draft.", "warn");
+    }
+  })();
 }
 
 async function fetchFilterOptions() {

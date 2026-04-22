@@ -750,6 +750,9 @@ function ensureRoomEntry(code) {
     entry = {
       host: null,
       guest: null,
+      status: "lobby",
+      turnIndex: 0,
+      turnEndsAt: null,
       config: createDefaultRoomConfig(),
       lastConfigSeq: 0,
       ready: { guest: false },
@@ -778,6 +781,9 @@ function ensureRoomEntry(code) {
   entry.config.banDurationSec = normalizeBanDurationSec(entry.config.banDurationSec);
   entry.config.revealMode = normalizeRevealMode(entry.config.revealMode);
   if (!Number.isFinite(Number(entry.lastConfigSeq))) entry.lastConfigSeq = 0;
+  if (!entry.status) entry.status = "lobby";
+  if (!Number.isFinite(Number(entry.turnIndex))) entry.turnIndex = 0;
+  if (entry.turnEndsAt != null && !Number.isFinite(Number(entry.turnEndsAt))) entry.turnEndsAt = null;
   if (!entry.ready) entry.ready = { guest: false };
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
@@ -801,6 +807,9 @@ function serializeRoomEntry(entry) {
   return {
     host: entry.host,
     guest: entry.guest,
+    status: String(entry.status || "lobby"),
+    turnIndex: Number.isFinite(Number(entry.turnIndex)) ? Number(entry.turnIndex) : 0,
+    turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
     config: entry.config,
     ready: entry.ready,
     chat: entry.chat,
@@ -850,6 +859,9 @@ app.post("/api/rooms/:code/presence", (req, res) => {
     entry.closed = false;
     entry.closeReason = "";
     entry.kickedGuestId = "";
+    entry.status = "lobby";
+    entry.turnIndex = 0;
+    entry.turnEndsAt = null;
   }
 
   const participant = {
@@ -916,7 +928,7 @@ app.get("/api/rooms/:code", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const entry = roomPresence.get(code);
   if (!entry)
-    return res.json({ room: { host: null, guest: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
+    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
   const beforeHostId = entry.host?.id ? String(entry.host.id) : "";
   const beforeGuestId = entry.guest?.id ? String(entry.guest.id) : "";
   pruneStalePresence(entry);
@@ -939,7 +951,7 @@ app.post("/api/rooms/:code/leave", (req, res) => {
 
   const entry = roomPresence.get(code);
   if (!entry) {
-    return res.json({ room: { host: null, guest: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
+    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
   }
 
   if (entry.host?.id && String(entry.host.id) === requesterId) {
@@ -947,6 +959,9 @@ app.post("/api/rooms/:code/leave", (req, res) => {
     entry.host = null;
     entry.closed = true;
     entry.closeReason = "Host closed the room.";
+    entry.status = "lobby";
+    entry.turnIndex = 0;
+    entry.turnEndsAt = null;
     entry.guest = null;
     entry.ready.guest = false;
     entry.kickedGuestId = "";
@@ -956,6 +971,41 @@ app.post("/api/rooms/:code/leave", (req, res) => {
     entry.guest = null;
     entry.ready.guest = false;
   }
+  entry.updatedAt = Date.now();
+  res.json({ room: serializeRoomEntry(entry) });
+});
+
+/** POST body: { requesterId } */
+app.post("/api/rooms/:code/start", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const requesterId = String(req.body?.requesterId || "");
+  if (!code || code.length < 4)
+    return res.status(400).json({ error: "Invalid room code." });
+  if (!requesterId)
+    return res.status(400).json({ error: "requesterId is required." });
+
+  const entry = ensureRoomEntry(code);
+  const hostId = entry.host?.id ? String(entry.host.id) : "";
+  if (!hostId || hostId !== requesterId) {
+    return res.status(403).json({ error: "Only host can start draft." });
+  }
+  if (!entry.guest?.id) {
+    return res.status(409).json({ error: "Guest is not connected." });
+  }
+  if (!entry.ready?.guest) {
+    return res.status(409).json({ error: "Guest must be ready before starting." });
+  }
+
+  const bans = Math.max(0, Math.floor(Number(entry.config?.banCountPerSide) || 0));
+  const totalTurns = bans * 2 + 23 * 2;
+  const firstAction = bans > 0 ? "ban" : "pick";
+  const durationSec = firstAction === "ban"
+    ? normalizeBanDurationSec(entry.config?.banDurationSec)
+    : 30;
+
+  entry.status = "drafting";
+  entry.turnIndex = totalTurns > 0 ? 0 : -1;
+  entry.turnEndsAt = Date.now() + durationSec * 1000;
   entry.updatedAt = Date.now();
   res.json({ room: serializeRoomEntry(entry) });
 });

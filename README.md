@@ -292,7 +292,10 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [ ] host can kick other roomates
 - [ ] fix rooms tab
 - [ ] after scraping, some players have empty playing styles, need to fix the scraper -> need to run backup database and data cleaning, 
-
+- [ ] ban pick page:
+  - [ ] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
+  - [ ] for pick phase: I can see all my players, my current picked players in a specific formation, can also open my game plans to consult and build according to it, can see opponent's pick players
+ 
 ---
 
 ## Roadmap
