@@ -756,6 +756,7 @@ function ensureRoomEntry(code) {
       config: createDefaultRoomConfig(),
       lastConfigSeq: 0,
       ready: { guest: false },
+      matchReady: { host: false, guest: false },
       chat: [],
       closed: false,
       closeReason: "",
@@ -785,6 +786,7 @@ function ensureRoomEntry(code) {
   if (!Number.isFinite(Number(entry.turnIndex))) entry.turnIndex = 0;
   if (entry.turnEndsAt != null && !Number.isFinite(Number(entry.turnEndsAt))) entry.turnEndsAt = null;
   if (!entry.ready) entry.ready = { guest: false };
+  if (!entry.matchReady) entry.matchReady = { host: false, guest: false };
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
   if (entry.kickedGuestId === undefined) entry.kickedGuestId = "";
@@ -812,6 +814,7 @@ function serializeRoomEntry(entry) {
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
     config: entry.config,
     ready: entry.ready,
+    matchReady: entry.matchReady,
     chat: entry.chat,
     closed: Boolean(entry.closed),
     closeReason: entry.closeReason || "",
@@ -862,6 +865,7 @@ app.post("/api/rooms/:code/presence", (req, res) => {
     entry.status = "lobby";
     entry.turnIndex = 0;
     entry.turnEndsAt = null;
+    entry.matchReady = { host: false, guest: false };
   }
 
   const participant = {
@@ -896,6 +900,7 @@ app.post("/api/rooms/:code/presence", (req, res) => {
       }
       pushSystemChat(entry, `${participant.username} joined the room.`);
       entry.ready.guest = false;
+      entry.matchReady.guest = false;
       hasMeaningfulChange = true;
     }
     if (entry.kickedGuestId && entry.kickedGuestId !== participant.id) {
@@ -928,7 +933,7 @@ app.get("/api/rooms/:code", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const entry = roomPresence.get(code);
   if (!entry)
-    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
+    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, matchReady: { host: false, guest: false }, chat: [], closed: false, closeReason: "" } });
   const beforeHostId = entry.host?.id ? String(entry.host.id) : "";
   const beforeGuestId = entry.guest?.id ? String(entry.guest.id) : "";
   pruneStalePresence(entry);
@@ -951,7 +956,7 @@ app.post("/api/rooms/:code/leave", (req, res) => {
 
   const entry = roomPresence.get(code);
   if (!entry) {
-    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, chat: [], closed: false, closeReason: "" } });
+    return res.json({ room: { host: null, guest: null, status: "lobby", turnIndex: 0, turnEndsAt: null, config: createDefaultRoomConfig(), ready: { guest: false }, matchReady: { host: false, guest: false }, chat: [], closed: false, closeReason: "" } });
   }
 
   if (entry.host?.id && String(entry.host.id) === requesterId) {
@@ -964,12 +969,14 @@ app.post("/api/rooms/:code/leave", (req, res) => {
     entry.turnEndsAt = null;
     entry.guest = null;
     entry.ready.guest = false;
+    entry.matchReady = { host: false, guest: false };
     entry.kickedGuestId = "";
   }
   if (entry.guest?.id && String(entry.guest.id) === requesterId) {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
     entry.ready.guest = false;
+    entry.matchReady.guest = false;
   }
   entry.updatedAt = Date.now();
   res.json({ room: serializeRoomEntry(entry) });
@@ -1006,6 +1013,7 @@ app.post("/api/rooms/:code/start", (req, res) => {
   entry.status = "drafting";
   entry.turnIndex = totalTurns > 0 ? 0 : -1;
   entry.turnEndsAt = Date.now() + durationSec * 1000;
+  entry.matchReady = { host: false, guest: false };
   entry.updatedAt = Date.now();
   res.json({ room: serializeRoomEntry(entry) });
 });
@@ -1032,6 +1040,45 @@ app.post("/api/rooms/:code/kick-guest", (req, res) => {
   pushSystemChat(entry, `${entry.guest.username || "Guest"} was removed by host.`);
   entry.guest = null;
   entry.ready.guest = false;
+  entry.matchReady.guest = false;
+  entry.updatedAt = Date.now();
+  res.json({ room: serializeRoomEntry(entry) });
+});
+
+/** POST body: { requesterId, ready } */
+app.post("/api/rooms/:code/match-ready", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const requesterId = String(req.body?.requesterId || "");
+  const ready = Boolean(req.body?.ready);
+  if (!code || code.length < 4)
+    return res.status(400).json({ error: "Invalid room code." });
+  if (!requesterId)
+    return res.status(400).json({ error: "requesterId is required." });
+
+  const entry = ensureRoomEntry(code);
+  const isHost = entry.host?.id && String(entry.host.id) === requesterId;
+  const isGuest = entry.guest?.id && String(entry.guest.id) === requesterId;
+  if (!isHost && !isGuest)
+    return res.status(403).json({ error: "Join room before updating match ready." });
+  if (entry.status === "lobby") {
+    return res.status(409).json({ error: "Match ready is only available after drafting." });
+  }
+  if (entry.status === "drafting") {
+    entry.status = "await-ready";
+    entry.turnEndsAt = null;
+    entry.matchReady = { host: false, guest: false };
+  }
+
+  if (isHost) entry.matchReady.host = ready;
+  if (isGuest) entry.matchReady.guest = ready;
+
+  if (entry.matchReady.host && entry.matchReady.guest) {
+    entry.status = "done";
+    entry.turnEndsAt = null;
+  } else if (entry.status === "done") {
+    entry.status = "await-ready";
+  }
+
   entry.updatedAt = Date.now();
   res.json({ room: serializeRoomEntry(entry) });
 });

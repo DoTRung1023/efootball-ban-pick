@@ -205,12 +205,73 @@
 
           <div class="draft-banner draft-banner--error" id="draftActionError" hidden></div>
           <div class="draft-banner draft-banner--hint" id="draftHintBanner" hidden></div>
+          <div class="draft-banner draft-banner--ready" id="draftReadyBanner" hidden>
+            <span id="draftReadyStatus">Waiting for players to finish picks…</span>
+            <button type="button" class="btn btn--small btn--primary" id="draftReadyBtn">READY</button>
+          </div>
 
-          <div class="draft-grid-wrap">
-            <div class="draft-loading" id="draftLoading" hidden>
-              <div class="spinner"></div>
+          <div class="draft-workspace">
+            <div class="draft-workspace-main">
+              <section class="draft-panel draft-panel--ban-tracker" id="draftBanTracker" hidden>
+                <div class="draft-panel-headline">
+                  <div>
+                    <div class="draft-kicker">BAN PHASE</div>
+                    <h3>Specific player-card bans</h3>
+                  </div>
+                </div>
+                <div class="ban-tracker-block">
+                  <div class="ban-tracker-title">Players I ban</div>
+                  <div class="ban-tracker-list" id="draftMyBansList"></div>
+                </div>
+                <div class="ban-tracker-block">
+                  <div class="ban-tracker-title">Players opponent bans on me</div>
+                  <div class="ban-tracker-list" id="draftBannedOnMeList"></div>
+                </div>
+              </section>
+
+              <section class="draft-panel draft-panel--formation">
+                <div class="draft-panel-headline">
+                  <div>
+                    <div class="draft-kicker">CURRENT SQUAD</div>
+                    <h3>My picked players</h3>
+                  </div>
+                  <div class="draft-panel-stat" id="draftMyPickCount">0/23</div>
+                </div>
+                <div class="draft-formation-preview" id="draftFormationPreview"></div>
+              </section>
+
+              <div class="draft-grid-wrap">
+                <div class="draft-loading" id="draftLoading" hidden>
+                  <div class="spinner"></div>
+                </div>
+                <div class="draft-grid" id="draftGrid"></div>
+              </div>
             </div>
-            <div class="draft-grid" id="draftGrid"></div>
+
+            <aside class="draft-workspace-rail" aria-label="Draft reference panels">
+              <section class="draft-panel draft-panel--plans">
+                <div class="draft-panel-headline">
+                  <div>
+                    <div class="draft-kicker">GAME PLANS</div>
+                    <h3>Open one to consult</h3>
+                  </div>
+                </div>
+                <label class="draft-plan-select-label" for="draftGamePlanSelect">Active game plan</label>
+                <select class="draft-select draft-plan-select" id="draftGamePlanSelect" aria-label="Active game plan"></select>
+                <div class="draft-plan-meta" id="draftGamePlanMeta"></div>
+                <div class="draft-game-plan-preview" id="draftGamePlanPreview"></div>
+              </section>
+
+              <section class="draft-panel draft-panel--opponent">
+                <div class="draft-panel-headline">
+                  <div>
+                    <div class="draft-kicker">OPPONENT</div>
+                    <h3>Visible ban and pick cards</h3>
+                  </div>
+                </div>
+                <div class="draft-opponent-preview" id="draftOpponentCardPreview"></div>
+              </section>
+            </aside>
           </div>
         </section>
 

@@ -8,6 +8,66 @@ const MAX_BAN_DURATION_SECONDS = 120;
 const LOBBY_PRESENCE_POLL_MS = 500;
 const REVEAL_MODE_INSTANT = "instant";
 const REVEAL_MODE_HIDDEN = "hidden";
+const CARD_IMG = (id) => `/img/card/${id}.png`;
+const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
+
+const DEFAULT_FORMATION = "4-3-3";
+const FORMATION_LAYOUTS = {
+  "4-3-3": [
+    { id: "pitchRowFwd", slots: [9, 10, 11] },
+    { id: "pitchRowMid", slots: [6, 7, 8] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "4-4-2": [
+    { id: "pitchRowFwd", slots: [10, 11] },
+    { id: "pitchRowMid", slots: [6, 7, 8, 9] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "4-5-1": [
+    { id: "pitchRowFwd", slots: [11] },
+    { id: "pitchRowMid", slots: [6, 7, 8, 9, 10] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "3-6-1": [
+    { id: "pitchRowFwd", slots: [11] },
+    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9, 10] },
+    { id: "pitchRowDef", slots: [2, 3, 4] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "3-4-3": [
+    { id: "pitchRowFwd", slots: [9, 10, 11] },
+    { id: "pitchRowMid", slots: [5, 6, 7, 8] },
+    { id: "pitchRowDef", slots: [2, 3, 4] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "3-5-2": [
+    { id: "pitchRowFwd", slots: [10, 11] },
+    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9] },
+    { id: "pitchRowDef", slots: [2, 3, 4] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "5-2-3": [
+    { id: "pitchRowFwd", slots: [9, 10, 11] },
+    { id: "pitchRowMid", slots: [7, 8] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "5-3-2": [
+    { id: "pitchRowFwd", slots: [10, 11] },
+    { id: "pitchRowMid", slots: [7, 8, 9] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+  "5-4-1": [
+    { id: "pitchRowFwd", slots: [11] },
+    { id: "pitchRowMid", slots: [7, 8, 9, 10] },
+    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
+    { id: "pitchRowGk", slots: [1] },
+  ],
+};
 
 const ALLOWANCE_CATEGORY_DEFS = [
   { key: "position", label: "Position", placeholder: "CF,SS,RWF", type: "text" },
@@ -42,6 +102,100 @@ const TEXT_ALLOWANCE_LIST_KEYS = new Set(["club", "league", "nationality"]);
 let CARD_TYPE_OPTIONS = [];
 let REGION_OPTIONS = [];
 let PLAYING_STYLE_OPTIONS = [];
+
+function makePlayerImg(src, alt = "Player image") {
+  const img = document.createElement("img");
+  img.src = src || ANON_PLAYER_IMG;
+  img.alt = alt;
+  img.loading = "lazy";
+  img.addEventListener("error", () => {
+    if (img.dataset.fallbackApplied === "1") return;
+    img.dataset.fallbackApplied = "1";
+    img.src = ANON_PLAYER_IMG;
+  });
+  return img;
+}
+
+function normalizeFormation(f) {
+  const s = String(f || "").trim();
+  return FORMATION_LAYOUTS[s] ? s : DEFAULT_FORMATION;
+}
+
+function getFormationLayout(formation) {
+  return FORMATION_LAYOUTS[normalizeFormation(formation)] || FORMATION_LAYOUTS[DEFAULT_FORMATION];
+}
+
+function getPlayerCardValue(player) {
+  return player?.overall_rating ?? player?.overall_max ?? player?.overall ?? "—";
+}
+
+function getPlayerImageSrc(player) {
+  const id = player?.pesdb_id ?? player?.id;
+  return id ? CARD_IMG(id) : ANON_PLAYER_IMG;
+}
+
+function normalizeDraftPlayer(player) {
+  return {
+    id: String(player?.player_id ?? player?.id ?? ""),
+    name: String(player?.name || ""),
+    position: String(player?.position || "—"),
+    overall_rating: player?.overall_rating ?? player?.overall_max ?? player?.overall ?? "—",
+    nation: String(player?.nation || player?.nationality || "—"),
+    club: String(player?.club || ""),
+    pesdb_id: player?.pesdb_id ?? player?.player_id ?? player?.id ?? null,
+    speed: player?.speed ?? "—",
+    finishing: player?.finishing ?? "—",
+    passing: player?.passing ?? "—",
+  };
+}
+
+function normalizeMySquadPlayerForDraft(player) {
+  const catalogId = String(player?.pesdb_id || player?.id || "");
+  return {
+    id: catalogId,
+    name: String(player?.name || ""),
+    position: String(player?.position || "—"),
+    overall_rating: player?.overall_max ?? player?.overall ?? "—",
+    nation: String(player?.nationality || "—"),
+    club: String(player?.club || ""),
+    pesdb_id: player?.pesdb_id ?? player?.id ?? null,
+    speed: "—",
+    finishing: "—",
+    passing: "—",
+  };
+}
+
+function mapPlayersBySlot(rows) {
+  const map = {};
+  (rows || []).forEach((row) => {
+    const slot = Number(row?.slot);
+    if (!Number.isFinite(slot) || slot < 1 || slot > FIXED_PICKS_PER_SIDE) return;
+    map[slot] = normalizeDraftPlayer(row);
+  });
+  return map;
+}
+
+function buildOrderedSlotMap(players) {
+  const map = {};
+  (players || []).forEach((player, idx) => {
+    map[idx + 1] = normalizeDraftPlayer(player);
+  });
+  return map;
+}
+
+function slotCardsSummary(players) {
+  const count = Array.isArray(players) ? players.length : 0;
+  return `${count}/${FIXED_PICKS_PER_SIDE}`;
+}
+
+function getDraftDisplayPlayers(room = state.room) {
+  if (!room) return [];
+  const turn = state.schedule[room.turnIndex];
+  const isBanPhase = turn?.action === "ban";
+  const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
+  if (isReadyPhase) return state.players;
+  return isBanPhase ? state.opponentBanPlayers : state.players;
+}
 
 function readAllowanceFieldValue(input) {
   if (!input) return "";
@@ -715,6 +869,14 @@ const state = {
   clubSearchActiveIndex: -1,
   clubSearchReqSeq: 0,
   openRevealModeMenu: false,
+  opponentBanPlayers: [],
+  loadingOpponentBanPlayers: false,
+  opponentBanPlayersLoaded: false,
+  draftGamePlans: [],
+  draftGamePlanPlayers: [],
+  draftGamePlanSelectedId: null,
+  draftGamePlansLoading: false,
+  draftGamePlanPlayersLoading: false,
   actionError: "",
 };
 
@@ -792,6 +954,10 @@ function defaultRoomConfig() {
 
 function defaultReadyState() {
   return { guest: false };
+}
+
+function defaultMatchReadyState() {
+  return { host: false, guest: false };
 }
 
 function normalizeRoomConfig(raw) {
@@ -880,6 +1046,10 @@ function applyPresenceSnapshot(sr) {
     ...defaultReadyState(),
     ...(sr.ready || {}),
   };
+  room.matchReady = {
+    ...defaultMatchReadyState(),
+    ...(sr.matchReady || {}),
+  };
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);
@@ -892,19 +1062,34 @@ function applyPresenceSnapshot(sr) {
 function tryEnterDraftFromRoomSnapshot() {
   const room = state.room;
   if (!room || state.phase !== "lobby") return false;
-  if (String(room.status || "") !== "drafting") return false;
+  const status = String(room.status || "");
+  if (!["drafting", "await-ready", "done"].includes(status)) return false;
+
+  if (status === "done") {
+    state.phase = "done";
+    stopPresencePolling();
+    showDone();
+    return true;
+  }
 
   const bansPerSide = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
   state.schedule = buildTurnSchedule(bansPerSide, FIXED_PICKS_PER_SIDE);
   syncCurrentTurnFromIndex(room);
 
-  state.phase = "draft";
+  state.phase = status === "await-ready" ? "ready" : "draft";
   stopPresencePolling();
   showView("viewDraft");
+  resetOpponentBanPlayers();
+  void loadDraftGamePlans();
   renderDraftUi();
   attachDraftGridHandlers();
   void loadDraftPlayers();
-  startTurnTimer();
+  void loadOpponentBanPlayers();
+  if (state.phase === "draft") {
+    startTurnTimer();
+  } else {
+    state.presencePollId = setInterval(pollPresence, LOBBY_PRESENCE_POLL_MS);
+  }
   return true;
 }
 
@@ -1160,7 +1345,8 @@ function stopPresencePolling() {
 }
 
 async function pollPresence() {
-  if (state.phase !== "lobby" || !state.room?.code) return;
+  if (!state.room?.code) return;
+  if (state.phase !== "lobby" && state.phase !== "ready") return;
   try {
     const prevUpdatedAt = Number(state.lastRoomUpdatedAt || 0);
     const prevHostId = String(state.room?.host?.id || "");
@@ -1190,8 +1376,20 @@ async function pollPresence() {
       prevChatLen !== nextChatLen;
     const configChanged = nextUpdatedAt > prevUpdatedAt;
 
-    if (tryEnterDraftFromRoomSnapshot()) return;
-    if (snap.changed || presenceChanged || configChanged) renderLobby();
+    if (state.phase === "lobby") {
+      if (tryEnterDraftFromRoomSnapshot()) return;
+      if (snap.changed || presenceChanged || configChanged) renderLobby();
+      return;
+    }
+
+    if (String(state.room?.status || "") === "done" && isBothMatchReady()) {
+      stopPresencePolling();
+      state.phase = "done";
+      showDone();
+      return;
+    }
+
+    if (snap.changed || presenceChanged || configChanged) renderDraftUi();
   } catch {
     /* ignore */
   }
@@ -1326,6 +1524,7 @@ function emptyRoom(code, host, guest) {
     picks: { host: [], guest: [] },
     config: defaultRoomConfig(),
     ready: defaultReadyState(),
+    matchReady: defaultMatchReadyState(),
     chat: [],
     bannedPlayerIds: [],
     pickedPlayerIds: [],
@@ -1353,6 +1552,49 @@ async function setGuestReady(ready) {
     }
   } catch {
     showToast("Could not update ready.");
+  }
+}
+
+function isBothMatchReady(room = state.room) {
+  return Boolean(room?.matchReady?.host) && Boolean(room?.matchReady?.guest);
+}
+
+function beginPostDraftReadyPhase(room = state.room) {
+  if (!room) return;
+  room.status = "await-ready";
+  room.turnEndsAt = null;
+  room.currentTurn = null;
+  room.matchReady = defaultMatchReadyState();
+  state.phase = "ready";
+  clearTurnTimer();
+  stopPresencePolling();
+  state.presencePollId = setInterval(pollPresence, LOBBY_PRESENCE_POLL_MS);
+}
+
+async function setMatchReady(ready) {
+  if (!state.room?.code) return;
+  const me = getCurrentIdentity();
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/match-ready`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requesterId: me.id, ready: Boolean(ready) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || "Could not update match ready.");
+      return;
+    }
+    if (data.room) applyPresenceSnapshot(data.room);
+    if (isBothMatchReady()) {
+      stopPresencePolling();
+      state.phase = "done";
+      showDone();
+      return;
+    }
+    renderDraftUi();
+  } catch {
+    showToast("Could not update match ready.");
   }
 }
 
@@ -1453,10 +1695,8 @@ function applyLocalAction(room, player) {
   syncCurrentTurnFromIndex(room);
 
   if (room.turnIndex >= state.schedule.length) {
-    room.status = "done";
-    state.phase = "done";
-    clearTurnTimer();
-    showDone();
+    beginPostDraftReadyPhase(room);
+    renderDraftUi();
     return true;
   }
 
@@ -1502,9 +1742,8 @@ function startTurnTimer() {
         r.turnIndex += 1;
         syncCurrentTurnFromIndex(r);
         if (r.turnIndex >= state.schedule.length) {
-          r.status = "done";
-          state.phase = "done";
-          showDone();
+          beginPostDraftReadyPhase(r);
+          renderDraftUi();
           return;
         }
         r.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[r.turnIndex], r.config) * 1000;
@@ -2454,7 +2693,8 @@ function renderSidePanel(containerId, side, room, mySide) {
   const pMax = Math.max(state.schedule.filter((t) => t.action === "pick" && t.side === side).length, 0);
   const bans = room.bans[side] || [];
   const picks = room.picks[side] || [];
-  const hidePicks = state.phase === "draft" && normalizeRevealMode(room.config?.revealMode) === REVEAL_MODE_HIDDEN;
+  const latestBan = bans[bans.length - 1] || null;
+  const latestPick = picks[picks.length - 1] || null;
 
   const head = `
     <div class="side-panel-head ${isMe ? "is-me" : ""}">
@@ -2462,15 +2702,17 @@ function renderSidePanel(containerId, side, room, mySide) {
       ${isMe ? '<span class="you-tag">(you)</span>' : ""}
       ${isTurn ? '<span class="turn-dot"></span>' : ""}
     </div>
+    <div class="side-panel-focus">
+      ${sidePanelCardHtml({ title: "Latest ban", player: latestBan, phase: "ban" })}
+      ${sidePanelCardHtml({ title: "Latest pick", player: latestPick, phase: "pick" })}
+    </div>
     <div class="slot-section-label">BANS (${bans.length}/${bMax || "—"})</div>
     <div class="slot-list">
       ${Array.from({ length: Math.max(bMax, bans.length) }).map((_, i) => slotHtml(bans[i], "ban")).join("")}
     </div>
     <div class="slot-section-label">PICKS (${picks.length}/${pMax || "—"})</div>
     <div class="slot-list">
-      ${hidePicks
-    ? Array.from({ length: Math.max(pMax, picks.length) }).map((_, i) => slotHiddenHtml(Boolean(picks[i]))).join("")
-    : Array.from({ length: Math.max(pMax, picks.length) }).map((_, i) => slotHtml(picks[i], "pick")).join("")}
+      ${Array.from({ length: Math.max(pMax, picks.length) }).map((_, i) => slotHtml(picks[i], "pick")).join("")}
     </div>
   `;
   el.innerHTML = head;
@@ -2485,10 +2727,13 @@ function slotHtml(player, type) {
   if (!player) {
     return `<div class="slot-item ${isBan ? "is-ban" : "is-pick"}"><div class="slot-empty">—</div></div>`;
   }
-  const ovr = player.overall_rating ?? "—";
+  const ovr = getPlayerCardValue(player);
   const lastName = String(player.name || "").trim().split(/\s+/).pop() || player.name;
   return `
     <div class="slot-item ${isBan ? "is-ban" : "is-pick"}">
+      <div class="slot-thumb">
+        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+      </div>
       <div class="slot-ovr">${ovr}</div>
       <div style="min-width:0">
         <div class="slot-name">${escapeHtml(lastName)}</div>
@@ -2496,6 +2741,185 @@ function slotHtml(player, type) {
       </div>
     </div>
   `;
+}
+
+function sidePanelCardHtml({ title, player, phase }) {
+  if (!player) {
+    return `
+      <div class="side-panel-card side-panel-card--empty">
+        <div class="side-panel-card-k">${escapeHtml(title)}</div>
+        <div class="side-panel-card-empty">Waiting for a ${phase}…</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="side-panel-card side-panel-card--${phase}">
+      <div class="side-panel-card-k">${escapeHtml(title)}</div>
+      <div class="side-panel-card-body">
+        <div class="side-panel-card-thumb">
+          <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+        </div>
+        <div class="side-panel-card-text">
+          <div class="side-panel-card-name">${escapeHtml(player.name || "—")}</div>
+          <div class="side-panel-card-meta">${escapeHtml(player.position || "—")} · ${escapeHtml(player.nation || player.nationality || "—")}</div>
+          <div class="side-panel-card-ovr">OVR ${escapeHtml(getPlayerCardValue(player))}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSlotMapPreview(title, slotMap, formation, options = {}) {
+  const layout = getFormationLayout(formation);
+  const benchSlots = Array.from({ length: 12 }, (_, i) => i + 12);
+  const bench = benchSlots.map((slot) => slotMap[slot] || null);
+  const isCompact = Boolean(options.compact);
+  return `
+    <div class="formation-preview ${isCompact ? "formation-preview--compact" : ""}">
+      <div class="formation-preview-head">
+        <div>
+          <div class="formation-preview-k">${escapeHtml(title)}</div>
+          <div class="formation-preview-sub">${escapeHtml(normalizeFormation(formation))} formation</div>
+        </div>
+        <div class="formation-preview-count">${slotCardsSummary(Object.values(slotMap).filter(Boolean))}</div>
+      </div>
+      <div class="formation-pitch">
+        ${layout.map((row) => `
+          <div class="formation-row" data-row="${escapeHtml(row.id)}">
+            ${row.slots.map((slot) => formationSlotHtml(slot, slotMap[slot] || null)).join("")}
+          </div>
+        `).join("")}
+      </div>
+      <div class="formation-bench">
+        ${bench.map((player, idx) => formationBenchSlotHtml(idx + 12, player)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function formationSlotHtml(slot, player) {
+  if (!player) {
+    return `
+      <div class="formation-slot formation-slot--empty">
+        <div class="formation-slot-num">${slot}</div>
+        <div class="formation-slot-empty">Empty</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="formation-slot formation-slot--filled">
+      <div class="formation-slot-num">${slot}</div>
+      <div class="formation-slot-card">
+        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+        <div class="formation-slot-card-body">
+          <div class="formation-slot-name">${escapeHtml(player.name || "—")}</div>
+          <div class="formation-slot-meta">${escapeHtml(player.position || "—")} · ${escapeHtml(player.nation || player.nationality || "—")}</div>
+        </div>
+        <div class="formation-slot-ovr">${escapeHtml(getPlayerCardValue(player))}</div>
+      </div>
+    </div>
+  `;
+}
+
+function formationBenchSlotHtml(slot, player) {
+  if (!player) {
+    return `
+      <div class="formation-bench-slot">
+        <div class="formation-bench-slot-num">${slot}</div>
+        <div class="formation-bench-slot-empty">Open</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="formation-bench-slot is-filled">
+      <div class="formation-bench-slot-num">${slot}</div>
+      <div class="formation-bench-slot-name">${escapeHtml(player.name || "—")}</div>
+      <div class="formation-bench-slot-meta">${escapeHtml(player.position || "—")}</div>
+    </div>
+  `;
+}
+
+function renderDraftPlanControls() {
+  const select = document.getElementById("draftGamePlanSelect");
+  const meta = document.getElementById("draftGamePlanMeta");
+  const preview = document.getElementById("draftGamePlanPreview");
+  if (!select || !meta || !preview) return;
+
+  if (state.draftGamePlansLoading) {
+    select.innerHTML = `<option value="">Loading game plans…</option>`;
+    select.disabled = true;
+    meta.textContent = "Fetching your saved plans…";
+    preview.innerHTML = `<div class="draft-empty-panel">Loading game plans…</div>`;
+    return;
+  }
+
+  if (!state.draftGamePlans.length) {
+    select.innerHTML = `<option value="">No game plans found</option>`;
+    select.disabled = true;
+    meta.textContent = "Create a game plan on the home page to use it as a draft reference.";
+    preview.innerHTML = `<div class="draft-empty-panel">No saved game plans yet.</div>`;
+    return;
+  }
+
+  select.disabled = false;
+  select.innerHTML = state.draftGamePlans.map((plan) => {
+    const formation = normalizeFormation(plan.formation);
+    const suffix = `${Number(plan.lineup_count || 0)}/11 lineup · ${Number(plan.sub_count || 0)}/12 subs`;
+    return `<option value="${escapeHtml(String(plan.id))}">${escapeHtml(plan.name || "Plan")} · ${escapeHtml(formation)} · ${escapeHtml(suffix)}</option>`;
+  }).join("");
+
+  const selectedPlan = state.draftGamePlans.find((plan) => String(plan.id) === String(state.draftGamePlanSelectedId)) || state.draftGamePlans[0];
+  if (!selectedPlan) return;
+  state.draftGamePlanSelectedId = selectedPlan.id;
+  select.value = String(selectedPlan.id);
+  const formation = normalizeFormation(selectedPlan.formation);
+  meta.textContent = `${selectedPlan.name || "Plan"} · ${formation} · ${Number(selectedPlan.lineup_count || 0)}/11 starters`;
+  preview.innerHTML = renderSlotMapPreview("Consult this plan", mapPlayersBySlot(state.draftGamePlanPlayers), formation, { compact: true });
+}
+
+async function loadDraftGamePlans() {
+  const user = getUser();
+  if (!user?.id) return;
+  state.draftGamePlansLoading = true;
+  renderDraftPlanControls();
+  try {
+    const res = await fetch(`/api/game-plans?userId=${encodeURIComponent(user.id)}`);
+    const data = await res.json().catch(() => ({}));
+    state.draftGamePlans = Array.isArray(data.plans) ? data.plans : [];
+    if (!state.draftGamePlans.some((plan) => String(plan.id) === String(state.draftGamePlanSelectedId))) {
+      state.draftGamePlanSelectedId = state.draftGamePlans[0]?.id || null;
+    }
+    if (state.draftGamePlanSelectedId) {
+      await loadDraftGamePlanPlayers(state.draftGamePlanSelectedId);
+    } else {
+      state.draftGamePlanPlayers = [];
+    }
+  } catch {
+    state.draftGamePlans = [];
+    state.draftGamePlanPlayers = [];
+    state.draftGamePlanSelectedId = null;
+  } finally {
+    state.draftGamePlansLoading = false;
+    renderDraftPlanControls();
+    renderDraftUi();
+  }
+}
+
+async function loadDraftGamePlanPlayers(planId) {
+  const user = getUser();
+  if (!user?.id || !planId) return;
+  state.draftGamePlanPlayersLoading = true;
+  try {
+    const res = await fetch(`/api/game-plans/${encodeURIComponent(planId)}/players?userId=${encodeURIComponent(user.id)}`);
+    const data = await res.json().catch(() => ({}));
+    state.draftGamePlanPlayers = Array.isArray(data.players) ? data.players : [];
+  } catch {
+    state.draftGamePlanPlayers = [];
+  } finally {
+    state.draftGamePlanPlayersLoading = false;
+    renderDraftPlanControls();
+    if (state.phase === "draft") renderDraftUi();
+  }
 }
 
 function escapeHtml(s) {
@@ -2506,12 +2930,72 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function resetOpponentBanPlayers() {
+  state.opponentBanPlayers = [];
+  state.loadingOpponentBanPlayers = false;
+  state.opponentBanPlayersLoaded = false;
+}
+
+async function loadOpponentBanPlayers() {
+  const room = state.room;
+  if (!room) return;
+  const loading = document.getElementById("draftLoading");
+  const mySide = state.mySide;
+  const theirSide = mySide === "host" ? "guest" : "host";
+  const opponentUserId = Number(room?.[theirSide]?.id);
+
+  if (!Number.isFinite(opponentUserId) || opponentUserId <= 0) {
+    state.opponentBanPlayers = [];
+    state.opponentBanPlayersLoaded = true;
+    renderDraftUi();
+    return;
+  }
+
+  state.loadingOpponentBanPlayers = true;
+  if (loading) loading.hidden = false;
+  renderDraftUi();
+  try {
+    const res = await fetch(`/api/my-players?userId=${encodeURIComponent(opponentUserId)}`);
+    const data = await res.json().catch(() => ({}));
+    const rows = Array.isArray(data.players) ? data.players : [];
+    const dedup = new Map();
+    rows.forEach((row) => {
+      const normalized = normalizeMySquadPlayerForDraft(row);
+      if (!normalized.id) return;
+      if (!dedup.has(normalized.id)) dedup.set(normalized.id, normalized);
+    });
+    state.opponentBanPlayers = Array.from(dedup.values());
+  } catch {
+    state.opponentBanPlayers = [];
+  } finally {
+    state.loadingOpponentBanPlayers = false;
+    state.opponentBanPlayersLoaded = true;
+    if (loading) loading.hidden = state.loadingPlayers;
+    renderDraftUi();
+  }
+}
+
+function banHistoryCardHtml(player) {
+  return `
+    <div class="ban-history-card">
+      <div class="ban-history-thumb">
+        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+      </div>
+      <div class="ban-history-text">
+        <div class="ban-history-name">${escapeHtml(player.name || "—")}</div>
+        <div class="ban-history-meta">${escapeHtml(player.position || "—")} · OVR ${escapeHtml(getPlayerCardValue(player))}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderDraftUi() {
   const room = state.room;
-  if (!room || state.phase !== "draft") return;
+  if (!room || (state.phase !== "draft" && state.phase !== "ready")) return;
 
   const mySide = state.mySide;
   const turn = state.schedule[room.turnIndex];
+  const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
   const isMyTurn = turn?.side === mySide;
   const isBanPhase = turn?.action === "ban";
   const totalTurns = state.schedule.length || 1;
@@ -2521,14 +3005,17 @@ function renderDraftUi() {
   const pill = document.getElementById("turnPill");
   const kicker = document.getElementById("turnPillKicker");
   const main = document.getElementById("turnPillMain");
-  if (kicker)
-    kicker.textContent = `${isBanPhase ? "BAN" : "PICK"} ${turnNum}/${totalTurns}`;
+  if (kicker) {
+    kicker.textContent = isReadyPhase
+      ? `READY ${totalTurns}/${totalTurns}`
+      : `${isBanPhase ? "BAN" : "PICK"} ${turnNum}/${totalTurns}`;
+  }
   if (main) {
     const name =
       turn?.side === "host"
         ? room.host?.username || "Host"
         : room.guest?.username || "Guest";
-    main.textContent = isMyTurn ? "YOUR TURN" : `${name}'s turn`;
+    main.textContent = isReadyPhase ? "CONFIRM MATCH READY" : (isMyTurn ? "YOUR TURN" : `${name}'s turn`);
   }
   if (pill) {
     pill.classList.toggle("is-mine", isMyTurn);
@@ -2539,15 +3026,44 @@ function renderDraftUi() {
   document.getElementById("progressFill").style.width = `${progress}%`;
 
   const hint = document.getElementById("draftHintBanner");
-  if (isMyTurn) {
+  if (isMyTurn && !isReadyPhase) {
     hint.hidden = false;
     hint.classList.toggle("is-ban", isBanPhase);
     hint.classList.toggle("is-pick", !isBanPhase);
     hint.textContent = isBanPhase
-      ? "Click a player to BAN — banned players cannot be picked by either side."
+      ? "Click an opponent player card to BAN — banned cards cannot be picked by either side."
       : "Click a player to add them to your squad.";
   } else {
     hint.hidden = true;
+  }
+
+  if (isBanPhase && !state.opponentBanPlayersLoaded && !state.loadingOpponentBanPlayers) {
+    void loadOpponentBanPlayers();
+  }
+
+  const readyBanner = document.getElementById("draftReadyBanner");
+  const readyStatus = document.getElementById("draftReadyStatus");
+  const readyBtn = document.getElementById("draftReadyBtn");
+  if (readyBanner && readyStatus && readyBtn) {
+    if (isReadyPhase) {
+      readyBanner.hidden = false;
+      const myReady = Boolean(room.matchReady?.[mySide]);
+      const theirSide = mySide === "host" ? "guest" : "host";
+      const theirReady = Boolean(room.matchReady?.[theirSide]);
+      if (isBothMatchReady(room)) {
+        readyStatus.textContent = "Both players are ready. Opening squads...";
+      } else if (myReady) {
+        readyStatus.textContent = "You are ready. Waiting for opponent...";
+      } else if (theirReady) {
+        readyStatus.textContent = "Opponent is ready. Click READY to begin match reveal.";
+      } else {
+        readyStatus.textContent = "Pick phase complete. Both players must click READY.";
+      }
+      readyBtn.textContent = myReady ? "UNREADY" : "READY";
+      readyBtn.disabled = false;
+    } else {
+      readyBanner.hidden = true;
+    }
   }
 
   const errEl = document.getElementById("draftActionError");
@@ -2563,16 +3079,68 @@ function renderDraftUi() {
   renderSidePanel("sidePanelHost", "host", room, mySide);
   renderSidePanel("sidePanelGuest", "guest", room, mySide);
 
+  const myPicks = room.picks[mySide] || [];
+  const theirSide = mySide === "host" ? "guest" : "host";
+  const theirPicks = room.picks[theirSide] || [];
+  const myBans = room.bans[mySide] || [];
+  const bannedOnMe = room.bans[theirSide] || [];
+  const formation = normalizeFormation(state.draftGamePlans.find((plan) => String(plan.id) === String(state.draftGamePlanSelectedId))?.formation || DEFAULT_FORMATION);
+
+  const formationPreview = document.getElementById("draftFormationPreview");
+  const myPickCount = document.getElementById("draftMyPickCount");
+  const opponentCardPreview = document.getElementById("draftOpponentCardPreview");
+  if (myPickCount) myPickCount.textContent = slotCardsSummary(myPicks);
+  if (formationPreview) formationPreview.innerHTML = renderSlotMapPreview("My current picks", buildOrderedSlotMap(myPicks), formation);
+  if (opponentCardPreview) {
+    const visibleOpponentCards = [
+      ...(room.bans[theirSide] || []).slice(-3).map((player) => ({ player, label: "Ban", phase: "ban" })),
+      ...(theirPicks || []).slice(-3).map((player) => ({ player, label: "Pick", phase: "pick" })),
+    ];
+    opponentCardPreview.innerHTML = visibleOpponentCards.length
+      ? visibleOpponentCards.map((entry) => sidePanelCardHtml({ title: `Opponent ${entry.label}`, player: entry.player, phase: entry.phase })).join("")
+      : `<div class="draft-empty-panel">Opponent cards will show here as the draft unfolds.</div>`;
+  }
+
+  const banTracker = document.getElementById("draftBanTracker");
+  const myBansList = document.getElementById("draftMyBansList");
+  const bannedOnMeList = document.getElementById("draftBannedOnMeList");
+  if (banTracker && myBansList && bannedOnMeList) {
+    const showBanTracker = Boolean(isBanPhase && !isReadyPhase);
+    banTracker.hidden = !showBanTracker;
+    if (showBanTracker) {
+      myBansList.innerHTML = myBans.length
+        ? myBans.map((p) => banHistoryCardHtml(p)).join("")
+        : '<div class="ban-history-empty">No bans yet.</div>';
+      bannedOnMeList.innerHTML = bannedOnMe.length
+        ? bannedOnMe.map((p) => banHistoryCardHtml(p)).join("")
+        : '<div class="ban-history-empty">Opponent has not banned your cards yet.</div>';
+    }
+  }
+
+  renderDraftPlanControls();
+
   const grid = document.getElementById("draftGrid");
-  const hidePicks = normalizeRevealMode(room.config?.revealMode) === REVEAL_MODE_HIDDEN;
-  grid.innerHTML = state.players
+  const sourcePlayers = getDraftDisplayPlayers(room);
+  if (!sourcePlayers.length) {
+    if (isBanPhase) {
+      const message = state.loadingOpponentBanPlayers
+        ? "Loading opponent squad cards..."
+        : "Opponent squad cards are unavailable right now.";
+      grid.innerHTML = `<div class="draft-empty-panel draft-grid-empty">${escapeHtml(message)}</div>`;
+      return;
+    }
+    grid.innerHTML = '<div class="draft-empty-panel draft-grid-empty">No players found.</div>';
+    return;
+  }
+
+  grid.innerHTML = sourcePlayers
     .map((p) => {
       const id = String(p.id);
       const banned = room.bannedPlayerIds.includes(id);
       const pickedTaken = room.pickedPlayerIds.includes(id);
-      const picked = hidePicks ? false : pickedTaken;
+      const picked = pickedTaken;
       const unavailable = banned || pickedTaken;
-      const clickable = isMyTurn && !unavailable;
+      const clickable = isMyTurn && !unavailable && !isReadyPhase;
       return miniCardHtml(p, { banned, picked, clickable, isBanPhase });
     })
     .join("");
@@ -2588,8 +3156,11 @@ function miniCardHtml(player, o) {
          tabindex="${clickable ? 0 : -1}">
       ${banned ? '<div class="mini-overlay" aria-hidden="true">🚫</div>' : ""}
       ${picked ? '<div class="mini-overlay" aria-hidden="true">✅</div>' : ""}
+      <div class="mini-thumb">
+        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+      </div>
       <div class="mini-row">
-        <div class="mini-ovr">${player.overall_rating}</div>
+        <div class="mini-ovr">${getPlayerCardValue(player)}</div>
         <div style="min-width:0">
           <div class="mini-name">${escapeHtml(player.name)}</div>
           <div class="mini-sub">${escapeHtml(player.position)} · ${escapeHtml(player.nation)}</div>
@@ -2628,7 +3199,7 @@ function attachDraftGridHandlers() {
     const card = e.target.closest(".mini-card.is-clickable");
     if (!card) return;
     const id = card.dataset.playerId;
-    const player = state.players.find((p) => String(p.id) === id);
+    const player = getDraftDisplayPlayers(state.room).find((p) => String(p.id) === id);
     if (!player) return;
 
     state.actionError = "";
@@ -2651,7 +3222,7 @@ async function loadDraftPlayers() {
     showToast("Could not load players.");
   } finally {
     state.loadingPlayers = false;
-    if (loading) loading.hidden = true;
+    if (loading) loading.hidden = state.loadingOpponentBanPlayers;
     renderDraftUi();
   }
 }
@@ -3581,6 +4152,16 @@ function initDraftControls() {
   document.getElementById("draftPosition")?.addEventListener("change", (e) => {
     state.position = e.target.value;
     loadDraftPlayers();
+  });
+  document.getElementById("draftGamePlanSelect")?.addEventListener("change", (e) => {
+    state.draftGamePlanSelectedId = e.target.value || null;
+    void loadDraftGamePlanPlayers(state.draftGamePlanSelectedId).then(() => renderDraftUi());
+  });
+  document.getElementById("draftReadyBtn")?.addEventListener("click", () => {
+    if (state.phase !== "ready" || !state.room) return;
+    const me = state.mySide;
+    const nextReady = !Boolean(state.room.matchReady?.[me]);
+    void setMatchReady(nextReady);
   });
   document.getElementById("draftLeaveBtn")?.addEventListener("click", async () => {
     if (state.mySide === "host") {
