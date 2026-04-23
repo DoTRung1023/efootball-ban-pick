@@ -1,10 +1,12 @@
 const GREEN = "#00e676";
 const RED = "#ff4444";
-const TURN_SECONDS = 30;
 const FIXED_PICKS_PER_SIDE = 23;
-const DEFAULT_BAN_DURATION_SECONDS = 15;
+const DEFAULT_BAN_DURATION_SECONDS = 120;
 const MIN_BAN_DURATION_SECONDS = 5;
-const MAX_BAN_DURATION_SECONDS = 120;
+const MAX_BAN_DURATION_SECONDS = 900;
+const DEFAULT_PICK_DURATION_SECONDS = 300;
+const MIN_PICK_DURATION_SECONDS = 5;
+const MAX_PICK_DURATION_SECONDS = 1200;
 const LOBBY_PRESENCE_POLL_MS = 500;
 const REVEAL_MODE_INSTANT = "instant";
 const REVEAL_MODE_HIDDEN = "hidden";
@@ -194,7 +196,7 @@ function getDraftDisplayPlayers(room = state.room) {
   const isBanPhase = turn?.action === "ban";
   const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
   if (isReadyPhase) return state.players;
-  return isBanPhase ? state.opponentBanPlayers : state.players;
+  return isBanPhase ? getBanListPlayers() : state.players;
 }
 
 function readAllowanceFieldValue(input) {
@@ -314,6 +316,11 @@ function normalizeBanDurationSec(raw) {
   return Math.max(MIN_BAN_DURATION_SECONDS, Math.min(MAX_BAN_DURATION_SECONDS, n));
 }
 
+function normalizePickDurationSec(raw) {
+  const n = Math.floor(Number(raw) || DEFAULT_PICK_DURATION_SECONDS);
+  return Math.max(MIN_PICK_DURATION_SECONDS, Math.min(MAX_PICK_DURATION_SECONDS, n));
+}
+
 function normalizeRevealMode(raw) {
   return String(raw || "").trim().toLowerCase() === REVEAL_MODE_HIDDEN
     ? REVEAL_MODE_HIDDEN
@@ -322,7 +329,44 @@ function normalizeRevealMode(raw) {
 
 function getTurnDurationSec(turn, cfg = state.room?.config || defaultRoomConfig()) {
   if (turn?.action === "ban") return normalizeBanDurationSec(cfg?.banDurationSec);
-  return TURN_SECONDS;
+  if (turn?.action === "pick") return normalizePickDurationSec(cfg?.pickDurationSec);
+  return DEFAULT_PICK_DURATION_SECONDS;
+}
+
+function getDraftStage(room = state.room) {
+  const t = room ? state.schedule[room.turnIndex] : null;
+  return String(t?.action || "");
+}
+
+function ensureDraftTimer(room = state.room) {
+  if (!room || room.turnEndsAt) return;
+  const stage = getDraftStage(room);
+  const durationSec = getTurnDurationSec({ action: stage }, room.config);
+  room.turnEndsAt = Date.now() + durationSec * 1000;
+}
+
+function advanceDraftStage(room, nextAction) {
+  if (!room) return;
+  const next = String(nextAction || "");
+  const nextIdx = state.schedule.findIndex((t) => String(t?.action || "") === next);
+  if (nextIdx < 0) return;
+  room.turnIndex = nextIdx;
+  syncCurrentTurnFromIndex(room);
+  room.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[room.turnIndex], room.config) * 1000;
+  startTurnTimer();
+}
+
+function maybeAutoAdvanceFromBan(room = state.room) {
+  if (!room) return;
+  if (getDraftStage(room) !== "ban") return;
+  const cfg = room.config || defaultRoomConfig();
+  const target = Math.max(0, Math.floor(Number(cfg.banCountPerSide) || 0));
+  if (!target) return;
+  const doneHost = (room.bans?.host || []).length >= target;
+  const doneGuest = (room.bans?.guest || []).length >= target;
+  if (doneHost && doneGuest) {
+    advanceDraftStage(room, "pick");
+  }
 }
 
 function parsePositionCapMap(raw, selectedPositions = []) {
@@ -872,6 +916,12 @@ const state = {
   opponentBanPlayers: [],
   loadingOpponentBanPlayers: false,
   opponentBanPlayersLoaded: false,
+  opponentBanPlayersLoadSource: "",
+  banSearch: "",
+  banSort: "overall_max_desc",
+  banFilterPositions: [],
+  pendingBanPlayerId: "",
+  banUiBound: false,
   draftGamePlans: [],
   draftGamePlanPlayers: [],
   draftGamePlanSelectedId: null,
@@ -879,6 +929,79 @@ const state = {
   draftGamePlanPlayersLoading: false,
   actionError: "",
 };
+
+function normalizeBanSortValue(raw) {
+  const v = String(raw || "").trim();
+  const ok = new Set([
+    "overall_max_desc", "overall_max_asc",
+    "overall_desc", "overall_asc",
+    "name_desc", "name_asc",
+    "position_desc", "position_asc",
+    "height_desc", "height_asc",
+    "weight_desc", "weight_asc",
+    "age_desc", "age_asc",
+  ]);
+  return ok.has(v) ? v : "overall_max_desc";
+}
+
+function normalizeBanPositionValue(raw) {
+  const v = String(raw || "").trim().toUpperCase();
+  return POSITION_OPTIONS.includes(v) ? v : "";
+}
+
+function comparePlayersByBanSort(a, b, sortKey) {
+  const sa = String(a?.name || "");
+  const sb = String(b?.name || "");
+  const key = String(sortKey || "overall_max_desc");
+  const dir = key.endsWith("_asc") ? "asc" : "desc";
+  const baseKey = key.replace(/_(asc|desc)$/, "");
+  const overallMaxA = Number(getPlayerCardValue(a)) || 0;
+  const overallMaxB = Number(getPlayerCardValue(b)) || 0;
+  const overallA = Number(a?._raw?.overall ?? a?.overall_rating ?? 0) || 0;
+  const overallB = Number(b?._raw?.overall ?? b?.overall_rating ?? 0) || 0;
+  const posA = String(a?.position || "");
+  const posB = String(b?.position || "");
+  const heightA = Number(a?._raw?.height ?? 0) || 0;
+  const heightB = Number(b?._raw?.height ?? 0) || 0;
+  const weightA = Number(a?._raw?.weight ?? 0) || 0;
+  const weightB = Number(b?._raw?.weight ?? 0) || 0;
+  const ageA = Number(a?._raw?.age ?? 0) || 0;
+  const ageB = Number(b?._raw?.age ?? 0) || 0;
+
+  let cmp = 0;
+  if (baseKey === "overall") cmp = overallA - overallB || sa.localeCompare(sb);
+  else if (baseKey === "name") cmp = sa.localeCompare(sb) || overallMaxB - overallMaxA;
+  else if (baseKey === "position") cmp = posA.localeCompare(posB) || overallMaxB - overallMaxA;
+  else if (baseKey === "height") cmp = heightA - heightB || overallMaxB - overallMaxA;
+  else if (baseKey === "weight") cmp = weightA - weightB || overallMaxB - overallMaxA;
+  else if (baseKey === "age") cmp = ageA - ageB || overallMaxB - overallMaxA;
+  else cmp = overallMaxA - overallMaxB || sa.localeCompare(sb);
+
+  return dir === "asc" ? cmp : -cmp;
+}
+
+function getBanListPlayers() {
+  const base = Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : [];
+  const q = String(state.banSearch || "").trim().toLowerCase();
+  const sortKey = normalizeBanSortValue(state.banSort);
+  const selectedPositions = Array.isArray(state.banFilterPositions)
+    ? state.banFilterPositions.map(normalizeBanPositionValue).filter(Boolean)
+    : [];
+  const posSet = new Set(selectedPositions);
+  let rows = base;
+  if (q) rows = rows.filter((p) => String(p?.name || "").toLowerCase().includes(q));
+  if (posSet.size) rows = rows.filter((p) => posSet.has(String(p?.position || "").toUpperCase()));
+  return [...rows].sort((a, b) => comparePlayersByBanSort(a, b, sortKey));
+}
+
+function imageOnlyThumbHtml(player, size = "md") {
+  if (!player) return "";
+  return `
+    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)}" data-player-id="${escapeHtml(player.id)}">
+      <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+    </div>
+  `;
+}
 
 let clubSearchDebounceTimer = null;
 let readonlySettingsToastAt = 0;
@@ -914,8 +1037,9 @@ function getCurrentIdentity() {
 function defaultRoomConfig() {
   return {
     allowAllPlayers: true,
-    banCountPerSide: 0,
+    banCountPerSide: 3,
     banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
+    pickDurationSec: DEFAULT_PICK_DURATION_SECONDS,
     revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: FIXED_PICKS_PER_SIDE,
     allowanceEnabled: [],
@@ -1015,6 +1139,7 @@ function normalizeRoomConfig(raw) {
     ...defaults,
     ...rawCfg,
     banDurationSec: normalizeBanDurationSec(rawCfg.banDurationSec),
+    pickDurationSec: normalizePickDurationSec(rawCfg.pickDurationSec),
     revealMode: normalizeRevealMode(rawCfg.revealMode),
     allowanceEnabled: normalizedEnabled,
     allowanceCaps: incomingCaps,
@@ -1075,6 +1200,12 @@ function tryEnterDraftFromRoomSnapshot() {
   const bansPerSide = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
   state.schedule = buildTurnSchedule(bansPerSide, FIXED_PICKS_PER_SIDE);
   syncCurrentTurnFromIndex(room);
+  if (bansPerSide <= 0) {
+    // No bans configured: start directly in pick phase.
+    room.turnIndex = Math.max(0, state.schedule.findIndex((t) => t.action === "pick"));
+    syncCurrentTurnFromIndex(room);
+  }
+  ensureDraftTimer(room);
 
   state.phase = status === "await-ready" ? "ready" : "draft";
   stopPresencePolling();
@@ -1502,14 +1633,16 @@ function showView(id) {
  * @param {number} picksPerSide
  */
 function buildTurnSchedule(bansPerSide, picksPerSide) {
-  const turns = [];
-  for (let i = 0; i < bansPerSide * 2; i++) {
-    turns.push({ side: i % 2 === 0 ? "host" : "guest", action: "ban" });
-  }
-  for (let i = 0; i < picksPerSide * 2; i++) {
-    turns.push({ side: i % 2 === 0 ? "host" : "guest", action: "pick" });
-  }
-  return turns;
+  // Phase-based flow:
+  // - Ban phase: both users ban simultaneously within total banDurationSec.
+  // - Pick phase: both users pick simultaneously within total pickDurationSec.
+  // Note: pick phase UI is still WIP, but timers/transitions are handled.
+  void bansPerSide;
+  void picksPerSide;
+  return [
+    { side: "both", action: "ban" },
+    { side: "both", action: "pick" },
+  ];
 }
 
 function emptyRoom(code, host, guest) {
@@ -1675,7 +1808,8 @@ function applyLocalAction(room, player) {
   if (room.bannedPlayerIds.includes(id) || room.pickedPlayerIds.includes(id)) return false;
 
   if (turn.action === "pick") {
-    const violation = getAllowanceCapViolation(room, turn.side, player);
+    const mySide = state.mySide;
+    const violation = getAllowanceCapViolation(room, mySide, player);
     if (violation) {
       state.actionError = `${violation.label}: max ${violation.cap} card(s) allowed per side.`;
       showToast(state.actionError);
@@ -1684,24 +1818,26 @@ function applyLocalAction(room, player) {
   }
 
   if (turn.action === "ban") {
-    room.bans[turn.side].push(player);
+    const cfg = room.config || defaultRoomConfig();
+    const maxBans = Math.max(0, Math.floor(Number(cfg.banCountPerSide) || 0));
+    const mySide = state.mySide;
+    if (!mySide) return false;
+    const myBans = room.bans?.[mySide] || [];
+    if (maxBans && myBans.length >= maxBans) {
+      showToast("You already used all bans for your side.");
+      return false;
+    }
+    room.bans[mySide].push(player);
     room.bannedPlayerIds.push(id);
   } else {
-    room.picks[turn.side].push(player);
+    const mySide = state.mySide;
+    if (!mySide) return false;
+    room.picks[mySide].push(player);
     room.pickedPlayerIds.push(id);
   }
-
-  room.turnIndex += 1;
-  syncCurrentTurnFromIndex(room);
-
-  if (room.turnIndex >= state.schedule.length) {
-    beginPostDraftReadyPhase(room);
-    renderDraftUi();
-    return true;
+  if (turn.action === "ban") {
+    maybeAutoAdvanceFromBan(room);
   }
-
-  room.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[room.turnIndex], room.config) * 1000;
-  startTurnTimer();
   return true;
 }
 
@@ -1736,30 +1872,19 @@ function startTurnTimer() {
 
     if (left <= 0) {
       clearTurnTimer();
-      state.actionError = "⏱ Time ran out — turn skipped (local demo).";
       const r = state.room;
-      if (r && state.schedule[r.turnIndex] !== undefined) {
-        r.turnIndex += 1;
-        syncCurrentTurnFromIndex(r);
-        if (r.turnIndex >= state.schedule.length) {
-          beginPostDraftReadyPhase(r);
-          renderDraftUi();
-          return;
-        }
-        r.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[r.turnIndex], r.config) * 1000;
-        startTurnTimer();
+      if (!r) return;
+      const stage = getDraftStage(r);
+      if (stage === "ban") {
+        advanceDraftStage(r, "pick");
+        renderDraftUi();
+        return;
       }
-      const errEl = document.getElementById("draftActionError");
-      if (errEl) {
-        errEl.textContent = state.actionError;
-        errEl.hidden = false;
+      if (stage === "pick") {
+        beginPostDraftReadyPhase(r);
+        renderDraftUi();
+        return;
       }
-      setTimeout(() => {
-        state.actionError = "";
-        const e = document.getElementById("draftActionError");
-        if (e) e.hidden = true;
-      }, 3000);
-      renderDraftUi();
     }
   };
   tick();
@@ -1799,13 +1924,16 @@ function renderLobby() {
   const allowAllEl = document.getElementById("allowAllPlayersInput");
   const bansEl = document.getElementById("lobbyBansInput");
   const banDurationEl = document.getElementById("lobbyBanDurationInput");
+  const pickDurationEl = document.getElementById("lobbyPickDurationInput");
   const revealModeEl = document.getElementById("lobbyRevealModeInput");
   const revealModeTrigger = document.getElementById("lobbyRevealModeTrigger");
   const revealModePanel = document.getElementById("lobbyRevealModePanel");
   const revealModeLabel = document.getElementById("lobbyRevealModeLabel");
+  if (!isHost) state.openRevealModeMenu = false;
   if (allowAllEl && !allowAllEl.dataset.touched) allowAllEl.checked = Boolean(cfg.allowAllPlayers);
   if (bansEl && !bansEl.dataset.touched) bansEl.value = String(cfg.banCountPerSide ?? 0);
   if (banDurationEl && !banDurationEl.dataset.touched) banDurationEl.value = String(normalizeBanDurationSec(cfg.banDurationSec));
+  if (pickDurationEl && !pickDurationEl.dataset.touched) pickDurationEl.value = String(normalizePickDurationSec(cfg.pickDurationSec));
   if (revealModeEl && !revealModeEl.dataset.touched) revealModeEl.value = normalizeRevealMode(cfg.revealMode);
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   if (revealModeLabel) {
@@ -1821,6 +1949,8 @@ function renderLobby() {
     revealModePanel.classList.toggle("is-open", Boolean(state.openRevealModeMenu));
   }
   if (revealModeTrigger) {
+    revealModeTrigger.disabled = !isHost;
+    revealModeTrigger.title = isHost ? "" : "Only the host can change Mode";
     revealModeTrigger.classList.toggle("open", Boolean(state.openRevealModeMenu));
     revealModeTrigger.setAttribute("aria-expanded", String(Boolean(state.openRevealModeMenu)));
   }
@@ -1883,6 +2013,7 @@ function renderLobby() {
   if (allowAllEl) allowAllEl.disabled = !isHost;
   if (bansEl) bansEl.disabled = !isHost;
   if (banDurationEl) banDurationEl.disabled = !isHost;
+  if (pickDurationEl) pickDurationEl.disabled = !isHost;
   if (revealModeTrigger) revealModeTrigger.disabled = !isHost;
   if (!isHost) state.openRevealModeMenu = false;
   renderAllowanceList({ isHost, cfg });
@@ -2621,10 +2752,14 @@ async function pushLobbyConfig() {
     ? allowanceCapsFromDom
     : { ...(cfg.allowanceCaps || {}) };
   const banDurationInput = document.getElementById("lobbyBanDurationInput");
+  const pickDurationInput = document.getElementById("lobbyPickDurationInput");
   const revealModeInput = document.getElementById("lobbyRevealModeInput");
   const banDurationSec = banDurationInput
     ? normalizeBanDurationSec(banDurationInput.value)
     : normalizeBanDurationSec(cfg.banDurationSec);
+  const pickDurationSec = pickDurationInput
+    ? normalizePickDurationSec(pickDurationInput.value)
+    : normalizePickDurationSec(cfg.pickDurationSec);
   const revealMode = revealModeInput
     ? normalizeRevealMode(revealModeInput.value)
     : normalizeRevealMode(cfg.revealMode);
@@ -2634,7 +2769,7 @@ async function pushLobbyConfig() {
     const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/config`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requesterId: myId, clientSeq: reqSeq, allowAllPlayers: allowAll, banCountPerSide, banDurationSec, revealMode, allowanceEnabled, allowance, allowanceCaps }),
+      body: JSON.stringify({ requesterId: myId, clientSeq: reqSeq, allowAllPlayers: allowAll, banCountPerSide, banDurationSec, pickDurationSec, revealMode, allowanceEnabled, allowance, allowanceCaps }),
     });
     if (!res.ok) return;
     const data = await res.json();
@@ -2942,13 +3077,47 @@ async function loadOpponentBanPlayers() {
   const loading = document.getElementById("draftLoading");
   const mySide = state.mySide;
   const theirSide = mySide === "host" ? "guest" : "host";
-  const opponentUserId = Number(room?.[theirSide]?.id);
+  let opponentUserId = Number(room?.[theirSide]?.id);
 
   if (!Number.isFinite(opponentUserId) || opponentUserId <= 0) {
-    state.opponentBanPlayers = [];
-    state.opponentBanPlayersLoaded = true;
-    renderDraftUi();
-    return;
+    // In some flows, draft starts before presence polling fully hydrates numeric ids.
+    // Attempt a one-time presence refresh, then retry extracting opponent id.
+    try {
+      const code = String(room.code || "").trim();
+      if (code) {
+        const pres = await fetch(`/api/rooms/${encodeURIComponent(code)}`);
+        const data = await pres.json().catch(() => ({}));
+        if (pres.ok && data?.room) applyPresenceSnapshot(data.room);
+      }
+    } catch {
+      /* ignore */
+    }
+    opponentUserId = Number(state.room?.[theirSide]?.id);
+    if (!Number.isFinite(opponentUserId) || opponentUserId <= 0) {
+      // Fallback: if opponent is not signed in (anon ids), we can't load /api/my-players.
+      // Provide a small demo pool so ban UI is usable in single-browser testing.
+      try {
+        const res = await fetch("/api/top-players");
+        const data = await res.json().catch(() => ({}));
+        const rows = Array.isArray(data.players) ? data.players : [];
+        state.opponentBanPlayers = rows.map((p) =>
+          normalizeApiPlayer({
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            overall_max: p.overall,
+            nationality: p.nationality,
+          }),
+        );
+        state.opponentBanPlayersLoadSource = "top-players";
+      } catch {
+        state.opponentBanPlayers = [];
+      } finally {
+        state.opponentBanPlayersLoaded = true;
+        renderDraftUi();
+      }
+      return;
+    }
   }
 
   state.loadingOpponentBanPlayers = true;
@@ -2956,6 +3125,10 @@ async function loadOpponentBanPlayers() {
   renderDraftUi();
   try {
     const res = await fetch(`/api/my-players?userId=${encodeURIComponent(opponentUserId)}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.error || `Failed to load opponent squad (${res.status})`);
+    }
     const data = await res.json().catch(() => ({}));
     const rows = Array.isArray(data.players) ? data.players : [];
     const dedup = new Map();
@@ -2965,6 +3138,28 @@ async function loadOpponentBanPlayers() {
       if (!dedup.has(normalized.id)) dedup.set(normalized.id, normalized);
     });
     state.opponentBanPlayers = Array.from(dedup.values());
+    state.opponentBanPlayersLoadSource = "my-players";
+
+    // If opponent has no saved squad, fall back to a small demo pool so the ban UI isn't empty/stuck.
+    if (!state.opponentBanPlayers.length) {
+      try {
+        const demoRes = await fetch("/api/top-players");
+        const demoData = await demoRes.json().catch(() => ({}));
+        const demoRows = Array.isArray(demoData.players) ? demoData.players : [];
+        state.opponentBanPlayers = demoRows.map((p) =>
+          normalizeApiPlayer({
+            id: p.id,
+            name: p.name,
+            position: p.position,
+            overall_max: p.overall,
+            nationality: p.nationality,
+          }),
+        );
+        state.opponentBanPlayersLoadSource = "top-players";
+      } catch {
+        /* ignore */
+      }
+    }
   } catch {
     state.opponentBanPlayers = [];
   } finally {
@@ -2989,6 +3184,10 @@ function banHistoryCardHtml(player) {
   `;
 }
 
+// Ban phase uses the 3-row board (legacy ban-only mode was removed, keep these as safe no-ops).
+function enterBanOnlyDomMode() {}
+function exitBanOnlyDomMode() {}
+
 function renderDraftUi() {
   const room = state.room;
   if (!room || (state.phase !== "draft" && state.phase !== "ready")) return;
@@ -2996,11 +3195,14 @@ function renderDraftUi() {
   const mySide = state.mySide;
   const turn = state.schedule[room.turnIndex];
   const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
-  const isMyTurn = turn?.side === mySide;
+  const isMyTurn = String(turn?.side || "") === "both" ? true : turn?.side === mySide;
   const isBanPhase = turn?.action === "ban";
   const totalTurns = state.schedule.length || 1;
   const turnNum = room.turnIndex + 1;
   const progress = (room.turnIndex / totalTurns) * 100;
+  const showBanOnly = Boolean(isBanPhase && !isReadyPhase);
+  if (showBanOnly) enterBanOnlyDomMode();
+  else exitBanOnlyDomMode();
 
   const pill = document.getElementById("turnPill");
   const kicker = document.getElementById("turnPillKicker");
@@ -3015,10 +3217,25 @@ function renderDraftUi() {
       turn?.side === "host"
         ? room.host?.username || "Host"
         : room.guest?.username || "Guest";
-    main.textContent = isReadyPhase ? "CONFIRM MATCH READY" : (isMyTurn ? "YOUR TURN" : `${name}'s turn`);
+    if (isReadyPhase) {
+      main.textContent = "CONFIRM MATCH READY";
+    } else if (isBanPhase) {
+      const target = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
+      const theirSide = mySide === "host" ? "guest" : "host";
+      const myBans = room.bans?.[mySide] || [];
+      const theirBans = room.bans?.[theirSide] || [];
+      const myReady = target <= 0 ? true : myBans.length >= target;
+      const theirReady = target <= 0 ? true : theirBans.length >= target;
+      main.textContent = `${myReady ? "READY" : "NOT READY"} • ${theirReady ? "OPP READY" : "OPP NOT READY"}`;
+    } else {
+      main.textContent = String(turn?.side || "") === "both"
+        ? "PICK PHASE"
+        : (isMyTurn ? "YOUR TURN" : `${name}'s turn`);
+    }
   }
   if (pill) {
-    pill.classList.toggle("is-mine", isMyTurn);
+    // Ban phase is simultaneous; avoid implying a "turn owner".
+    pill.classList.toggle("is-mine", !isBanPhase && isMyTurn);
     pill.classList.toggle("is-ban", isBanPhase);
     pill.classList.toggle("is-pick", !isBanPhase);
   }
@@ -3031,7 +3248,7 @@ function renderDraftUi() {
     hint.classList.toggle("is-ban", isBanPhase);
     hint.classList.toggle("is-pick", !isBanPhase);
     hint.textContent = isBanPhase
-      ? "Click an opponent player card to BAN — banned cards cannot be picked by either side."
+      ? "Ban an opponent card — your opponent cannot use that card, but you still can."
       : "Click a player to add them to your squad.";
   } else {
     hint.hidden = true;
@@ -3041,28 +3258,17 @@ function renderDraftUi() {
     void loadOpponentBanPlayers();
   }
 
-  const readyBanner = document.getElementById("draftReadyBanner");
-  const readyStatus = document.getElementById("draftReadyStatus");
-  const readyBtn = document.getElementById("draftReadyBtn");
-  if (readyBanner && readyStatus && readyBtn) {
+  const topReadyBtn = document.getElementById("draftTopReadyBtn");
+  if (topReadyBtn) {
     if (isReadyPhase) {
-      readyBanner.hidden = false;
       const myReady = Boolean(room.matchReady?.[mySide]);
-      const theirSide = mySide === "host" ? "guest" : "host";
-      const theirReady = Boolean(room.matchReady?.[theirSide]);
-      if (isBothMatchReady(room)) {
-        readyStatus.textContent = "Both players are ready. Opening squads...";
-      } else if (myReady) {
-        readyStatus.textContent = "You are ready. Waiting for opponent...";
-      } else if (theirReady) {
-        readyStatus.textContent = "Opponent is ready. Click READY to begin match reveal.";
-      } else {
-        readyStatus.textContent = "Pick phase complete. Both players must click READY.";
-      }
-      readyBtn.textContent = myReady ? "UNREADY" : "READY";
-      readyBtn.disabled = false;
+      topReadyBtn.textContent = myReady ? "UNREADY" : "READY";
+      topReadyBtn.disabled = false;
+      topReadyBtn.title = "";
     } else {
-      readyBanner.hidden = true;
+      topReadyBtn.textContent = "READY";
+      topReadyBtn.disabled = true;
+      topReadyBtn.title = "Available after pick phase completes";
     }
   }
 
@@ -3076,9 +3282,6 @@ function renderDraftUi() {
     }
   }
 
-  renderSidePanel("sidePanelHost", "host", room, mySide);
-  renderSidePanel("sidePanelGuest", "guest", room, mySide);
-
   const myPicks = room.picks[mySide] || [];
   const theirSide = mySide === "host" ? "guest" : "host";
   const theirPicks = room.picks[theirSide] || [];
@@ -3086,127 +3289,416 @@ function renderDraftUi() {
   const bannedOnMe = room.bans[theirSide] || [];
   const formation = normalizeFormation(state.draftGamePlans.find((plan) => String(plan.id) === String(state.draftGamePlanSelectedId))?.formation || DEFAULT_FORMATION);
 
-  const formationPreview = document.getElementById("draftFormationPreview");
-  const myPickCount = document.getElementById("draftMyPickCount");
-  const opponentCardPreview = document.getElementById("draftOpponentCardPreview");
-  if (myPickCount) myPickCount.textContent = slotCardsSummary(myPicks);
-  if (formationPreview) formationPreview.innerHTML = renderSlotMapPreview("My current picks", buildOrderedSlotMap(myPicks), formation);
-  if (opponentCardPreview) {
-    const visibleOpponentCards = [
-      ...(room.bans[theirSide] || []).slice(-3).map((player) => ({ player, label: "Ban", phase: "ban" })),
-      ...(theirPicks || []).slice(-3).map((player) => ({ player, label: "Pick", phase: "pick" })),
-    ];
-    opponentCardPreview.innerHTML = visibleOpponentCards.length
-      ? visibleOpponentCards.map((entry) => sidePanelCardHtml({ title: `Opponent ${entry.label}`, player: entry.player, phase: entry.phase })).join("")
-      : `<div class="draft-empty-panel">Opponent cards will show here as the draft unfolds.</div>`;
-  }
+  const pickWip = document.getElementById("draftPickWip");
 
-  const banTracker = document.getElementById("draftBanTracker");
-  const myBansList = document.getElementById("draftMyBansList");
-  const bannedOnMeList = document.getElementById("draftBannedOnMeList");
-  if (banTracker && myBansList && bannedOnMeList) {
-    const showBanTracker = Boolean(isBanPhase && !isReadyPhase);
-    banTracker.hidden = !showBanTracker;
-    if (showBanTracker) {
-      myBansList.innerHTML = myBans.length
-        ? myBans.map((p) => banHistoryCardHtml(p)).join("")
-        : '<div class="ban-history-empty">No bans yet.</div>';
-      bannedOnMeList.innerHTML = bannedOnMe.length
-        ? bannedOnMe.map((p) => banHistoryCardHtml(p)).join("")
-        : '<div class="ban-history-empty">Opponent has not banned your cards yet.</div>';
+  const showBanBoard = Boolean(isBanPhase && !isReadyPhase);
+  const banBoard = document.getElementById("draftBanPhaseBoard");
+  const myBansStrip = document.getElementById("draftMyBansStrip");
+  const bannedOnMeStrip = document.getElementById("draftBannedOnMeStrip");
+  const pendingStrip = document.getElementById("draftPendingBanStrip");
+  const banSearch = document.getElementById("banSearch");
+  const banSort = document.getElementById("banSort");
+  const banPos = document.getElementById("banPosition");
+  const banGrid = document.getElementById("banGrid");
+  const clearBtn = document.getElementById("banClearBtn");
+  const confirmBtn = document.getElementById("banConfirmBtn");
+  if (banBoard && myBansStrip && bannedOnMeStrip && pendingStrip && banSearch && banSort && banPos && banGrid && clearBtn && confirmBtn) {
+    banBoard.hidden = !showBanBoard;
+    if (showBanBoard) {
+      bindBanPhaseUiOnce();
+      banSearch.value = state.banSearch || "";
+      banSort.value = normalizeBanSortValue(state.banSort);
+      // Legacy hidden select kept for compatibility; actual filter state is multi-select.
+      banPos.value = "";
+      renderBanToolbar();
+
+      myBansStrip.innerHTML = myBans.length
+        ? myBans.map((p) => imageOnlyThumbHtml(p, "md")).join("")
+        : "";
+
+      bannedOnMeStrip.innerHTML = bannedOnMe.length
+        ? bannedOnMe.map((p) => imageOnlyThumbHtml(p, "md")).join("")
+        : "";
+
+      const pending = state.pendingBanPlayerId
+        ? (Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : []).find((p) => String(p.id) === String(state.pendingBanPlayerId))
+        : null;
+      pendingStrip.innerHTML = pending ? imageOnlyThumbHtml(pending, "lg") : "";
+
+      const rows = getBanListPlayers();
+      banGrid.innerHTML = rows.length
+        ? rows.map((p) => {
+            const id = String(p.id);
+            const banned = room.bannedPlayerIds.includes(id);
+            const pickedTaken = room.pickedPlayerIds.includes(id);
+            const unavailable = banned || pickedTaken;
+            const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
+            const myBanCount = (room.bans?.[mySide] || []).length;
+            const canStillBan = !maxBans || myBanCount < maxBans;
+            const clickable = isMyTurn && canStillBan && !unavailable && !isReadyPhase;
+            return banPlayerCardHtml(p, { banned, picked: pickedTaken, clickable });
+          }).join("")
+        : `<div class="ban-phase-empty ban-phase-empty--panel">${
+            escapeHtml(
+              state.loadingOpponentBanPlayers
+                ? "Loading opponent squad cards..."
+                : (state.opponentBanPlayersLoaded
+                    ? (state.opponentBanPlayers.length
+                        ? "Opponent squad loaded."
+                        : "No opponent players to show yet.")
+                    : "Loading opponent squad cards..."),
+            )
+          }</div>`;
+
+      const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
+      const myBanCount = (room.bans?.[mySide] || []).length;
+      const canStillBan = !maxBans || myBanCount < maxBans;
+      const canConfirm = Boolean(
+        isMyTurn &&
+        canStillBan &&
+        pending &&
+        !room.bannedPlayerIds.includes(String(pending.id)) &&
+        !room.pickedPlayerIds.includes(String(pending.id)),
+      );
+      clearBtn.disabled = !pending;
+      confirmBtn.disabled = !canConfirm;
+    } else {
+      state.pendingBanPlayerId = "";
     }
   }
 
-  renderDraftPlanControls();
-
-  const grid = document.getElementById("draftGrid");
-  const sourcePlayers = getDraftDisplayPlayers(room);
-  if (!sourcePlayers.length) {
-    if (isBanPhase) {
-      const message = state.loadingOpponentBanPlayers
-        ? "Loading opponent squad cards..."
-        : "Opponent squad cards are unavailable right now.";
-      grid.innerHTML = `<div class="draft-empty-panel draft-grid-empty">${escapeHtml(message)}</div>`;
-      return;
-    }
-    grid.innerHTML = '<div class="draft-empty-panel draft-grid-empty">No players found.</div>';
-    return;
-  }
-
-  grid.innerHTML = sourcePlayers
-    .map((p) => {
-      const id = String(p.id);
-      const banned = room.bannedPlayerIds.includes(id);
-      const pickedTaken = room.pickedPlayerIds.includes(id);
-      const picked = pickedTaken;
-      const unavailable = banned || pickedTaken;
-      const clickable = isMyTurn && !unavailable && !isReadyPhase;
-      return miniCardHtml(p, { banned, picked, clickable, isBanPhase });
-    })
-    .join("");
+  if (pickWip) pickWip.hidden = Boolean(showBanBoard || isReadyPhase);
 }
 
 function miniCardHtml(player, o) {
   const { banned, picked, clickable, isBanPhase } = o;
   const unavailable = banned || picked;
-  const phaseClass = isBanPhase ? "is-ban-phase" : "is-pick-phase";
   return `
-    <div class="mini-card ${unavailable ? (banned ? "is-ban" : "is-pick") : ""} ${clickable ? "is-clickable" : ""}"
+    <div class="mini-card ${isBanPhase ? "is-ban-phase" : "is-pick-phase"} ${unavailable ? (banned ? "is-ban" : "is-pick") : ""} ${clickable ? "is-clickable" : ""}"
          data-player-id="${escapeHtml(player.id)}"
          tabindex="${clickable ? 0 : -1}">
-      ${banned ? '<div class="mini-overlay" aria-hidden="true">🚫</div>' : ""}
-      ${picked ? '<div class="mini-overlay" aria-hidden="true">✅</div>' : ""}
       <div class="mini-thumb">
         <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       </div>
-      <div class="mini-row">
-        <div class="mini-ovr">${getPlayerCardValue(player)}</div>
-        <div style="min-width:0">
-          <div class="mini-name">${escapeHtml(player.name)}</div>
-          <div class="mini-sub">${escapeHtml(player.position)} · ${escapeHtml(player.nation)}</div>
+      ${isBanPhase ? "" : `
+        <div class="mini-row">
+          <div class="mini-ovr">${getPlayerCardValue(player)}</div>
+          <div style="min-width:0">
+            <div class="mini-name">${escapeHtml(player.name)}</div>
+            <div class="mini-sub">${escapeHtml(player.position)} · ${escapeHtml(player.nation)}</div>
+          </div>
         </div>
+        <div class="mini-stats">
+          ${["SPD", "FIN", "PAS"]
+            .map((l, i) => {
+              const vals = [player.speed, player.finishing, player.passing];
+              return `<div class="mini-stat"><div class="mini-stat-l">${l}</div><div class="mini-stat-v">${vals[i] ?? "—"}</div></div>`;
+            })
+            .join("")}
+        </div>
+        <div class="mini-cta ${isBanPhase ? "is-ban" : "is-pick"} mini-cta-hover" style="display:none"></div>
+      `}
+    </div>
+  `;
+}
+
+function banPlayerCardHtml(player, o) {
+  const { banned, picked, clickable } = o;
+  const unavailable = banned || picked;
+  const cls = [
+    "player-card",
+    clickable ? "is-clickable" : "",
+    unavailable ? "is-unavailable" : "",
+    state.pendingBanPlayerId && String(state.pendingBanPlayerId) === String(player.id) ? "selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `
+    <div class="${cls}" data-player-id="${escapeHtml(player.id)}" tabindex="${clickable ? 0 : -1}">
+      <div class="pc-img-wrap">
+        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       </div>
-      <div class="mini-stats">
-        ${["SPD", "FIN", "PAS"]
-          .map((l, i) => {
-            const vals = [player.speed, player.finishing, player.passing];
-            return `<div class="mini-stat"><div class="mini-stat-l">${l}</div><div class="mini-stat-v">${vals[i] ?? "—"}</div></div>`;
-          })
-          .join("")}
-      </div>
-      <div class="mini-cta ${isBanPhase ? "is-ban" : "is-pick"} mini-cta-hover" style="display:none"></div>
     </div>
   `;
 }
 
 /* delegated hover + click on grid */
-function attachDraftGridHandlers() {
-  const grid = document.getElementById("draftGrid");
+function attachMiniCardGridHandlers(grid) {
   if (!grid || grid._bound) return;
   grid._bound = true;
 
   grid.addEventListener("mouseover", (e) => {
-    const card = e.target.closest(".mini-card.is-clickable");
-    grid.querySelectorAll(".mini-card.is-hovered").forEach((c) => c.classList.remove("is-hovered"));
+    const card = e.target.closest(".mini-card.is-clickable, .player-card.is-clickable");
+    grid.querySelectorAll(".mini-card.is-hovered, .player-card.is-hovered").forEach((c) => c.classList.remove("is-hovered"));
     if (card) card.classList.add("is-hovered");
   });
   grid.addEventListener("mouseout", (e) => {
-    const card = e.target.closest(".mini-card");
+    const card = e.target.closest(".mini-card, .player-card");
     if (card) card.classList.remove("is-hovered");
   });
 
   grid.addEventListener("click", (e) => {
-    const card = e.target.closest(".mini-card.is-clickable");
+    const card = e.target.closest(".mini-card.is-clickable, .player-card.is-clickable");
     if (!card) return;
     const id = card.dataset.playerId;
-    const player = getDraftDisplayPlayers(state.room).find((p) => String(p.id) === id);
+    const room = state.room;
+    const turn = room ? state.schedule[room.turnIndex] : null;
+    const isReadyPhase = state.phase === "ready" || String(room?.status || "") === "await-ready";
+    const isBanPhase = turn?.action === "ban";
+    const source = isBanPhase
+      ? (Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : [])
+      : getDraftDisplayPlayers(room);
+    const player = source.find((p) => String(p.id) === id);
     if (!player) return;
 
     state.actionError = "";
     const errEl = document.getElementById("draftActionError");
     if (errEl) errEl.hidden = true;
+    if (isBanPhase && !isReadyPhase) {
+      state.pendingBanPlayerId = String(player.id);
+      renderDraftUi();
+      return;
+    }
+    applyLocalAction(room, player);
+    renderDraftUi();
+  });
+}
 
-    applyLocalAction(state.room, player);
+function attachDraftGridHandlers() {
+  // Pick grid (if present)
+  attachMiniCardGridHandlers(document.getElementById("draftGrid"));
+  // Ban grid (present in room.html)
+  attachMiniCardGridHandlers(document.getElementById("banGrid"));
+}
+
+function renderBanToolbar() {
+  const sortSelect = document.getElementById("banSort");
+  const posSelect = document.getElementById("banPosition");
+  const sortLabel = document.getElementById("banSortLabel");
+  const sortPanel = document.getElementById("banSortPanel");
+  const posPanel = document.getElementById("banPosPanel");
+  const posDot = document.getElementById("banPosDot");
+  const sortDirIcon = document.getElementById("banSortDirIcon");
+  if (!sortSelect || !posSelect || !sortLabel || !sortPanel || !posPanel) return;
+
+  const sortVal = normalizeBanSortValue(state.banSort);
+  const posVal = "";
+  sortSelect.value = sortVal;
+  posSelect.value = posVal;
+
+  // Home-style: sort category + direction toggle
+  const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
+  const baseKey = sortVal.replace(/_(asc|desc)$/, "");
+  const labelMap = {
+    overall_max: "Overall Max",
+    overall: "Overall Level 1",
+    name: "Player Name",
+    position: "Position",
+    height: "Height",
+    weight: "Weight",
+    age: "Age",
+  };
+  sortLabel.textContent = labelMap[baseKey] || "Overall Max";
+  if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
+
+  const sortCats = [
+    { key: "overall_max", label: "Overall Max" },
+    { key: "overall", label: "Overall Level 1" },
+    { key: "name", label: "Player Name" },
+    { key: "position", label: "Position" },
+    { key: "height", label: "Height" },
+    { key: "weight", label: "Weight" },
+    { key: "age", label: "Age" },
+  ];
+  sortPanel.innerHTML = sortCats
+    .map((c) => {
+      const active = c.key === baseKey;
+      return `
+        <div class="sort-option ${active ? "active" : ""}" data-ban-sort-cat="${escapeHtml(c.key)}">
+          <span>${escapeHtml(c.label)}</span>
+          <span class="sort-check">✓</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  // Filter panel: same style as home (position multiselect + clear)
+  const selected = Array.isArray(state.banFilterPositions) ? state.banFilterPositions : [];
+  const cleanSelected = selected.map(normalizeBanPositionValue).filter(Boolean);
+  const labelText = !cleanSelected.length
+    ? "All positions"
+    : cleanSelected.length <= 7
+      ? cleanSelected.join(", ")
+      : `${cleanSelected.slice(0, 7).join(", ")} +${cleanSelected.length - 7}`;
+
+  posPanel.innerHTML = `
+    <div class="filter-section">
+      <div class="filter-section-label">POSITION</div>
+      <div class="pos-multiselect" id="banPosMultiselect">
+        <button class="pos-ms-btn ${cleanSelected.length ? "has-pos-filter" : ""}" id="banPosMsBtn" type="button">
+          <span id="banPosMsLabel">${escapeHtml(labelText)}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="banPosMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <button class="filter-clear-btn" id="banClearFiltersBtn">CLEAR ALL FILTERS</button>
+    </div>
+  `;
+
+  const msPanel = document.getElementById("banPosMsPanel");
+  if (msPanel) {
+    msPanel.innerHTML = POSITION_OPTIONS.map((pos) => {
+      const checked = cleanSelected.includes(pos);
+      return `
+        <div class="pos-ms-item ${checked ? "checked" : ""}" data-ban-pos-ms="${escapeHtml(pos)}">
+          <span class="pos-ms-check"></span><span>${escapeHtml(pos)}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  if (posDot) {
+    posDot.style.display = cleanSelected.length ? "inline-block" : "none";
+  }
+}
+
+function bindBanPhaseUiOnce() {
+  if (state.banUiBound) return;
+  const search = document.getElementById("banSearch");
+  const sort = document.getElementById("banSort");
+  const pos = document.getElementById("banPosition");
+  const sortBtn = document.getElementById("banSortBtn");
+  const sortWrap = document.getElementById("banSortWrap");
+  const sortPanel = document.getElementById("banSortPanel");
+  const sortDirBtn = document.getElementById("banSortDirBtn");
+  const posBtn = document.getElementById("banPosBtn");
+  const posWrap = document.getElementById("banPosWrap");
+  const posPanel = document.getElementById("banPosPanel");
+  const clearBtn = document.getElementById("banClearBtn");
+  const confirmBtn = document.getElementById("banConfirmBtn");
+  if (!search || !sort || !pos || !clearBtn || !confirmBtn) return;
+  state.banUiBound = true;
+
+  search.addEventListener("input", (e) => {
+    state.banSearch = String(e.target.value || "");
+    renderDraftUi();
+  });
+  sort.addEventListener("change", (e) => {
+    state.banSort = normalizeBanSortValue(e.target.value);
+    renderDraftUi();
+  });
+  pos.addEventListener("change", () => {
+    // kept for compatibility; filtering is driven by state.banFilterPositions
+    renderDraftUi();
+  });
+
+  const closeAll = () => {
+    sortBtn?.classList.remove("open");
+    posBtn?.classList.remove("open");
+    sortPanel?.classList.remove("open");
+    posPanel?.classList.remove("open");
+    sortBtn?.setAttribute("aria-expanded", "false");
+    posBtn?.setAttribute("aria-expanded", "false");
+  };
+
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    const insideSort = sortWrap && t instanceof Element ? Boolean(t.closest("#banSortWrap")) : false;
+    const insidePos = posWrap && t instanceof Element ? Boolean(t.closest("#banPosWrap")) : false;
+    if (!insideSort && !insidePos) closeAll();
+  });
+
+  sortBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const open = !Boolean(sortPanel?.classList.contains("open"));
+    closeAll();
+    if (open) {
+      renderBanToolbar();
+      sortBtn.classList.add("open");
+      sortPanel?.classList.add("open");
+      sortBtn.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  sortDirBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const cur = normalizeBanSortValue(state.banSort);
+    const baseKey = cur.replace(/_(asc|desc)$/, "");
+    const next = cur.endsWith("_asc") ? `${baseKey}_desc` : `${baseKey}_asc`;
+    sort.value = normalizeBanSortValue(next);
+    sort.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  posBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const open = !Boolean(posPanel?.classList.contains("open"));
+    closeAll();
+    if (open) {
+      renderBanToolbar();
+      posBtn.classList.add("open");
+      posPanel?.classList.add("open");
+      posBtn.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  sortPanel?.addEventListener("click", (e) => {
+    const opt = e.target instanceof Element ? e.target.closest("[data-ban-sort-cat]") : null;
+    if (!opt) return;
+    const cat = String(opt.getAttribute("data-ban-sort-cat") || "");
+    const cur = normalizeBanSortValue(state.banSort);
+    const dir = cur.endsWith("_asc") ? "asc" : "desc";
+    const v = `${cat}_${dir}`;
+    sort.value = normalizeBanSortValue(v);
+    sort.dispatchEvent(new Event("change", { bubbles: true }));
+    closeAll();
+  });
+
+  posPanel?.addEventListener("click", (e) => {
+    const msBtn = e.target instanceof Element ? e.target.closest("#banPosMsBtn") : null;
+    const msItem = e.target instanceof Element ? e.target.closest("[data-ban-pos-ms]") : null;
+    const clear = e.target instanceof Element ? e.target.closest("#banClearFiltersBtn") : null;
+    const msPanel = document.getElementById("banPosMsPanel");
+    const msBtnEl = document.getElementById("banPosMsBtn");
+    if (msBtn && msPanel && msBtnEl) {
+      const open = !msPanel.classList.contains("open");
+      msPanel.classList.toggle("open", open);
+      msBtnEl.classList.toggle("open", open);
+      return;
+    }
+    if (clear) {
+      state.banFilterPositions = [];
+      renderDraftUi();
+      return;
+    }
+    if (msItem) {
+      const v = normalizeBanPositionValue(msItem.getAttribute("data-ban-pos-ms") || "");
+      const cur = new Set((Array.isArray(state.banFilterPositions) ? state.banFilterPositions : []).map(normalizeBanPositionValue).filter(Boolean));
+      if (v) {
+        cur.has(v) ? cur.delete(v) : cur.add(v);
+        state.banFilterPositions = [...cur];
+        renderDraftUi();
+      }
+    }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    state.pendingBanPlayerId = "";
+    renderDraftUi();
+  });
+  confirmBtn.addEventListener("click", () => {
+    const room = state.room;
+    if (!room) return;
+    const turn = state.schedule[room.turnIndex];
+    const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
+    const isMyTurn = String(turn?.side || "") === "both" ? true : turn?.side === state.mySide;
+    if (turn?.action !== "ban" || isReadyPhase || !isMyTurn) return;
+    const player = (Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : []).find((p) => String(p.id) === String(state.pendingBanPlayerId));
+    if (!player) return;
+    state.pendingBanPlayerId = "";
+    applyLocalAction(room, player);
     renderDraftUi();
   });
 }
@@ -3273,10 +3765,17 @@ function startDraftFromLobby() {
     return;
   }
   const banDurationInput = document.getElementById("lobbyBanDurationInput");
+  const pickDurationInput = document.getElementById("lobbyPickDurationInput");
   const typedDuration = Number(banDurationInput?.value);
-  if (!Number.isFinite(typedDuration) || typedDuration <= 0 || typedDuration > 120) {
-    showToast("Ban duration must be between 1 and 120 seconds.", "warn");
+  if (!Number.isFinite(typedDuration) || typedDuration < MIN_BAN_DURATION_SECONDS || typedDuration > MAX_BAN_DURATION_SECONDS) {
+    showToast(`Ban duration must be between ${MIN_BAN_DURATION_SECONDS} and ${MAX_BAN_DURATION_SECONDS} seconds.`, "warn");
     if (banDurationInput) banDurationInput.focus();
+    return;
+  }
+  const typedPickDuration = Number(pickDurationInput?.value);
+  if (!Number.isFinite(typedPickDuration) || typedPickDuration < MIN_PICK_DURATION_SECONDS || typedPickDuration > MAX_PICK_DURATION_SECONDS) {
+    showToast(`Pick duration must be between ${MIN_PICK_DURATION_SECONDS} and ${MAX_PICK_DURATION_SECONDS} seconds.`, "warn");
+    if (pickDurationInput) pickDurationInput.focus();
     return;
   }
   const b = Math.max(0, Math.floor(Number(cfg.banCountPerSide) || 0));
@@ -3398,7 +3897,20 @@ function initLobby() {
     renderLobby();
     scheduleLobbyConfigPush();
   });
+  // Let user type freely; normalize only on commit (change/blur).
   document.getElementById("lobbyBansInput")?.addEventListener("input", (e) => {
+    e.target.dataset.touched = "1";
+    const raw = String(e.target.value ?? "");
+    // Keep local config in sync when user enters a valid number,
+    // but don't overwrite the input while typing.
+    const n = Number(raw);
+    if (Number.isFinite(n)) {
+      state.room.config.banCountPerSide = Math.max(0, Math.floor(n));
+      renderLobby();
+      scheduleLobbyConfigPush();
+    }
+  });
+  document.getElementById("lobbyBansInput")?.addEventListener("change", (e) => {
     e.target.dataset.touched = "1";
     const normalized = Math.max(0, Math.floor(Number(e.target.value) || 0));
     e.target.value = String(normalized);
@@ -3419,6 +3931,21 @@ function initLobby() {
     const normalized = normalizeBanDurationSec(e.target.value);
     e.target.value = String(normalized);
     state.room.config.banDurationSec = normalized;
+    scheduleLobbyConfigPush();
+  });
+  document.getElementById("lobbyPickDurationInput")?.addEventListener("input", (e) => {
+    e.target.dataset.touched = "1";
+    const typed = String(e.target.value ?? "").trim();
+    if (!typed) return;
+    const n = Math.floor(Number(typed));
+    if (!Number.isFinite(n)) return;
+    state.room.config.pickDurationSec = n;
+  });
+  document.getElementById("lobbyPickDurationInput")?.addEventListener("change", (e) => {
+    e.target.dataset.touched = "1";
+    const normalized = normalizePickDurationSec(e.target.value);
+    e.target.value = String(normalized);
+    state.room.config.pickDurationSec = normalized;
     scheduleLobbyConfigPush();
   });
 
@@ -4157,7 +4684,7 @@ function initDraftControls() {
     state.draftGamePlanSelectedId = e.target.value || null;
     void loadDraftGamePlanPlayers(state.draftGamePlanSelectedId).then(() => renderDraftUi());
   });
-  document.getElementById("draftReadyBtn")?.addEventListener("click", () => {
+  document.getElementById("draftTopReadyBtn")?.addEventListener("click", () => {
     if (state.phase !== "ready" || !state.room) return;
     const me = state.mySide;
     const nextReady = !Boolean(state.room.matchReady?.[me]);

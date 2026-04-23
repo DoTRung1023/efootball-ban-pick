@@ -596,9 +596,12 @@ app.put("/api/game-plans/:id/swap", async (req, res) => {
 // ── Room presence + preparation session (in-memory) ──────────────────────────────
 const roomPresence = new Map();
 const PRESENCE_TTL_MS = 12000;
-const DEFAULT_BAN_DURATION_SECONDS = 15;
+const DEFAULT_BAN_DURATION_SECONDS = 120;
 const MIN_BAN_DURATION_SECONDS = 5;
-const MAX_BAN_DURATION_SECONDS = 120;
+const MAX_BAN_DURATION_SECONDS = 900;
+const DEFAULT_PICK_DURATION_SECONDS = 300;
+const MIN_PICK_DURATION_SECONDS = 5;
+const MAX_PICK_DURATION_SECONDS = 1200;
 const REVEAL_MODE_INSTANT = "instant";
 const REVEAL_MODE_HIDDEN = "hidden";
 const ALLOWANCE_FIELDS = new Set([
@@ -624,6 +627,11 @@ function normalizeAllowanceCapValue(raw) {
 function normalizeBanDurationSec(raw) {
   const n = Math.floor(Number(raw) || DEFAULT_BAN_DURATION_SECONDS);
   return Math.max(MIN_BAN_DURATION_SECONDS, Math.min(MAX_BAN_DURATION_SECONDS, n));
+}
+
+function normalizePickDurationSec(raw) {
+  const n = Math.floor(Number(raw) || DEFAULT_PICK_DURATION_SECONDS);
+  return Math.max(MIN_PICK_DURATION_SECONDS, Math.min(MAX_PICK_DURATION_SECONDS, n));
 }
 
 function normalizeRevealMode(raw) {
@@ -688,8 +696,9 @@ function normalizeNamedCaps(raw) {
 function createDefaultRoomConfig() {
   return {
     allowAllPlayers: true,
-    banCountPerSide: 0,
+    banCountPerSide: 3,
     banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
+    pickDurationSec: DEFAULT_PICK_DURATION_SECONDS,
     revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: 23,
     allowanceEnabled: [],
@@ -780,6 +789,7 @@ function ensureRoomEntry(code) {
     },
   };
   entry.config.banDurationSec = normalizeBanDurationSec(entry.config.banDurationSec);
+  entry.config.pickDurationSec = normalizePickDurationSec(entry.config.pickDurationSec);
   entry.config.revealMode = normalizeRevealMode(entry.config.revealMode);
   if (!Number.isFinite(Number(entry.lastConfigSeq))) entry.lastConfigSeq = 0;
   if (!entry.status) entry.status = "lobby";
@@ -1008,7 +1018,7 @@ app.post("/api/rooms/:code/start", (req, res) => {
   const firstAction = bans > 0 ? "ban" : "pick";
   const durationSec = firstAction === "ban"
     ? normalizeBanDurationSec(entry.config?.banDurationSec)
-    : 30;
+    : normalizePickDurationSec(entry.config?.pickDurationSec);
 
   entry.status = "drafting";
   entry.turnIndex = totalTurns > 0 ? 0 : -1;
@@ -1112,6 +1122,7 @@ app.post("/api/rooms/:code/config", (req, res) => {
     allowAllPlayers,
     banCountPerSide,
     banDurationSec,
+    pickDurationSec,
     revealMode,
     allowanceEnabled,
     allowance,
@@ -1143,6 +1154,9 @@ app.post("/api/rooms/:code/config", (req, res) => {
   }
   if (banDurationSec !== undefined) {
     entry.config.banDurationSec = normalizeBanDurationSec(banDurationSec);
+  }
+  if (pickDurationSec !== undefined) {
+    entry.config.pickDurationSec = normalizePickDurationSec(pickDurationSec);
   }
   if (revealMode !== undefined) {
     entry.config.revealMode = normalizeRevealMode(revealMode);
