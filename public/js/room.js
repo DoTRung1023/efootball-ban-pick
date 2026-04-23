@@ -970,7 +970,7 @@ function comparePlayersByBanSort(a, b, sortKey) {
 
   let cmp = 0;
   if (baseKey === "overall") cmp = overallA - overallB || sa.localeCompare(sb);
-  else if (baseKey === "name") cmp = sa.localeCompare(sb) || overallMaxB - overallMaxA;
+  else if (baseKey === "name") cmp = sb.localeCompare(sa) || overallMaxB - overallMaxA;
   else if (baseKey === "position") cmp = posA.localeCompare(posB) || overallMaxB - overallMaxA;
   else if (baseKey === "height") cmp = heightA - heightB || overallMaxB - overallMaxA;
   else if (baseKey === "weight") cmp = weightA - weightB || overallMaxB - overallMaxA;
