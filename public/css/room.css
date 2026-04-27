@@ -2918,6 +2918,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 230, 118, 0.12);
+  background: rgba(10, 12, 24, 0.18);
 }
 
 .ban-phase-right {
@@ -2950,10 +2954,26 @@ body {
 }
 
 .ban-phase-row-title {
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(233, 243, 255, 0.68);
+  color: rgba(233, 243, 255, 0.92);
+}
+
+/* Row heading that contains the title and a right-aligned count */
+.ban-phase-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ban-count {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--green);
 }
 
 .ban-phase-strip {
@@ -3011,10 +3031,37 @@ body {
 }
 
 .ban-phase-controls {
-  display: grid;
-  grid-template-columns: 1.2fr 0.9fr 0.9fr;
+  display: flex;
+  flex-direction: row;
   gap: 10px;
   align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.ban-phase-controls .team-search-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.ban-phase-controls .team-search-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ban-phase-controls .team-search-wrap input {
+  min-width: 0;
+}
+
+.ban-phase-controls .sort-group,
+.ban-phase-controls .ap-dd-wrap,
+.ban-phase-controls .sort-dir-btn {
+  flex: 0 0 auto;
+}
+
+.ban-phase-controls .sort-group {
+  white-space: nowrap;
 }
 
 .ban-phase-control :is(input, select) {
@@ -3045,7 +3092,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 0px;
   flex-wrap: wrap;
 }
 
@@ -3512,30 +3559,26 @@ body {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 0;
   display: grid;
-  /* Fixed-size cards: resize window => more/less columns, not squished cards */
-  /* Match home card ratio (72/100) to avoid "letterbox" gaps */
-  grid-template-columns: repeat(auto-fill, 150px);
-  grid-auto-rows: 208px;
+  /* Match home page grid: responsive columns with natural row height */
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  grid-auto-rows: auto;
   gap: 12px;
   align-content: start;
   justify-content: start;
-  border-radius: 14px;
-  border: 1px solid rgba(0, 230, 118, 0.12);
-  background: rgba(10, 12, 24, 0.18);
 }
 
-/* Ensure card height stays fixed inside grid auto-rows */
+/* Card fills its grid cell naturally */
 .ban-phase-grid .player-card {
-  height: 208px;
-  width: 150px;
+  width: 100%;
+}
 }
 
 /* Prettier ban-grid scrollbar (matches theme) */
 .ban-phase-grid {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 230, 118, 0.55) rgba(12, 12, 24, 0.35);
+  scrollbar-color: rgba(0, 230, 118, 0.55) transparent;
 }
 
 .ban-phase-grid::-webkit-scrollbar {
@@ -3543,7 +3586,7 @@ body {
 }
 
 .ban-phase-grid::-webkit-scrollbar-track {
-  background: rgba(10, 12, 24, 0.45);
+  background: transparent;
   border-radius: 999px;
 }
 
@@ -3636,6 +3679,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Outer panel for ban-phase removed — no enclosing rectangle */
+.draft-panel--ban-phase {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* Ban phase board styles live above */

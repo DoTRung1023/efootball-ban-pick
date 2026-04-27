@@ -13,6 +13,35 @@ const REVEAL_MODE_HIDDEN = "hidden";
 const CARD_IMG = (id) => `/img/card/${id}.png`;
 const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
 
+// Global handler for unhandled promise rejections to surface friendly messages
+window.addEventListener("unhandledrejection", (ev) => {
+  try {
+    const reason = ev.reason;
+    console.error("Unhandled promise rejection:", reason);
+    if (typeof showToast === "function") {
+      const msg = reason && reason.message ? reason.message : String(reason ?? "Unexpected error");
+      showToast(msg, "warn");
+    }
+  } catch (err) {
+    console.error("Error in unhandledrejection handler:", err);
+  }
+  // Prevent the browser from also logging an uncaught rejection message
+  try { ev.preventDefault && ev.preventDefault(); } catch (e) {}
+});
+
+// Global catch for runtime errors to ensure they surface consistently
+window.addEventListener("error", (ev) => {
+  try {
+    console.error("Runtime error:", ev.error || ev.message, ev);
+    if (typeof showToast === "function") {
+      const m = ev.message || (ev.error && ev.error.message) || "An unexpected error occurred";
+      showToast(String(m), "warn");
+    }
+  } catch (e) {
+    console.error("Error in window.onerror handler:", e);
+  }
+});
+
 const DEFAULT_FORMATION = "4-3-3";
 const FORMATION_LAYOUTS = {
   "4-3-3": [
@@ -1154,6 +1183,11 @@ function normalizeRoomConfig(raw) {
 function applyPresenceSnapshot(sr) {
   if (!state.room || !sr) return;
   const room = state.room;
+  // Ensure arrays exist to avoid render-time exceptions
+  if (!room.bans) room.bans = { host: [], guest: [] };
+  if (!room.picks) room.picks = { host: [], guest: [] };
+  if (!Array.isArray(room.bannedPlayerIds)) room.bannedPlayerIds = [];
+  if (!Array.isArray(room.pickedPlayerIds)) room.pickedPlayerIds = [];
   if (sr.host?.username) {
     room.host = { id: String(sr.host.id), username: sr.host.username };
   }
@@ -1179,6 +1213,21 @@ function applyPresenceSnapshot(sr) {
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);
   room.turnEndsAt = sr.turnEndsAt ? Number(sr.turnEndsAt) : null;
+  // Merge bans/picks if provided by server snapshot
+  if (sr.bans && typeof sr.bans === "object") {
+    room.bans = {
+      host: Array.isArray(sr.bans.host) ? sr.bans.host.map(normalizeDraftPlayer) : (room.bans?.host || []),
+      guest: Array.isArray(sr.bans.guest) ? sr.bans.guest.map(normalizeDraftPlayer) : (room.bans?.guest || []),
+    };
+  }
+  if (sr.picks && typeof sr.picks === "object") {
+    room.picks = {
+      host: Array.isArray(sr.picks.host) ? sr.picks.host.map(normalizeDraftPlayer) : (room.picks?.host || []),
+      guest: Array.isArray(sr.picks.guest) ? sr.picks.guest.map(normalizeDraftPlayer) : (room.picks?.guest || []),
+    };
+  }
+  room.bannedPlayerIds = Array.isArray(sr.bannedPlayerIds) ? sr.bannedPlayerIds.map(String) : (room.bannedPlayerIds || []);
+  room.pickedPlayerIds = Array.isArray(sr.pickedPlayerIds) ? sr.pickedPlayerIds.map(String) : (room.pickedPlayerIds || []);
   room.closed = Boolean(sr.closed);
   room.closeReason = sr.closeReason || "";
   state.lastRoomUpdatedAt = Number(sr.updatedAt || state.lastRoomUpdatedAt || Date.now());
@@ -1477,7 +1526,8 @@ function stopPresencePolling() {
 
 async function pollPresence() {
   if (!state.room?.code) return;
-  if (state.phase !== "lobby" && state.phase !== "ready") return;
+  // Allow presence polling during lobby, ready, and draft so clients stay in sync
+  if (state.phase !== "lobby" && state.phase !== "ready" && state.phase !== "draft") return;
   try {
     const prevUpdatedAt = Number(state.lastRoomUpdatedAt || 0);
     const prevHostId = String(state.room?.host?.id || "");
@@ -3312,6 +3362,13 @@ function renderDraftUi() {
       banPos.value = "";
       renderBanToolbar();
 
+      // Update ban counters (e.g., "0/3") if present in DOM
+      const myCountEl = document.getElementById("draftMyBansCount");
+      const bannedOnMeCountEl = document.getElementById("draftBannedOnMeCount");
+      const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
+      if (myCountEl) myCountEl.textContent = `${myBans.length}/${maxBans}`;
+      if (bannedOnMeCountEl) bannedOnMeCountEl.textContent = `${bannedOnMe.length}/${maxBans}`;
+
       myBansStrip.innerHTML = myBans.length
         ? myBans.map((p) => imageOnlyThumbHtml(p, "md")).join("")
         : "";
@@ -3332,7 +3389,6 @@ function renderDraftUi() {
             const banned = room.bannedPlayerIds.includes(id);
             const pickedTaken = room.pickedPlayerIds.includes(id);
             const unavailable = banned || pickedTaken;
-            const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
             const myBanCount = (room.bans?.[mySide] || []).length;
             const canStillBan = !maxBans || myBanCount < maxBans;
             const clickable = isMyTurn && canStillBan && !unavailable && !isReadyPhase;
@@ -3350,7 +3406,6 @@ function renderDraftUi() {
             )
           }</div>`;
 
-      const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
       const myBanCount = (room.bans?.[mySide] || []).length;
       const canStillBan = !maxBans || myBanCount < maxBans;
       const canConfirm = Boolean(
@@ -3688,7 +3743,7 @@ function bindBanPhaseUiOnce() {
     state.pendingBanPlayerId = "";
     renderDraftUi();
   });
-  confirmBtn.addEventListener("click", () => {
+  confirmBtn.addEventListener("click", async () => {
     const room = state.room;
     if (!room) return;
     const turn = state.schedule[room.turnIndex];
@@ -3698,7 +3753,25 @@ function bindBanPhaseUiOnce() {
     const player = (Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : []).find((p) => String(p.id) === String(state.pendingBanPlayerId));
     if (!player) return;
     state.pendingBanPlayerId = "";
-    applyLocalAction(room, player);
+    try {
+      const me = getCurrentIdentity();
+      // send minimal player shape to server (server only needs id/name for validation/storage)
+      const payloadPlayer = { id: String(player.id), name: player.name };
+      const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requesterId: me.id, player: payloadPlayer }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data?.error || "Could not confirm ban.");
+        return;
+      }
+      if (data.room) applyPresenceSnapshot(data.room);
+    } catch (err) {
+      console.error("ban confirm error:", err);
+      showToast("Could not confirm ban.");
+    }
     renderDraftUi();
   });
 }

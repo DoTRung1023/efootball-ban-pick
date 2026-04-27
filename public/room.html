@@ -192,94 +192,102 @@
               <section class="draft-panel draft-panel--ban-phase" id="draftBanPhaseBoard" hidden>
                 <div class="ban-phase-layout">
                   <div class="ban-phase-left">
-                    <div class="team-search-bar ban-phase-controls">
-                      <div class="team-search-wrap">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <input type="text" id="banSearch" placeholder="Search opponent players..." autocomplete="off" />
-                      </div>
+                    <div class="ban-phase-controls">
+                      <div class="team-search-bar">
+                        <div class="team-search-wrap">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                          </svg>
+                          <input type="text" id="banSearch" placeholder="Search opponent players..." autocomplete="off" />
+                        </div>
 
-                      <div class="sort-group">
-                        <div class="ap-dd-wrap" id="banSortWrap">
-                          <button class="ap-dd-btn" id="banSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                        <div class="sort-group">
+                          <div class="ap-dd-wrap" id="banSortWrap">
+                            <button class="ap-dd-btn" id="banSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
+                              </svg>
+                              <span id="banSortLabel">Overall Max</span>
+                              <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </button>
+                            <div class="ap-dd-panel sort-dd-panel" id="banSortPanel"></div>
+                          </div>
+                          <button class="sort-dir-btn" id="banSortDirBtn" type="button" title="Toggle direction">
+                            <span id="banSortDirIcon">↓</span>
+                          </button>
+                        </div>
+
+                        <div class="ap-dd-wrap" id="banPosWrap">
+                          <button class="ap-dd-btn" id="banPosBtn" type="button" aria-haspopup="true" aria-expanded="false">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                              <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line>
-                              <line x1="8" y1="18" x2="21" y2="18"></line>
-                              <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
+                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                             </svg>
-                            <span id="banSortLabel">Overall Max</span>
+                            <span>FILTER</span>
+                            <span class="dd-active-dot" id="banPosDot" style="display:none;"></span>
                             <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                               <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
                           </button>
-                          <div class="ap-dd-panel sort-dd-panel" id="banSortPanel"></div>
+                          <div class="ap-dd-panel filter-dd-panel" id="banPosPanel"></div>
                         </div>
-                        <button class="sort-dir-btn" id="banSortDirBtn" type="button" title="Toggle direction">
-                          <span id="banSortDirIcon">↓</span>
-                        </button>
+
+                        <!-- Hidden form controls kept for existing JS logic -->
+                        <select id="banSort" hidden>
+                          <option value="overall_max_desc">Overall Max (desc)</option>
+                          <option value="overall_max_asc">Overall Max (asc)</option>
+                          <option value="overall_desc">Overall Level 1 (desc)</option>
+                          <option value="overall_asc">Overall Level 1 (asc)</option>
+                          <option value="name_asc">Player Name (A → Z)</option>
+                          <option value="name_desc">Player Name (Z → A)</option>
+                          <option value="position_asc">Position (A → Z)</option>
+                          <option value="position_desc">Position (Z → A)</option>
+                          <option value="height_desc">Height (desc)</option>
+                          <option value="height_asc">Height (asc)</option>
+                          <option value="weight_desc">Weight (desc)</option>
+                          <option value="weight_asc">Weight (asc)</option>
+                          <option value="age_desc">Age (desc)</option>
+                          <option value="age_asc">Age (asc)</option>
+                        </select>
+                        <select id="banPosition" hidden>
+                          <option value="">All positions</option>
+                          <option value="GK">GK</option>
+                          <option value="CB">CB</option>
+                          <option value="LB">LB</option>
+                          <option value="RB">RB</option>
+                          <option value="DMF">DMF</option>
+                          <option value="CMF">CMF</option>
+                          <option value="LMF">LMF</option>
+                          <option value="RMF">RMF</option>
+                          <option value="AMF">AMF</option>
+                          <option value="LWF">LWF</option>
+                          <option value="RWF">RWF</option>
+                          <option value="SS">SS</option>
+                          <option value="CF">CF</option>
+                        </select>
                       </div>
 
-                      <div class="ap-dd-wrap" id="banPosWrap">
-                        <button class="ap-dd-btn" id="banPosBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                          <span>FILTER</span>
-                          <span class="dd-active-dot" id="banPosDot" style="display:none;"></span>
-                          <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                          </svg>
-                        </button>
-                        <div class="ap-dd-panel filter-dd-panel" id="banPosPanel"></div>
-                      </div>
-
-                      <!-- Hidden form controls kept for existing JS logic -->
-                      <select id="banSort" hidden>
-                        <option value="overall_max_desc">Overall Max (desc)</option>
-                        <option value="overall_max_asc">Overall Max (asc)</option>
-                        <option value="overall_desc">Overall Level 1 (desc)</option>
-                        <option value="overall_asc">Overall Level 1 (asc)</option>
-                        <option value="name_asc">Player Name (A → Z)</option>
-                        <option value="name_desc">Player Name (Z → A)</option>
-                        <option value="position_asc">Position (A → Z)</option>
-                        <option value="position_desc">Position (Z → A)</option>
-                        <option value="height_desc">Height (desc)</option>
-                        <option value="height_asc">Height (asc)</option>
-                        <option value="weight_desc">Weight (desc)</option>
-                        <option value="weight_asc">Weight (asc)</option>
-                        <option value="age_desc">Age (desc)</option>
-                        <option value="age_asc">Age (asc)</option>
-                      </select>
-                      <select id="banPosition" hidden>
-                        <option value="">All positions</option>
-                        <option value="GK">GK</option>
-                        <option value="CB">CB</option>
-                        <option value="LB">LB</option>
-                        <option value="RB">RB</option>
-                        <option value="DMF">DMF</option>
-                        <option value="CMF">CMF</option>
-                        <option value="LMF">LMF</option>
-                        <option value="RMF">RMF</option>
-                        <option value="AMF">AMF</option>
-                        <option value="LWF">LWF</option>
-                        <option value="RWF">RWF</option>
-                        <option value="SS">SS</option>
-                        <option value="CF">CF</option>
-                      </select>
                     </div>
-
                     <div class="ban-phase-grid" id="banGrid"></div>
                   </div>
 
                   <aside class="ban-phase-right" aria-label="Ban summary">
                     <div class="ban-phase-row ban-phase-row--right">
-                      <div class="ban-phase-row-title">Bans on me</div>
+                      <div class="ban-phase-row-head">
+                        <div class="ban-phase-row-title">Bans on me</div>
+                        <div class="ban-count" id="draftBannedOnMeCount">0/3</div>
+                      </div>
                       <div class="ban-phase-strip" id="draftBannedOnMeStrip"></div>
                     </div>
 
                     <div class="ban-phase-row ban-phase-row--right">
-                      <div class="ban-phase-row-title">My bans</div>
+                      <div class="ban-phase-row-head">
+                        <div class="ban-phase-row-title">My bans</div>
+                        <div class="ban-count" id="draftMyBansCount">0/3</div>
+                      </div>
                       <div class="ban-phase-strip" id="draftMyBansStrip"></div>
                     </div>
                   </aside>

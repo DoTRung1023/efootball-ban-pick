@@ -764,6 +764,10 @@ function ensureRoomEntry(code) {
       turnEndsAt: null,
       config: createDefaultRoomConfig(),
       lastConfigSeq: 0,
+      bans: { host: [], guest: [] },
+      picks: { host: [], guest: [] },
+      bannedPlayerIds: [],
+      pickedPlayerIds: [],
       ready: { guest: false },
       matchReady: { host: false, guest: false },
       chat: [],
@@ -818,10 +822,14 @@ function pushSystemChat(entry, message) {
 function serializeRoomEntry(entry) {
   return {
     host: entry.host,
+    bans: entry.bans || { host: [], guest: [] },
+    picks: entry.picks || { host: [], guest: [] },
     guest: entry.guest,
     status: String(entry.status || "lobby"),
     turnIndex: Number.isFinite(Number(entry.turnIndex)) ? Number(entry.turnIndex) : 0,
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
+    bannedPlayerIds: Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : [],
+    pickedPlayerIds: Array.isArray(entry.pickedPlayerIds) ? entry.pickedPlayerIds : [],
     config: entry.config,
     ready: entry.ready,
     matchReady: entry.matchReady,
@@ -1025,6 +1033,48 @@ app.post("/api/rooms/:code/start", (req, res) => {
   entry.turnEndsAt = Date.now() + durationSec * 1000;
   entry.matchReady = { host: false, guest: false };
   entry.updatedAt = Date.now();
+  res.json({ room: serializeRoomEntry(entry) });
+});
+
+/** POST body: { requesterId, player } */
+app.post("/api/rooms/:code/ban", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const requesterId = String(req.body?.requesterId || "");
+  const player = req.body?.player || null;
+  if (!code || code.length < 4) return res.status(400).json({ error: "Invalid room code." });
+  if (!requesterId) return res.status(400).json({ error: "requesterId is required." });
+  if (!player || !player.id) return res.status(400).json({ error: "player is required." });
+
+  const entry = ensureRoomEntry(code);
+  const senderId = String(requesterId);
+  const isHost = entry.host?.id && String(entry.host.id) === senderId;
+  const isGuest = entry.guest?.id && String(entry.guest.id) === senderId;
+  if (!isHost && !isGuest) return res.status(403).json({ error: "Join room before banning." });
+  if (String(entry.status || "") !== "drafting") return res.status(409).json({ error: "Bans are only allowed during drafting." });
+
+  if (!entry.bans) entry.bans = { host: [], guest: [] };
+  if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
+  if (!Array.isArray(entry.pickedPlayerIds)) entry.pickedPlayerIds = [];
+
+  const pid = String(player.id);
+  if (entry.bannedPlayerIds.includes(pid) || entry.pickedPlayerIds.includes(pid)) {
+    return res.status(409).json({ error: "Player already banned or picked." });
+  }
+
+  const sideKey = isHost ? "host" : "guest";
+  const maxBans = Math.max(0, Math.floor(Number(entry.config?.banCountPerSide) || 0));
+  const myBans = Array.isArray(entry.bans[sideKey]) ? entry.bans[sideKey] : [];
+  if (maxBans && myBans.length >= maxBans) {
+    return res.status(409).json({ error: "No bans remaining for your side." });
+  }
+
+  // Store the player as-is (client-normalized shape expected).
+  entry.bans[sideKey] = entry.bans[sideKey] || [];
+  entry.bans[sideKey].push(player);
+  entry.bannedPlayerIds.push(pid);
+  entry.updatedAt = Date.now();
+  pushSystemChat(entry, `${(isHost ? entry.host?.username : entry.guest?.username) || "User"} banned ${String(player.name || player.id)}`);
+
   res.json({ room: serializeRoomEntry(entry) });
 });
 
