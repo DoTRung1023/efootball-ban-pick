@@ -919,7 +919,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 0.86fr) minmax(440px, 1.14fr);
   gap: 12px;
-  align-items: stretch;
+  align-items: flex-start;
 }
 
 .lobby-left-lane {
@@ -4896,6 +4896,25 @@ body {
 }
 
 @media (max-height: 760px) {
+  #viewLobby {
+    overflow-y: auto;
+    height: auto;
+    max-height: none;
+  }
+
+  .centered-box--lobby {
+    height: auto;
+    max-height: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .lobby-board {
+    height: auto;
+    min-height: 0;
+  }
+
   .lobby-left-lane {
     display: grid;
     grid-template-rows: minmax(0, auto) minmax(0, 1fr);
