@@ -1034,7 +1034,7 @@ body {
 }
 
 .prep-col--chat {
-  min-height: 0;
+  min-height: 340px;
   height: auto;
   max-height: 100%;
   overflow: hidden;
@@ -4761,6 +4761,27 @@ body {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 108, 108, 0.25) inset;
 }
 
+@media (max-width: 1200px) {
+  #viewLobby {
+    overflow-y: auto;
+    height: auto;
+    max-height: none;
+  }
+
+  .centered-box--lobby {
+    height: auto;
+    max-height: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .lobby-board {
+    height: auto;
+    min-height: 0;
+  }
+}
+
 @media (max-width: 900px) {
   #viewLobby {
     overflow-y: auto;
@@ -4822,7 +4843,7 @@ body {
     align-items: flex-start;
   }
   .prep-col--chat {
-    height: clamp(250px, calc(100svh - 360px), 430px);
+    height: clamp(340px, calc(100svh - 320px), 520px);
     max-height: calc(100svh - 220px);
   }
   .allowance-list {
@@ -4916,10 +4937,10 @@ body {
   .prep-col--chat {
     height: auto;
     max-height: none;
-    min-height: 0;
+    min-height: 320px;
   }
 
   .chat-log {
-    min-height: 0;
+    min-height: 190px;
   }
 }
