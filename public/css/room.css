@@ -197,7 +197,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  /* gap: 16px; */
   max-width: 520px;
   width: 100%;
   padding: 24px;
@@ -205,12 +205,9 @@ body {
 }
 
 .centered-box--lobby {
-  gap: 8px;
   max-width: none;
   height: 100vh;
-  height: 100svh;
   max-height: 100vh;
-  max-height: 100svh;
   min-height: 0;
   padding: 0;
   overflow: hidden;
@@ -408,22 +405,81 @@ body {
 /* Lobby */
 .lobby-leave {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 0;
+  padding: 15px 0px 0px 5px;
+  /* left: 10px; */
   z-index: 5;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.lobby-identity {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 15px 14px 0px 0px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+}
+
+.lobby-identity-btn {
+  width: clamp(96px, 12vw, 160px);
+  min-height: clamp(34px, 3.2vw, 38px);
+  padding: clamp(7px, 0.7vw, 8px) clamp(12px, 1.2vw, 16px);
+  border-radius: 10px;
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.92;
+  color: rgba(238, 248, 255, 0.9);
+  border-color: rgba(53, 214, 255, 0.28);
+  background: linear-gradient(180deg, rgba(53, 214, 255, 0.12), rgba(179, 107, 255, 0.06));
+  box-shadow: 0 0 0 1px rgba(53, 214, 255, 0.12) inset, 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.lobby-stage-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 2px 10px 6px;
+}
+
+.stage-progress-container--lobby {
+  width: 100%;
+}
+
+.stage-progress-container--lobby .stage-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: min(540px, 100%);
+  min-width: 320px;
+  max-width: 540px;
+  padding: 0 16px;
 }
 
 #lobbyLeaveBtn {
-  padding: 8px 16px;
-  min-height: 38px;
+  width: clamp(92px, 9vw, 128px);
+  padding: clamp(7px, 0.7vw, 8px) clamp(12px, 1.2vw, 16px);
+  min-height: clamp(34px, 3.2vw, 38px);
   border-radius: 10px;
-  font-size: 14px;
+  font-size: clamp(13px, 1.1vw, 15px);
   font-weight: 700;
   letter-spacing: 0.04em;
   border-color: rgba(0, 230, 118, 0.55);
   background: linear-gradient(180deg, rgba(0, 230, 118, 0.18), rgba(0, 230, 118, 0.08));
   color: rgba(240, 255, 246, 0.98);
   box-shadow: 0 0 0 1px rgba(0, 230, 118, 0.2) inset, 0 6px 16px rgba(0, 230, 118, 0.2);
+  white-space: nowrap;
 }
 
 #lobbyLeaveBtn,
@@ -823,20 +879,20 @@ body {
 }
 
 .lobby-board {
-  position: relative;
+  /* position: relative; */
   width: 100%;
   height: 100%;
   min-height: 0;
   border: 0;
   border-radius: 0;
-  background:
+  /* background:
     radial-gradient(900px 520px at 18% 18%, rgba(53, 214, 255, 0.08), transparent 60%),
     radial-gradient(820px 520px at 86% 24%, rgba(0, 230, 118, 0.1), transparent 62%),
     radial-gradient(760px 520px at 68% 86%, rgba(179, 107, 255, 0.08), transparent 60%),
-    linear-gradient(180deg, rgba(8, 20, 18, 0.58), rgba(7, 12, 20, 0.72));
-  box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.05), 0 18px 36px rgba(0, 0, 0, 0.32);
-  padding: 14px;
-  overflow: hidden;
+    linear-gradient(180deg, rgba(8, 20, 18, 0.58), rgba(7, 12, 20, 0.72)); */
+  /* box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.05), 0 18px 36px rgba(0, 0, 0, 0.32); */
+  padding: 10px 14px 14px 14px;
+  /* overflow: hidden; */
 }
 
 .lobby-board::before {
@@ -878,7 +934,8 @@ body {
   position: relative;
   border: 1px solid rgba(0, 230, 118, 0.15);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(6, 18, 16, 0.52), rgba(8, 12, 22, 0.52));
+  background: linear-gradient(180deg, rgba(10, 26, 20, 0.72), rgba(8, 14, 22, 0.8));
+  box-shadow: inset 0 0 0 1px rgba(0, 230, 118, 0.06), 0 12px 26px rgba(0, 0, 0, 0.3);  
   padding: 4px 12px 12px 12px;
   display: flex;
   flex-direction: column;
@@ -2729,15 +2786,15 @@ body {
 
 /* Stage Progress Indicator - Connected dots */
 .stage-progress-container {
-  padding: 16px 0;
+  padding: 13px 0 0px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background:
-    radial-gradient(700px 220px at 18% 0%, rgba(53, 214, 255, 0.08), transparent 62%),
-    radial-gradient(620px 220px at 74% 0%, rgba(179, 107, 255, 0.08), transparent 62%),
-    linear-gradient(180deg, rgba(3, 10, 8, 0.88), rgba(8, 14, 22, 0.86));
-  border-bottom: 1px solid rgba(0, 230, 118, 0.1);
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .stage-progress-bar {
@@ -2745,19 +2802,19 @@ body {
   align-items: center;
   gap: 0;
   position: relative;
-  max-width: 600px;
+  max-width: 640px;
   flex: 1;
-  padding: 0 16px;
+  padding: 0 8px;
 }
 
 .stage-progress-line {
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  top: 10px;
+  left: 15%;
+  right: 15%;
   height: 2px;
   background: rgba(0, 230, 118, 0.2);
-  transform: translateY(-50%);
+  transform: none;
   z-index: 0;
 }
 
@@ -2775,6 +2832,7 @@ body {
 
 .stage-progress-dot {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2782,6 +2840,12 @@ body {
   position: relative;
   z-index: 2;
   cursor: default;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: transform 0.22s ease;
 }
 
 .stage-progress-dot::before {
@@ -2796,13 +2860,18 @@ body {
 }
 
 .stage-progress-dot .stage-dot-label {
+  width: 100%;
+  max-width: 100%;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   text-transform: uppercase;
   font-family: var(--font-display);
+  text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.2s ease;
 }
 
@@ -2810,6 +2879,11 @@ body {
 .stage-progress-dot.is-completed::before {
   background: rgba(0, 230, 118, 0.6);
   border-color: var(--green);
+}
+
+.stage-progress-dot.is-completed {
+  border: 0;
+  background: transparent;
 }
 
 .stage-progress-dot.is-completed .stage-dot-label {
@@ -2823,6 +2897,10 @@ body {
   width: 20px;
   height: 20px;
   box-shadow: 0 0 12px rgba(0, 230, 118, 0.8), inset 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.stage-progress-dot.is-active {
+  transform: translateY(-2px);
 }
 
 .stage-progress-dot.is-active .stage-dot-label {
@@ -4700,6 +4778,36 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+  .lobby-stage-row {
+    min-height: 42px;
+    padding-top: 4px;
+  }
+  .stage-progress-container--lobby .stage-progress-bar {
+    width: min(500px, 100%);
+    min-width: 280px;
+    max-width: 500px;
+  }
+  .lobby-leave {
+    top: -2px;
+    padding: 12px 0 0 5px;
+  }
+  .lobby-identity {
+    top: 0;
+    right: 0;
+    padding: 12px 10px 0 0;
+  }
+  #lobbyLeaveBtn {
+    width: clamp(88px, 14vw, 118px);
+    min-height: 34px;
+    font-size: 13px;
+    padding: 7px 12px;
+  }
+  #lobbyIdentityBtn {
+    width: clamp(86px, 16vw, 130px);
+    min-height: 34px;
+    font-size: 13px;
+    padding: 7px 10px;
   }
   .lobby-summary {
     padding: 10px;

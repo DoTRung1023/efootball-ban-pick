@@ -2002,10 +2002,16 @@ function renderLobby() {
   const cfg = room.config || defaultRoomConfig();
   const allowance = cfg.allowance || {};
   const allowanceEnabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
+  const identity = isHost ? (room.host?.username || getCurrentIdentity().username) : (room.guest?.username || getCurrentIdentity().username);
 
   document.getElementById("lobbyCodeDisplay").textContent = room.code;
   document.getElementById("lobbyHostName").textContent = room.host?.username || "—";
   document.getElementById("lobbyGuestName").textContent = room.guest?.username || "Waiting…";
+  const identityBtn = document.getElementById("lobbyIdentityBtn");
+  if (identityBtn) {
+    identityBtn.textContent = identity;
+    identityBtn.title = identity;
+  }
 
   const hostSlot = document.getElementById("lobbyHostSlot");
   const guestSlot = document.getElementById("lobbyGuestSlot");

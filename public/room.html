@@ -44,21 +44,29 @@
     <!-- Lobby -->
     <div id="viewLobby" class="view view--fullscreen" hidden>
       <div class="centered-box centered-box--lobby">
-        <!-- Stage Progress Indicator -->
-        <div class="stage-progress-container">
-          <div class="stage-progress-bar">
-            <div class="stage-progress-line"></div>
-            <div class="stage-progress-dot" id="stageDot-bansetting-lobby" data-stage="bansetting">
-              <span class="stage-dot-label">Ban Setting</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-ban-lobby" data-stage="ban">
-              <span class="stage-dot-label">Ban</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-pick-lobby" data-stage="pick">
-              <span class="stage-dot-label">Pick</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-start-lobby" data-stage="start">
-              <span class="stage-dot-label">Start Match</span>
+        <div class="lobby-stage-row">
+          <div class="lobby-leave">
+            <button type="button" class="btn btn--small btn--ghost" id="lobbyLeaveBtn">Leave</button>
+          </div>
+          <div class="lobby-identity">
+            <button type="button" class="btn btn--small btn--ghost lobby-identity-btn" id="lobbyIdentityBtn" tabindex="-1" aria-label="Current username"></button>
+          </div>
+          <!-- Stage Progress Indicator -->
+          <div class="stage-progress-container stage-progress-container--lobby">
+            <div class="stage-progress-bar">
+              <div class="stage-progress-line"></div>
+              <div class="stage-progress-dot" id="stageDot-bansetting-lobby" data-stage="bansetting">
+                <span class="stage-dot-label">Ban Setting</span>
+              </div>
+              <div class="stage-progress-dot" id="stageDot-ban-lobby" data-stage="ban">
+                <span class="stage-dot-label">Ban</span>
+              </div>
+              <div class="stage-progress-dot" id="stageDot-pick-lobby" data-stage="pick">
+                <span class="stage-dot-label">Pick</span>
+              </div>
+              <div class="stage-progress-dot" id="stageDot-start-lobby" data-stage="start">
+                <span class="stage-dot-label">Start Match</span>
+              </div>
             </div>
           </div>
         </div>
@@ -66,9 +74,6 @@
           <section class="lobby-layout">
             <div class="lobby-left-lane">
               <div class="lobby-summary">
-                <div class="lobby-leave">
-                  <button type="button" class="btn btn--small btn--ghost" id="lobbyLeaveBtn">Leave</button>
-                </div>
                 <div class="room-code-label">ROOM CODE</div>
                 <div class="room-code-big" id="lobbyCodeDisplay">—</div>
                 <p class="lobby-hint" id="lobbyHint"></p>
