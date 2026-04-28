@@ -618,7 +618,7 @@ body {
 .lobby-settings--ban {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(240px, 1.5fr);
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
   gap: 10px;
   align-items: stretch;
 }
@@ -781,6 +781,20 @@ body {
 
   .lobby-settings--ban .lobby-field--mode {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .lobby-settings--ban {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-settings--ban .lobby-field--mode {
+    grid-column: auto;
+  }
+
+  .lobby-mode-trigger {
+    font-size: 0.79rem;
   }
 }
 
@@ -2713,6 +2727,126 @@ body {
   background: linear-gradient(180deg, rgba(0, 245, 130, 0.95), rgba(0, 190, 108, 0.92));
 }
 
+/* Stage Progress Indicator - Connected dots */
+.stage-progress-container {
+  padding: 16px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background:
+    radial-gradient(700px 220px at 18% 0%, rgba(53, 214, 255, 0.08), transparent 62%),
+    radial-gradient(620px 220px at 74% 0%, rgba(179, 107, 255, 0.08), transparent 62%),
+    linear-gradient(180deg, rgba(3, 10, 8, 0.88), rgba(8, 14, 22, 0.86));
+  border-bottom: 1px solid rgba(0, 230, 118, 0.1);
+}
+
+.stage-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  max-width: 600px;
+  flex: 1;
+  padding: 0 16px;
+}
+
+.stage-progress-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 230, 118, 0.2);
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.stage-progress-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--green);
+  width: 0%;
+  transition: width 0.3s ease;
+  z-index: 1;
+}
+
+.stage-progress-dot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+  cursor: default;
+}
+
+.stage-progress-dot::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(8, 20, 14, 0.8);
+  border: 2px solid rgba(0, 230, 118, 0.25);
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.stage-progress-dot .stage-dot-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+/* Completed stage - filled dot */
+.stage-progress-dot.is-completed::before {
+  background: rgba(0, 230, 118, 0.6);
+  border-color: var(--green);
+}
+
+.stage-progress-dot.is-completed .stage-dot-label {
+  color: var(--text-dim);
+}
+
+/* Active stage - glowing dot */
+.stage-progress-dot.is-active::before {
+  background: var(--green);
+  border-color: var(--green);
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.8), inset 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.stage-progress-dot.is-active .stage-dot-label {
+  color: var(--green);
+  font-weight: 800;
+}
+
+/* Update progress line width based on active stage */
+.stage-progress-bar.stage-0 .stage-progress-line::before {
+  width: 0%;
+}
+
+.stage-progress-bar.stage-1 .stage-progress-line::before {
+  width: 33.33%;
+}
+
+.stage-progress-bar.stage-2 .stage-progress-line::before {
+  width: 66.66%;
+}
+
+.stage-progress-bar.stage-3 .stage-progress-line::before {
+  width: 100%;
+}
+
 /* Draft layout */
 .draft-shell {
   display: flex;
@@ -3473,12 +3607,6 @@ body {
 }
 
 /* Player cards (home look) for ban grid */
-.ban-phase-grid.player-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
-  gap: 12px;
-}
-
 .player-card {
   position: relative;
   background: rgba(0, 0, 0, 0.22);
@@ -3489,11 +3617,6 @@ body {
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
   display: flex;
   flex-direction: column;
-}
-
-.ban-phase-grid .pc-footer,
-.ban-phase-grid .pc-footer-name {
-  display: none !important;
 }
 
 .player-card.is-clickable {
@@ -3522,15 +3645,13 @@ body {
   width: 100%;
   overflow: hidden;
   position: relative;
-  /* Fill the entire fixed card area */
-  height: 100%;
 }
 
 .pc-img-wrap img {
   width: 100%;
-  height: 100%;
+  height: auto;
   display: block;
-  /* Use cover for ban grid to avoid gaps from padded card PNGs */
+  /* Keep cover behavior but use natural height so rows size correctly */
   object-fit: cover;
   object-position: center;
   background: transparent;
@@ -3555,24 +3676,143 @@ body {
   line-height: 1.2;
 }
 
+.pc-footer-ovr {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.pc-footer-ovr .ovr-max {
+  color: var(--green);
+}
+
+.pc-footer-club {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pc-footer-meta.pmeta-in-card {
+  display: block;
+  margin-top: 3px;
+  white-space: normal;
+  overflow: visible;
+}
+
+.pc-footer-meta.pmeta-in-card .pmeta-stack {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
+  margin-top: 2px;
+}
+
+/* Squad card: keep each logical row on a single line; widen grid above if text is clipped */
+.player-card .pc-footer .pmeta-row {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-footer-meta.pc-footer-detail-only {
+  margin-top: 0;
+}
+
 .ban-phase-grid {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 0;
+  /* padding gives breathing room so scaled/hovered cards aren't clipped */
+  padding: 10px;
   display: grid;
-  /* Match home page grid: responsive columns with natural row height */
-  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
-  grid-auto-rows: auto;
-  gap: 12px;
+  /* Match home page grid: responsive columns, natural row height based on card content */
+  /* reduce min card width so player cards render smaller */
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 10px;
   align-content: start;
   justify-content: start;
+  grid-auto-rows: max-content;
 }
 
 /* Card fills its grid cell naturally */
 .ban-phase-grid .player-card {
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Make hover pop-out visible above neighbors when possible */
+.ban-phase-grid .player-card {
+  transform-origin: center;
+  will-change: transform;
+}
+
+.ban-phase-grid .player-card.is-clickable:hover {
+  z-index: 30;
+}
+
+/* Copy of home page toolbar button styles for consistent look */
+.select-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: rgba(0,230,118,0.06);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+  white-space: nowrap;
+}
+
+.select-mode-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(0,230,118,0.1);
+  border-color: rgba(0,230,118,0.3);
+}
+
+.toggle-info-btn.is-off {
+  color: rgba(123,171,138,0.75);
+  border-color: rgba(123,171,138,0.35);
+  background: rgba(123,171,138,0.08);
+}
+
+/* Image maintains aspect ratio with natural sizing */
+.ban-phase-grid .pc-img-wrap {
+  width: 100%;
+  /* allow image natural height to determine row sizing (matches home.css behavior) */
+  height: auto;
+}
+
+/* Toggle class to hide per-card footers when user chooses compact view */
+.ban-phase-grid.info-hidden .pc-footer {
+  display: none !important;
 }
 
 /* Prettier ban-grid scrollbar (matches theme) */

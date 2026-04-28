@@ -533,7 +533,7 @@ function makeSquadCard(player) {
   const card = document.createElement("div");
   card.className = "player-card";
   card.dataset.id = player.id;
-  card.title = player.name || "";
+  card.title = playerDetailTooltipText(player);
   if (squad.selected.has(player.id)) card.classList.add("selected");
 
   const imgWrap = document.createElement("div");
@@ -2265,6 +2265,34 @@ function playerDetailSublineHtml(player) {
     return `<div class="pmeta-stack"><div class="pmeta-row pmeta-empty">—</div></div>`;
   }
   return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
+}
+
+// Generate tooltip text with all player detail info (for card titles).
+function playerDetailTooltipText(player) {
+  if (!player) return "";
+  const h = (s) => (s != null && String(s).trim() ? String(s).trim() : "");
+
+  function dashLine(...raw) {
+    const bits = raw
+      .filter((v) => v != null && String(v).trim())
+      .map((v) => h(String(v).trim()));
+    return bits.length ? bits.join(" - ") : "";
+  }
+
+  const phys = [
+    player.height ? `${player.height} cm` : null,
+    player.weight ? `${player.weight} kg` : null,
+    player.age ? `${player.age} yo` : null,
+  ];
+
+  const rows = [
+    dashLine(player.region, player.nationality),
+    dashLine(player.league, player.club),
+    dashLine(player.foot, player.playing_style),
+    dashLine(...phys),
+  ].filter(Boolean);
+
+  return rows.length ? rows.join("\n") : "—";
 }
 
 /** Both ratings known — show level 1 and max side by side (compact layout in catalog rows). */

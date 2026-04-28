@@ -177,6 +177,15 @@ function normalizeDraftPlayer(player) {
     speed: player?.speed ?? "—",
     finishing: player?.finishing ?? "—",
     passing: player?.passing ?? "—",
+    // Footer detail fields
+    region: player?.region ?? "",
+    nationality: player?.nationality ?? player?.nation ?? "",
+    league: player?.league ?? "",
+    foot: player?.foot ?? "",
+    playing_style: player?.playing_style ?? "",
+    height: player?.height ?? "",
+    weight: player?.weight ?? "",
+    age: player?.age ?? "",
   };
 }
 
@@ -193,6 +202,15 @@ function normalizeMySquadPlayerForDraft(player) {
     speed: "—",
     finishing: "—",
     passing: "—",
+    // Footer detail fields (from My Players API response)
+    region: player?.region ?? "",
+    nationality: player?.nationality ?? "",
+    league: player?.league ?? "",
+    foot: player?.foot ?? "",
+    playing_style: player?.playing_style ?? "",
+    height: player?.height ?? "",
+    weight: player?.weight ?? "",
+    age: player?.age ?? "",
   };
 }
 
@@ -397,6 +415,40 @@ function maybeAutoAdvanceFromBan(room = state.room) {
     advanceDraftStage(room, "pick");
   }
 }
+
+// Toggle showing player footer info in ban grid
+function initBanGridInfoToggle() {
+  try {
+    const btn = document.getElementById("toggleInfoBtn");
+    const grid = document.getElementById("banGrid");
+    if (!btn || !grid) return;
+    // initialize from saved pref if desired (localStorage)
+    const key = "banGridInfoHidden";
+    const hidden = localStorage.getItem(key) === "1";
+    if (hidden) grid.classList.add("info-hidden");
+    btn.setAttribute("aria-pressed", hidden ? "true" : "false");
+    // reflect label + visual state like home toolbar
+    const setBtnState = (isHidden) => {
+      btn.textContent = isHidden ? "SHOW INFO" : "HIDE INFO";
+      if (isHidden) btn.classList.add("is-off"); else btn.classList.remove("is-off");
+    };
+    setBtnState(hidden);
+
+    btn.addEventListener("click", () => {
+      const isHidden = grid.classList.toggle("info-hidden");
+      btn.setAttribute("aria-pressed", isHidden ? "true" : "false");
+      setBtnState(isHidden);
+      localStorage.setItem(key, isHidden ? "1" : "0");
+    });
+  } catch (e) {
+    console.error("initBanGridInfoToggle error", e);
+  }
+}
+
+// Run UI init after DOM content loaded
+document.addEventListener("DOMContentLoaded", () => {
+  initBanGridInfoToggle();
+});
 
 function parsePositionCapMap(raw, selectedPositions = []) {
   const selectedSet = new Set(normalizePositionValue(selectedPositions.join(",")));
@@ -1675,6 +1727,8 @@ function showView(id) {
       el.classList.remove("is-active");
     }
   });
+  // Update stage tabs when view changes
+  updateStageTabs();
 }
 
 /**
@@ -3238,6 +3292,61 @@ function banHistoryCardHtml(player) {
 function enterBanOnlyDomMode() {}
 function exitBanOnlyDomMode() {}
 
+/**
+ * Update the stage indicator based on current view and phase.
+ * Stages: ban-setting (lobby) -> ban (draft ban phase) -> pick (draft pick phase) -> start (done view)
+ */
+function updateStageTabs() {
+  const progressBar = document.querySelector(".stage-progress-bar");
+  const dots = document.querySelectorAll(".stage-progress-dot");
+  if (dots.length === 0 || !progressBar) return;
+
+  // Get current stage
+  const currentView = document.querySelector(".view.is-active");
+  const viewId = currentView?.id;
+  const room = state.room;
+  const turn = room ? state.schedule[room.turnIndex] : null;
+  const isReadyPhase = state.phase === "ready" || String(room?.status || "") === "await-ready";
+  const isBanPhase = turn?.action === "ban";
+
+  let currentStage = null;
+  if (viewId === "viewLobby") {
+    currentStage = "bansetting";
+  } else if (viewId === "viewDraft") {
+    if (isReadyPhase) {
+      currentStage = "ban"; // Ready phase is before ban, so mark ban as current
+    } else if (isBanPhase) {
+      currentStage = "ban";
+    } else {
+      currentStage = "pick";
+    }
+  } else if (viewId === "viewDone") {
+    currentStage = "start";
+  }
+
+  // Map stages to indices for progress line
+  const stageOrder = ["bansetting", "ban", "pick", "start"];
+  const currentIndex = stageOrder.indexOf(currentStage);
+
+  // Update progress bar class for progress line width
+  progressBar.classList.remove("stage-0", "stage-1", "stage-2", "stage-3");
+  progressBar.classList.add(`stage-${currentIndex}`);
+
+  // Update dot states
+  dots.forEach((dot) => {
+    const dotStage = dot.getAttribute("data-stage");
+    const dotIndex = stageOrder.indexOf(dotStage);
+
+    dot.classList.remove("is-active", "is-completed");
+
+    if (dotIndex < currentIndex) {
+      dot.classList.add("is-completed");
+    } else if (dotIndex === currentIndex) {
+      dot.classList.add("is-active");
+    }
+  });
+}
+
 function renderDraftUi() {
   const room = state.room;
   if (!room || (state.phase !== "draft" && state.phase !== "ready")) return;
@@ -3423,6 +3532,9 @@ function renderDraftUi() {
   }
 
   if (pickWip) pickWip.hidden = Boolean(showBanBoard || isReadyPhase);
+
+  // Update stage tabs
+  updateStageTabs();
 }
 
 function miniCardHtml(player, o) {
@@ -3469,13 +3581,93 @@ function banPlayerCardHtml(player, o) {
     .filter(Boolean)
     .join(" ");
 
+  const tooltipText = playerDetailTooltipText(normalizePlayerForFooter(player));
+
   return `
-    <div class="${cls}" data-player-id="${escapeHtml(player.id)}" tabindex="${clickable ? 0 : -1}">
+    <div class="${cls}" data-player-id="${escapeHtml(player.id)}" tabindex="${clickable ? 0 : -1}" title="${escapeHtml(tooltipText)}">
       <div class="pc-img-wrap">
         <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       </div>
+      <div class="pc-footer">
+        <div class="pc-footer-meta pmeta-in-card pc-footer-detail-only">${playerDetailSublineHtml(normalizePlayerForFooter(player))}</div>
+      </div>
     </div>
   `;
+}
+
+// Reuse Home page's player detail subline markup so footers match exactly.
+function playerDetailSublineHtml(player) {
+  const h = (s) => (s != null && String(s).trim() ? escapeHtml(String(s).trim()) : "");
+  const hyph = `<span class="pmeta-sep pmeta-hyphen"> - </span>`;
+
+  function dashLine(...raw) {
+    const bits = raw
+      .filter((v) => v != null && String(v).trim())
+      .map((v) => h(String(v).trim()));
+    return bits.length ? bits.join(hyph) : "";
+  }
+
+  const phys = [
+    player.height ? `${player.height} cm` : null,
+    player.weight ? `${player.weight} kg` : null,
+    player.age ? `${player.age} yo` : null,
+  ];
+
+  const rows = [
+    dashLine(player.region, player.nationality),
+    dashLine(player.league, player.club),
+    dashLine(player.foot, player.playing_style),
+    dashLine(...phys),
+  ].filter(Boolean);
+
+  if (!rows.length) {
+    return `<div class="pmeta-stack"><div class="pmeta-row pmeta-empty">—</div></div>`;
+  }
+  return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
+}
+
+// Generate tooltip text from player details (plain text version of playerDetailSublineHtml).
+function playerDetailTooltipText(player) {
+  if (!player) return "";
+  const h = (s) => (s != null && String(s).trim() ? String(s).trim() : "");
+
+  function dashLine(...raw) {
+    const bits = raw
+      .filter((v) => v != null && String(v).trim())
+      .map((v) => h(String(v).trim()));
+    return bits.length ? bits.join(" - ") : "";
+  }
+
+  const phys = [
+    player.height ? `${player.height} cm` : null,
+    player.weight ? `${player.weight} kg` : null,
+    player.age ? `${player.age} yo` : null,
+  ];
+
+  const rows = [
+    dashLine(player.region, player.nationality),
+    dashLine(player.league, player.club),
+    dashLine(player.foot, player.playing_style),
+    dashLine(...phys),
+  ].filter(Boolean);
+
+  return rows.length ? rows.join("\n") : "—";
+}
+
+// Ensure player has all footer detail fields, with fallback to _raw if needed.
+function normalizePlayerForFooter(player) {
+  if (!player || typeof player !== "object") return {};
+  return {
+    region: player.region ?? "",
+    nationality: player.nationality ?? player.nation ?? "",
+    league: player.league ?? "",
+    club: player.club ?? "",
+    foot: player.foot ?? "",
+    playing_style: player.playing_style ?? "",
+    height: player.height ?? "",
+    weight: player.weight ?? "",
+    age: player.age ?? "",
+  };
 }
 
 /* delegated hover + click on grid */

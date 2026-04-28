@@ -44,6 +44,24 @@
     <!-- Lobby -->
     <div id="viewLobby" class="view view--fullscreen" hidden>
       <div class="centered-box centered-box--lobby">
+        <!-- Stage Progress Indicator -->
+        <div class="stage-progress-container">
+          <div class="stage-progress-bar">
+            <div class="stage-progress-line"></div>
+            <div class="stage-progress-dot" id="stageDot-bansetting-lobby" data-stage="bansetting">
+              <span class="stage-dot-label">Ban Setting</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-ban-lobby" data-stage="ban">
+              <span class="stage-dot-label">Ban</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-pick-lobby" data-stage="pick">
+              <span class="stage-dot-label">Pick</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-start-lobby" data-stage="start">
+              <span class="stage-dot-label">Start Match</span>
+            </div>
+          </div>
+        </div>
         <div class="lobby-board">
           <section class="lobby-layout">
             <div class="lobby-left-lane">
@@ -169,6 +187,24 @@
     <!-- Draft -->
     <div id="viewDraft" class="view view--draft" hidden>
       <div class="draft-shell">
+        <!-- Stage Progress Indicator -->
+        <div class="stage-progress-container">
+          <div class="stage-progress-bar">
+            <div class="stage-progress-line"></div>
+            <div class="stage-progress-dot" id="stageDot-bansetting" data-stage="bansetting">
+              <span class="stage-dot-label">Ban Setting</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-ban" data-stage="ban">
+              <span class="stage-dot-label">Ban</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-pick" data-stage="pick">
+              <span class="stage-dot-label">Pick</span>
+            </div>
+            <div class="stage-progress-dot" id="stageDot-start" data-stage="start">
+              <span class="stage-dot-label">Start Match</span>
+            </div>
+          </div>
+        </div>
         <section class="draft-center">
           <header class="draft-topbar">
             <div class="turn-pill" id="turnPill">
@@ -233,6 +269,12 @@
                             </svg>
                           </button>
                           <div class="ap-dd-panel filter-dd-panel" id="banPosPanel"></div>
+                        </div>
+                        <!-- Toggle info (show/hide footer under each player) -->
+                        <div class="ap-dd-wrap" id="banInfoWrap">
+                          <button class="select-mode-btn toggle-info-btn" id="toggleInfoBtn" type="button" aria-pressed="false" title="Show/hide player info">
+                            SHOW INFO
+                          </button>
                         </div>
 
                         <!-- Hidden form controls kept for existing JS logic -->
