@@ -295,7 +295,10 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [ ] ban pick page:
   - [ ] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
   - [ ] for pick phase: I can see all my players, my current picked players in a specific formation, can also open my game plans to consult and build according to it, can see opponent's pick players
- 
+- [ ] fix tab in setting, ban page
+- [ ] fix the ban duration, pick duration text to avoid text overflow when resize window
+- [ ] add username on the righ of tab, close/leave room button on the left
+
 ---
 
 ## Roadmap
