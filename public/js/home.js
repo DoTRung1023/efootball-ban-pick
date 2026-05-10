@@ -2239,7 +2239,7 @@ function escapeHtml(str) {
  */
 function playerDetailSublineHtml(player) {
   const h = (s) => (s != null && String(s).trim() ? escapeHtml(String(s).trim()) : "");
-  const hyph = `<span class="pmeta-sep pmeta-hyphen"> - </span>`;
+  const hyph = `<span class="pmeta-sep pmeta-hyphen"> · </span>`;
 
   function dashLine(...raw) {
     const bits = raw
@@ -2276,7 +2276,7 @@ function playerDetailTooltipText(player) {
     const bits = raw
       .filter((v) => v != null && String(v).trim())
       .map((v) => h(String(v).trim()));
-    return bits.length ? bits.join(" - ") : "";
+    return bits.length ? bits.join(" · ") : "";
   }
 
   const phys = [

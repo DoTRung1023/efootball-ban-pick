@@ -24,7 +24,7 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Team Search & Filter** — client-side search, sort (name, overall, position, height, weight, age, club, nationality), and position multi-filter for your own team list
 - **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
-- **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; incremental runs only fetch newly added cards
+- **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
 - **Rooms (lobby)** — **Rooms** tab: create a room (modal only asks for a generated room code) or join with a code. Ban/pick **counts default to 0** at creation; the host sets them on the **room page** before starting a draft. The top bar no longer duplicates “Create room” next to the user menu (use the Rooms tab instead).
 - **Room page** (`/room/:code`) — dedicated full-screen flow: **lobby** (share code, optional **demo opponent** for solo testing, set bans/picks per side, start draft), **draft** (turns, timer, search/filter vs `/api/players`), **summary** when picks complete. Real-time sync is **not** wired yet (local / demo only); WebSocket hooks are called out in `public/js/room.js` for a future server.
 
@@ -66,7 +66,8 @@ ban-pick-efb/
 ├── src/
 │   ├── db.js               # MySQL connection pool
 │   ├── cardImageCacheR2.js # R2 card image cache (/img/card/:id.png)
-│   ├── scrape.js           # Player catalog scraper
+│   ├── scrape.js           # Player catalog scraper (full + incremental)
+│   ├── scrape-missing.js   # Missing-only repair: diffs site vs DB, fills gaps
 │   └── server.js           # Express app + API routes
 ├── .env.example            # Environment variable template
 └── package.json
@@ -77,12 +78,13 @@ ban-pick-efb/
 ## Database Schema
 
 ```
-scrape_logs        — history of every scrape run
-players_catalog    — all eFootball players (from pesdb.net)
-users              — registered accounts
-players            — user-owned team rosters
-game_plans         — up to 20 plans per user (11 starters + 12 subs)
-game_plan_players  — junction: which players are in which plan
+scrape_logs             — history of every scrape run
+players_catalog         — all eFootball players (from pesdb.net)
+players_catalog_backup  — snapshot taken automatically before each fresh scrape
+users                   — registered accounts
+players                 — user-owned team rosters
+game_plans              — up to 20 plans per user (11 starters + 12 subs)
+game_plan_players       — junction: which players are in which plan
 ```
 
 ---
@@ -173,24 +175,30 @@ npm run scrape
 Additional scraping commands:
 
 - **`npm run scrape`**: Smart scrape
-  - First run: **full** catalog scrape (walks all list pages + fetches detail pages)
+  - **Backup**: drops and recreates `players_catalog_backup` from `players_catalog` before starting any fresh run
+  - First run: **full** catalog scrape (walks all list pages + fetches detail pages for all ~41 k players)
   - Subsequent runs: **incremental** (only fetches newly added cards since last finished run)
-  - Resume: if interrupted, re-run `npm run scrape` to resume from `.scrape-state.json`
+  - **Concurrent enrichment**: fetches up to 4 player detail pages in parallel, spaced 400 ms apart — ~5–6× faster than sequential
+  - Resume: if interrupted, re-run `npm run scrape` to resume from `.scrape-state.json` (no backup on resume)
 
 - **`npm run scrape:missing`**: Missing-only repair
-  - Scans pesdb list pages to collect all `pesdb_id`s
+  - Backs up `players_catalog` to `players_catalog_backup` before starting
+  - Scans all pesdb list pages to collect every `pesdb_id`
   - Diffs against `players_catalog`
-  - Fetches detail pages and upserts **only missing IDs**
+  - Fetches detail pages and upserts **only missing IDs** (concurrently, 4 at a time)
 
 Optional environment flags:
 
 - **`SCRAPE_SHOW_LOGS=1`**: print the “last 5 runs” scrape log table at the end of `npm run scrape`
 
-**First run** — full scrape (~41 k players, ~40 minutes):
+**First run** — full scrape (~41 k players):
 ```
-📦 Mode: FULL  (first run — fetching all players)
+💾 Backing up players_catalog → players_catalog_backup…
+   41,314 rows backed up.
+
+📦 Mode: FULL  (list by overall_rating + Dream Team detail per player)
    41,314 players · ~1181 pages
-   [████████████████████████████] 41,314/41,314  page 1181  2403s
+   [████████████████████████████] 41,314/41,314  page 1181  NNNs
 ✅ Done!  41,314 players upserted.
 ```
 
@@ -271,7 +279,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 |---|---|
 | `npm run dev` | Start dev server with auto-reload |
 | `npm start` | Start production server |
-| `npm run scrape` | Update player catalog from pesdb.net |
+| `npm run scrape` | Full or incremental catalog update (backs up DB first) |
+| `npm run scrape:missing` | Repair gaps: diff site vs DB, fill missing entries |
 
 ---
 
@@ -291,7 +300,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] categories undone: league, clubs, nationality
 - [x] host can kick other roomates
 - [ ] fix rooms tab
-- [ ] after scraping, some players have empty playing styles, need to fix the scraper -> need to run backup database and data cleaning
+- [x] auto-backup `players_catalog` → `players_catalog_backup` before every fresh scrape run
+- [ ] after scraping, some players have empty playing styles, need to fix the scraper / data cleaning
 - [ ] run scrape missing should be record in scrape logs, and show in the end of scrape logs table 
 - [ ] ban pick page:
   - [ ] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card

@@ -715,7 +715,7 @@ body {
 .strip-players {
   display: flex;
   gap: 10px;
-  animation: stripScroll 25s linear infinite;
+  animation: stripScroll 40s linear infinite;
   width: max-content;
 }
 

@@ -8,8 +8,11 @@
  *   cutoff for the next run.
  *
  * ── Subsequent runs ─────────────────────────────────────────────────────────
- *   Incremental scrape: list sorted by id DESC (newest first); enriches each new
- *   card and stops once the list page is entirely at or below the cutoff.
+ *   Incremental scrape: list sorted by id DESC (newest first); checks each
+ *   page against the DB and enriches any player not yet stored. Stops after
+ *   CONSECUTIVE_OLD_PAGES_LIMIT consecutive fully-known pages once it has
+ *   passed the cutoff boundary. This catches retroactively-added cards whose
+ *   IDs fall below the previous cutoff.
  *
  * ── Resume support ──────────────────────────────────────────────────────────
  *   .scrape-state.json is updated after each player row (so an interrupt can
@@ -29,25 +32,30 @@ import db from "./db.js";
 const BASE       = "https://pesdb.net/efootball/";
 const STATE_FILE = new URL("../.scrape-state.json", import.meta.url).pathname;
 
-// NOTE: Uncomment to limit the rate of detail fetches.
-/** Max detail fetches per second (spaces each `enrichPlayer` start). */
-const MAX_PLAYERS_PER_SEC     = 1;
-const MIN_MS_BETWEEN_PLAYERS  = 2000 / MAX_PLAYERS_PER_SEC;
-
-/** ms between list-page HTTP requests (pagination). */
-const PAGE_DELAY              = 3000;
-/** ms between level-1 and max-level detail requests for the same player (usually 0). */
-const DETAIL_INNER_GAP_MS     = 1000;
-const RETRY_MAX               = 6;
-const FETCH_TIMEOUT_MS        = 30_000;
-const RETRY_BASE_DELAY_MS    = 2_000;
-const EMPTY_PAGE_RETRY_MAX    = 5;
-const EMPTY_PAGE_RETRY_DELAY_MS = 6_000;
-/** Upsert this many enriched rows before counting as a flush (matches batching pressure). */
-const FLUSH_EVERY             = 50;
-const BATCH_SIZE              = 500;
-/** Minimum ms between progress line redraws (also redraws at end of each list page). */
-const PROGRESS_INTERVAL_MS    = 1000;
+/** Minimum ms between each enrichPlayer start (shared across concurrent tasks via slot reservation). */
+const MIN_MS_BETWEEN_PLAYERS       = 400;
+/** ms between list-page HTTP requests. */
+const PAGE_DELAY_MS                = 1500;
+/** ms between level-1 and max-level detail requests for the same player. */
+const DETAIL_INNER_GAP_MS          = 300;
+const RETRY_MAX                    = 6;
+const FETCH_TIMEOUT_MS             = 30_000;
+const RETRY_BASE_DELAY_MS          = 2_000;
+const EMPTY_PAGE_RETRY_MAX         = 5;
+const EMPTY_PAGE_RETRY_DELAY_MS    = 6_000;
+/** Upsert this many enriched rows before flushing to DB. */
+const FLUSH_EVERY                  = 50;
+const BATCH_SIZE                   = 500;
+/** Minimum ms between progress line redraws. */
+const PROGRESS_INTERVAL_MS         = 1000;
+/**
+ * Incremental stop: after crossing the cutoff ID boundary, stop once this many
+ * consecutive pages all have players already in the DB. Increase if the site
+ * retroactively adds cards with IDs far below the cutoff.
+ */
+const CONSECUTIVE_OLD_PAGES_LIMIT  = 5;
+/** Number of players to enrich concurrently per batch. */
+const CONCURRENCY                  = 4;
 
 const HEADERS = {
   "User-Agent":
@@ -77,32 +85,33 @@ function clearState() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// NOTE: Uncomment to limit the rate of detail fetches.
-let lastPacedPlayerAt = 0;
+let nextPlayerAt = 0;
 
-// /** Caps how fast we start `enrichPlayer` (detail fetches). */
+/**
+ * Slot-reservation rate limiter — safe for concurrent callers.
+ * Each call atomically claims the next available time slot, so N concurrent
+ * tasks will each get a slot spaced MIN_MS_BETWEEN_PLAYERS ms apart.
+ */
 async function pacePlayerRate() {
-  const now = Date.now();
-  const earliest = lastPacedPlayerAt + MIN_MS_BETWEEN_PLAYERS;
-  if (now < earliest) await sleep(earliest - now);
-  lastPacedPlayerAt = Date.now();
+  const slot = Math.max(nextPlayerAt, Date.now());
+  nextPlayerAt = slot + MIN_MS_BETWEEN_PLAYERS;
+  const wait = slot - Date.now();
+  if (wait > 0) await sleep(wait);
 }
 
 function isRetryableFetchError(err) {
   const name = err?.name;
   const code = err?.code;
-  const msg = String(err?.message ?? "");
-
-  // Node's fetch uses undici under the hood; low-level failures are thrown (not returned as HTTP status).
+  const msg  = String(err?.message ?? "");
   return (
-    name === "AbortError" ||
-    code === "ETIMEDOUT" ||
-    code === "ECONNRESET" ||
-    code === "EAI_AGAIN" ||
-    code === "ENOTFOUND" ||
-    code === "ECONNREFUSED" ||
-    msg.includes("fetch failed") ||
-    msg.includes("timed out") ||
+    name === "AbortError"         ||
+    code === "ETIMEDOUT"          ||
+    code === "ECONNRESET"         ||
+    code === "EAI_AGAIN"          ||
+    code === "ENOTFOUND"          ||
+    code === "ECONNREFUSED"       ||
+    msg.includes("fetch failed")  ||
+    msg.includes("timed out")     ||
     msg.includes("socket")
   );
 }
@@ -117,9 +126,8 @@ async function fetchHTML(url, attempt = 1) {
   } catch (err) {
     clearTimeout(timeout);
     if (attempt < RETRY_MAX && isRetryableFetchError(err)) {
-      const exp = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), 60_000);
-      const jitter = Math.floor(Math.random() * 750);
-      const wait = exp + jitter;
+      const exp    = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), 60_000);
+      const wait   = exp + Math.floor(Math.random() * 750);
       process.stdout.write(`\n  ⚠ network error – waiting ${Math.round(wait / 1000)}s…\n`);
       await sleep(wait);
       return fetchHTML(url, attempt + 1);
@@ -144,18 +152,20 @@ async function fetchHTML(url, attempt = 1) {
   return res.text();
 }
 
-function pageURL(page, sortByID = false) {
-  const sort = sortByID ? "id" : "overall_rating";
-  return `${BASE}?sort=${sort}&order=0&all=1&page=${page}`;
+/**
+ * @param {number} page
+ * @param {"overall_rating"|"id"} sort
+ * @param {boolean} desc  true → order=1 (DESC/newest first), false → order=0 (ASC)
+ *
+ * NOTE: pesdb.net uses order=1 for DESC, order=0 for ASC. If pages come back in
+ * the wrong order, flip the `desc` argument at the call site.
+ */
+function pageURL(page, sort = "overall_rating", desc = false) {
+  return `${BASE}?sort=${sort}&order=${desc ? 1 : 0}&all=1&page=${page}`;
 }
 
-function playerURL(id) {
-  return `${BASE}?id=${id}`;
-}
-
-function playerMaxURL(id) {
-  return `${BASE}?id=${id}&mode=max_level`;
-}
+function playerURL(id)    { return `${BASE}?id=${id}`; }
+function playerMaxURL(id) { return `${BASE}?id=${id}&mode=max_level`; }
 
 // ─── List table (index pages) ────────────────────────────────────────────────
 
@@ -164,7 +174,7 @@ function parsePlayers(html) {
   const players = [];
 
   $("table tbody tr").each((_, row) => {
-    const $row = $(row);
+    const $row  = $(row);
     const cells = $row.find("td");
     if (cells.length < 8) return;
 
@@ -172,13 +182,10 @@ function parsePlayers(html) {
     if (!anchor.length) return;
 
     const href = anchor.attr("href") ?? "";
-    const m = href.match(/[?&]id=(\d+)/);
+    const m    = href.match(/[?&]id=(\d+)/);
     if (!m) return;
 
-    const num = (i) => {
-      const v = parseInt(cells.eq(i).text().trim(), 10);
-      return Number.isFinite(v) ? v : null;
-    };
+    const num = (i) => { const v = parseInt(cells.eq(i).text().trim(), 10); return Number.isFinite(v) ? v : null; };
     const str = (i) => cells.eq(i).text().trim() || null;
 
     players.push({
@@ -219,9 +226,7 @@ function parseCardType($, $root) {
 
 /**
  * Read a label/value row from the player stats table.
- * Must use direct `th`/`td` children only: the root table wraps a nested table in one
- * outer `<tr><td>…</td></tr>`; `find("th")` would match nested headers while `find("td")`
- * still pointed at the outer cell — producing one giant concatenated "name".
+ * Uses direct `th`/`td` children only to avoid matching nested table headers.
  */
 function rowValue($, $scope, labelStart) {
   let val = null;
@@ -229,8 +234,7 @@ function rowValue($, $scope, labelStart) {
     const $tr = $(tr);
     const $th = $tr.children("th").first();
     if (!$th.length) return;
-    const th = thText($th);
-    if (!th.startsWith(labelStart)) return;
+    if (!thText($th).startsWith(labelStart)) return;
     val = $tr.children("td").first().text().replace(/\s+/g, " ").trim();
     return false;
   });
@@ -266,10 +270,6 @@ function parseOverallNumeric(html) {
   return Number.isFinite(n) ? n : null;
 }
 
-/**
- * @param {string} html
- * @param {string} pesdb_id
- */
 function parseDetailLevel1(html, pesdb_id) {
   const $ = cheerio.load(html);
   const $player = $("table#table_0.player, table.player").first();
@@ -279,41 +279,40 @@ function parseDetailLevel1(html, pesdb_id) {
   if (!name) return null;
 
   const maxLevelRaw = rowValue($, $player, "Maximum Level");
-  let maxLevelCap = parseInt(String(maxLevelRaw ?? "").replace(/\D/g, ""), 10);
+  let maxLevelCap   = parseInt(String(maxLevelRaw ?? "").replace(/\D/g, ""), 10);
   if (!Number.isFinite(maxLevelCap) || maxLevelCap < 1) maxLevelCap = 1;
 
   const overall = parseOverallNumeric(html);
   if (overall == null) return null;
 
-  const card_type     = parseCardType($, $player);
-  const region        = rowValue($, $player, "Region");
-  const foot          = rowValue($, $player, "Foot");
-  const playing_style = parsePlayingStyle($);
-  const league        = rowValue($, $player, "League");
+  const intField = (label) => {
+    const n = parseInt(rowValue($, $player, label) ?? "", 10);
+    return Number.isFinite(n) ? n : null;
+  };
 
   return {
     pesdb_id,
     name,
-    position:    parsePositionAbbr($, $player),
-    club:        rowValue($, $player, "Team Name"),
-    league,
-    nationality: rowValue($, $player, "Nationality"),
-    height:      (() => { const n = parseInt(rowValue($, $player, "Height") ?? "", 10); return Number.isFinite(n) ? n : null; })(),
-    weight:      (() => { const n = parseInt(rowValue($, $player, "Weight") ?? "", 10); return Number.isFinite(n) ? n : null; })(),
-    age:         (() => { const n = parseInt(rowValue($, $player, "Age") ?? "", 10); return Number.isFinite(n) ? n : null; })(),
-    overall, // Level 1
-    overall_max: maxLevelCap > 1 ? null : overall,
-    _maxLevelCap: maxLevelCap, // internal: cap for enrichPlayer fetch only (not stored)
-    card_type,
-    region,
-    foot,
-    playing_style,
+    position:      parsePositionAbbr($, $player),
+    club:          rowValue($, $player, "Team Name"),
+    league:        rowValue($, $player, "League"),
+    nationality:   rowValue($, $player, "Nationality"),
+    height:        intField("Height"),
+    weight:        intField("Weight"),
+    age:           intField("Age"),
+    overall,
+    overall_max:   maxLevelCap > 1 ? null : overall,
+    _maxLevelCap:  maxLevelCap,
+    card_type:     parseCardType($, $player),
+    region:        rowValue($, $player, "Region"),
+    foot:          rowValue($, $player, "Foot"),
+    playing_style: parsePlayingStyle($),
   };
 }
 
 async function enrichPlayer(pesdb_id) {
   const html1 = await fetchHTML(playerURL(pesdb_id));
-  const d = parseDetailLevel1(html1, pesdb_id);
+  const d     = parseDetailLevel1(html1, pesdb_id);
   if (!d) return null;
 
   const cap = d._maxLevelCap;
@@ -323,7 +322,7 @@ async function enrichPlayer(pesdb_id) {
 
   if (cap > 1) {
     const html2 = await fetchHTML(playerMaxURL(pesdb_id));
-    const om = parseOverallNumeric(html2);
+    const om    = parseOverallNumeric(html2);
     d.overall_max = om != null ? om : d.overall;
   } else {
     d.overall_max = d.overall;
@@ -332,51 +331,74 @@ async function enrichPlayer(pesdb_id) {
   return d;
 }
 
+/** Enrich a batch of players concurrently, one slot each from pacePlayerRate. */
+async function enrichBatch(players) {
+  return Promise.all(
+    players.map(async (p) => {
+      await pacePlayerRate();
+      try { return await enrichPlayer(p.pesdb_id); }
+      catch (err) {
+        console.error(`\n  ⚠ detail fetch failed (id ${p.pesdb_id}): ${err.message}`);
+        return null;
+      }
+    }),
+  );
+}
+
+async function backupCatalog() {
+  console.log("💾 Backing up players_catalog → players_catalog_backup…");
+  await db.query("DROP TABLE IF EXISTS players_catalog_backup");
+  await db.query("CREATE TABLE players_catalog_backup AS SELECT * FROM players_catalog");
+  const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM players_catalog_backup");
+  console.log(`   ${cnt.toLocaleString()} rows backed up.\n`);
+}
+
 // ─── DB ──────────────────────────────────────────────────────────────────────
 
 async function upsertPlayers(players) {
   for (let i = 0; i < players.length; i += BATCH_SIZE) {
     const rows = players.slice(i, i + BATCH_SIZE).map((p) => [
-      p.pesdb_id,
-      p.name,
-      p.position,
-      p.club,
-      p.league,
-      p.nationality,
-      p.height,
-      p.weight,
-      p.age,
-      p.overall,
-      p.overall_max,
-      p.card_type,
-      p.region,
-      p.foot,
-      p.playing_style,
+      p.pesdb_id, p.name, p.position, p.club, p.league, p.nationality,
+      p.height, p.weight, p.age, p.overall, p.overall_max,
+      p.card_type, p.region, p.foot, p.playing_style,
     ]);
     await db.query(
       `INSERT INTO players_catalog
          (pesdb_id, name, position, club, league, nationality, height, weight, age,
-          overall, overall_max,
-          card_type, region, foot, playing_style)
+          overall, overall_max, card_type, region, foot, playing_style)
        VALUES ?
        ON DUPLICATE KEY UPDATE
-         name           = VALUES(name),
-         position       = VALUES(position),
-         club           = VALUES(club),
-         league         = VALUES(league),
-         nationality    = VALUES(nationality),
-         height         = VALUES(height),
-         weight         = VALUES(weight),
-         age            = VALUES(age),
-         overall        = VALUES(overall),
-         overall_max    = VALUES(overall_max),
-         card_type      = VALUES(card_type),
-         region         = VALUES(region),
-         foot           = VALUES(foot),
-         playing_style  = VALUES(playing_style)`,
+         name          = VALUES(name),
+         position      = VALUES(position),
+         club          = VALUES(club),
+         league        = VALUES(league),
+         nationality   = VALUES(nationality),
+         height        = VALUES(height),
+         weight        = VALUES(weight),
+         age           = VALUES(age),
+         overall       = VALUES(overall),
+         overall_max   = VALUES(overall_max),
+         card_type     = VALUES(card_type),
+         region        = VALUES(region),
+         foot          = VALUES(foot),
+         playing_style = VALUES(playing_style)`,
       [rows],
     );
   }
+}
+
+/**
+ * Returns the subset of `ids` not yet present in players_catalog.
+ * Used by incremental scrape to catch retroactively-added cards regardless of ID value.
+ */
+async function fetchMissingIds(ids) {
+  if (ids.length === 0) return new Set();
+  const [rows] = await db.query(
+    `SELECT pesdb_id FROM players_catalog WHERE pesdb_id IN (?)`,
+    [ids],
+  );
+  const existing = new Set(rows.map((r) => String(r.pesdb_id)));
+  return new Set(ids.filter((id) => !existing.has(id)));
 }
 
 async function getLastLog() {
@@ -409,16 +431,16 @@ async function finishLog(id, upserted, maxId) {
   );
 }
 
+// ─── Progress ────────────────────────────────────────────────────────────────
+
 function bar(done, total, width = 28) {
   const pct = total > 0 ? Math.min(done / total, 1) : 0;
-  const f = Math.round(pct * width);
+  const f   = Math.round(pct * width);
   return `[${"█".repeat(f)}${"░".repeat(width - f)}] ${done.toLocaleString()}/${(total ?? "?").toLocaleString()}`;
 }
 
-function writeProgressLine(done, total, listPage, elapsedSec) {
-  process.stdout.write(
-    `\r  ${bar(done, total)}  page ${listPage}  ${elapsedSec}s   `,
-  );
+function writeProgressLine(done, total, page, elapsedSec) {
+  process.stdout.write(`\r  ${bar(done, total)}  page ${page}  ${elapsedSec}s   `);
 }
 
 // ─── Full scrape ─────────────────────────────────────────────────────────────
@@ -426,30 +448,26 @@ function writeProgressLine(done, total, listPage, elapsedSec) {
 async function runFull(logId, resumeState) {
   console.log("📦 Mode: FULL  (list by overall_rating + Dream Team detail per player)");
 
-  // Always fetch page 1 once to estimate total pages.
-  // (Empty/blocked pages can happen mid-run; using a page-count bound prevents early termination.)
   let firstHTML = null;
   try {
     firstHTML = await fetchHTML(pageURL(1));
   } catch (err) {
     console.error(`\n  ⚠ list fetch failed (page 1): ${err.message}`);
-    firstHTML = null;
   }
 
-  const total = firstHTML ? detectTotal(firstHTML) : null;
+  const total    = firstHTML ? detectTotal(firstHTML) : null;
   const estPages = total ? Math.ceil(total / 35) : 1300;
   console.log(`   ${total?.toLocaleString() ?? "?"} players · ~${estPages} pages\n`);
 
-  let buffer = [];
+  let buffer       = [];
   let totalUpserted = resumeState?.totalUpserted ?? 0;
-  let maxId = BigInt(resumeState?.maxId ?? "0");
-  let nextPage = resumeState?.nextPage ?? 1;
-  let rowInPage = resumeState?.rowInPage ?? 0;
+  let maxId         = BigInt(resumeState?.maxId ?? "0");
+  let nextPage      = resumeState?.nextPage ?? 1;
+  let rowInPage     = resumeState?.rowInPage ?? 0;
 
-  const startTime = Date.now();
-  let lastProgressDraw = 0;
+  const startTime       = Date.now();
+  let lastProgressDraw  = 0;
 
-  // Scan through expected page range; tolerate sporadic empty pages by retrying.
   while (nextPage <= estPages) {
     let html;
     if (nextPage === 1 && rowInPage === 0 && firstHTML) {
@@ -459,8 +477,8 @@ async function runFull(logId, resumeState) {
         html = await fetchHTML(pageURL(nextPage));
       } catch (err) {
         console.error(`\n  ⚠ list fetch failed (page ${nextPage}): ${err.message}`);
-        await sleep(PAGE_DELAY);
-        continue; // retry same page
+        await sleep(PAGE_DELAY_MS);
+        continue;
       }
     }
 
@@ -474,51 +492,36 @@ async function runFull(logId, resumeState) {
         try {
           const retryHTML = await fetchHTML(pageURL(nextPage));
           list = parsePlayers(retryHTML);
-          if (list.length > 0) {
-            recovered = true;
-            break;
-          }
+          if (list.length > 0) { recovered = true; break; }
         } catch (err) {
           console.error(`  ⚠ list fetch failed (page ${nextPage}, retry ${a}): ${err.message}`);
         }
       }
-
       if (!recovered) {
         console.error(`\n  ⚠ giving up on empty page ${nextPage}; continuing…`);
         nextPage++;
         rowInPage = 0;
-        await sleep(PAGE_DELAY);
+        await sleep(PAGE_DELAY_MS);
         continue;
       }
     }
 
-    for (let i = rowInPage; i < list.length; i++) {
-      const idStr = list[i].pesdb_id;
-      // NOTE: Uncomment to limit the rate of detail fetches.
-      await pacePlayerRate();
+    const pageStart = rowInPage;
+    const slice     = list.slice(pageStart);
 
-      let enriched = null;
-      try {
-        enriched = await enrichPlayer(idStr);
-      } catch (err) {
-        console.error(`\n  ⚠ detail fetch failed (id ${idStr}): ${err.message}`);
-        enriched = null; // keep going; state will still advance
-      }
+    for (let bi = 0; bi < slice.length; bi += CONCURRENCY) {
+      const batch   = slice.slice(bi, bi + CONCURRENCY);
+      const results = await enrichBatch(batch);
 
-      if (enriched) {
+      for (const enriched of results) {
+        if (!enriched) continue;
         buffer.push(enriched);
         const id = BigInt(enriched.pesdb_id);
         if (id > maxId) maxId = id;
       }
 
-      saveState({
-        mode: "full",
-        nextPage,
-        rowInPage: i + 1,
-        totalUpserted,
-        maxId: maxId.toString(),
-        logId,
-      });
+      const doneRow = pageStart + bi + batch.length;
+      saveState({ mode: "full", nextPage, rowInPage: doneRow, totalUpserted, maxId: maxId.toString(), logId });
 
       if (buffer.length >= FLUSH_EVERY) {
         await upsertPlayers(buffer);
@@ -526,27 +529,19 @@ async function runFull(logId, resumeState) {
         buffer = [];
       }
 
-      const done = totalUpserted + buffer.length;
       const now = Date.now();
-      const atPageEnd = i === list.length - 1;
-      const tick = now - lastProgressDraw >= PROGRESS_INTERVAL_MS;
-      if (tick || atPageEnd) {
+      if (now - lastProgressDraw >= PROGRESS_INTERVAL_MS || doneRow === list.length) {
         lastProgressDraw = now;
-        const elapsed = ((now - startTime) / 1000).toFixed(0);
-        writeProgressLine(done, total, nextPage, elapsed);
+        writeProgressLine(totalUpserted + buffer.length, total, nextPage, ((now - startTime) / 1000).toFixed(0));
       }
     }
 
     rowInPage = 0;
     nextPage++;
-    await sleep(PAGE_DELAY);
+    await sleep(PAGE_DELAY_MS);
   }
 
   if (buffer.length > 0) {
-    for (const p of buffer) {
-      const id = BigInt(p.pesdb_id);
-      if (id > maxId) maxId = id;
-    }
     await upsertPlayers(buffer);
     totalUpserted += buffer.length;
   }
@@ -557,51 +552,62 @@ async function runFull(logId, resumeState) {
 
 // ─── Incremental scrape ──────────────────────────────────────────────────────
 
-async function runIncremental(logId, cutoffId, lastFinishedAt = null) {
+async function runIncremental(logId, cutoffId, lastFinishedAt = null, resumeState = null) {
   const sinceDay = lastFinishedAt
     ? new Date(lastFinishedAt).toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
   console.log(`📬 Mode: INCREMENTAL  (new players since ${sinceDay})`);
   console.log(`   Cutoff pesdb_id: ${cutoffId.toLocaleString()}\n`);
 
-  let buffer = [];
-  let totalUpserted = 0;
-  let maxId = cutoffId;
-  let page = 1;
-  const startTime = Date.now();
+  let buffer            = [];
+  let totalUpserted     = resumeState?.totalUpserted ?? 0;
+  let maxId             = resumeState?.maxId ? BigInt(resumeState.maxId) : cutoffId;
+  let page              = resumeState?.page ?? 1;
+  let consecutiveOld    = 0;
+
+  const startTime      = Date.now();
   let lastProgressDraw = 0;
 
   while (true) {
     let html;
     try {
-      html = await fetchHTML(pageURL(page, true));
+      // sort=id DESC so newest (highest) IDs appear first
+      html = await fetchHTML(pageURL(page, "id", true));
     } catch (err) {
       console.error(`\n  ⚠ list fetch failed (page ${page}): ${err.message}`);
-      await sleep(PAGE_DELAY);
-      continue; // retry same page
+      await sleep(PAGE_DELAY_MS);
+      continue;
     }
 
     const list = parsePlayers(html);
-
     if (list.length === 0) break;
 
-    const newPlayers = list.filter((p) => BigInt(p.pesdb_id) > cutoffId);
+    // DB-membership check: find players not yet in the catalog.
+    // This catches retroactively-added cards with IDs below the cutoff —
+    // pure ID comparison (pesdb_id > cutoffId) would silently skip them.
+    const allIds    = list.map((p) => p.pesdb_id);
+    const missingIds = await fetchMissingIds(allIds);
+    const newPlayers = list.filter((p) => missingIds.has(p.pesdb_id));
 
-    for (let ni = 0; ni < newPlayers.length; ni++) {
-      const row = newPlayers[ni];
-      
-      // NOTE: Uncomment to limit the rate of detail fetches.
-      await pacePlayerRate();
+    // Use the smallest ID on this page (last element in DESC order) to detect
+    // when we've crossed below the cutoff boundary.
+    const minPageId  = BigInt(list[list.length - 1].pesdb_id);
+    const pastCutoff = minPageId < cutoffId;
 
-      let enriched = null;
-      try {
-        enriched = await enrichPlayer(row.pesdb_id);
-      } catch (err) {
-        console.error(`\n  ⚠ detail fetch failed (id ${row.pesdb_id}): ${err.message}`);
-        enriched = null;
-      }
+    if (newPlayers.length === 0) {
+      consecutiveOld++;
+      // Only stop after we've passed the cutoff AND seen N fully-known pages in a row.
+      if (consecutiveOld >= CONSECUTIVE_OLD_PAGES_LIMIT && pastCutoff) break;
+    } else {
+      consecutiveOld = 0;
+    }
 
-      if (enriched) {
+    for (let bi = 0; bi < newPlayers.length; bi += CONCURRENCY) {
+      const batch   = newPlayers.slice(bi, bi + CONCURRENCY);
+      const results = await enrichBatch(batch);
+
+      for (const enriched of results) {
+        if (!enriched) continue;
         buffer.push(enriched);
         const id = BigInt(enriched.pesdb_id);
         if (id > maxId) maxId = id;
@@ -613,24 +619,17 @@ async function runIncremental(logId, cutoffId, lastFinishedAt = null) {
         buffer = [];
       }
 
-      const done = totalUpserted + buffer.length;
+      saveState({ mode: "incremental", page, totalUpserted, maxId: maxId.toString(), logId, cutoffId: cutoffId.toString() });
+
       const now = Date.now();
-      const atChunkEnd = ni === newPlayers.length - 1;
-      const tick = now - lastProgressDraw >= PROGRESS_INTERVAL_MS;
-      if (tick || atChunkEnd) {
+      if (now - lastProgressDraw >= PROGRESS_INTERVAL_MS || bi + batch.length >= newPlayers.length) {
         lastProgressDraw = now;
-        const elapsed = ((now - startTime) / 1000).toFixed(0);
-        writeProgressLine(done, null, page, elapsed);
+        writeProgressLine(totalUpserted + buffer.length, null, page, ((now - startTime) / 1000).toFixed(0));
       }
     }
 
-    const minPageId = BigInt(list[list.length - 1].pesdb_id);
-    const allOld = list.every((p) => BigInt(p.pesdb_id) <= cutoffId);
-
-    if (allOld || minPageId <= cutoffId) break;
-
     page++;
-    await sleep(PAGE_DELAY);
+    await sleep(PAGE_DELAY_MS);
   }
 
   if (buffer.length > 0) {
@@ -649,9 +648,10 @@ async function main() {
 
   const savedState = loadState();
   if (savedState?.logId && savedState?.mode) {
-    const row =
-      savedState.rowInPage > 0 ? `, row ${savedState.rowInPage}` : "";
-    console.log(`▶ Resuming interrupted ${savedState.mode} scrape (page ${savedState.nextPage}${row})…`);
+    // full uses `nextPage`, incremental uses `page`
+    const page = savedState.nextPage ?? savedState.page ?? "?";
+    const row  = (savedState.rowInPage ?? 0) > 0 ? `, row ${savedState.rowInPage}` : "";
+    console.log(`▶ Resuming interrupted ${savedState.mode} scrape (page ${page}${row})…`);
   }
 
   const lastLog = await getLastLog();
@@ -662,24 +662,27 @@ async function main() {
   if (!lastLog?.max_pesdb_id) {
     mode = "full";
   } else {
-    mode = "incremental";
+    mode     = "incremental";
     cutoffId = BigInt(lastLog.max_pesdb_id);
   }
 
-  const logId = savedState?.logId ?? (await startLog(mode));
+  const isResume = !!savedState?.logId;
+  const logId    = savedState?.logId ?? (await startLog(mode));
+
+  if (!isResume) await backupCatalog();
 
   let result;
   if (mode === "full") {
     result = await runFull(logId, savedState?.mode === "full" ? savedState : null);
   } else {
-    result = await runIncremental(logId, cutoffId, lastLog.finished_at);
+    result = await runIncremental(logId, cutoffId, lastLog.finished_at, savedState?.mode === "incremental" ? savedState : null);
   }
 
   await finishLog(logId, result.totalUpserted, result.maxId);
   clearState();
 
   const elapsed = ((Date.now() - runStart) / 1000).toFixed(1);
-  const label =
+  const label   =
     mode === "incremental" && result.totalUpserted === 0
       ? "No new players found."
       : `${result.totalUpserted.toLocaleString()} players upserted.`;
@@ -715,8 +718,10 @@ export {
   detectTotal,
   pageURL,
   enrichPlayer,
+  enrichBatch,
   pacePlayerRate,
   upsertPlayers,
+  backupCatalog,
 };
 
 const IS_MAIN = (() => {

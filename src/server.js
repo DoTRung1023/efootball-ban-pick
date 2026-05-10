@@ -20,33 +20,28 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-// Fixed carousel players (curated list of featured legends & top stars)
-const TOP_CAROUSEL_PLAYERS = [
-  { id: "89136409091415", name: "Lionel Messi",         position: "RWF", overall: 105, club: "FC Barcelona",      nationality: "Argentina"       },
-  { id: "89137214427270", name: "Eden Hazard",          position: "AMF", overall: 104, club: "Belgium",           nationality: "Belgium"         },
-  { id: "89136677522134", name: "George Best",          position: "RWF", overall: 104, club: "Manchester United", nationality: "Northern Ireland" },
-  { id: "89136140651034", name: "Zlatan Ibrahimović",   position: "CF",  overall: 104, club: "AC Milan",          nationality: "Sweden"          },
-  { id: "88040387119495", name: "Pelé",                 position: "SS",  overall: 103, club: "Santos FC",         nationality: "Brazil"          },
-  { id: "88039581945329", name: "Franco Baresi",        position: "CB",  overall: 103, club: "AC Milan",          nationality: "Italy"           },
-  { id: "88039581945324", name: "Franz Beckenbauer",    position: "CB",  overall: 103, club: "München RW",        nationality: "Germany"         },
-  { id: "88039581945323", name: "Johan Cruyff",         position: "CF",  overall: 103, club: "FC Barcelona",      nationality: "Netherlands"     },
-  { id: "106771008057263", name: "Victor Osimhen",      position: "CF",  overall: 102, club: "Galatasaray SK",    nationality: "Nigeria"         },
-  { id: "89134261635137", name: "Luis Suárez",          position: "CF",  overall: 102, club: "FC Barcelona",      nationality: "Uruguay"         },
-  { id: "89133724764840", name: "Gareth Bale",          position: "RWF", overall: 102, club: "Madrid Chamartin B", nationality: "Wales"          },
-  { id: "88040655690467", name: "Jaap Stam",            position: "CB",  overall: 102, club: "Manchester United", nationality: "Netherlands"     },
-  { id: "88040655554922", name: "Gerd Müller",          position: "CF",  overall: 102, club: "München RW",        nationality: "Germany"         },
-  { id: "88040655554414", name: "Gianfranco Zola",      position: "SS",  overall: 102, club: "Chelsea B",         nationality: "Italy"           },
-  { id: "88040387251641", name: "Carles Puyol",         position: "CB",  overall: 102, club: "FC Barcelona",      nationality: "Spain"           },
-  { id: "88040387126189", name: "Pepe",                 position: "CB",  overall: 102, club: "Portugal",          nationality: "Portugal"        },
-  { id: "88040387120247", name: "Petr Čech",            position: "GK",  overall: 102, club: "Chelsea B",         nationality: "Czechia"         },
-  { id: "88040387119839", name: "Michel Platini",       position: "AMF", overall: 102, club: "Piemonte BN",       nationality: "France"          },
-  { id: "88040387118039", name: "Gianluigi Buffon",     position: "GK",  overall: 102, club: "Piemonte BN",       nationality: "Italy"           },
-  { id: "88039850289220", name: "Raphaël Varane",       position: "CB",  overall: 102, club: "Madrid Chamartin B", nationality: "France"         },
-  { id: "88039850384095", name: "Marcel Desailly",      position: "CB",  overall: 102, club: "Chelsea B",         nationality: "France"          },
-];
-
-app.get("/api/top-players", (_req, res) => {
-  res.json({ players: TOP_CAROUSEL_PLAYERS });
+// Top 25 unique players (Epic/Highlight only, best card per name, sorted by overall_max DESC)
+app.get("/api/top-players", async (_req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT p.pesdb_id AS id, p.name
+      FROM players_catalog p
+      LEFT JOIN players_catalog p2
+        ON  p.name = p2.name
+        AND p2.card_type IN ('Epic','Highlight')
+        AND p2.pesdb_id NOT IN (8554076, 8554053)
+        AND (p2.overall_max > p.overall_max
+             OR (p2.overall_max = p.overall_max AND p2.pesdb_id > p.pesdb_id))
+      WHERE p.card_type IN ('Epic','Highlight')
+        AND p.pesdb_id NOT IN (8554076, 8554053)
+        AND p2.pesdb_id IS NULL
+      ORDER BY p.overall_max DESC, p.pesdb_id DESC
+      LIMIT 25
+    `);
+    res.json({ players: rows.map((r) => ({ id: String(r.id), name: r.name })) });
+  } catch {
+    res.status(500).json({ players: [] });
+  }
 });
 
 const POS_GROUPS = {
@@ -1330,7 +1325,7 @@ app.get("/room/:code", (_req, res) => {
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.use((_req, res) => {
-  res.status(404).sendFile(path.join(__dirname, "..", "public", "404.html"));
+  res.status(404).send("404 Not Found");
 });
 
 app.listen(PORT, () => {

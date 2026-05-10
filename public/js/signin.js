@@ -4,7 +4,8 @@
 
 const CARD_IMG = (id) => `/img/card/${id}.png`;
 
-// Fallback list shown while the API loads or if it fails
+// Fallback shown when the API is unavailable
+// Mirrors /api/top-players: top 25 unique Epic/Highlight players by overall_max
 const FALLBACK_PLAYERS = [
   { id: "89136409091415",  name: "Lionel Messi"       },
   { id: "89137214427270",  name: "Eden Hazard"         },
@@ -14,19 +15,23 @@ const FALLBACK_PLAYERS = [
   { id: "88039581945329",  name: "Franco Baresi"       },
   { id: "88039581945324",  name: "Franz Beckenbauer"   },
   { id: "88039581945323",  name: "Johan Cruyff"        },
+  { id: "106773692401975", name: "Vinícius Júnior"     },
   { id: "106771008057263", name: "Victor Osimhen"      },
+  { id: "89138019757152",  name: "Bruno Fernandes"     },
   { id: "89134261635137",  name: "Luis Suárez"         },
+  { id: "89133993205152",  name: "Neymar Jr"           },
   { id: "89133724764840",  name: "Gareth Bale"         },
+  { id: "88041460993514",  name: "Ruud Gullit"         },
+  { id: "88041460993461",  name: "Luís Figo"           },
   { id: "88040655690467",  name: "Jaap Stam"           },
   { id: "88040655554922",  name: "Gerd Müller"         },
   { id: "88040655554414",  name: "Gianfranco Zola"     },
   { id: "88040387251641",  name: "Carles Puyol"        },
   { id: "88040387126189",  name: "Pepe"                },
+  { id: "88040387126185",  name: "Franck Ribéry"       },
   { id: "88040387120247",  name: "Petr Čech"           },
   { id: "88040387119839",  name: "Michel Platini"      },
-  { id: "88040387118039",  name: "Gianluigi Buffon"    },
-  { id: "88039850289220",  name: "Raphaël Varane"      },
-  { id: "88039850384095",  name: "Marcel Desailly"     },
+  { id: "88040387118554",  name: "Samuel Eto'o"        },
 ];
 
 /* ============================================================

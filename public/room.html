@@ -55,16 +55,16 @@
           <div class="stage-progress-container stage-progress-container--lobby">
             <div class="stage-progress-bar">
               <div class="stage-progress-line"></div>
-              <div class="stage-progress-dot" id="stageDot-bansetting-lobby" data-stage="bansetting">
+              <div class="stage-progress-dot" id="stageDot-bansetting-lobby" data-stage="bansetting" data-step="1">
                 <span class="stage-dot-label">Ban Setting</span>
               </div>
-              <div class="stage-progress-dot" id="stageDot-ban-lobby" data-stage="ban">
+              <div class="stage-progress-dot" id="stageDot-ban-lobby" data-stage="ban" data-step="2">
                 <span class="stage-dot-label">Ban</span>
               </div>
-              <div class="stage-progress-dot" id="stageDot-pick-lobby" data-stage="pick">
+              <div class="stage-progress-dot" id="stageDot-pick-lobby" data-stage="pick" data-step="3">
                 <span class="stage-dot-label">Pick</span>
               </div>
-              <div class="stage-progress-dot" id="stageDot-start-lobby" data-stage="start">
+              <div class="stage-progress-dot" id="stageDot-start-lobby" data-stage="start" data-step="4">
                 <span class="stage-dot-label">Start Match</span>
               </div>
             </div>
@@ -191,25 +191,25 @@
 
     <!-- Draft -->
     <div id="viewDraft" class="view view--draft" hidden>
-      <div class="draft-shell">
-        <!-- Stage Progress Indicator -->
-        <div class="stage-progress-container">
-          <div class="stage-progress-bar">
-            <div class="stage-progress-line"></div>
-            <div class="stage-progress-dot" id="stageDot-bansetting" data-stage="bansetting">
-              <span class="stage-dot-label">Ban Setting</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-ban" data-stage="ban">
-              <span class="stage-dot-label">Ban</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-pick" data-stage="pick">
-              <span class="stage-dot-label">Pick</span>
-            </div>
-            <div class="stage-progress-dot" id="stageDot-start" data-stage="start">
-              <span class="stage-dot-label">Start Match</span>
-            </div>
+      <!-- Stage Progress Indicator -->
+      <div class="stage-progress-container">
+        <div class="stage-progress-bar">
+          <div class="stage-progress-line"></div>
+          <div class="stage-progress-dot" id="stageDot-bansetting" data-stage="bansetting" data-step="1">
+            <span class="stage-dot-label">Ban Setting</span>
+          </div>
+          <div class="stage-progress-dot" id="stageDot-ban" data-stage="ban" data-step="2">
+            <span class="stage-dot-label">Ban</span>
+          </div>
+          <div class="stage-progress-dot" id="stageDot-pick" data-stage="pick" data-step="3">
+            <span class="stage-dot-label">Pick</span>
+          </div>
+          <div class="stage-progress-dot" id="stageDot-start" data-stage="start" data-step="4">
+            <span class="stage-dot-label">Start Match</span>
           </div>
         </div>
+      </div>
+      <div class="draft-shell">
         <section class="draft-center">
           <header class="draft-topbar">
             <div class="turn-pill" id="turnPill">
@@ -392,6 +392,6 @@
     </div>
 
     <div class="toast" id="toast"></div>
-    <script src="/js/room.js"></script>
+    <script type="module" src="/js/room.js"></script>
   </body>
 </html>
