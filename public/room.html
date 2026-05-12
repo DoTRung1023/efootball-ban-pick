@@ -191,8 +191,13 @@
 
     <!-- Draft -->
     <div id="viewDraft" class="view view--draft" hidden>
-      <!-- Stage Progress Indicator -->
+      <!-- Stage progress with integrated controls -->
       <div class="stage-progress-container">
+        <div class="stage-header-left">
+          <div class="timer-ring" id="timerRing" title="Turn timer">
+            <div class="timer-inner" id="timerInner">30</div>
+          </div>
+        </div>
         <div class="stage-progress-bar">
           <div class="stage-progress-line"></div>
           <div class="stage-progress-dot" id="stageDot-bansetting" data-stage="bansetting" data-step="1">
@@ -208,26 +213,13 @@
             <span class="stage-dot-label">Start Match</span>
           </div>
         </div>
+        <div class="stage-header-right">
+          <button type="button" class="btn btn--small btn--ghost draft-leave" id="draftLeaveBtn">Leave</button>
+        </div>
       </div>
       <div class="draft-shell">
         <section class="draft-center">
-          <header class="draft-topbar">
-            <div class="turn-pill" id="turnPill">
-              <span class="turn-pill-k" id="turnPillKicker">BAN 1/16</span>
-              <div class="turn-pill-main" id="turnPillMain">YOUR TURN</div>
-            </div>
-            <div class="timer-ring" id="timerRing" title="Turn timer">
-              <div class="timer-inner" id="timerInner">30</div>
-            </div>
-            <div class="progress-track" aria-hidden="true">
-              <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <button type="button" class="btn btn--small btn--primary" id="draftTopReadyBtn">READY</button>
-            <button type="button" class="btn btn--small btn--ghost draft-leave" id="draftLeaveBtn">Leave</button>
-          </header>
-
           <div class="draft-banner draft-banner--error" id="draftActionError" hidden></div>
-          <div class="draft-banner draft-banner--hint" id="draftHintBanner" hidden></div>
           <div class="draft-workspace">
             <div class="draft-workspace-main">
               <section class="draft-panel draft-panel--ban-phase" id="draftBanPhaseBoard" hidden>
@@ -322,33 +314,23 @@
                   </div>
 
                   <aside class="ban-phase-right" aria-label="Ban summary">
-                    <div class="ban-phase-row ban-phase-row--right">
-                      <div class="ban-phase-row-head">
-                        <div class="ban-phase-row-title">Bans on me</div>
-                        <div class="ban-count" id="draftBannedOnMeCount">0/3</div>
+                    <div class="ban-side-section">
+                      <div class="ban-side-head">
+                        <span class="ban-side-title">BANS ON ME</span>
+                        <span class="ban-count" id="draftBannedOnMeCount">0/3</span>
                       </div>
-                      <div class="ban-phase-strip" id="draftBannedOnMeStrip"></div>
+                      <div class="ban-phase-strip ban-side-strip" id="draftBannedOnMeStrip"></div>
                     </div>
 
-                    <div class="ban-phase-row ban-phase-row--right">
-                      <div class="ban-phase-row-head">
-                        <div class="ban-phase-row-title">My bans</div>
-                        <div class="ban-count" id="draftMyBansCount">0/3</div>
+                    <div class="ban-side-section">
+                      <div class="ban-side-head">
+                        <span class="ban-side-title">MY BANS</span>
+                        <span class="ban-count" id="draftMyBansCount">0/3</span>
                       </div>
-                      <div class="ban-phase-strip" id="draftMyBansStrip"></div>
+                      <div class="ban-phase-strip ban-side-strip" id="draftMyBansStrip"></div>
                     </div>
+
                   </aside>
-                </div>
-
-                <div class="ban-phase-row ban-phase-row--confirm">
-                  <div class="ban-phase-row-title">Confirm ban</div>
-                  <div class="ban-phase-confirm">
-                    <div class="ban-phase-strip" id="draftPendingBanStrip"></div>
-                    <div class="ban-phase-actions">
-                      <button type="button" class="btn btn--ghost btn--small" id="banClearBtn" disabled>Clear</button>
-                      <button type="button" class="btn btn--primary btn--small" id="banConfirmBtn" disabled>Confirm</button>
-                    </div>
-                  </div>
                 </div>
               </section>
 

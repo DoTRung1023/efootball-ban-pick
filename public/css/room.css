@@ -309,6 +309,33 @@ body {
   box-shadow: 0 0 0 1px rgba(120, 187, 255, 0.2) inset, 0 8px 18px rgba(85, 158, 235, 0.24);
 }
 
+/* Room full */
+#viewError.is-room-full .centered-box--error {
+  padding: 28px 24px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 120, 255, 0.42);
+  background: linear-gradient(180deg, rgba(18, 8, 30, 0.9), rgba(12, 6, 22, 0.92));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(168, 120, 255, 0.14) inset;
+}
+
+#viewError.is-room-full .error-title {
+  color: rgba(228, 214, 255, 0.98);
+}
+
+#viewError.is-room-full .error-text {
+  color: rgba(196, 172, 242, 0.9);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+#viewError.is-room-full #errorLeaveBtn {
+  border-color: rgba(168, 120, 255, 0.72);
+  background: linear-gradient(180deg, rgba(160, 110, 255, 0.24), rgba(130, 84, 224, 0.12));
+  color: rgba(240, 234, 255, 0.98);
+  min-width: 154px;
+  box-shadow: 0 0 0 1px rgba(180, 140, 255, 0.2) inset, 0 8px 18px rgba(140, 100, 235, 0.24);
+}
+
 /* Spinner */
 .spinner {
   width: 32px;
@@ -451,10 +478,6 @@ body {
   width: 100%;
   min-height: 46px;
   padding: 2px 10px 6px;
-}
-
-.stage-progress-container--lobby {
-  width: 100%;
 }
 
 .stage-progress-container--lobby .stage-progress-bar {
@@ -2680,10 +2703,12 @@ body {
 
 .chat-item {
   padding: 7px 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
   margin-bottom: 6px;
   text-align: left;
+  transition: background 0.14s ease;
 }
 
 .chat-item.is-mine {
@@ -2816,7 +2841,7 @@ body {
 
 .stage-progress-line {
   position: absolute;
-  top: 10px;
+  top: 19px;
   left: 15%;
   right: 15%;
   height: 2px;
@@ -2838,41 +2863,31 @@ body {
 }
 
 .stage-progress-dot {
+  counter-increment: step;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: relative;
   z-index: 2;
   cursor: default;
   min-height: 0;
-  padding: 0;
+  padding: 4px 0;
   border: 0;
   background: transparent;
   box-shadow: none;
-  transition: transform 0.22s ease;
-}
-
-.stage-progress-dot::before {
-  content: '';
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(8, 20, 14, 0.8);
-  border: 2px solid rgba(0, 230, 118, 0.25);
-  transition: all 0.2s ease;
-  box-shadow: none;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .stage-progress-dot .stage-dot-label {
   width: 100%;
   max-width: 100%;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.25);
   text-transform: uppercase;
   font-family: var(--font-display);
   text-align: center;
@@ -2880,39 +2895,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   transition: color 0.2s ease;
-}
-
-/* Completed stage - filled dot */
-.stage-progress-dot.is-completed::before {
-  background: rgba(0, 230, 118, 0.6);
-  border-color: var(--green);
-}
-
-.stage-progress-dot.is-completed {
-  border: 0;
-  background: transparent;
-}
-
-.stage-progress-dot.is-completed .stage-dot-label {
-  color: var(--text-dim);
-}
-
-/* Active stage - glowing dot */
-.stage-progress-dot.is-active::before {
-  background: var(--green);
-  border-color: var(--green);
-  width: 20px;
-  height: 20px;
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.8), inset 0 0 4px rgba(0, 0, 0, 0.3);
-}
-
-.stage-progress-dot.is-active {
-  transform: translateY(-2px);
-}
-
-.stage-progress-dot.is-active .stage-dot-label {
-  color: var(--green);
-  font-weight: 800;
 }
 
 /* Update progress line width based on active stage */
@@ -2977,60 +2959,33 @@ body {
   flex-wrap: wrap;
 }
 
-.turn-pill {
-  border-radius: 8px;
-  padding: 6px 14px;
-  border: 1px solid rgba(53, 214, 255, 0.22);
-  background:
-    linear-gradient(180deg, rgba(10, 26, 20, 0.7), rgba(8, 12, 22, 0.78));
-  white-space: nowrap;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(53, 214, 255, 0.06) inset;
-}
-.turn-pill.is-mine.is-ban {
-  background: var(--red-dim);
-  border-color: var(--red);
-}
-.turn-pill.is-mine.is-pick {
-  background: var(--green-dim);
-  border-color: var(--green);
-}
-.turn-pill-k {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.05em;
-}
-.turn-pill-main {
-  font-size: 14px;
-  font-weight: 700;
-  margin-top: 2px;
-}
-.turn-pill.is-mine.is-ban .turn-pill-main { color: var(--red); }
-.turn-pill.is-mine.is-pick .turn-pill-main { color: var(--green); }
 
 .timer-ring {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   flex-shrink: 0;
   background: conic-gradient(var(--green) 300deg, rgba(53, 214, 255, 0.18) 0deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 18px rgba(0, 230, 118, 0.14);
+  box-shadow: 0 0 18px rgba(0, 230, 118, 0.2);
 }
 .timer-ring.is-low {
   background: conic-gradient(var(--red) 60deg, rgba(255, 79, 216, 0.14) 0deg);
 }
 .timer-inner {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(180deg, rgba(8, 12, 22, 0.96), rgba(6, 10, 14, 0.96));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 14px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0;
   border: 1px solid rgba(0, 230, 118, 0.18);
 }
 
@@ -3081,7 +3036,7 @@ body {
   border-color: rgba(179, 107, 255, 0.6);
   box-shadow: 0 0 0 3px rgba(179, 107, 255, 0.16), 0 12px 26px rgba(0, 0, 0, 0.34);
 }
-.draft-leave { margin-left: auto; }
+.draft-leave { margin-left: 0; }
 
 .draft-banner {
   padding: 8px 16px;
@@ -3225,7 +3180,7 @@ body {
 
 .ban-phase-thumb {
   flex: 0 0 auto;
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(10, 12, 24, 0.35);
@@ -3233,7 +3188,6 @@ body {
 }
 
 .ban-phase-thumb--md {
-  width: 72px;
   height: 96px;
 }
 
@@ -3243,9 +3197,8 @@ body {
 }
 
 .ban-phase-thumb img {
-  width: 100%;
   height: 100%;
-  object-fit: cover;
+  width: auto;
   display: block;
 }
 
@@ -3517,6 +3470,27 @@ body {
   border-bottom: none;
 }
 
+.filter-input {
+  width: 100%;
+  background: rgba(0, 230, 118, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.filter-input::placeholder { color: rgba(123, 171, 138, 0.35); font-size: 0.8rem; }
+.filter-input:focus { border-color: rgba(0, 230, 118, 0.5); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.08); }
+.filter-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.filter-input[type="number"]::-webkit-inner-spin-button,
+.filter-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
+
+.range-pair { display: flex; align-items: center; gap: 6px; }
+.range-pair .filter-input { flex: 1; }
+.range-sep { color: var(--text-dim); font-size: 0.8rem; flex-shrink: 0; }
+
 .filter-section-label {
   font-family: var(--font-display);
   font-size: 0.58rem;
@@ -3672,24 +3646,33 @@ body {
 
 .filter-clear-btn {
   width: 100%;
-  padding: 9px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 230, 118, 0.18);
-  background: rgba(0, 230, 118, 0.06);
-  color: rgba(235, 245, 255, 0.9);
+  padding: 9px;
+  margin-top: 2px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 7px;
+  color: #f87171;
   font-family: var(--font-display);
-  font-size: 0.7rem;
-  font-weight: 800;
+  font-size: 0.65rem;
+  font-weight: 700;
   letter-spacing: 0.12em;
   cursor: pointer;
-  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
 
 .filter-clear-btn:hover {
-  border-color: rgba(0, 230, 118, 0.45);
-  background: rgba(0, 230, 118, 0.1);
-  color: var(--green);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
 }
+
+.filter-dd-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 230, 118, 0.22) transparent;
+}
+.filter-dd-panel::-webkit-scrollbar { width: 5px; }
+.filter-dd-panel::-webkit-scrollbar-track { background: transparent; }
+.filter-dd-panel::-webkit-scrollbar-thumb { background: rgba(0, 230, 118, 0.22); border-radius: 99px; }
+.filter-dd-panel::-webkit-scrollbar-thumb:hover { background: rgba(0, 230, 118, 0.48); }
 
 /* Player cards (home look) for ban grid */
 .player-card {
@@ -3865,7 +3848,7 @@ body {
   padding: 7px 14px;
   background: rgba(0,230,118,0.06);
   border: 1px solid var(--border);
-  border-radius: 50px;
+  border-radius: 7px;
   color: var(--text-dim);
   font-family: var(--font-display);
   font-size: 0.72rem;
@@ -3882,10 +3865,22 @@ body {
   border-color: rgba(0,230,118,0.3);
 }
 
+.select-mode-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .toggle-info-btn.is-off {
   color: rgba(123,171,138,0.75);
   border-color: rgba(123,171,138,0.35);
   background: rgba(123,171,138,0.08);
+}
+
+.ap-dd-btn.has-active {
+  color: var(--green);
+  border-color: var(--green);
+  background: rgba(0,230,118,0.12);
+  box-shadow: 0 0 8px rgba(0,230,118,0.15);
 }
 
 /* Image maintains aspect ratio with natural sizing */
@@ -4978,13 +4973,6 @@ body {
   align-items: flex-start;
 }
 
-.stage-progress-dot {
-  counter-increment: step;
-  gap: 10px;
-  padding: 4px 0;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 /* Default dot — numbered circle */
 .stage-progress-dot::before {
   content: attr(data-step);
@@ -5014,7 +5002,7 @@ body {
 /* Completed step — green checkmark */
 .stage-progress-dot.is-completed::before {
   content: '✓';
-  background: rgba(0, 230, 118, 0.12);
+  background: rgba(2, 20, 12, 0.95);
   border-color: rgba(0, 230, 118, 0.58);
   color: var(--green);
   font-size: 13px;
@@ -5033,18 +5021,6 @@ body {
   box-shadow: 0 0 0 4px rgba(0, 230, 118, 0.18), 0 0 28px rgba(0, 230, 118, 0.55);
 }
 
-/* Stage dot labels */
-.stage-progress-dot .stage-dot-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.25);
-  letter-spacing: 0.06em;
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .stage-progress-dot.is-completed .stage-dot-label {
   color: rgba(0, 230, 118, 0.6);
@@ -5061,12 +5037,6 @@ body {
   transform: translateY(-3px);
 }
 
-/* Connecting line: vertically centered on 30px dots (4px padding-top + 15px half-circle = 19px) */
-.stage-progress-line {
-  top: 19px;
-  left: 15%;
-  right: 15%;
-}
 
 /* ── Lobby nav bar: glass header strip ─────────────────────────── */
 
@@ -5239,66 +5209,7 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
-/* ── Turn pill: upgraded card ───────────────────────────────────── */
 
-.turn-pill {
-  border-radius: 10px;
-  padding: 7px 16px;
-  border: 1px solid rgba(53, 214, 255, 0.2);
-  background: linear-gradient(
-    145deg,
-    rgba(8, 22, 20, 0.88) 0%,
-    rgba(5, 13, 22, 0.85) 100%
-  );
-  box-shadow:
-    0 8px 22px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 1px rgba(53, 214, 255, 0.05);
-}
-
-.turn-pill-k {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.36);
-  text-transform: uppercase;
-}
-
-.turn-pill-main {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-top: 3px;
-}
-
-/* ── Timer ring: slightly larger ────────────────────────────────── */
-
-.timer-ring {
-  width: 56px;
-  height: 56px;
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.32),
-    0 0 26px rgba(0, 230, 118, 0.2);
-}
-
-.timer-inner {
-  width: 44px;
-  height: 44px;
-  font-size: 17px;
-  font-family: var(--font-display);
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-/* ── Chat panel: slightly warmer message bubbles ────────────────── */
-
-.chat-item {
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid transparent;
-  transition: background 0.14s ease;
-}
 
 .chat-item.is-mine {
   background: rgba(0, 230, 118, 0.08);
@@ -5325,9 +5236,206 @@ body {
 /* ── Stage progress container: lobby variant stays transparent ──── */
 
 .stage-progress-container--lobby {
+  width: 100%;
   background: transparent;
   border-bottom: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   padding: 4px 0 0;
 }
+
+/* ════════════════════════════════════════════════════════════
+   BAN PHASE — REDESIGNED RIGHT SIDEBAR
+   ════════════════════════════════════════════════════════════ */
+
+/* Unified dark panel card for the right sidebar */
+.ban-phase-right {
+  gap: 0;
+  background: linear-gradient(170deg, rgba(5, 16, 10, 0.92) 0%, rgba(3, 10, 15, 0.88) 100%);
+  border: 1px solid rgba(0, 230, 118, 0.16);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(0, 230, 118, 0.08),
+    inset 0 0 0 0 rgba(0, 230, 118, 0);
+}
+
+/* BANS ON ME and MY BANS sections — each takes equal share of space */
+.ban-side-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(0, 230, 118, 0.08);
+}
+
+/* Section header row */
+.ban-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* "BANS ON ME" / "MY BANS" label */
+.ban-side-title {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(0, 230, 118, 0.6);
+}
+
+/* Card strip — wraps thumbnails, scrolls vertically if needed */
+.ban-side-strip {
+  flex: 1;
+  min-height: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 0;
+}
+
+/* Empty state: show a single dashed placeholder slot */
+.ban-side-strip:empty {
+  align-items: flex-start;
+}
+
+.ban-side-strip:empty::before {
+  content: '';
+  display: block;
+  width: 68px;
+  height: 96px;
+  border-radius: 0;
+  border: 1.5px dashed rgba(0, 230, 118, 0.16);
+  background: rgba(0, 230, 118, 0.02);
+}
+
+/* Bottom confirm section — fixed height, darker tint */
+.ban-side-confirm {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(0, 4, 2, 0.48);
+  border-top: 1px solid rgba(0, 230, 118, 0.1);
+}
+
+/* "SELECTED" micro-label */
+.ban-side-confirm-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.22);
+}
+
+/* Area that holds the pending card preview */
+.ban-side-confirm-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 110px;
+}
+
+/* Center the contents of the pending strip */
+.ban-phase-strip--center {
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Empty pending selection: dashed card-shaped placeholder */
+#draftPendingBanStrip:empty {
+  width: 72px;
+  height: 96px;
+  border-radius: 10px;
+  border: 1.5px dashed rgba(0, 230, 118, 0.22);
+  background: rgba(0, 230, 118, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#draftPendingBanStrip:empty::before {
+  content: '+';
+  font-size: 22px;
+  font-weight: 300;
+  color: rgba(0, 230, 118, 0.22);
+  line-height: 1;
+  font-family: var(--font-display);
+}
+
+/* Full-width action buttons at the bottom of the confirm section */
+.ban-side-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.ban-side-actions .btn {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── Draft stage progress: integrated left/right controls ───────── */
+
+#viewDraft > .stage-progress-container {
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 20px;
+}
+
+#viewDraft > .stage-progress-container .stage-progress-bar {
+  flex: 1;
+  max-width: 620px;
+  padding: 0 8px;
+}
+
+.stage-header-left {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.stage-header-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+
+/* Leave button */
+#viewDraft > .stage-progress-container #draftLeaveBtn {
+  background: rgba(255, 68, 68, 0.08);
+  border: 1px solid rgba(255, 68, 68, 0.35);
+  color: #f87171;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: none;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+#viewDraft > .stage-progress-container #draftLeaveBtn:hover {
+  background: rgba(255, 68, 68, 0.16);
+  border-color: rgba(255, 68, 68, 0.65);
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.18);
+}
+

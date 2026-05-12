@@ -591,6 +591,7 @@ app.put("/api/game-plans/:id/swap", async (req, res) => {
 // ── Room presence + preparation session (in-memory) ──────────────────────────────
 const roomPresence = new Map();
 const PRESENCE_TTL_MS = 12000;
+const DRAFT_PRESENCE_TTL_MS = 30000; // longer window so reload during draft doesn't expire
 const DEFAULT_BAN_DURATION_SECONDS = 120;
 const MIN_BAN_DURATION_SECONDS = 5;
 const MAX_BAN_DURATION_SECONDS = 900;
@@ -836,13 +837,15 @@ function serializeRoomEntry(entry) {
 }
 
 function pruneStalePresence(entry, now = Date.now()) {
-  if (entry.host?.lastSeenAt && now - Number(entry.host.lastSeenAt) > PRESENCE_TTL_MS) {
+  const isDrafting = ["drafting", "await-ready"].includes(String(entry.status || ""));
+  const ttl = isDrafting ? DRAFT_PRESENCE_TTL_MS : PRESENCE_TTL_MS;
+  if (entry.host?.lastSeenAt && now - Number(entry.host.lastSeenAt) > ttl) {
     pushSystemChat(entry, `${entry.host.username || "Host"} left the room.`);
     entry.host = null;
     entry.closed = true;
     entry.closeReason = "Host closed the room.";
   }
-  if (entry.guest?.lastSeenAt && now - Number(entry.guest.lastSeenAt) > PRESENCE_TTL_MS) {
+  if (entry.guest?.lastSeenAt && now - Number(entry.guest.lastSeenAt) > ttl) {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
     entry.ready.guest = false;

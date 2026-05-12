@@ -25,8 +25,10 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
-- **Rooms (lobby)** — **Rooms** tab: create a room (modal only asks for a generated room code) or join with a code. Ban/pick **counts default to 0** at creation; the host sets them on the **room page** before starting a draft. The top bar no longer duplicates “Create room” next to the user menu (use the Rooms tab instead).
-- **Room page** (`/room/:code`) — dedicated full-screen flow: **lobby** (share code, optional **demo opponent** for solo testing, set bans/picks per side, start draft), **draft** (turns, timer, search/filter vs `/api/players`), **summary** when picks complete. Real-time sync is **not** wired yet (local / demo only); WebSocket hooks are called out in `public/js/room.js` for a future server.
+- **Rooms (lobby)** — **Rooms** tab: create a room (generates a code) or join with a code. Host sets ban/pick rules on the room page before starting.
+- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players simultaneously ban from the opponent's squad — click any card to ban instantly; bans sync to the opponent within ~500 ms via polling), **pick phase** (WIP), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
+- **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
+- **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
 
 ---
 
@@ -223,9 +225,10 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ### Rooms and the room page
 
-1. Sign in, open the **Rooms** tab, then **CREATE ROOM** (or join with a code). Creating a room opens a modal with a generated code; **Start room** navigates to `/room/<CODE>?bans=0&picks=0&mode=host` (or `mode=join` when joining).
-2. On the **room page**, the host sets **bans per side** and **picks per side** (must be at least one total ban or pick step to start). Use **Add demo opponent** to run a draft locally without a second browser; the demo side auto-acts on its turns.
-3. The draft loads player cards from **`GET /api/players`** (search + position filter). While in the lobby, the page registers with **`POST /api/rooms/:code/presence`** and polls **`GET /api/rooms/:code`** every few seconds so the **host sees when a guest has joined** (in-memory on the Node process; two browsers on the same server). Full draft sync still needs WebSockets or similar.
+1. Sign in, open the **Rooms** tab, then **CREATE ROOM** (or **JOIN** with a code). Creating a room navigates to `/room/<CODE>` (host view); sharing the **Copy invite link** button sends the guest to `/room/<CODE>?mode=join`.
+2. On the **room page**, the host configures **bans per side**, **ban/pick durations**, **reveal mode** (show picks each turn vs. reveal at end), and **category allowances** (restrict the pick pool by position, overall, card type, region, etc. with per-category caps). The guest clicks **READY**; the host then **START DRAFT**.
+3. Presence is maintained via `POST /api/rooms/:code/presence` (heartbeat every ~5 s). The client polls `GET /api/rooms/:code` to detect guest join, config changes, and draft start. During an active draft the TTL extends to 30 s so page reloads don't drop the session.
+4. If a second user tries to open the host URL, they receive a **"Host slot taken"** error with a suggestion to use the invite link. If both slots are filled, any additional attempt gets a **"Room is full"** error.
 
 ---
 
@@ -234,11 +237,19 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
-| `POST` | `/api/rooms/:code/presence` | Register as host or guest for lobby presence (in-memory) |
-| `GET` | `/api/rooms/:code` | Current host/guest for a room code (for polling) |
+| `POST` | `/api/rooms/:code/presence` | Heartbeat — register/refresh as host or guest (in-memory, 12 s lobby / 30 s draft TTL) |
+| `GET` | `/api/rooms/:code` | Poll current room snapshot (host, guest, config, bans, picks, status) |
+| `POST` | `/api/rooms/:code/leave` | Remove self from room; closes room if host |
+| `POST` | `/api/rooms/:code/start` | Host starts the draft (requires guest ready) |
+| `POST` | `/api/rooms/:code/ready` | Guest toggles ready state |
+| `POST` | `/api/rooms/:code/ban` | Submit a ban during the ban phase |
+| `POST` | `/api/rooms/:code/match-ready` | Toggle post-draft match-ready state |
+| `POST` | `/api/rooms/:code/kick-guest` | Host removes the current guest |
+| `POST` | `/api/rooms/:code/config` | Host updates ban/pick settings |
 | `GET` | `/img/card/:id.png` | Player card image (cached to R2 if configured) |
 | `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
 | `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
+| `GET` | `/api/players/filter-options` | Distinct filter values (card types, leagues, playing styles, regions) |
 | `GET` | `/api/players/distinct` | Distinct values for autocomplete (club, nationality) |
 | `GET` | `/api/my-players` | Get a user's team roster |
 | `POST` | `/api/my-players` | Add a player to a user's team |
@@ -301,14 +312,18 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] host can kick other roomates
 - [ ] fix rooms tab
 - [x] auto-backup `players_catalog` → `players_catalog_backup` before every fresh scrape run
+- [x] reloading the page during a draft now reconnects directly to the draft (no lobby flash, no draft state loss)
+- [x] "reload site / changes not saved" browser dialog removed — draft is always safely recoverable via sessionStorage cache
+- [x] room security: duplicate host or over-capacity guest connections are rejected with distinct error screens (Host slot taken / Room is full / Access denied)
 - [ ] after scraping, some players have empty playing styles, need to fix the scraper / data cleaning
 - [ ] run scrape missing should be record in scrape logs, and show in the end of scrape logs table 
 - [ ] ban pick page:
-  - [ ] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
+  - [x] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
   - [ ] for pick phase: I can see all my players, my current picked players in a specific formation, can also open my game plans to consult and build according to it, can see opponent's pick players
+- [x] ban grid: player cards no longer continuously scale up/down on hover (fixed by innerHTML diffing guard — DOM nodes are only recreated when content actually changes)
 - [ ] fix tab in setting, ban page
 - [ ] fix the ban duration, pick duration text to avoid text overflow when resize window
-- [ ] add username on the righ of tab, close/leave room button on the left
+- [ ] add username on the right of tab, close/leave room button on the left
 
 ---
 
@@ -326,30 +341,34 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] clean data
 - [x] Rooms tab + create/join flow (home)
 - [x] Dedicated room page (lobby UI, draft UI, end summary; local + demo opponent)
-- [ ] Ban & pick session (real-time with WebSockets; replace local state in `room.js`)
-   + [x] mode: reaveal after finishing or show after every turn
+- [ ] Ban & pick session (real-time with WebSockets; replace polling in `room.js`)
+   + [x] mode: reveal after finishing or show after every turn
    + [x] host: determine the rules of ban pick, can kick other roomates
    + [x] finalise rules: ban categories, number of ban players
-   + [ ] procedure: finalise rules -> start ban category -> ban players & pick loop
-   + [ ] rule: 
+   + [x] room security: prevent duplicate hosts and over-capacity guests
+   + [x] reliable reconnect on page reload (sessionStorage phase cache + 30 s draft TTL)
+   + [x] clean leave flow (no spurious "unsaved changes" browser dialog)
+   + [ ] procedure: finalise rules → start ban category → ban players & pick loop
+   + [ ] rule:
       + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
-      + [x] allow: card type: number of players, overall rating
-      + [x] compulsory: card type: number of players, overall rating
-      + [ ] ban players: ban exact player card
+      + [x] allow: card type — number of players, overall rating
+      + [x] compulsory: card type — number of players, overall rating
+      + [x] ban players: ban exact player card (click-to-ban; syncs to opponent via polling)
       + [ ] pick players: pick exact player card
    + [ ] a player can see opponent's team then ban/pick
    + [ ] players can view their game plans to build accordingly
    + [ ] a list of my current squad / all my players / all other players
    + [ ] after finish picking, done then show two squads on screen
 - [x] update database
-- [ ] admin page 
+- [ ] admin page
 - [ ] responsive design
-- [ ] security
 - [ ] set up cloud server + database
 - [ ] set up R2 + CDN for card image caching
 - [ ] analytics + error monitoring
 - [ ] testing (unit + integration)
 - [ ] documentation
 - [ ] code cleanup and refactoring
+   + [x] `room.css` — merged all duplicate/late-override rule blocks into single canonical definitions (timer ring, stage progress dots & labels, connecting line, chat item, lobby container)
+   + [x] `room.js` — ban grid and ban strips use innerHTML diffing to avoid unnecessary DOM recreation during 500 ms polling cycles (prevents hover animation reset / continuous scale pulse)
 - [ ] UI polish and animations
 - [ ] deploy
