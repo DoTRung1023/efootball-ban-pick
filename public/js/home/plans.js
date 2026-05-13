@@ -164,6 +164,7 @@ const ppState = {
   filterPlayingStyle:  new Set(),
   filterCardType:      new Set(),
   filterLeague:        new Set(),
+  filterRegion:        new Set(),
   filterClub:      "",
   filterNation:    "",
   filterOverallMin:     "", filterOverallMax:     "",
@@ -182,6 +183,7 @@ function resetPpState() {
   ppState.filterPlayingStyle.clear();
   ppState.filterCardType.clear();
   ppState.filterLeague.clear();
+  ppState.filterRegion.clear();
   ppState.filterClub      = "";
   ppState.filterNation    = "";
   ppState.filterOverallMin = ppState.filterOverallMax = "";
@@ -572,7 +574,7 @@ function updatePpSortUI() {
 
 function updatePpFilterDot() {
   const hasFilter = ppState.filterPositions.size > 0 || ppState.filterFoot.size
-    || ppState.filterPlayingStyle.size || ppState.filterCardType.size || ppState.filterLeague.size
+    || ppState.filterPlayingStyle.size || ppState.filterCardType.size || ppState.filterLeague.size || ppState.filterRegion.size
     || ppState.filterClub || ppState.filterNation
     || ppState.filterOverallMin || ppState.filterOverallMax
     || ppState.filterMaxOverallMin || ppState.filterMaxOverallMax
@@ -622,6 +624,7 @@ function buildPpFilterPanel() {
   const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 
   panel.innerHTML = `
+    <div class="filter-group-label">IDENTITY</div>
     <div class="filter-section">
       <div class="filter-section-label">POSITION</div>
       <div class="pos-multiselect" id="ppPosMs">
@@ -630,26 +633,6 @@ function buildPpFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="ppPosMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect" id="ppFootMs">
-        <button class="pos-ms-btn" id="ppFootMsBtn" type="button">
-          <span id="ppFootMsLabel">Any foot</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppFootMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect" id="ppPsMs">
-        <button class="pos-ms-btn" id="ppPsMsBtn" type="button">
-          <span id="ppPsMsLabel">Any playing style</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppPsMsPanel"></div>
       </div>
     </div>
     <div class="filter-section">
@@ -663,15 +646,26 @@ function buildPpFilterPanel() {
       </div>
     </div>
     <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
-      <div class="pos-multiselect" id="ppLgMs">
-        <button class="pos-ms-btn" id="ppLgMsBtn" type="button">
-          <span id="ppLgMsLabel">Any league</span>
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="ppPsMs">
+        <button class="pos-ms-btn" id="ppPsMsBtn" type="button">
+          <span id="ppPsMsLabel">Any playing style</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="ppLgMsPanel"></div>
+        <div class="pos-ms-panel" id="ppPsMsPanel"></div>
       </div>
     </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="ppFootMs">
+        <button class="pos-ms-btn" id="ppFootMsBtn" type="button">
+          <span id="ppFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-group-label">STATS</div>
     <div class="filter-section">
       <div class="filter-section-label">OVERALL LEVEL 1</div>
       <div class="range-pair">
@@ -688,6 +682,27 @@ function buildPpFilterPanel() {
         <input type="number" class="filter-input" id="ppFcOvrMaxMax" placeholder="Max" value="${ppState.filterMaxOverallMax}">
       </div>
     </div>
+    <div class="filter-group-label">CLUB & ORIGIN</div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="ppLgMs">
+        <button class="pos-ms-btn" id="ppLgMsBtn" type="button">
+          <span id="ppLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">REGION</div>
+      <div class="pos-multiselect" id="ppRgMs">
+        <button class="pos-ms-btn" id="ppRgMsBtn" type="button">
+          <span id="ppRgMsLabel">Any region</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="ppRgMsPanel"></div>
+      </div>
+    </div>
     <div class="filter-section">
       <div class="filter-section-label">CLUB</div>
       <input type="text" class="filter-input" id="ppFcClub" placeholder="e.g. FC Barcelona" value="${ppState.filterClub}" autocomplete="off">
@@ -695,6 +710,15 @@ function buildPpFilterPanel() {
     <div class="filter-section">
       <div class="filter-section-label">NATIONALITY</div>
       <input type="text" class="filter-input" id="ppFcNation" placeholder="e.g. Brazil" value="${ppState.filterNation}" autocomplete="off">
+    </div>
+    <div class="filter-group-label">PHYSICAL</div>
+    <div class="filter-section">
+      <div class="filter-section-label">AGE</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="ppFcAMin" placeholder="Min" value="${ppState.filterAgeMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="ppFcAMax" placeholder="Max" value="${ppState.filterAgeMax}">
+      </div>
     </div>
     <div class="filter-section">
       <div class="filter-section-label">HEIGHT (cm)</div>
@@ -710,14 +734,6 @@ function buildPpFilterPanel() {
         <input type="number" class="filter-input" id="ppFcWMin" placeholder="Min" value="${ppState.filterWeightMin}">
         <span class="range-sep">—</span>
         <input type="number" class="filter-input" id="ppFcWMax" placeholder="Max" value="${ppState.filterWeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcAMin" placeholder="Min" value="${ppState.filterAgeMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcAMax" placeholder="Max" value="${ppState.filterAgeMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -815,6 +831,15 @@ function buildPpFilterPanel() {
         allLabel: "Any league",
         onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
       },
+      {
+        optionsKey: "region",
+        stateSet: ppState.filterRegion,
+        panelSel: "#ppRgMsPanel",
+        btnSel: "#ppRgMsBtn",
+        labelSel: "#ppRgMsLabel",
+        allLabel: "Any region",
+        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+      },
     ]);
   if (playerFilterOptionsCache) runPpMs(playerFilterOptionsCache);
   else getPlayerFilterOptions().then(runPpMs);
@@ -856,6 +881,7 @@ function renderPlanPicker() {
     if (ppState.filterPlayingStyle.size && (p.playing_style == null || !ppState.filterPlayingStyle.has(p.playing_style))) return false;
     if (ppState.filterCardType.size && (p.card_type == null || !ppState.filterCardType.has(p.card_type))) return false;
     if (ppState.filterLeague.size && (p.league == null || !ppState.filterLeague.has(p.league))) return false;
+    if (ppState.filterRegion.size && (p.region == null || !ppState.filterRegion.has(p.region))) return false;
     if (ppState.filterOverallMin && (p.overall == null || p.overall < +ppState.filterOverallMin)) return false;
     if (ppState.filterOverallMax && (p.overall == null || p.overall > +ppState.filterOverallMax)) return false;
     if (ppState.filterMaxOverallMin && (p.overall_max == null || p.overall_max < +ppState.filterMaxOverallMin)) return false;

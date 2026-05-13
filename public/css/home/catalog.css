@@ -223,6 +223,19 @@
 
 .filter-section:last-child { border-bottom: none; }
 
+.filter-group-label {
+  padding: 6px 14px 5px;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: rgba(0, 230, 118, 0.5);
+  background: rgba(0, 230, 118, 0.04);
+  border-bottom: 1px solid rgba(0, 230, 118, 0.07);
+  border-top: 1px solid rgba(0, 230, 118, 0.07);
+}
+.filter-group-label:first-child { border-top: none; }
+
 .filter-section-label {
   font-family: var(--font-display);
   font-size: 0.58rem;

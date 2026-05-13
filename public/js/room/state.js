@@ -71,6 +71,7 @@ export const state = {
   banFilterPlayingStyle: [],
   banFilterCardType: [],
   banFilterLeague: [],
+  banFilterRegion: [],
   banFilterOverallMin: "",
   banFilterOverallMax: "",
   banFilterOverallMaxMin: "",

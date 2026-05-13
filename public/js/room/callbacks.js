@@ -6,4 +6,5 @@ export const cb = {
   showDone: () => {},
   showRoomClosed: (_msg) => {},
   startDraftFromLobby: () => {},
+  onOpponentLeft: () => {},
 };

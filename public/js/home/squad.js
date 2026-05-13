@@ -25,6 +25,7 @@ const squad = {
   filterPlayingStyle:  new Set(),
   filterCardType:      new Set(),
   filterLeague:        new Set(),
+  filterRegion:        new Set(),
   filterClub:      "",
   filterNation:    "",
   filterOverallMin:     "",
@@ -82,6 +83,9 @@ function getFilteredSortedSquad() {
   }
   if (squad.filterLeague.size) {
     list = list.filter((p) => p.league != null && squad.filterLeague.has(p.league));
+  }
+  if (squad.filterRegion.size) {
+    list = list.filter((p) => p.region != null && squad.filterRegion.has(p.region));
   }
   if (squad.filterOverallMin) {
     list = list.filter((p) => p.overall != null && p.overall >= Number(squad.filterOverallMin));
@@ -338,7 +342,7 @@ function updateSquadFilterDot() {
   const dot = document.getElementById("teamFilterDot");
   const btn = document.getElementById("teamFilterBtn");
   const active = squad.filterPositions.size > 0
-    || squad.filterFoot.size || squad.filterPlayingStyle.size || squad.filterCardType.size || squad.filterLeague.size
+    || squad.filterFoot.size || squad.filterPlayingStyle.size || squad.filterCardType.size || squad.filterLeague.size || squad.filterRegion.size
     || !!squad.filterClub || !!squad.filterNation
     || !!squad.filterOverallMin || !!squad.filterOverallMax
     || !!squad.filterMaxOverallMin || !!squad.filterMaxOverallMax
@@ -375,6 +379,7 @@ function buildSquadFilterPanel() {
   panel.className = "ap-dd-panel filter-dd-panel";
   panel.id = "squadFilterPanel";
   panel.innerHTML = `
+    <div class="filter-group-label">IDENTITY</div>
     <div class="filter-section">
       <div class="filter-section-label">POSITION</div>
       <div class="pos-multiselect" id="squadPosMultiselect">
@@ -383,26 +388,6 @@ function buildSquadFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="squadPosMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect" id="sqfFootMs">
-        <button class="pos-ms-btn" id="sqfFootMsBtn" type="button">
-          <span id="sqfFootMsLabel">Any foot</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="sqfFootMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect" id="sqfPsMs">
-        <button class="pos-ms-btn" id="sqfPsMsBtn" type="button">
-          <span id="sqfPsMsLabel">Any playing style</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="sqfPsMsPanel"></div>
       </div>
     </div>
     <div class="filter-section">
@@ -416,15 +401,26 @@ function buildSquadFilterPanel() {
       </div>
     </div>
     <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
-      <div class="pos-multiselect" id="sqfLgMs">
-        <button class="pos-ms-btn" id="sqfLgMsBtn" type="button">
-          <span id="sqfLgMsLabel">Any league</span>
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="sqfPsMs">
+        <button class="pos-ms-btn" id="sqfPsMsBtn" type="button">
+          <span id="sqfPsMsLabel">Any playing style</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="sqfLgMsPanel"></div>
+        <div class="pos-ms-panel" id="sqfPsMsPanel"></div>
       </div>
     </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="sqfFootMs">
+        <button class="pos-ms-btn" id="sqfFootMsBtn" type="button">
+          <span id="sqfFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-group-label">STATS</div>
     <div class="filter-section">
       <div class="filter-section-label">OVERALL LEVEL 1</div>
       <div class="range-pair">
@@ -441,6 +437,27 @@ function buildSquadFilterPanel() {
         <input type="number" class="filter-input" id="sqfOvrMaxMax" placeholder="Max" value="${squad.filterMaxOverallMax}">
       </div>
     </div>
+    <div class="filter-group-label">CLUB & ORIGIN</div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="sqfLgMs">
+        <button class="pos-ms-btn" id="sqfLgMsBtn" type="button">
+          <span id="sqfLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">REGION</div>
+      <div class="pos-multiselect" id="sqfRgMs">
+        <button class="pos-ms-btn" id="sqfRgMsBtn" type="button">
+          <span id="sqfRgMsLabel">Any region</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="sqfRgMsPanel"></div>
+      </div>
+    </div>
     <div class="filter-section">
       <div class="filter-section-label">CLUB</div>
       <div class="autocomplete-wrap">
@@ -453,6 +470,15 @@ function buildSquadFilterPanel() {
       <div class="autocomplete-wrap">
         <input type="text" class="filter-input" id="sqfNation" placeholder="e.g. Brazil" value="${squad.filterNation}" autocomplete="off">
         <div class="autocomplete-list" id="sqfNationAc"></div>
+      </div>
+    </div>
+    <div class="filter-group-label">PHYSICAL</div>
+    <div class="filter-section">
+      <div class="filter-section-label">AGE</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="sqfAgeMin" placeholder="Min" value="${squad.filterAgeMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="sqfAgeMax" placeholder="Max" value="${squad.filterAgeMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -469,14 +495,6 @@ function buildSquadFilterPanel() {
         <input type="number" class="filter-input" id="sqfWeightMin" placeholder="Min" value="${squad.filterWeightMin}">
         <span class="range-sep">—</span>
         <input type="number" class="filter-input" id="sqfWeightMax" placeholder="Max" value="${squad.filterWeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="sqfAgeMin" placeholder="Min" value="${squad.filterAgeMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="sqfAgeMax" placeholder="Max" value="${squad.filterAgeMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -583,6 +601,15 @@ function buildSquadFilterPanel() {
         allLabel: "Any league",
         onChange: () => { updateSquadFilterDot(); renderSquad(); },
       },
+      {
+        optionsKey: "region",
+        stateSet: squad.filterRegion,
+        panelSel: "#sqfRgMsPanel",
+        btnSel: "#sqfRgMsBtn",
+        labelSel: "#sqfRgMsLabel",
+        allLabel: "Any region",
+        onChange: () => { updateSquadFilterDot(); renderSquad(); },
+      },
     ]);
   if (playerFilterOptionsCache) runSquadMs(playerFilterOptionsCache);
   else getPlayerFilterOptions().then(runSquadMs);
@@ -606,6 +633,7 @@ function buildSquadFilterPanel() {
     squad.filterPlayingStyle.clear();
     squad.filterCardType.clear();
     squad.filterLeague.clear();
+    squad.filterRegion.clear();
     squad.filterClub = squad.filterNation = "";
     squad.filterOverallMin = squad.filterOverallMax = "";
     squad.filterMaxOverallMin = squad.filterMaxOverallMax = "";

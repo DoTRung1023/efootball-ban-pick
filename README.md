@@ -27,6 +27,9 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
 - **Rooms (lobby)** — **Rooms** tab: create a room (generates a code) or join with a code. Host sets ban/pick rules on the room page before starting.
 - **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players stage bans from the opponent's squad then each clicks CONFIRM BANS — staged bans appear on the opponent's screen in real-time via ~500 ms polling; a username + presence badge shows whether the opponent is online and whether they've confirmed; when both sides confirm the pick phase starts automatically), **pick phase** (both players simultaneously pick from the allowance-filtered pool — search/sort/position filter, instant sync via polling, opponent strip shown in instant-reveal mode), **ready phase** (shows both squads side by side; both players hit READY to confirm and transition to the summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
+- **Opponent-left detection** — if the guest disappears (presence timeout or explicit leave) while a draft is active, the remaining user sees a "Opponent left" popup with a 5-second auto-redirect to home. `showRoomClosed` similarly auto-redirects after 10 seconds.
+- **Grouped filter panels** — all filter dropdowns (ban page, My Players, Add Player catalog, Game Plans player picker) share a consistent 4-section layout: **IDENTITY** (Position, Card Type, Playing Style, Foot) → **STATS** (Overall Level 1, Overall Max) → **CLUB & ORIGIN** (League, Region, Club, Nationality) → **PHYSICAL** (Age, Height, Weight).
+- **Region filter** — all filter panels support filtering by player region (e.g. Europe, South America). Options are fetched from `GET /api/players/filter-options`.
 - **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
 - **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
 
@@ -338,6 +341,9 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] categories undone: league, clubs, nationality
 - [x] host can kick other roomates
 - [ ] fix rooms tab
+- [x] opponent-left detection: if the guest disappears during an active draft, the host sees a "Opponent left" popup with a 5-second auto-redirect; `showRoomClosed` also auto-redirects after 10 seconds
+- [x] all filter panels (ban page, My Players, Add Player, Game Plans) reordered into 4 labelled groups: IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL
+- [x] region filter added to all filter panels (ban page, My Players, Add Player, Game Plans)
 - [x] auto-backup `players_catalog` → `players_catalog_backup` before every fresh scrape run
 - [x] reloading the page during a draft now reconnects directly to the draft (no lobby flash, no draft state loss)
 - [x] "reload site / changes not saved" browser dialog removed — draft is always safely recoverable via sessionStorage cache
@@ -348,9 +354,11 @@ Visit [http://localhost:3000](http://localhost:3000).
   - [x] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
   - [x] for pick phase: both players pick simultaneously from the allowance-filtered pool; search/sort/position filter; MY PICKS strip + OPPONENT PICKS strip (instant-reveal mode); ready phase shows both squads for confirmation
 - [x] ban grid: player cards no longer continuously scale up/down on hover (two root causes fixed: (1) replaced innerHTML string comparison with a state-key diff guard — browsers normalize whitespace and strip void-element slashes on serialization so the old comparison always failed and the grid rebuilt every 500 ms poll cycle; (2) removed `translateY` from the hover transform — moving the card upward pushes its bottom edge above the cursor, deactivating `:hover` mid-transition and causing a jitter loop)
-- [ ] fix tab in setting, ban page
-- [ ] fix the ban duration, pick duration text to avoid text overflow when resize window
-- [ ] add username on the right of tab, close/leave room button on the left
+- [x] fix tab in setting, ban page
+- [x] fix the ban duration, pick duration text to avoid text overflow when resize window
+- [ ] after confirming bans, players can still add/remove players to ban list before the pick phase starts, remove hover effect.
+- [ ] when waiting for opponent to confirm bans, if I already confirmed, I cannot change my ban list.
+
 
 ---
 
@@ -382,6 +390,9 @@ Visit [http://localhost:3000](http://localhost:3000).
       + [x] compulsory: card type — number of players, overall rating
       + [x] ban players: each user bans independently from the opponent's squad (both can ban the same player); stage bans → CONFIRM BANS → both sides confirming advances to pick phase automatically; staged bans sync to opponent's screen in real-time; opponent presence badge shows username + online/offline + choosing/confirmed status; duplicate-ban check is per-side only (your own bans, not opponent's)
       + [x] pick players: pick exact player card (click-to-pick; syncs to opponent via polling; allowance cap validation)
+      + [x] opponent-left handling: guest leaving during draft stops the timer and shows a 5-second countdown popup on the host's screen
+      + [x] all filter dropdowns use a consistent 4-section grouped layout (IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL) with labelled section dividers
+      + [x] region filter added to ban phase filter panel (plus My Players, Add Player catalog, Game Plans)
    + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
    + [ ] players can view their game plans to build accordingly during the pick phase
    + [x] a list of my current squad (allowance-filtered) visible during pick phase; search, sort, position filter

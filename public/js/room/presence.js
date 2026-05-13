@@ -156,6 +156,14 @@ export async function pollPresence() {
       prevChatLen !== nextChatLen;
     const configChanged = nextUpdatedAt > prevUpdatedAt;
 
+    // During draft/ready phase, detect the guest leaving (non-host player disappeared).
+    if ((state.phase === "draft" || state.phase === "ready") && prevGuestId && !nextGuestId && !state.room?.closed) {
+      state.phase = "abandoned";
+      stopPresencePolling();
+      cb.onOpponentLeft();
+      return;
+    }
+
     if (state.phase === "lobby") {
       if (cb.tryEnterDraftFromRoomSnapshot()) return;
       if (snap.changed || presenceChanged || configChanged) cb.renderLobby();

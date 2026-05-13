@@ -109,6 +109,7 @@ export function getBanListPlayers() {
   const psSet = new Set(Array.isArray(state.banFilterPlayingStyle) ? state.banFilterPlayingStyle : []);
   const ctSet = new Set(Array.isArray(state.banFilterCardType) ? state.banFilterCardType : []);
   const lgSet = new Set(Array.isArray(state.banFilterLeague) ? state.banFilterLeague : []);
+  const rgSet = new Set(Array.isArray(state.banFilterRegion) ? state.banFilterRegion : []);
   const ovrMin = state.banFilterOverallMin !== "" ? Number(state.banFilterOverallMin) : null;
   const ovrMax = state.banFilterOverallMax !== "" ? Number(state.banFilterOverallMax) : null;
   const ovrMxMin = state.banFilterOverallMaxMin !== "" ? Number(state.banFilterOverallMaxMin) : null;
@@ -129,6 +130,7 @@ export function getBanListPlayers() {
   if (psSet.size) rows = rows.filter((p) => psSet.has(String(p?.playing_style ?? p?._raw?.playing_style ?? "")));
   if (ctSet.size) rows = rows.filter((p) => ctSet.has(String(p?.card_type ?? p?._raw?.card_type ?? "")));
   if (lgSet.size) rows = rows.filter((p) => lgSet.has(String(p?.league ?? p?._raw?.league ?? "")));
+  if (rgSet.size) rows = rows.filter((p) => rgSet.has(String(p?.region ?? p?._raw?.region ?? "")));
   if (ovrMin !== null) rows = rows.filter((p) => { const v = Number(p?._raw?.overall ?? p?.overall_rating ?? 0); return !isNaN(v) && v >= ovrMin; });
   if (ovrMax !== null) rows = rows.filter((p) => { const v = Number(p?._raw?.overall ?? p?.overall_rating ?? 0); return !isNaN(v) && v <= ovrMax; });
   if (ovrMxMin !== null) rows = rows.filter((p) => { const v = Number(getPlayerCardValue(p)); return !isNaN(v) && v >= ovrMxMin; });
@@ -389,6 +391,7 @@ export function renderBanToolbar() {
   const selPs   = Array.isArray(state.banFilterPlayingStyle)  ? state.banFilterPlayingStyle  : [];
   const selCt   = Array.isArray(state.banFilterCardType)      ? state.banFilterCardType      : [];
   const selLg   = Array.isArray(state.banFilterLeague)        ? state.banFilterLeague        : [];
+  const selRg   = Array.isArray(state.banFilterRegion)         ? state.banFilterRegion         : [];
 
   function msItemsHtml(options, selected, attr) {
     return options.map((v) => `
@@ -398,6 +401,7 @@ export function renderBanToolbar() {
   }
 
   posPanel.innerHTML = `
+    <div class="filter-group-label">IDENTITY</div>
     <div class="filter-section">
       <div class="filter-section-label">POSITION</div>
       <div class="pos-multiselect">
@@ -406,26 +410,6 @@ export function renderBanToolbar() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="banPosMsPanel">${msItemsHtml(POSITION_OPTIONS, selPos, "ban-pos-ms")}</div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect">
-        <button class="pos-ms-btn ${selFoot.length ? "has-pos-filter" : ""}" id="banFootMsBtn" type="button">
-          <span id="banFootMsLabel">${escapeHtml(msLabel(selFoot, "Any foot"))}</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="banFootMsPanel">${msItemsHtml(FOOT_OPTIONS, selFoot, "ban-foot-ms")}</div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect">
-        <button class="pos-ms-btn ${selPs.length ? "has-pos-filter" : ""}" id="banPsMsBtn" type="button">
-          <span id="banPsMsLabel">${escapeHtml(msLabel(selPs, "Any playing style"))}</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="banPsMsPanel">${msItemsHtml(PLAYING_STYLE_OPTIONS, selPs, "ban-ps-ms")}</div>
       </div>
     </div>
     <div class="filter-section">
@@ -439,15 +423,26 @@ export function renderBanToolbar() {
       </div>
     </div>
     <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
+      <div class="filter-section-label">PLAYING STYLE</div>
       <div class="pos-multiselect">
-        <button class="pos-ms-btn ${selLg.length ? "has-pos-filter" : ""}" id="banLgMsBtn" type="button">
-          <span id="banLgMsLabel">${escapeHtml(msLabel(selLg, "Any league"))}</span>
+        <button class="pos-ms-btn ${selPs.length ? "has-pos-filter" : ""}" id="banPsMsBtn" type="button">
+          <span id="banPsMsLabel">${escapeHtml(msLabel(selPs, "Any playing style"))}</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="banLgMsPanel">${msItemsHtml(BAN_LEAGUE_OPTIONS, selLg, "ban-lg-ms")}</div>
+        <div class="pos-ms-panel" id="banPsMsPanel">${msItemsHtml(PLAYING_STYLE_OPTIONS, selPs, "ban-ps-ms")}</div>
       </div>
     </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect">
+        <button class="pos-ms-btn ${selFoot.length ? "has-pos-filter" : ""}" id="banFootMsBtn" type="button">
+          <span id="banFootMsLabel">${escapeHtml(msLabel(selFoot, "Any foot"))}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="banFootMsPanel">${msItemsHtml(FOOT_OPTIONS, selFoot, "ban-foot-ms")}</div>
+      </div>
+    </div>
+    <div class="filter-group-label">STATS</div>
     <div class="filter-section">
       <div class="filter-section-label">OVERALL LEVEL 1</div>
       <div class="range-pair">
@@ -464,6 +459,27 @@ export function renderBanToolbar() {
         <input type="number" class="filter-input" id="banFcOvrMxMax" placeholder="Max" value="${escapeHtml(String(state.banFilterOverallMaxMax))}">
       </div>
     </div>
+    <div class="filter-group-label">CLUB & ORIGIN</div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect">
+        <button class="pos-ms-btn ${selLg.length ? "has-pos-filter" : ""}" id="banLgMsBtn" type="button">
+          <span id="banLgMsLabel">${escapeHtml(msLabel(selLg, "Any league"))}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="banLgMsPanel">${msItemsHtml(BAN_LEAGUE_OPTIONS, selLg, "ban-lg-ms")}</div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">REGION</div>
+      <div class="pos-multiselect">
+        <button class="pos-ms-btn ${selRg.length ? "has-pos-filter" : ""}" id="banRgMsBtn" type="button">
+          <span id="banRgMsLabel">${escapeHtml(msLabel(selRg, "Any region"))}</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="banRgMsPanel">${msItemsHtml(REGION_OPTIONS, selRg, "ban-rg-ms")}</div>
+      </div>
+    </div>
     <div class="filter-section">
       <div class="filter-section-label">CLUB</div>
       <input type="text" class="filter-input" id="banFcClub" placeholder="e.g. FC Barcelona" value="${escapeHtml(state.banFilterClub)}" autocomplete="off">
@@ -471,6 +487,15 @@ export function renderBanToolbar() {
     <div class="filter-section">
       <div class="filter-section-label">NATIONALITY</div>
       <input type="text" class="filter-input" id="banFcNation" placeholder="e.g. Brazil" value="${escapeHtml(state.banFilterNation)}" autocomplete="off">
+    </div>
+    <div class="filter-group-label">PHYSICAL</div>
+    <div class="filter-section">
+      <div class="filter-section-label">AGE</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="banFcAgeMin" placeholder="Min" value="${escapeHtml(String(state.banFilterAgeMin))}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="banFcAgeMax" placeholder="Max" value="${escapeHtml(String(state.banFilterAgeMax))}">
+      </div>
     </div>
     <div class="filter-section">
       <div class="filter-section-label">HEIGHT (cm)</div>
@@ -489,19 +514,11 @@ export function renderBanToolbar() {
       </div>
     </div>
     <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="banFcAgeMin" placeholder="Min" value="${escapeHtml(String(state.banFilterAgeMin))}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="banFcAgeMax" placeholder="Max" value="${escapeHtml(String(state.banFilterAgeMax))}">
-      </div>
-    </div>
-    <div class="filter-section">
       <button class="filter-clear-btn" id="banClearFiltersBtn">CLEAR ALL FILTERS</button>
     </div>
   `;
 
-  const anyFilterActive = selPos.length || selFoot.length || selPs.length || selCt.length || selLg.length
+  const anyFilterActive = selPos.length || selFoot.length || selPs.length || selCt.length || selLg.length || selRg.length
     || state.banFilterOverallMin || state.banFilterOverallMax
     || state.banFilterOverallMaxMin || state.banFilterOverallMaxMax
     || state.banFilterClub || state.banFilterNation
@@ -627,6 +644,7 @@ export function bindBanPhaseUiOnce() {
       state.banFilterPlayingStyle = [];
       state.banFilterCardType = [];
       state.banFilterLeague = [];
+      state.banFilterRegion = [];
       state.banFilterOverallMin = "";
       state.banFilterOverallMax = "";
       state.banFilterOverallMaxMin = "";
@@ -650,6 +668,7 @@ export function bindBanPhaseUiOnce() {
       { attr: "ban-ps-ms",   stateKey: "banFilterPlayingStyle", normalize: (v) => v },
       { attr: "ban-ct-ms",   stateKey: "banFilterCardType",     normalize: (v) => v },
       { attr: "ban-lg-ms",   stateKey: "banFilterLeague",       normalize: (v) => v },
+      { attr: "ban-rg-ms",   stateKey: "banFilterRegion",       normalize: (v) => v },
     ];
     for (const cfg of msConfigs) {
       const item = e.target.closest(`[data-${cfg.attr}]`);
@@ -666,7 +685,7 @@ export function bindBanPhaseUiOnce() {
     }
 
     // Toggle sub-panel open/close
-    const subBtns = ["banPosMsBtn", "banFootMsBtn", "banPsMsBtn", "banCtMsBtn", "banLgMsBtn"];
+    const subBtns = ["banPosMsBtn", "banFootMsBtn", "banPsMsBtn", "banCtMsBtn", "banLgMsBtn", "banRgMsBtn"];
     for (const btnId of subBtns) {
       const btn = e.target.closest(`#${btnId}`);
       if (btn) {

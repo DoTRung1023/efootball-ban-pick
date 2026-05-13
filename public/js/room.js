@@ -328,18 +328,63 @@ function showRoomClosed(message = "Room is closed.") {
   const msg = document.getElementById("errorMessage");
   const title = document.getElementById("errorTitle");
   const icon = document.getElementById("errorStateIcon");
-  if (msg) msg.textContent = message;
   const btn = document.getElementById("errorLeaveBtn");
   if (btn) btn.textContent = "Back to home";
-  if (title) title.hidden = false;
+  if (title) { title.textContent = "Room closed"; title.hidden = false; }
   if (icon) icon.hidden = false;
-  if (title) title.textContent = "Room closed";
   if (view) {
     view.classList.remove("is-host-lock");
     view.classList.add("is-room-closed");
   }
+  let secs = 10;
+  const update = () => {
+    if (msg) msg.textContent = `${message} Returning to home in ${secs}s…`;
+  };
+  update();
   showView("viewError");
   updateStageTabs();
+  const t = setInterval(() => {
+    secs--;
+    if (secs <= 0) {
+      clearInterval(t);
+      window.location.href = "/";
+      return;
+    }
+    update();
+  }, 1000);
+}
+
+function showOpponentLeft() {
+  clearTurnTimer();
+  clearRoomPhaseCache(state.room?.code);
+  const view = document.getElementById("viewError");
+  const msg = document.getElementById("errorMessage");
+  const title = document.getElementById("errorTitle");
+  const icon = document.getElementById("errorStateIcon");
+  const btn = document.getElementById("errorLeaveBtn");
+  if (title) { title.textContent = "Opponent left"; title.hidden = false; }
+  if (icon) { icon.textContent = "🚪"; icon.hidden = false; }
+  if (btn) btn.textContent = "Back to home";
+  if (view) {
+    view.classList.remove("is-host-lock", "is-room-full", "is-access-denied");
+    view.classList.add("is-room-closed");
+  }
+  let secs = 10;
+  const update = () => {
+    if (msg) msg.textContent = `Your opponent has left the draft. Returning to home in ${secs}s…`;
+  };
+  update();
+  showView("viewError");
+  updateStageTabs();
+  const t = setInterval(() => {
+    secs--;
+    if (secs <= 0) {
+      clearInterval(t);
+      window.location.href = "/";
+      return;
+    }
+    update();
+  }, 1000);
 }
 
 function tryEnterDraftFromRoomSnapshot() {
@@ -1380,6 +1425,7 @@ cb.showDone = showDone;
 cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;
+cb.onOpponentLeft = showOpponentLeft;
 
 /* SOCKET HOOKS (future): replace initLobby local room with:
  *   socket.emit('room:rejoin', { code }, cb)

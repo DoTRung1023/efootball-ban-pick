@@ -245,6 +245,11 @@
   cursor: not-allowed;
 }
 
+.toggle-info-btn {
+  min-width: 120px;
+  justify-content: center;
+}
+
 .toggle-info-btn.is-off {
   color: rgba(123,171,138,0.75);
   border-color: rgba(123,171,138,0.35);
@@ -300,6 +305,11 @@
 .delete-selected-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.select-all-btn {
+  min-width: 145px;
+  justify-content: center;
 }
 
 /* ============================================================

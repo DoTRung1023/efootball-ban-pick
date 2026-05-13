@@ -25,6 +25,7 @@ const catalog = {
   filterPlayingStyle:  new Set(),
   filterCardType:      new Set(),
   filterLeague:        new Set(),
+  filterRegion:        new Set(),
   sortCategory:  "overall_max",
   sortDir:       "desc",
   sortBy:        "overall_max_desc",
@@ -93,7 +94,7 @@ export async function getPlayerFilterOptions() {
     playerFilterOptionsCache = null;
   }
   if (!playerFilterOptionsCache) {
-    playerFilterOptionsCache = { foot: [], playing_style: [], card_type: [], league: [] };
+    playerFilterOptionsCache = { foot: [], playing_style: [], card_type: [], league: [], region: [] };
   }
   return playerFilterOptionsCache;
 }
@@ -157,7 +158,7 @@ export function wireAttributeMultiselects(panel, optionsByKey, configs) {
 
 function hasActiveFilters() {
   return catalog.filterPositions.size || catalog.filterFoot.size || catalog.filterPlayingStyle.size
-    || catalog.filterCardType.size || catalog.filterLeague.size
+    || catalog.filterCardType.size || catalog.filterLeague.size || catalog.filterRegion.size
     || catalog.filterClub || catalog.filterNation
     || catalog.filterOverallMin || catalog.filterOverallMax
     || catalog.filterMaxOverallMin || catalog.filterMaxOverallMax
@@ -251,6 +252,7 @@ async function fetchCatalog(reset = false) {
   if (catalog.filterPlayingStyle.size)  params.set("playingStyle", [...catalog.filterPlayingStyle].join(","));
   if (catalog.filterCardType.size)      params.set("cardType",     [...catalog.filterCardType].join(","));
   if (catalog.filterLeague.size)        params.set("league",       [...catalog.filterLeague].join(","));
+  if (catalog.filterRegion.size)        params.set("region",       [...catalog.filterRegion].join(","));
   if (catalog.filterOverallMin)        params.set("overallMin",        catalog.filterOverallMin);
   if (catalog.filterOverallMax)        params.set("overallMax",        catalog.filterOverallMax);
   if (catalog.filterMaxOverallMin)     params.set("maxOverallMin",     catalog.filterMaxOverallMin);
@@ -497,6 +499,7 @@ function buildFilterPanel() {
   panel.id        = "filterPanel";
 
   panel.innerHTML = `
+    <div class="filter-group-label">IDENTITY</div>
     <div class="filter-section">
       <div class="filter-section-label">POSITION</div>
       <div class="pos-multiselect" id="posMultiselect">
@@ -505,26 +508,6 @@ function buildFilterPanel() {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="pos-ms-panel" id="posMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect" id="fcFootMs">
-        <button class="pos-ms-btn" id="fcFootMsBtn" type="button">
-          <span id="fcFootMsLabel">Any foot</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcFootMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect" id="fcPsMs">
-        <button class="pos-ms-btn" id="fcPsMsBtn" type="button">
-          <span id="fcPsMsLabel">Any playing style</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcPsMsPanel"></div>
       </div>
     </div>
     <div class="filter-section">
@@ -538,15 +521,26 @@ function buildFilterPanel() {
       </div>
     </div>
     <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
-      <div class="pos-multiselect" id="fcLgMs">
-        <button class="pos-ms-btn" id="fcLgMsBtn" type="button">
-          <span id="fcLgMsLabel">Any league</span>
+      <div class="filter-section-label">PLAYING STYLE</div>
+      <div class="pos-multiselect" id="fcPsMs">
+        <button class="pos-ms-btn" id="fcPsMsBtn" type="button">
+          <span id="fcPsMsLabel">Any playing style</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="fcLgMsPanel"></div>
+        <div class="pos-ms-panel" id="fcPsMsPanel"></div>
       </div>
     </div>
+    <div class="filter-section">
+      <div class="filter-section-label">FOOT</div>
+      <div class="pos-multiselect" id="fcFootMs">
+        <button class="pos-ms-btn" id="fcFootMsBtn" type="button">
+          <span id="fcFootMsLabel">Any foot</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcFootMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-group-label">STATS</div>
     <div class="filter-section">
       <div class="filter-section-label">OVERALL LEVEL 1</div>
       <div class="range-pair">
@@ -563,6 +557,27 @@ function buildFilterPanel() {
         <input type="number" class="filter-input" id="fcOvrMaxMax" placeholder="Max" value="${catalog.filterMaxOverallMax}">
       </div>
     </div>
+    <div class="filter-group-label">CLUB & ORIGIN</div>
+    <div class="filter-section">
+      <div class="filter-section-label">LEAGUE</div>
+      <div class="pos-multiselect" id="fcLgMs">
+        <button class="pos-ms-btn" id="fcLgMsBtn" type="button">
+          <span id="fcLgMsLabel">Any league</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcLgMsPanel"></div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">REGION</div>
+      <div class="pos-multiselect" id="fcRgMs">
+        <button class="pos-ms-btn" id="fcRgMsBtn" type="button">
+          <span id="fcRgMsLabel">Any region</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="pos-ms-panel" id="fcRgMsPanel"></div>
+      </div>
+    </div>
     <div class="filter-section">
       <div class="filter-section-label">CLUB</div>
       <div class="autocomplete-wrap">
@@ -575,6 +590,15 @@ function buildFilterPanel() {
       <div class="autocomplete-wrap">
         <input type="text" class="filter-input" id="fcNation" placeholder="e.g. Brazil" value="${catalog.filterNation}" autocomplete="off">
         <div class="autocomplete-list" id="fcNationAc"></div>
+      </div>
+    </div>
+    <div class="filter-group-label">PHYSICAL</div>
+    <div class="filter-section">
+      <div class="filter-section-label">AGE</div>
+      <div class="range-pair">
+        <input type="number" class="filter-input" id="fcAgeMin" placeholder="Min" value="${catalog.filterAgeMin}">
+        <span class="range-sep">—</span>
+        <input type="number" class="filter-input" id="fcAgeMax" placeholder="Max" value="${catalog.filterAgeMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -591,14 +615,6 @@ function buildFilterPanel() {
         <input type="number" class="filter-input" id="fcWeightMin" placeholder="Min" value="${catalog.filterWeightMin}">
         <span class="range-sep">—</span>
         <input type="number" class="filter-input" id="fcWeightMax" placeholder="Max" value="${catalog.filterWeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcAgeMin" placeholder="Min" value="${catalog.filterAgeMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcAgeMax" placeholder="Max" value="${catalog.filterAgeMax}">
       </div>
     </div>
     <div class="filter-section">
@@ -728,6 +744,15 @@ function buildFilterPanel() {
         allLabel: "Any league",
         onChange: () => { updateFilterBadge(); reloadCatalog(); },
       },
+      {
+        optionsKey: "region",
+        stateSet: catalog.filterRegion,
+        panelSel: "#fcRgMsPanel",
+        btnSel: "#fcRgMsBtn",
+        labelSel: "#fcRgMsLabel",
+        allLabel: "Any region",
+        onChange: () => { updateFilterBadge(); reloadCatalog(); },
+      },
     ]);
   if (playerFilterOptionsCache) runCatMs(playerFilterOptionsCache);
   else getPlayerFilterOptions().then(runCatMs);
@@ -739,6 +764,7 @@ function buildFilterPanel() {
     catalog.filterPlayingStyle.clear();
     catalog.filterCardType.clear();
     catalog.filterLeague.clear();
+    catalog.filterRegion.clear();
     catalog.filterClub = catalog.filterNation = "";
     catalog.filterOverallMin = catalog.filterOverallMax = "";
     catalog.filterMaxOverallMin = catalog.filterMaxOverallMax = "";
