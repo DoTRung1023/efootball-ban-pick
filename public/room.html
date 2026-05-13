@@ -319,6 +319,11 @@
                         <span class="ban-side-title">BANS ON ME</span>
                         <span class="ban-count" id="draftBannedOnMeCount">0/3</span>
                       </div>
+                      <div class="ban-opponent-badge" id="draftBanOpponentBadge">
+                        <span class="ban-opponent-dot" id="draftBanOpponentDot"></span>
+                        <span class="ban-opponent-name" id="draftBanOpponentName">Opponent</span>
+                        <span class="ban-opponent-status-text" id="draftBanOpponentStatus">· is choosing...</span>
+                      </div>
                       <div class="ban-phase-strip ban-side-strip" id="draftBannedOnMeStrip"></div>
                     </div>
 
@@ -327,7 +332,14 @@
                         <span class="ban-side-title">MY BANS</span>
                         <span class="ban-count" id="draftMyBansCount">0/3</span>
                       </div>
+                      <div class="ban-opponent-badge" id="draftMyBansBadge">
+                        <span class="ban-opponent-dot is-online" id="draftMyBansDot"></span>
+                        <span class="ban-opponent-name" id="draftMyBansName">YOU</span>
+                        <span class="ban-opponent-status-text" id="draftMyBansBadgeStatus"></span>
+                      </div>
+                      <p id="draftMyBansStatus" class="ban-status-hint"></p>
                       <div class="ban-phase-strip ban-side-strip" id="draftMyBansStrip"></div>
+                      <button class="btn btn--primary ban-confirm-btn" id="confirmBansBtn" type="button" disabled>CONFIRM BANS</button>
                     </div>
 
                   </aside>

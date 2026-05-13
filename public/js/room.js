@@ -46,6 +46,8 @@ import {
   getBanListPlayers,
   getPickListPlayers,
   imageOnlyThumbHtml,
+  stagedBanThumbHtml,
+  opponentStagedBanThumbHtml,
   resetOpponentBanPlayers,
   loadOpponentBanPlayers,
   banPlayerCardHtml,
@@ -131,6 +133,8 @@ function advanceDraftStage(room, nextAction) {
   const next = String(nextAction || "");
   const nextIdx = state.schedule.findIndex((t) => String(t?.action || "") === next);
   if (nextIdx < 0) return;
+  state.stagedBans = [];
+  state.opponentStagedBans = [];
   room.turnIndex = nextIdx;
   syncCurrentTurnFromIndex(room);
   room.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[room.turnIndex], room.config) * 1000;
@@ -230,7 +234,9 @@ function startTurnTimer() {
       if (!r) return;
       const stage = getDraftStage(r);
       if (stage === "ban") {
-        advanceDraftStage(r, "pick");
+        const flushed = flushStagedBansLocally();
+        void submitBansToApi(flushed);
+        if (getDraftStage(r) === "ban") advanceDraftStage(r, "pick");
         renderDraftUi();
         return;
       }
@@ -811,36 +817,137 @@ function renderDraftUi() {
       const myCountEl = document.getElementById("draftMyBansCount");
       const bannedOnMeCountEl = document.getElementById("draftBannedOnMeCount");
       const maxBans = Math.max(0, Math.floor(Number(room.config?.banCountPerSide) || 0));
-      if (myCountEl) myCountEl.textContent = `${myBans.length}/${maxBans}`;
-      if (bannedOnMeCountEl) bannedOnMeCountEl.textContent = `${bannedOnMe.length}/${maxBans}`;
+      const myConfirmed = Boolean(room.bansConfirmed?.[mySide]);
+      const theirConfirmed = Boolean(room.bansConfirmed?.[theirSide]);
+      if (myCountEl) myCountEl.textContent = `${myBans.length + state.stagedBans.length}/${maxBans}`;
+      if (bannedOnMeCountEl) bannedOnMeCountEl.textContent = `${bannedOnMe.length + state.opponentStagedBans.length}/${maxBans}`;
+
+      // Opponent presence badge (username + status)
+      {
+        const theirInfo = mySide === "host" ? room.guest : room.host;
+        const isOnline = Boolean(theirInfo?.id);
+        const opponentDot = document.getElementById("draftBanOpponentDot");
+        const opponentNameEl = document.getElementById("draftBanOpponentName");
+        const bannedOnMeStatus = document.getElementById("draftBanOpponentStatus");
+        if (opponentDot) opponentDot.classList.toggle("is-online", isOnline);
+        if (opponentNameEl && theirInfo?.username) opponentNameEl.textContent = theirInfo.username.toUpperCase();
+        if (bannedOnMeStatus) {
+          if (!isOnline) {
+            bannedOnMeStatus.textContent = "· left the room";
+            bannedOnMeStatus.className = "ban-opponent-status-text is-offline";
+          } else if (theirConfirmed) {
+            bannedOnMeStatus.textContent = "· confirmed ✓";
+            bannedOnMeStatus.className = "ban-opponent-status-text is-confirmed";
+          } else {
+            bannedOnMeStatus.textContent = "· is choosing...";
+            bannedOnMeStatus.className = "ban-opponent-status-text";
+          }
+        }
+      }
+
+      // MY BANS self badge (symmetric with opponent badge)
+      {
+        const myInfo = mySide === "host" ? room.host : room.guest;
+        const myDot = document.getElementById("draftMyBansDot");
+        const myNameEl = document.getElementById("draftMyBansName");
+        const myBadgeStatus = document.getElementById("draftMyBansBadgeStatus");
+        if (myDot) myDot.classList.toggle("is-online", !state.presenceError);
+        if (myNameEl) myNameEl.textContent = (myInfo?.username || "You").toUpperCase();
+        if (myBadgeStatus) {
+          if (state.presenceError) {
+            myBadgeStatus.textContent = "· reconnecting...";
+            myBadgeStatus.className = "ban-opponent-status-text is-offline";
+          } else if (myConfirmed) {
+            myBadgeStatus.textContent = "· confirmed ✓";
+            myBadgeStatus.className = "ban-opponent-status-text is-confirmed";
+          } else {
+            myBadgeStatus.textContent = "· is choosing...";
+            myBadgeStatus.className = "ban-opponent-status-text";
+          }
+        }
+      }
+
+      // MY BANS status hint: waiting for opponent after I confirmed
+      const myBansStatus = document.getElementById("draftMyBansStatus");
+      if (myBansStatus) {
+        if (myConfirmed && !theirConfirmed) {
+          myBansStatus.textContent = "Waiting for opponent to confirm...";
+          myBansStatus.className = "ban-status-hint is-waiting";
+        } else if (myConfirmed && theirConfirmed) {
+          myBansStatus.textContent = "Both confirmed — moving to picks!";
+          myBansStatus.className = "ban-status-hint is-confirmed";
+        } else {
+          myBansStatus.textContent = "";
+          myBansStatus.className = "ban-status-hint";
+        }
+      }
 
       // Use stable state-key diffs instead of innerHTML string comparison.
-      const myBansKey = myBans.map((p) => String(p.id)).join(",");
+      const totalShown = myBans.length + state.stagedBans.length;
+      const myRemaining = maxBans > 0 ? Math.max(0, maxBans - totalShown) : 0;
+      const myBansKey = [
+        ...myBans.map((p) => String(p.id) + "c"),
+        ...state.stagedBans.map((p) => String(p.id) + "s"),
+        `e${myRemaining}`,
+      ].join(",");
       if (myBansStrip.dataset.bansKey !== myBansKey) {
         const prevCount = myBansStrip.children.length;
         myBansStrip.dataset.bansKey = myBansKey;
-        myBansStrip.innerHTML = myBans.length ? myBans.map((p) => imageOnlyThumbHtml(p, "md")).join("") : "";
-        if (myBansStrip.children.length > prevCount) myBansStrip.lastElementChild?.classList.add("is-new");
+        const emptySlot = `<div class="ban-side-empty-slot"></div>`;
+        const allDisplay = [
+          ...myBans.map((p) => imageOnlyThumbHtml(p, "md")),
+          ...state.stagedBans.map((p) => stagedBanThumbHtml(p, "md")),
+          ...Array.from({ length: myRemaining }, () => emptySlot),
+        ];
+        myBansStrip.innerHTML = allDisplay.join("");
+        if (myBansStrip.children.length > prevCount) {
+          const newLast = [...myBansStrip.children].filter((c) => c.classList.contains("ban-phase-thumb")).pop();
+          newLast?.classList.add("is-new");
+        }
       }
 
-      const bannedOnMeKey = bannedOnMe.map((p) => String(p.id)).join(",");
+      const confirmBansBtn = document.getElementById("confirmBansBtn");
+      if (confirmBansBtn) {
+        confirmBansBtn.disabled = state.stagedBans.length === 0 || myConfirmed;
+        confirmBansBtn.textContent = myConfirmed ? "CONFIRMED ✓" : "CONFIRM BANS";
+        confirmBansBtn.classList.toggle("is-confirmed", myConfirmed);
+      }
+
+      // BANS ON ME strip: confirmed opponent bans + opponent staged (pending) + empty slots
+      const opponentStagedBans = state.opponentStagedBans || [];
+      const opponentRemaining = maxBans > 0 ? Math.max(0, maxBans - bannedOnMe.length - opponentStagedBans.length) : 0;
+      const bannedOnMeKey = [
+        ...bannedOnMe.map((p) => String(p.id) + "c"),
+        ...opponentStagedBans.map((p) => String(p.id) + "s"),
+        `e${opponentRemaining}`,
+      ].join(",");
       if (bannedOnMeStrip.dataset.bansKey !== bannedOnMeKey) {
         const prevCount = bannedOnMeStrip.children.length;
         bannedOnMeStrip.dataset.bansKey = bannedOnMeKey;
-        bannedOnMeStrip.innerHTML = bannedOnMe.length ? bannedOnMe.map((p) => imageOnlyThumbHtml(p, "md")).join("") : "";
-        if (bannedOnMeStrip.children.length > prevCount) bannedOnMeStrip.lastElementChild?.classList.add("is-new");
+        const emptySlot = `<div class="ban-side-empty-slot"></div>`;
+        const display = [
+          ...bannedOnMe.map((p) => imageOnlyThumbHtml(p, "md")),
+          ...opponentStagedBans.map((p) => opponentStagedBanThumbHtml(p, "md")),
+          ...Array.from({ length: opponentRemaining }, () => emptySlot),
+        ];
+        bannedOnMeStrip.innerHTML = display.join("");
+        if (bannedOnMeStrip.children.length > prevCount) {
+          const newLast = [...bannedOnMeStrip.children].filter((c) => c.classList.contains("ban-phase-thumb")).pop();
+          newLast?.classList.add("is-new");
+        }
       }
 
       const rows = getBanListPlayers();
       const myBanCount = (room.bans?.[mySide] || []).length;
-      const canStillBan = !maxBans || myBanCount < maxBans;
+      const canStillBan = !maxBans || (myBanCount + state.stagedBans.length) < maxBans;
+      const stagedBanIds = new Set(state.stagedBans.map((p) => String(p.id)));
       const gridStateKey = [
         isMyTurn ? 1 : 0,
         canStillBan ? 1 : 0,
         isReadyPhase ? 1 : 0,
         rows.map((p) => {
           const id = String(p.id);
-          return id + (room.bannedPlayerIds.includes(id) ? "b" : room.pickedPlayerIds.includes(id) ? "p" : "");
+          return id + (room.bannedPlayerIds.includes(id) ? "b" : stagedBanIds.has(id) ? "s" : room.pickedPlayerIds.includes(id) ? "p" : "");
         }).join(","),
       ].join("|");
       if (banGrid.dataset.stateKey !== gridStateKey) {
@@ -848,7 +955,7 @@ function renderDraftUi() {
         banGrid.innerHTML = rows.length
           ? rows.map((p) => {
               const id = String(p.id);
-              const banned = room.bannedPlayerIds.includes(id);
+              const banned = room.bannedPlayerIds.includes(id) || stagedBanIds.has(id);
               const pickedTaken = room.pickedPlayerIds.includes(id);
               const unavailable = banned || pickedTaken;
               const clickable = isMyTurn && canStillBan && !unavailable && !isReadyPhase;
@@ -865,6 +972,11 @@ function renderDraftUi() {
             )}</div>`;
       }
     }
+  }
+
+  // If server advanced to pick phase (via ban-confirm) but local timer hasn't started yet, start it.
+  if (!isBanPhase && !isReadyPhase && state.phase === "draft" && !state.turnTimer) {
+    startTurnTimer();
   }
 
   const pickBoard = document.getElementById("draftPickPhaseBoard");
@@ -1034,34 +1146,93 @@ function attachDraftGridHandlers() {
   );
 }
 
-async function submitBan(player) {
+function flushStagedBansLocally() {
+  if (!state.stagedBans.length) return [];
+  const toSubmit = [...state.stagedBans];
+  state.stagedBans = [];
+  const room = state.room;
+  if (room) {
+    for (const player of toSubmit) {
+      applyLocalAction(room, player);
+    }
+  }
+  return toSubmit;
+}
+
+async function submitBansToApi(players) {
+  const room = state.room;
+  if (!room || !players.length) return;
+  for (const player of players) {
+    try {
+      const me = getCurrentIdentity();
+      const res = await fetch(`/api/rooms/${encodeURIComponent(room.code)}/ban`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requesterId: me.id, player: { id: String(player.id), name: player.name } }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data?.error || "Could not confirm ban.");
+      } else if (data.room) {
+        applyPresenceSnapshot(data.room);
+      }
+    } catch {
+      showToast("Could not confirm ban.");
+    }
+  }
+  renderDraftUi();
+}
+
+async function callBanConfirm() {
+  if (!state.room?.code) return;
+  const me = getCurrentIdentity();
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/ban-confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requesterId: me.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.room) {
+      const prevTurnIndex = state.room.turnIndex;
+      applyPresenceSnapshot(data.room);
+      if (state.room.turnIndex > prevTurnIndex && state.phase === "draft") {
+        startTurnTimer();
+      }
+      renderDraftUi();
+    }
+  } catch { /* ignore */ }
+}
+
+async function confirmStagedBans() {
+  if (!state.stagedBans.length) return;
+  const toSubmit = flushStagedBansLocally();
+  renderDraftUi();
+  await submitBansToApi(toSubmit);
+  await callBanConfirm();
+}
+
+function submitBan(player) {
   const room = state.room;
   if (!room) return;
   const turn = state.schedule[room.turnIndex];
   const isReadyPhase = state.phase === "ready" || String(room.status || "") === "await-ready";
   const isMyTurn = String(turn?.side || "") === "both" ? true : turn?.side === state.mySide;
   if (turn?.action !== "ban" || isReadyPhase || !isMyTurn) return;
-  applyLocalAction(room, player);
-  renderDraftUi();
-  try {
-    const me = getCurrentIdentity();
-    const payloadPlayer = { id: String(player.id), name: player.name };
-    const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/ban`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requesterId: me.id, player: payloadPlayer }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showToast(data?.error || "Could not confirm ban.");
-      renderDraftUi();
-      return;
-    }
-    if (data.room) applyPresenceSnapshot(data.room);
-  } catch (err) {
-    console.error("ban confirm error:", err);
-    showToast("Could not confirm ban.");
+
+  const id = String(player.id);
+  if (room.bannedPlayerIds.includes(id)) return;
+  if (state.stagedBans.some((p) => String(p.id) === id)) return;
+
+  const cfg = room.config || defaultRoomConfig();
+  const maxBans = Math.max(0, Math.floor(Number(cfg.banCountPerSide) || 0));
+  const confirmedCount = (room.bans?.[state.mySide] || []).length;
+  if (maxBans && confirmedCount + state.stagedBans.length >= maxBans) {
+    showToast("You already used all bans for your side.");
+    return;
   }
+
+  state.stagedBans.push(player);
   renderDraftUi();
 }
 
@@ -1164,6 +1335,16 @@ function initDraftControls() {
     const me = state.mySide;
     const nextReady = !Boolean(state.room.matchReady?.[me]);
     void setMatchReady(nextReady);
+  });
+  document.getElementById("confirmBansBtn")?.addEventListener("click", () => {
+    void confirmStagedBans();
+  });
+  document.getElementById("draftMyBansStrip")?.addEventListener("click", (e) => {
+    const btn = e.target instanceof Element ? e.target.closest("[data-remove-ban]") : null;
+    if (!btn) return;
+    const id = btn.getAttribute("data-remove-ban");
+    state.stagedBans = state.stagedBans.filter((p) => String(p.id) !== id);
+    renderDraftUi();
   });
   document.getElementById("draftLeaveBtn")?.addEventListener("click", async () => {
     if (state.mySide === "host") {

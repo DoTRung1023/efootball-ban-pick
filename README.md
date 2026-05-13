@@ -26,7 +26,7 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
 - **Rooms (lobby)** — **Rooms** tab: create a room (generates a code) or join with a code. Host sets ban/pick rules on the room page before starting.
-- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players simultaneously ban from the opponent's squad — click any card to ban instantly; bans sync to the opponent within ~500 ms via polling), **pick phase** (both players simultaneously pick from the allowance-filtered pool — search/sort/position filter, instant sync via polling, opponent strip shown in instant-reveal mode), **ready phase** (shows both squads side by side; both players hit READY to confirm and transition to the summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
+- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players stage bans from the opponent's squad then each clicks CONFIRM BANS — staged bans appear on the opponent's screen in real-time via ~500 ms polling; a username + presence badge shows whether the opponent is online and whether they've confirmed; when both sides confirm the pick phase starts automatically), **pick phase** (both players simultaneously pick from the allowance-filtered pool — search/sort/position filter, instant sync via polling, opponent strip shown in instant-reveal mode), **ready phase** (shows both squads side by side; both players hit READY to confirm and transition to the summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
 - **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
 - **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
 
@@ -254,6 +254,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `POST` | `/api/rooms/:code/start` | Host starts the draft (requires guest ready) |
 | `POST` | `/api/rooms/:code/ready` | Guest toggles ready state |
 | `POST` | `/api/rooms/:code/ban` | Submit a ban during the ban phase |
+| `POST` | `/api/rooms/:code/ban-confirm` | Confirm staged bans; advances to pick phase when both sides confirm |
 | `POST` | `/api/rooms/:code/pick` | Submit a pick during the pick phase |
 | `POST` | `/api/rooms/:code/match-ready` | Toggle post-draft match-ready state |
 | `POST` | `/api/rooms/:code/kick-guest` | Host removes the current guest |
@@ -365,7 +366,7 @@ Visit [http://localhost:3000](http://localhost:3000).
       + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
       + [x] allow: card type — number of players, overall rating
       + [x] compulsory: card type — number of players, overall rating
-      + [x] ban players: ban exact player card (click-to-ban; syncs to opponent via polling)
+      + [x] ban players: stage bans from opponent's squad → CONFIRM BANS → both sides confirming advances to pick phase automatically; staged bans sync to opponent's screen in real-time; opponent presence badge shows username + online/offline + choosing/confirmed status
       + [x] pick players: pick exact player card (click-to-pick; syncs to opponent via polling; allowance cap validation)
    + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
    + [ ] players can view their game plans to build accordingly during the pick phase

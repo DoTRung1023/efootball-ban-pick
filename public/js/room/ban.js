@@ -164,6 +164,25 @@ export function imageOnlyThumbHtml(player, size = "md") {
   `;
 }
 
+export function opponentStagedBanThumbHtml(player, size = "md") {
+  if (!player) return "";
+  return `
+    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)} is-opponent-staged" data-player-id="${escapeHtml(player.id)}">
+      <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+    </div>
+  `;
+}
+
+export function stagedBanThumbHtml(player, size = "md") {
+  if (!player) return "";
+  return `
+    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)} is-staged" data-player-id="${escapeHtml(player.id)}">
+      <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+      <button class="ban-thumb-remove" data-remove-ban="${escapeHtml(String(player.id))}" type="button" aria-label="Remove staged ban">×</button>
+    </div>
+  `;
+}
+
 export function resetOpponentBanPlayers() {
   state.opponentBanPlayers = [];
   state.loadingOpponentBanPlayers = false;

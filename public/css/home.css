@@ -1398,25 +1398,28 @@ body {
 
 .pitch-remove-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: rgba(20,8,8,0.7);
-  border: 1px solid rgba(255,80,80,0.3);
+  top: 5px;
+  right: 5px;
+  background: rgba(239,68,68,0.85);
+  border: none;
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   opacity: 0;
-  transition: opacity var(--transition);
-  color: #ff8080;
+  transform: scale(0.7);
+  transition: opacity var(--transition), transform var(--transition), background var(--transition);
+  color: #fff;
+  font-size: 0.8rem;
   padding: 0;
+  z-index: 10;
 }
 .pitch-slot:hover .pitch-remove-btn,
-.bench-slot:hover .pitch-remove-btn { opacity: 1; }
-.pitch-remove-btn:hover { background: rgba(255,50,50,0.25); }
+.bench-slot:hover .pitch-remove-btn { opacity: 1; transform: scale(1); }
+.pitch-remove-btn:hover { background: #ef4444; }
 
 .plan-bench-list {
   flex: 1;

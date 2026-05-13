@@ -83,6 +83,8 @@ export const state = {
   banFilterWeightMax: "",
   banFilterAgeMin: "",
   banFilterAgeMax: "",
+  stagedBans: [],
+  opponentStagedBans: [],
   banUiBound: false,
   pickSearch: "",
   pickSort: "overall_max_desc",
@@ -94,6 +96,7 @@ export const state = {
   draftGamePlansLoading: false,
   draftGamePlanPlayersLoading: false,
   actionError: "",
+  presenceError: false,
 };
 
 export function normalizeBanDurationSec(raw) {
@@ -279,6 +282,16 @@ export function applyPresenceSnapshot(sr) {
   room.pickedPlayerIds = Array.isArray(sr.pickedPlayerIds) ? sr.pickedPlayerIds.map(String) : (room.pickedPlayerIds || []);
   room.closed = Boolean(sr.closed);
   room.closeReason = sr.closeReason || "";
+  if (sr.bansConfirmed && typeof sr.bansConfirmed === "object") {
+    room.bansConfirmed = { host: Boolean(sr.bansConfirmed.host), guest: Boolean(sr.bansConfirmed.guest) };
+  }
+  const theirSide = state.mySide === "host" ? "guest" : "host";
+  if (sr.stagedBans && typeof sr.stagedBans === "object") {
+    const raw = sr.stagedBans[theirSide];
+    state.opponentStagedBans = Array.isArray(raw)
+      ? raw.map((p) => ({ id: String(p.id || ""), name: String(p.name || "") })).filter((p) => p.id)
+      : [];
+  }
   state.lastRoomUpdatedAt = Number(sr.updatedAt || state.lastRoomUpdatedAt || Date.now());
 }
 

@@ -18,7 +18,10 @@ export async function registerPresence() {
   const res = await fetch(`/api/rooms/${encodeURIComponent(code)}/presence`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role, userId, username }),
+    body: JSON.stringify({
+      role, userId, username,
+      stagedBans: state.stagedBans.map((p) => ({ id: String(p.id), name: p.name || "" })),
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -76,6 +79,7 @@ export async function registerPresence() {
     return;
   }
   if (data.room) applyPresenceSnapshot(data.room);
+  state.presenceError = false;
   return data.room || null;
 }
 
@@ -167,7 +171,7 @@ export async function pollPresence() {
 
     cb.renderDraftUi();
   } catch {
-    /* ignore */
+    state.presenceError = true;
   }
 }
 
