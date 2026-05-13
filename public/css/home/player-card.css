@@ -1,0 +1,243 @@
+/* ============================================================
+   PLAYER GRID
+   ============================================================ */
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 12px;
+}
+
+/* Player Card */
+.player-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.player-card:hover {
+  transform: translateY(-4px) scale(1.03);
+  border-color: rgba(0,230,118,0.55);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 20px rgba(0,230,118,0.18);
+  background: var(--bg-card-hover);
+  z-index: 5;
+}
+
+.pc-img-wrap {
+  width: 100%;
+  background: transparent;
+  overflow: hidden;
+  position: relative;
+  border-radius: 0;
+}
+
+.pc-img-wrap img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 0;
+}
+
+/* fallback when image fails */
+.pc-img-wrap.no-img {
+  background: rgba(0,230,118,0.06);
+}
+
+.pc-img-wrap.no-img::after {
+  content: attr(data-initial);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(0,230,118,0.35);
+}
+
+
+/* ── Skeleton ── */
+/* ── Card footer ── */
+.pc-footer {
+  padding: 8px 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid rgba(0,230,118,0.08);
+  min-width: 0; /* allow ellipsis in grid flex children */
+}
+
+.pc-footer-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.pc-footer-ovr {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.pc-footer-ovr .ovr-max {
+  color: var(--green);
+}
+
+.pc-footer-club {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pc-footer-meta.pmeta-in-card {
+  display: block;
+  margin-top: 3px;
+  white-space: normal;
+  overflow: visible;
+}
+
+.pc-footer-meta:not(.pmeta-in-card) span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.pc-footer-meta.pmeta-in-card .pmeta-stack {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
+  margin-top: 2px;
+}
+
+/* Squad card: keep each logical row on a single line; widen grid above if text is clipped */
+.player-card .pc-footer .pmeta-row {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-footer-meta.pc-footer-detail-only {
+  margin-top: 0;
+}
+
+.player-grid.info-hidden .pc-footer {
+  display: none;
+}
+
+.pc-footer-sep {
+  color: rgba(123,171,138,0.35) !important;
+  font-weight: 400 !important;
+}
+
+.player-card.skeleton {
+  pointer-events: none;
+  border-color: rgba(0,230,118,0.08);
+  background: rgba(0,230,118,0.03);
+  animation: skelPulse 1.6s ease-in-out infinite;
+}
+
+.player-card.skeleton::before {
+  content: '';
+  display: block;
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: rgba(0,230,118,0.06);
+}
+
+.player-card.skeleton::after {
+  content: '';
+  display: block;
+  height: 40px;
+  margin: 7px 8px 8px;
+  background: rgba(0,230,118,0.05);
+  border-radius: 4px;
+}
+
+@keyframes skelPulse {
+  0%,100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* Empty state */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+.empty-state-text {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+/* Load More */
+.load-more-area {
+  margin-top: 28px;
+  text-align: center;
+}
+
+.load-more-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: rgba(0,230,118,0.05);
+  border: none;
+  border-top: 1px solid rgba(0,230,118,0.1);
+  border-radius: 0;
+  color: var(--green-dim);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.load-more-btn:hover {
+  background: rgba(0,230,118,0.12);
+  border-color: rgba(0,230,118,0.4);
+  color: var(--green);
+  box-shadow: 0 0 16px rgba(0,230,118,0.15);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+

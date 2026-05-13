@@ -1,0 +1,29 @@
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .topbar { gap: 10px; padding: 0 12px; }
+  .topbar-center { gap: 2px; }
+  .nav-tab { padding: 6px 12px; font-size: 0.65rem; gap: 5px; }
+  .nav-tab svg { display: none; }
+  .create-room-btn { padding: 7px 12px; font-size: 0.65rem; }
+  .user-name { display: none; }
+  .main-content { padding: 16px 12px 32px; }
+  .player-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+}
+
+@media (max-width: 480px) {
+  .topbar-brand .brand-game { font-size: 0.85rem; }
+  .topbar-brand .brand-sub { display: none; }
+  .player-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; }
+  .room-settings-row { grid-template-columns: 1fr; }
+  .modal-inner { padding: 24px 18px 22px; }
+
+  /* Search bar: full-width search on row 1, sort+filter together on row 2.
+     This keeps the filter button to the right side so filter-dd-panel's
+     right:0 anchor doesn't push the panel off the left edge of the screen. */
+  .team-search-wrap { flex: 1 0 100%; min-width: 0; }
+
+  /* Panel toolbar: player count on row 1, action buttons right-aligned on row 2. */
+  .panel-toolbar .toolbar-actions { flex: 0 0 100%; justify-content: flex-end; }
+}

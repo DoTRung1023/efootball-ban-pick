@@ -1073,13 +1073,12 @@ app.post("/api/rooms/:code/ban", (req, res) => {
   if (!Array.isArray(entry.pickedPlayerIds)) entry.pickedPlayerIds = [];
 
   const pid = String(player.id);
-  if (entry.bannedPlayerIds.includes(pid) || entry.pickedPlayerIds.includes(pid)) {
-    return res.status(409).json({ error: "Player already banned or picked." });
-  }
-
   const sideKey = isHost ? "host" : "guest";
   const maxBans = Math.max(0, Math.floor(Number(entry.config?.banCountPerSide) || 0));
   const myBans = Array.isArray(entry.bans[sideKey]) ? entry.bans[sideKey] : [];
+  if (myBans.some((b) => String(b.id) === pid) || entry.pickedPlayerIds.includes(pid)) {
+    return res.status(409).json({ error: "Player already banned or picked." });
+  }
   if (maxBans && myBans.length >= maxBans) {
     return res.status(409).json({ error: "No bans remaining for your side." });
   }
@@ -1142,12 +1141,11 @@ app.post("/api/rooms/:code/pick", (req, res) => {
   if (String(entry.status || "") !== "drafting") return res.status(409).json({ error: "Picks are only allowed during drafting." });
 
   if (!entry.picks) entry.picks = { host: [], guest: [] };
-  if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
   if (!Array.isArray(entry.pickedPlayerIds)) entry.pickedPlayerIds = [];
 
   const pid = String(player.id);
-  if (entry.bannedPlayerIds.includes(pid) || entry.pickedPlayerIds.includes(pid)) {
-    return res.status(409).json({ error: "Player already banned or picked." });
+  if (entry.pickedPlayerIds.includes(pid)) {
+    return res.status(409).json({ error: "Player already picked." });
   }
 
   const sideKey = isHost ? "host" : "guest";

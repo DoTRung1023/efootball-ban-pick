@@ -5429,6 +5429,25 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 230, 118, 0.28) transparent;
+}
+
+.ban-side-strip::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ban-side-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ban-side-strip::-webkit-scrollbar-thumb {
+  background: rgba(0, 230, 118, 0.28);
+  border-radius: 99px;
+}
+
+.ban-side-strip::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 230, 118, 0.55);
 }
 
 /* Empty state: show a single dashed placeholder slot */

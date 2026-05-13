@@ -1130,6 +1130,7 @@ export function renderLobby() {
 
   renderClubSuggestionPanel();
   renderLobbyChat();
+  cb.updateStageTabs?.();
 }
 
 export function initLobby() {

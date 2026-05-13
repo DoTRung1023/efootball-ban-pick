@@ -163,7 +163,12 @@ function applyLocalAction(room, player) {
   if (!turn) return false;
 
   const id = String(player.id);
-  if (room.bannedPlayerIds.includes(id) || room.pickedPlayerIds.includes(id)) return false;
+  if (turn.action === "ban") {
+    const mySideBanIds = (room.bans?.[state.mySide] || []).map((b) => String(b.id));
+    if (mySideBanIds.includes(id) || room.pickedPlayerIds.includes(id)) return false;
+  } else {
+    if (room.pickedPlayerIds.includes(id)) return false;
+  }
 
   if (turn.action === "pick") {
     const mySide = state.mySide;
@@ -941,13 +946,14 @@ function renderDraftUi() {
       const myBanCount = (room.bans?.[mySide] || []).length;
       const canStillBan = !maxBans || (myBanCount + state.stagedBans.length) < maxBans;
       const stagedBanIds = new Set(state.stagedBans.map((p) => String(p.id)));
+      const myConfirmedBanIds = new Set((room.bans?.[mySide] || []).map((b) => String(b.id)));
       const gridStateKey = [
         isMyTurn ? 1 : 0,
         canStillBan ? 1 : 0,
         isReadyPhase ? 1 : 0,
         rows.map((p) => {
           const id = String(p.id);
-          return id + (room.bannedPlayerIds.includes(id) ? "b" : stagedBanIds.has(id) ? "s" : room.pickedPlayerIds.includes(id) ? "p" : "");
+          return id + (myConfirmedBanIds.has(id) ? "b" : stagedBanIds.has(id) ? "s" : room.pickedPlayerIds.includes(id) ? "p" : "");
         }).join(","),
       ].join("|");
       if (banGrid.dataset.stateKey !== gridStateKey) {
@@ -955,7 +961,7 @@ function renderDraftUi() {
         banGrid.innerHTML = rows.length
           ? rows.map((p) => {
               const id = String(p.id);
-              const banned = room.bannedPlayerIds.includes(id) || stagedBanIds.has(id);
+              const banned = myConfirmedBanIds.has(id) || stagedBanIds.has(id);
               const pickedTaken = room.pickedPlayerIds.includes(id);
               const unavailable = banned || pickedTaken;
               const clickable = isMyTurn && canStillBan && !unavailable && !isReadyPhase;
@@ -1036,7 +1042,7 @@ function renderDraftUi() {
           canStillPick ? 1 : 0,
           pickRows.map((p) => {
             const id = String(p.id || p._raw?.id || "");
-            return id + (room.bannedPlayerIds.includes(id) ? "b" : room.pickedPlayerIds.includes(id) ? "p" : "");
+            return id + (room.pickedPlayerIds.includes(id) ? "p" : "");
           }).join(","),
         ].join("|");
         if (pickGrid.dataset.stateKey !== pickGridKey) {
@@ -1044,11 +1050,9 @@ function renderDraftUi() {
           pickGrid.innerHTML = pickRows.length
             ? pickRows.map((p) => {
                 const id = String(p.id || p._raw?.id || "");
-                const banned = room.bannedPlayerIds.includes(id);
                 const alreadyPicked = room.pickedPlayerIds.includes(id);
-                const unavailable = banned || alreadyPicked;
-                const clickable = isMyTurn && canStillPick && !unavailable;
-                return banPlayerCardHtml(p, { banned, picked: alreadyPicked, clickable });
+                const clickable = isMyTurn && canStillPick && !alreadyPicked;
+                return banPlayerCardHtml(p, { banned: false, picked: alreadyPicked, clickable });
               }).join("")
             : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(
                 state.loadingPlayers ? "Loading players..." : "No players found."
@@ -1221,7 +1225,7 @@ function submitBan(player) {
   if (turn?.action !== "ban" || isReadyPhase || !isMyTurn) return;
 
   const id = String(player.id);
-  if (room.bannedPlayerIds.includes(id)) return;
+  if ((room.bans?.[state.mySide] || []).some((b) => String(b.id) === id)) return;
   if (state.stagedBans.some((p) => String(p.id) === id)) return;
 
   const cfg = room.config || defaultRoomConfig();
@@ -1375,6 +1379,7 @@ cb.isBothMatchReady = isBothMatchReady;
 cb.showDone = showDone;
 cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;
+cb.updateStageTabs = updateStageTabs;
 
 /* SOCKET HOOKS (future): replace initLobby local room with:
  *   socket.emit('room:rejoin', { code }, cb)

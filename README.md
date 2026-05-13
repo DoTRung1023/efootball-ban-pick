@@ -8,7 +8,7 @@ A web app that brings a structured **ban & pick draft system** to eFootball — 
 
 In competitive eFootball, matches are often unbalanced because one side can field any combination of the strongest cards. **Ban & Pick** solves this by introducing a draft phase before each match:
 
-1. Both players **ban** a set of players they don't want the opponent to use.
+1. Both players **ban** a set of players they don't want the opponent to use. Each player bans independently from the opponent's squad — both can ban the same player without conflict, since each ban only restricts the other side's picks.
 2. Both players then **pick** from the remaining pool to build their lineup.
 3. The result is a fairer, more strategic match where preparation and knowledge of the player pool matter as much as in-game skill.
 
@@ -53,11 +53,26 @@ ban-pick-efb/
 │   └── schema.sql              # All CREATE TABLE statements
 ├── public/
 │   ├── css/
-│   │   ├── home.css            # Home page styles
+│   │   ├── home/               # Home page styles (split into 8 focused files)
+│   │   │   ├── base.css        # :root vars, resets, app shell, topbar
+│   │   │   ├── player-card.css # .player-card component
+│   │   │   ├── squad.css       # My Players tab: toolbar, search, select mode
+│   │   │   ├── plans.css       # Game Plans tab and plan detail modal
+│   │   │   ├── catalog.css     # Add Player modal + sort/filter dropdown UI
+│   │   │   ├── modals.css      # Shared overlays, player popup, toast, confirm dialog
+│   │   │   ├── rooms.css       # Rooms tab
+│   │   │   └── responsive.css  # Cross-cutting media queries (≤768px, ≤480px)
 │   │   ├── room.css            # Dedicated room page (lobby / draft / done)
 │   │   └── signin.css          # Sign-in / sign-up styles
 │   ├── js/
-│   │   ├── home.js             # Home page logic (includes room modal + join)
+│   │   ├── home.js             # Home page ESM entry point (imports home/ sub-modules)
+│   │   ├── home/               # Home page modules
+│   │   │   ├── utils.js        # Shared helpers: auth, toast, tabs, sort, DD panels, player detail
+│   │   │   ├── callbacks.js    # Shared mutable callback registry (breaks circular imports)
+│   │   │   ├── squad.js        # My Players tab: grid, search/sort/filter, select, delete
+│   │   │   ├── catalog.js      # Add Player modal, player popup, filter options cache
+│   │   │   ├── plans.js        # Game Plans tab: plan list, pitch view, slot assignment
+│   │   │   └── rooms.js        # Rooms tab: create/join modal, room hub card
 │   │   ├── room.js             # Room page entry point — wires sub-modules, draft timer, submit handlers
 │   │   ├── signin.js           # Auth modal logic
 │   │   └── room/
@@ -74,8 +89,7 @@ ban-pick-efb/
 │   ├── logo/
 │   ├── home.html               # Main app page
 │   ├── room.html               # Ban & pick room (lobby → draft → summary)
-│   ├── signin.html             # Sign-in / sign-up page
-│   └── 404.html
+│   └── signin.html             # Sign-in / sign-up page
 ├── src/
 │   ├── db.js                   # MySQL connection pool
 │   ├── cardImageCacheR2.js     # R2 card image cache (/img/card/:id.png)
@@ -366,7 +380,7 @@ Visit [http://localhost:3000](http://localhost:3000).
       + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
       + [x] allow: card type — number of players, overall rating
       + [x] compulsory: card type — number of players, overall rating
-      + [x] ban players: stage bans from opponent's squad → CONFIRM BANS → both sides confirming advances to pick phase automatically; staged bans sync to opponent's screen in real-time; opponent presence badge shows username + online/offline + choosing/confirmed status
+      + [x] ban players: each user bans independently from the opponent's squad (both can ban the same player); stage bans → CONFIRM BANS → both sides confirming advances to pick phase automatically; staged bans sync to opponent's screen in real-time; opponent presence badge shows username + online/offline + choosing/confirmed status; duplicate-ban check is per-side only (your own bans, not opponent's)
       + [x] pick players: pick exact player card (click-to-pick; syncs to opponent via polling; allowance cap validation)
    + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
    + [ ] players can view their game plans to build accordingly during the pick phase
@@ -375,6 +389,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] update database
 - [ ] admin page
 - [ ] responsive design
+   + [x] My Players page — mobile layout fix (≤480 px): search bar forced to full-width row 1; sort + filter share row 2 so the filter dropdown panel anchors to the right edge and does not overflow off-screen
 - [ ] set up cloud server + database
 - [ ] set up R2 + CDN for card image caching
 - [ ] analytics + error monitoring
@@ -385,5 +400,7 @@ Visit [http://localhost:3000](http://localhost:3000).
    + [x] `room.js` — ban grid and ban strips use state-key diffing (not innerHTML) to avoid unnecessary DOM recreation during 500 ms polling cycles; `is-hovered` removed from `.player-card` elements (CSS `:hover` only) to prevent DOM mutation breaking the guard
    + [x] `room.css` — ban grid hover consolidated to single `.ban-phase-grid .player-card:not(.is-unavailable):hover` rule; `scale` only (no `translateY`) to prevent hover jitter; `--bg-card`, `--bg-card-hover`, `--transition` added to `:root` to match `home.css`
    + [x] `room.js` split into phase-based modules: `callbacks.js`, `state.js`, `utils.js`, `players.js`, `ban.js`, `pick.js`, `lobby.js`, `presence.js` — entry `room.js` reduced from ~5000 lines to ~1200; circular imports broken via shared mutable `cb` registry
+   + [x] `home.js` split into ES modules under `public/js/home/`: `utils.js`, `callbacks.js`, `squad.js`, `catalog.js`, `plans.js`, `rooms.js` — entry `home.js` reduced to 23-line ESM boot; same `cb` pattern used to break squad ↔ catalog circular dependency
+   + [x] `home.css` split into 8 focused files under `public/css/home/`: `base.css`, `player-card.css`, `squad.css`, `plans.css`, `catalog.css`, `modals.css`, `rooms.css`, `responsive.css`
 - [ ] UI polish and animations
 - [ ] deploy
