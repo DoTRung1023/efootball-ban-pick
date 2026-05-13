@@ -37,17 +37,25 @@ mysql -u root < database/schema.sql
 - A kicked guest → 403.
 The client maps these to three distinct error states (`is-host-lock`, `is-room-full`, `is-access-denied`) in `#viewError`, each with its own CSS color theme in `room.css`.
 
-**Reload / reconnect behaviour** (`room.js`):
+**Reload / reconnect behaviour** (`presence.js` + `room.js`):
 - When entering the draft view, `state.phase` is written to `sessionStorage` under key `efb_room_${code}_phase`.
 - On page load, `initLobby` reads this key: if the cached phase is `"draft"` or `"ready"`, the lobby view is skipped entirely while the async reconnect completes (`registerAndPollPresence`). If the server confirms the room is still drafting, `tryEnterDraftFromRoomSnapshot` transitions directly to the draft view; otherwise the cache is cleared and the lobby is shown.
 - The cache is cleared on: `leavePresence()`, `showDone()`, `showRoomClosed()`, and any failed reconnect.
 
-**Leave button** (`room.js`):
+**Leave button** (`presence.js` + `room.js`):
 - There is no `beforeunload` guard. The dialog was removed because the `sessionStorage` phase cache makes reloading safe — the draft is fully restored on reconnect. Both `#lobbyLeaveBtn` and `#draftLeaveBtn` call `leavePresence()` then set `window.location.href = "/"` directly.
 
 **Frontend** (`public/`):
 - `home.html` + `public/js/home.js` — main app: My Players tab, Game Plans tab, Rooms tab.
-- `room.html` + `public/js/room.js` — full ban/pick room flow: lobby → drafting → await-ready → done.
+- `room.html` + `public/js/room.js` — entry point for the room page; imports all sub-modules and wires up callbacks. Keeps: draft timer, stage advancement, `applyLocalAction`, `submitBan`, `submitPick`, `renderDraftUi`, `showDone`, `initDraftControls`, and all side-panel / formation rendering.
+- `public/js/room/callbacks.js` — shared mutable callback registry (`cb`) that breaks circular imports between sub-modules. Sub-modules call `cb.renderDraftUi()` etc.; `room.js` sets the real implementations after defining them.
+- `public/js/room/state.js` — `state` singleton, `defaultRoomConfig`, `applyPresenceSnapshot`, `buildTurnSchedule`, and all room-config normalisation helpers.
+- `public/js/room/utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`, `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
+- `public/js/room/players.js` — pure player-data helpers: `normalizeApiPlayer`, `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`, `miniCardHtml`, `playerDetailTooltipText`, formation/slot utilities.
+- `public/js/room/ban.js` — ban phase logic: `getBanListPlayers`, `getPickListPlayers`, `renderBanToolbar`, `bindBanPhaseUiOnce`, `attachMiniCardGridHandlers`, `fetchFilterOptions`. All render calls go through `cb.renderDraftUi()`.
+- `public/js/room/pick.js` — pick phase logic: `renderPickToolbar`, `bindPickPhaseUiOnce`, `fetchPlayers`, `loadDraftPlayers`.
+- `public/js/room/lobby.js` — full lobby: `renderLobby`, `initLobby`, config push, club autocomplete, lobby chat. Sets `cb.renderLobby = renderLobby` during module init.
+- `public/js/room/presence.js` — presence polling: `registerPresence`, `fetchRoomSnapshot`, `leavePresence`, `pollPresence`, `registerAndPollPresence`, `stopPresencePolling`. All cross-module render calls use `cb.*`.
 - `public/js/room/allowance.js` — all allowance/cap logic (position caps, card type caps, range checks) shared between room.js and the server normalizes the same data independently.
 - `public/js/room/constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`, `REGION_OPTIONS`, etc.
 
@@ -57,19 +65,36 @@ The client maps these to three distinct error states (`is-host-lock`, `is-room-f
 - The timer ring is **56×56 px** with a **44×44 px** inner circle; JS drives the conic-gradient via `ring.style.background`. There is a single canonical `.timer-ring` / `.timer-inner` definition in `room.css` — no context-specific overrides. There is no READY button in the topbar — `#draftTopReadyBtn` has been removed from HTML (JS already null-guards it).
 - The draft schedule (`buildTurnSchedule`) always returns exactly two entries: `{ side: "both", action: "ban" }` then `{ side: "both", action: "pick" }`. Both phases are simultaneous — there are no per-player turns.
 - Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks (bans-on-me / my-bans). There is **no pending/confirm step** — clicking a player card in the ban grid directly submits the ban via `submitBan()` (optimistic `applyLocalAction` + API call). The old `.ban-side-confirm` block (SELECTED label, preview card, Clear/Confirm buttons) has been removed.
+- Pick phase board: `#draftPickPhaseBoard` with `.pick-phase-layout` (same grid structure as ban phase). Left: search/sort/position-filter toolbar + `#pickGrid` (your own allowance-filtered players). Right: `.pick-phase-right` with two `.pick-side-section` blocks — MY PICKS strip (`#draftMyPicksStrip`) and OPPONENT PICKS strip (`#draftOpponentPicksStrip`, hidden when `revealMode === "hidden"`).
+- Ready phase board: `#draftReadyPhaseBoard` shown when `isReadyPhase`. Contains both players' pick summaries side by side (`#readyPhaseColumns`), a READY/UNREADY button (`#draftReadyBtn`), and a live status hint. In `hidden` reveal mode the opponent column shows a "picks hidden" message instead of cards.
 
-**Ban phase interaction** (`room.js`):
+**Ban phase interaction** (`ban.js` + `room.js`):
 - Clicking a player card in the ban grid calls `submitBan(player)` directly — no intermediate pending/confirm step.
 - `submitBan` first calls `applyLocalAction(room, player)` + `renderDraftUi()` for instant feedback, then fires `POST /api/rooms/:code/ban`. If the API fails, a toast is shown and the next presence poll restores the authoritative server state.
 - Ban sync to the opponent: every 500 ms poll cycle calls `registerPresence()` which returns the full room snapshot (including `bans`). The ban endpoint also sets `entry.updatedAt` and pushes a system chat message, both of which trigger `renderDraftUi()` on the opponent's next poll via `configChanged` and `presenceChanged`.
-- `renderDraftUi()` runs unconditionally every 500 ms (driven by `pollPresence`). To avoid destroying and recreating DOM nodes on every cycle — which would reset CSS hover transitions and cause a continuous scale pulse — the ban grid and both ban strips use an **innerHTML-diff guard**: compute the new HTML string first, then only assign to `innerHTML` if it differs from the current content.
+- `renderDraftUi()` runs unconditionally every 500 ms (driven by `pollPresence`). To avoid destroying and recreating DOM nodes on every cycle, the ban grid and both ban strips use a **state-key diff guard**: a compact fingerprint of the current data (player IDs in sorted/filtered order + ban/pick flags + turn state) is stored as a `data-state-key` / `data-bans-key` attribute and compared before any `innerHTML` write. **Do not replace this with an `innerHTML` string comparison** — browsers normalize whitespace and drop the `/` on void elements (`<img />` → `<img>`) when serializing, so the strings never match and the grid would rebuild every poll cycle.
+- When a new thumb is added to either ban strip, `is-new` is added to the last child via JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `room.css`).
+- The `is-hovered` class is **only added to `.mini-card` elements** (JS-driven hover for the pick grid). `.player-card` elements in the ban grid rely purely on the CSS `:hover` pseudo-class — adding `is-hovered` to them would mutate the DOM and break the state-key guard.
 
-**Ban phase filter & sort** (`room.js`):
+**Pick phase interaction** (`pick.js` + `room.js`):
+- Clicking a player card in the pick grid calls `submitPick(player)` — no intermediate pending/confirm step.
+- `submitPick` validates allowance cap violations (via `getAllowanceCapViolation`) and the `pickCountPerSide` limit before calling `applyLocalAction(room, player)` for an optimistic update, then fires `POST /api/rooms/:code/pick`. On API failure a toast is shown and the next presence poll restores authoritative state.
+- The pick grid shows `getPickListPlayers()` which filters `state.players` client-side by `state.pickSearch`, `state.pickFilterPosition`, and `state.pickSort` — same pattern as `getBanListPlayers()` for the ban phase. `state.players` is loaded once at draft start by `fetchPlayers()` with a 500-player limit to cover the full allowed pool.
+- Opponent picks sync identically to bans: every 500 ms presence poll returns the full room snapshot including `picks`, which triggers `renderDraftUi()` on the opponent's next poll.
+- Both the pick grid and the MY PICKS / OPPONENT PICKS strips use the same **state-key diff guard** as the ban phase — `data-stateKey` / `data-picksKey` attributes prevent DOM rebuilds on every poll cycle.
+- When all allowed picks are completed (or the pick timer expires), `beginPostDraftReadyPhase()` transitions to the ready phase locally; clicking READY calls `setMatchReady()` → `POST /api/rooms/:code/match-ready`. When both sides are ready the server sets `status = "done"` and `showDone()` is called.
+
+**Ban phase filter & sort** (`ban.js`):
 - `getBanListPlayers()` filters `state.opponentBanPlayers` entirely client-side — 15 filter state fields cover position, foot, playing style, card type, league, overall level 1/max ranges, club, nationality, height/weight/age ranges.
 - Sort supports 9 categories: overall_max, overall, name, position, club, nationality, height, weight, age. `normalizeBanSortValue()` is the validator.
 - `BAN_LEAGUE_OPTIONS` is a module-level mutable array populated by `fetchFilterOptions()` alongside `CARD_TYPE_OPTIONS`, `PLAYING_STYLE_OPTIONS`, `REGION_OPTIONS`. All are fetched from `GET /api/players/filter-options`.
 - `comparePlayersByBanSort()` reads `height/weight/age` from both `player._raw.*` and top-level fields — ban players from `/api/my-players` store these at the top level (not under `_raw`).
 - The filter dropdown panel is built in `renderBanToolbar()` and event-delegated in `bindBanPhaseUiOnce()` (runs once; guarded by `state.banUiBound`). Clearing all filters resets all 15 state fields.
+
+**Ban phase card hover** (`room.css`):
+- The sole hover rule for ban grid cards is `.ban-phase-grid .player-card:not(.is-unavailable):hover` — applies to all non-unavailable cards (including non-clickable browse-mode cards), not just `is-clickable` ones. Uses `scale(1.04)` only — **no `translateY`**. Removing the vertical translate prevents CSS hover jitter: `translateY(-Npx)` moves the card's bottom edge above the cursor when near the bottom, deactivating `:hover`, causing the card to snap back into the cursor, reactivating it, and looping visually.
+- There is no separate `.player-card.is-clickable:hover` rule — it was removed as dead code (always overridden by the more specific ban-grid rule for every element in scope).
+- `room.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match `home.css` values so shared components like `.player-card` look identical across both pages.
 
 **Ban card thumbnails** (`.ban-phase-thumb` in `room.css`):
 - `border-radius: 0` — no rounded corners on cards in "Bans on Me" / "My Bans" strips.
@@ -77,6 +102,8 @@ The client maps these to three distinct error states (`is-host-lock`, `is-room-f
 - The empty-state dashed placeholder (`.ban-side-strip:empty::before`) uses `68×96 px` with `border-radius: 0` to match the natural card proportions.
 
 **CSS parity — `room.css` vs `home.css`**: The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`, `.filter-clear-btn` etc. These are defined in `room.css` and kept visually in sync with `home.css`. Key rules: `.ap-dd-btn.has-active` (green highlight when filter active), `.filter-clear-btn` (red destructive style), `.select-mode-btn` (`border-radius: 7px`).
+
+**Pick phase CSS** (`room.css`): `.pick-phase-layout` / `.pick-phase-left` / `.pick-phase-right` mirror the ban phase structure. `.pick-phase-grid` uses the same `player-card` component as `.ban-phase-grid` — hover uses CSS `:hover` only (no `is-hovered` mutation) and `scale(1.04)` only (no `translateY`) for the same anti-jitter reason. Accent colour is `--cyan` instead of nothing special. `.pick-phase-strip` borrows `.ban-phase-thumb` for thumbnails (the `is-new` spring animation applies automatically). Ready phase uses `.ready-phase-layout` centred column with `.ready-phase-col` pick-row list and READY button.
 
 **CSS conventions for `room.css`**: Each component has a **single canonical rule block** — do not add a second rule for the same selector later in the file to tweak values; update the existing block instead. Late overrides with the same selector caused widespread redundancy (`.timer-ring`, `.stage-progress-dot`, `.stage-progress-dot::before`, `.stage-progress-dot .stage-dot-label`, `.stage-progress-line`, `.chat-item`, `.stage-progress-container--lobby` all had duplicate blocks that have since been merged). Context-specific variants use modifier classes (e.g. `.is-active`, `.is-completed`, `.is-mine`) or scoped parent selectors, not repeated base selectors.
 

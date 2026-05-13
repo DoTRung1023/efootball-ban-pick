@@ -1076,6 +1076,46 @@ app.post("/api/rooms/:code/ban", (req, res) => {
   res.json({ room: serializeRoomEntry(entry) });
 });
 
+app.post("/api/rooms/:code/pick", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const requesterId = String(req.body?.requesterId || "");
+  const player = req.body?.player || null;
+  if (!code || code.length < 4) return res.status(400).json({ error: "Invalid room code." });
+  if (!requesterId) return res.status(400).json({ error: "requesterId is required." });
+  if (!player || !player.id) return res.status(400).json({ error: "player is required." });
+
+  const entry = ensureRoomEntry(code);
+  const senderId = String(requesterId);
+  const isHost = entry.host?.id && String(entry.host.id) === senderId;
+  const isGuest = entry.guest?.id && String(entry.guest.id) === senderId;
+  if (!isHost && !isGuest) return res.status(403).json({ error: "Join room before picking." });
+  if (String(entry.status || "") !== "drafting") return res.status(409).json({ error: "Picks are only allowed during drafting." });
+
+  if (!entry.picks) entry.picks = { host: [], guest: [] };
+  if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
+  if (!Array.isArray(entry.pickedPlayerIds)) entry.pickedPlayerIds = [];
+
+  const pid = String(player.id);
+  if (entry.bannedPlayerIds.includes(pid) || entry.pickedPlayerIds.includes(pid)) {
+    return res.status(409).json({ error: "Player already banned or picked." });
+  }
+
+  const sideKey = isHost ? "host" : "guest";
+  const maxPicks = Math.max(0, Math.floor(Number(entry.config?.pickCountPerSide) || 0));
+  const myPicks = Array.isArray(entry.picks[sideKey]) ? entry.picks[sideKey] : [];
+  if (maxPicks && myPicks.length >= maxPicks) {
+    return res.status(409).json({ error: "No picks remaining for your side." });
+  }
+
+  entry.picks[sideKey] = entry.picks[sideKey] || [];
+  entry.picks[sideKey].push(player);
+  entry.pickedPlayerIds.push(pid);
+  entry.updatedAt = Date.now();
+  pushSystemChat(entry, `${(isHost ? entry.host?.username : entry.guest?.username) || "User"} picked ${String(player.name || player.id)}`);
+
+  res.json({ room: serializeRoomEntry(entry) });
+});
+
 /** POST body: { requesterId } */
 app.post("/api/rooms/:code/kick-guest", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);

@@ -26,7 +26,7 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
 - **Rooms (lobby)** — **Rooms** tab: create a room (generates a code) or join with a code. Host sets ban/pick rules on the room page before starting.
-- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players simultaneously ban from the opponent's squad — click any card to ban instantly; bans sync to the opponent within ~500 ms via polling), **pick phase** (WIP), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
+- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players simultaneously ban from the opponent's squad — click any card to ban instantly; bans sync to the opponent within ~500 ms via polling), **pick phase** (both players simultaneously pick from the allowance-filtered pool — search/sort/position filter, instant sync via polling, opponent strip shown in instant-reveal mode), **ready phase** (shows both squads side by side; both players hit READY to confirm and transition to the summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
 - **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
 - **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
 
@@ -50,28 +50,39 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 ```
 ban-pick-efb/
 ├── database/
-│   └── schema.sql          # All CREATE TABLE statements
+│   └── schema.sql              # All CREATE TABLE statements
 ├── public/
 │   ├── css/
-│   │   ├── home.css        # Home page styles
-│   │   ├── room.css        # Dedicated room page (lobby / draft / done)
-│   │   └── signin.css      # Sign-in / sign-up styles
+│   │   ├── home.css            # Home page styles
+│   │   ├── room.css            # Dedicated room page (lobby / draft / done)
+│   │   └── signin.css          # Sign-in / sign-up styles
 │   ├── js/
-│   │   ├── home.js         # Home page logic (includes room modal + join)
-│   │   ├── room.js         # Room page: lobby, local draft, demo opponent
-│   │   └── signin.js       # Auth modal logic
+│   │   ├── home.js             # Home page logic (includes room modal + join)
+│   │   ├── room.js             # Room page entry point — wires sub-modules, draft timer, submit handlers
+│   │   ├── signin.js           # Auth modal logic
+│   │   └── room/
+│   │       ├── callbacks.js    # Shared mutable callback registry (breaks circular imports)
+│   │       ├── state.js        # state singleton, defaultRoomConfig, applyPresenceSnapshot
+│   │       ├── utils.js        # escapeHtml, showToast, showView, getUser, getCurrentIdentity
+│   │       ├── players.js      # Player normalisation helpers, miniCardHtml, formation/slot utils
+│   │       ├── ban.js          # Ban phase: filter/sort, toolbar, grid event binding, fetchFilterOptions
+│   │       ├── pick.js         # Pick phase: toolbar, grid binding, fetchPlayers, loadDraftPlayers
+│   │       ├── lobby.js        # Full lobby UI: renderLobby, initLobby, config push, chat
+│   │       ├── presence.js     # Presence polling: register, fetchSnapshot, leave, pollPresence
+│   │       ├── allowance.js    # Allowance/cap logic shared with server
+│   │       └── constants.js    # POSITION_OPTIONS, CARD_TYPE_OPTIONS, REGION_OPTIONS, etc.
 │   ├── logo/
-│   ├── home.html           # Main app page
-│   ├── room.html           # Ban & pick room (lobby → draft → summary)
-│   ├── signin.html         # Sign-in / sign-up page
+│   ├── home.html               # Main app page
+│   ├── room.html               # Ban & pick room (lobby → draft → summary)
+│   ├── signin.html             # Sign-in / sign-up page
 │   └── 404.html
 ├── src/
-│   ├── db.js               # MySQL connection pool
-│   ├── cardImageCacheR2.js # R2 card image cache (/img/card/:id.png)
-│   ├── scrape.js           # Player catalog scraper (full + incremental)
-│   ├── scrape-missing.js   # Missing-only repair: diffs site vs DB, fills gaps
-│   └── server.js           # Express app + API routes
-├── .env.example            # Environment variable template
+│   ├── db.js                   # MySQL connection pool
+│   ├── cardImageCacheR2.js     # R2 card image cache (/img/card/:id.png)
+│   ├── scrape.js               # Player catalog scraper (full + incremental)
+│   ├── scrape-missing.js       # Missing-only repair: diffs site vs DB, fills gaps
+│   └── server.js               # Express app + API routes
+├── .env.example                # Environment variable template
 └── package.json
 ```
 
@@ -243,6 +254,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `POST` | `/api/rooms/:code/start` | Host starts the draft (requires guest ready) |
 | `POST` | `/api/rooms/:code/ready` | Guest toggles ready state |
 | `POST` | `/api/rooms/:code/ban` | Submit a ban during the ban phase |
+| `POST` | `/api/rooms/:code/pick` | Submit a pick during the pick phase |
 | `POST` | `/api/rooms/:code/match-ready` | Toggle post-draft match-ready state |
 | `POST` | `/api/rooms/:code/kick-guest` | Host removes the current guest |
 | `POST` | `/api/rooms/:code/config` | Host updates ban/pick settings |
@@ -270,7 +282,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `heightMin` / `heightMax` | `?heightMin=180&heightMax=195` | Height range in cm |
 | `weightMin` / `weightMax` | `?weightMin=70&weightMax=90` | Weight range in kg |
 | `ageMin` / `ageMax` | `?ageMin=20&ageMax=30` | Age range |
-| `limit` | `?limit=50` | Results per page (default 30) |
+| `limit` | `?limit=50` | Results per page (default 50; pick phase loads up to 500) |
 | `offset` | `?offset=60` | Pagination offset |
 
 **`sortBy` values:** `overall_max_desc`, `overall_max_asc`, `overall_desc`, `overall_asc`, `name_asc`, `name_desc`, `position_asc`, `position_desc`, `height_desc`, `height_asc`, `weight_desc`, `weight_asc`, `age_desc`, `age_asc`, `club_asc`, `club_desc`, `nationality_asc`, `nationality_desc`
@@ -319,8 +331,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [ ] run scrape missing should be record in scrape logs, and show in the end of scrape logs table 
 - [ ] ban pick page:
   - [x] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
-  - [ ] for pick phase: I can see all my players, my current picked players in a specific formation, can also open my game plans to consult and build according to it, can see opponent's pick players
-- [x] ban grid: player cards no longer continuously scale up/down on hover (fixed by innerHTML diffing guard — DOM nodes are only recreated when content actually changes)
+  - [x] for pick phase: both players pick simultaneously from the allowance-filtered pool; search/sort/position filter; MY PICKS strip + OPPONENT PICKS strip (instant-reveal mode); ready phase shows both squads for confirmation
+- [x] ban grid: player cards no longer continuously scale up/down on hover (two root causes fixed: (1) replaced innerHTML string comparison with a state-key diff guard — browsers normalize whitespace and strip void-element slashes on serialization so the old comparison always failed and the grid rebuilt every 500 ms poll cycle; (2) removed `translateY` from the hover transform — moving the card upward pushes its bottom edge above the cursor, deactivating `:hover` mid-transition and causing a jitter loop)
 - [ ] fix tab in setting, ban page
 - [ ] fix the ban duration, pick duration text to avoid text overflow when resize window
 - [ ] add username on the right of tab, close/leave room button on the left
@@ -354,11 +366,11 @@ Visit [http://localhost:3000](http://localhost:3000).
       + [x] allow: card type — number of players, overall rating
       + [x] compulsory: card type — number of players, overall rating
       + [x] ban players: ban exact player card (click-to-ban; syncs to opponent via polling)
-      + [ ] pick players: pick exact player card
-   + [ ] a player can see opponent's team then ban/pick
-   + [ ] players can view their game plans to build accordingly
-   + [ ] a list of my current squad / all my players / all other players
-   + [ ] after finish picking, done then show two squads on screen
+      + [x] pick players: pick exact player card (click-to-pick; syncs to opponent via polling; allowance cap validation)
+   + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
+   + [ ] players can view their game plans to build accordingly during the pick phase
+   + [x] a list of my current squad (allowance-filtered) visible during pick phase; search, sort, position filter
+   + [x] after finish picking, ready phase shows both squads; both players confirm with READY to go to summary
 - [x] update database
 - [ ] admin page
 - [ ] responsive design
@@ -369,6 +381,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [ ] documentation
 - [ ] code cleanup and refactoring
    + [x] `room.css` — merged all duplicate/late-override rule blocks into single canonical definitions (timer ring, stage progress dots & labels, connecting line, chat item, lobby container)
-   + [x] `room.js` — ban grid and ban strips use innerHTML diffing to avoid unnecessary DOM recreation during 500 ms polling cycles (prevents hover animation reset / continuous scale pulse)
+   + [x] `room.js` — ban grid and ban strips use state-key diffing (not innerHTML) to avoid unnecessary DOM recreation during 500 ms polling cycles; `is-hovered` removed from `.player-card` elements (CSS `:hover` only) to prevent DOM mutation breaking the guard
+   + [x] `room.css` — ban grid hover consolidated to single `.ban-phase-grid .player-card:not(.is-unavailable):hover` rule; `scale` only (no `translateY`) to prevent hover jitter; `--bg-card`, `--bg-card-hover`, `--transition` added to `:root` to match `home.css`
+   + [x] `room.js` split into phase-based modules: `callbacks.js`, `state.js`, `utils.js`, `players.js`, `ban.js`, `pick.js`, `lobby.js`, `presence.js` — entry `room.js` reduced from ~5000 lines to ~1200; circular imports broken via shared mutable `cb` registry
 - [ ] UI polish and animations
 - [ ] deploy

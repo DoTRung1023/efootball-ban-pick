@@ -334,14 +334,87 @@
                 </div>
               </section>
 
-              <section class="draft-panel draft-panel--pick-wip" id="draftPickWip" hidden>
-                <div class="draft-panel-headline">
-                  <div>
-                    <div class="draft-kicker">PICK PHASE</div>
-                    <h3>Coming soon</h3>
+              <!-- Pick Phase -->
+              <section class="draft-panel draft-panel--pick-phase" id="draftPickPhaseBoard" hidden>
+                <div class="pick-phase-layout">
+                  <div class="pick-phase-left">
+                    <div class="pick-phase-controls">
+                      <div class="team-search-bar">
+                        <div class="team-search-wrap">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                          </svg>
+                          <input type="text" id="pickSearch" placeholder="Search your players..." autocomplete="off">
+                        </div>
+                        <div class="sort-group">
+                          <div class="ap-dd-wrap" id="pickSortWrap">
+                            <button class="ap-dd-btn" id="pickSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
+                              </svg>
+                              <span id="pickSortLabel">Overall Max</span>
+                              <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </button>
+                            <div class="ap-dd-panel sort-dd-panel" id="pickSortPanel"></div>
+                          </div>
+                          <button class="sort-dir-btn" id="pickSortDirBtn" type="button" title="Toggle direction">
+                            <span id="pickSortDirIcon">↓</span>
+                          </button>
+                        </div>
+                        <div class="ap-dd-wrap" id="pickPosWrap">
+                          <button class="ap-dd-btn" id="pickPosBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                            <span>POSITION</span>
+                            <span class="dd-active-dot" id="pickPosDot" style="display:none;"></span>
+                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </button>
+                          <div class="ap-dd-panel" id="pickPosPanel"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="pick-phase-grid" id="pickGrid"></div>
+                  </div>
+
+                  <aside class="pick-phase-right" aria-label="Pick summary">
+                    <div class="pick-side-section">
+                      <div class="pick-side-head">
+                        <span class="pick-side-title">MY PICKS</span>
+                        <span class="pick-count" id="draftMyPicksCount">0/23</span>
+                      </div>
+                      <div class="pick-phase-strip pick-side-strip" id="draftMyPicksStrip"></div>
+                    </div>
+                    <div class="pick-side-section" id="draftOpponentPicksSection">
+                      <div class="pick-side-head">
+                        <span class="pick-side-title">OPPONENT PICKS</span>
+                        <span class="pick-count" id="draftOpponentPicksCount">0/23</span>
+                      </div>
+                      <div class="pick-phase-strip pick-side-strip" id="draftOpponentPicksStrip"></div>
+                    </div>
+                  </aside>
+                </div>
+              </section>
+
+              <!-- Ready Phase -->
+              <section class="draft-panel draft-panel--ready-phase" id="draftReadyPhaseBoard" hidden>
+                <div class="ready-phase-layout">
+                  <div class="ready-phase-head">
+                    <div class="draft-kicker">DRAFT COMPLETE</div>
+                    <h3>Ready to start the match?</h3>
+                  </div>
+                  <div class="ready-phase-columns" id="readyPhaseColumns"></div>
+                  <div class="ready-phase-actions">
+                    <button type="button" class="btn btn--primary" id="draftReadyBtn">READY</button>
+                    <p class="ready-phase-hint" id="readyPhaseHint"></p>
                   </div>
                 </div>
-                <div class="draft-empty-panel">Pick phase UI is not implemented yet.</div>
               </section>
             </div>
           </div>
