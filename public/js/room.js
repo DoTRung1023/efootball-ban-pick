@@ -958,7 +958,7 @@ function renderDraftUi() {
 
       const confirmBansBtn = document.getElementById("confirmBansBtn");
       if (confirmBansBtn) {
-        confirmBansBtn.disabled = state.stagedBans.length === 0 || myConfirmed;
+        confirmBansBtn.disabled = myConfirmed;
         confirmBansBtn.textContent = myConfirmed ? "CONFIRMED ✓" : "CONFIRM BANS";
         confirmBansBtn.classList.toggle("is-confirmed", myConfirmed);
       }
@@ -1254,7 +1254,6 @@ async function callBanConfirm() {
 }
 
 async function confirmStagedBans() {
-  if (!state.stagedBans.length) return;
   const toSubmit = flushStagedBansLocally();
   renderDraftUi();
   await submitBansToApi(toSubmit);
