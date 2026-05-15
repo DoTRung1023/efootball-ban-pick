@@ -10,9 +10,10 @@ import {
   REVEAL_MODE_INSTANT,
   REVEAL_MODE_HIDDEN,
   DEFAULT_FORMATION,
+  FORMATION_LAYOUTS,
 } from './room/constants.js';
 
-import { getAllowanceCapViolation } from './room/allowance.js';
+import { getAllowanceCapViolation, playerMatchesAllowanceCategory } from './room/allowance.js';
 
 import { cb } from './room/callbacks.js';
 
@@ -26,6 +27,7 @@ import {
   slotCardsSummary,
   mapPlayersBySlot,
   miniCardHtml,
+  buildOrderedSlotMap,
 } from './room/players.js';
 
 import {
@@ -56,7 +58,7 @@ import {
   attachMiniCardGridHandlers,
 } from './room/ban.js';
 
-import { renderPickToolbar, bindPickPhaseUiOnce, loadDraftPlayers } from './room/pick.js';
+import { renderPickToolbar, renderPickPosTabs, bindPickPhaseUiOnce, loadDraftPlayers } from './room/pick.js';
 
 import {
   clearRoomPhaseCache,
@@ -780,6 +782,322 @@ function updateStageTabs() {
   });
 }
 
+/* ── Pick Phase helpers ───────────────────────────────────── */
+
+function getPickFormation() {
+  const plan = state.draftGamePlans.find((p) => String(p.id) === String(state.draftGamePlanSelectedId));
+  return normalizeFormation(plan?.formation || state.pickManualFormation || DEFAULT_FORMATION);
+}
+
+function renderReadyPitchColHtml(room, side, picks, formation, isMe) {
+  const lineup = picks.slice(0, 11);
+  const bench = picks.slice(11);
+  const slotMap = buildOrderedSlotMap(lineup);
+  const layout = getFormationLayout(formation);
+  const name = room[side]?.username || (isMe ? "You" : "Opponent");
+  const initial = escapeHtml(name.charAt(0).toUpperCase());
+  const isReady = Boolean(room.matchReady?.[side]);
+  const avgOvr = lineup.length > 0
+    ? Math.round(lineup.reduce((s, p) => s + (Number(getPlayerCardValue(p)) || 0), 0) / lineup.length)
+    : "—";
+  const badgeClass = isReady ? "is-ready" : "is-writing";
+  const badgeText = isReady ? "✦ READY" : "✦ WRITING";
+  const roleText = isMe ? "YOU" : "OPPONENT";
+
+  const pitchHtml = layout.map((row) => {
+    const cards = row.slots.map((slot) => {
+      const player = slotMap[slot];
+      if (!player) return `<div class="sm-empty-slot"></div>`;
+      return banPlayerCardHtml(player, { banned: false, picked: false, clickable: false });
+    }).join("");
+    return `<div class="sm-pitch-row">${cards}</div>`;
+  }).join("");
+
+  const benchMeta = bench.length > 0
+    ? `OVR Max ${Math.round(bench.reduce((s, p) => s + (Number(getPlayerCardValue(p)) || 0), 0) / bench.length)}`
+    : "";
+  const benchHtml = bench.length > 0 ? `
+    <div class="sm-bench">
+      <div class="sm-bench-head">
+        <span>BENCH · ${bench.length} SUBS</span>
+        <span class="sm-bench-meta">${escapeHtml(benchMeta)}</span>
+      </div>
+      <div class="sm-bench-strip">
+        ${bench.map((p) => banPlayerCardHtml(p, { banned: false, picked: false, clickable: false })).join("")}
+      </div>
+    </div>` : "";
+
+  return `
+    <div class="sm-col ${isMe ? "sm-col--me" : "sm-col--opp"}">
+      <div class="sm-col-head">
+        <div class="sm-col-avatar">${initial}</div>
+        <div class="sm-col-info">
+          <div class="sm-col-name">${escapeHtml(name)}</div>
+          <div class="sm-col-meta">${escapeHtml(roleText)} · ${escapeHtml(formation)} · AVG ${avgOvr}</div>
+        </div>
+        <div class="sm-col-badge ${badgeClass}">${escapeHtml(badgeText)}</div>
+      </div>
+      <div class="sm-pitch">${pitchHtml}</div>
+      ${benchHtml}
+    </div>`;
+}
+
+function renderReadyStatsHtml(myPicks, theirPicks, myFormation, theirFormation) {
+  const myLineup = myPicks.slice(0, 11);
+  const theirLineup = theirPicks.slice(0, 11);
+  const avgNum = (arr, fn) => arr.length
+    ? Math.round(arr.reduce((s, p) => s + (Number(fn(p)) || 0), 0) / arr.length)
+    : 0;
+  const myAvgOvr = avgNum(myLineup, (p) => getPlayerCardValue(p));
+  const theirAvgOvr = avgNum(theirLineup, (p) => getPlayerCardValue(p));
+  const myAllAvgOvr = avgNum(myPicks, (p) => getPlayerCardValue(p));
+  const theirAllAvgOvr = avgNum(theirPicks, (p) => getPlayerCardValue(p));
+  const myAvgAge = avgNum(myLineup, (p) => p.age);
+  const theirAvgAge = avgNum(theirLineup, (p) => p.age);
+
+  const numStat = (label, myVal, theirVal) => {
+    const total = myVal + theirVal;
+    const myPct = total > 0 ? Math.round((myVal / total) * 100) : 50;
+    const theirPct = 100 - myPct;
+    return `<div class="sm-stat">
+      <div class="sm-stat-label">${escapeHtml(label)}</div>
+      <div class="sm-stat-bars">
+        <div class="sm-stat-bar sm-stat-bar--me" style="width:${myPct}%"></div>
+        <div class="sm-stat-bar sm-stat-bar--opp" style="width:${theirPct}%"></div>
+      </div>
+      <div class="sm-stat-vals">
+        <span class="sm-stat-me">${myVal}</span>
+        <span class="sm-stat-vs">vs</span>
+        <span class="sm-stat-opp">${theirVal}</span>
+      </div>
+    </div>`;
+  };
+
+  const txtStat = (label, myVal, theirVal) => `
+    <div class="sm-stat">
+      <div class="sm-stat-label">${escapeHtml(label)}</div>
+      <div class="sm-stat-vals sm-stat-vals--text">
+        <span class="sm-stat-me">${escapeHtml(String(myVal))}</span>
+        <span class="sm-stat-vs">vs</span>
+        <span class="sm-stat-opp">${escapeHtml(String(theirVal))}</span>
+      </div>
+    </div>`;
+
+  return `<div class="sm-stats-row">
+    ${numStat("AVG OVERALL", myAvgOvr, theirAvgOvr)}
+    ${numStat("AVG OVR MAX", myAllAvgOvr, theirAllAvgOvr)}
+    ${txtStat("FORMATION", myFormation, theirFormation)}
+    ${numStat("STARTING XI", myLineup.length, theirLineup.length)}
+    ${myAvgAge || theirAvgAge ? numStat("AVG AGE", myAvgAge, theirAvgAge) : txtStat("SQUAD SIZE", myPicks.length, theirPicks.length)}
+  </div>`;
+}
+
+function renderPickQuickLoad() {
+  const cards = document.getElementById("pickQlCards");
+  const formBtn = document.getElementById("pickQlFormationBtn");
+  const formLabel = document.getElementById("pickQlFormationLabel");
+  if (!cards) return;
+
+  const formation = getPickFormation();
+  if (formLabel) formLabel.textContent = formation;
+
+  const allPlans = state.draftGamePlans;
+  const selectedId = state.draftGamePlanSelectedId;
+  const fromScratch = selectedId === null;
+
+  const scratchHtml = `
+    <div class="pick-ql-card ${fromScratch ? "is-selected" : ""}" data-pick-ql-plan="">
+      <div class="pick-ql-card-icon">${fromScratch ? "✓" : "ø"}</div>
+      <div class="pick-ql-card-body">
+        <div class="pick-ql-card-name">From scratch</div>
+        <div class="pick-ql-card-formation">Choose formation manually</div>
+      </div>
+    </div>`;
+
+  const planHtml = allPlans.map((plan) => {
+    const sel = String(plan.id) === String(selectedId);
+    return `
+      <div class="pick-ql-card ${sel ? "is-selected" : ""}" data-pick-ql-plan="${escapeHtml(String(plan.id))}">
+        <div class="pick-ql-card-icon">${sel ? "✓" : escapeHtml(normalizeFormation(plan.formation).split("-")[0])}</div>
+        <div class="pick-ql-card-body">
+          <div class="pick-ql-card-name">${escapeHtml(plan.name || "Plan")}</div>
+          <div class="pick-ql-card-formation">${escapeHtml(normalizeFormation(plan.formation))}</div>
+        </div>
+        ${sel ? '<span class="pick-ql-check">✓</span>' : ""}
+      </div>`;
+  }).join("");
+
+  const newKey = `${selectedId ?? "scratch"}|${allPlans.map((p) => p.id).join(",")}`;
+  if (cards.dataset.qlKey !== newKey) {
+    cards.dataset.qlKey = newKey;
+    cards.innerHTML = scratchHtml + planHtml;
+  }
+
+  // Formation panel
+  const formPanel = document.getElementById("pickQlFormationPanel");
+  if (formPanel && !formPanel.dataset.builtFormations) {
+    formPanel.dataset.builtFormations = "1";
+    const fmKeys = Object.keys(FORMATION_LAYOUTS);
+    formPanel.innerHTML = fmKeys.map((f) =>
+      `<button type="button" data-pick-formation="${escapeHtml(f)}" class="${f === formation ? "is-active" : ""}">${escapeHtml(f)}</button>`
+    ).join("");
+  } else if (formPanel) {
+    formPanel.querySelectorAll("[data-pick-formation]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.getAttribute("data-pick-formation") === formation);
+    });
+  }
+}
+
+function renderPickPitch(room, mySide, myPicks, maxPicks) {
+  const pitch = document.getElementById("pickPitch");
+  const lineupMeta = document.getElementById("pickLineupMeta");
+  if (!pitch) return;
+
+  const formation = getPickFormation();
+  const layout = getFormationLayout(formation);
+  const slotMap = buildOrderedSlotMap(myPicks.slice(0, 11));
+
+  const rowLabels = { pitchRowFwd: "ATT", pitchRowMid: "MID", pitchRowDef: "DEF", pitchRowGk: "GK" };
+
+  const pitchKey = `${formation}|${myPicks.slice(0, 11).map((p) => p.id).join(",")}`;
+  if (pitch.dataset.pitchKey !== pitchKey) {
+    pitch.dataset.pitchKey = pitchKey;
+    pitch.innerHTML = layout.map((row) => {
+      const rowLabel = rowLabels[row.id] || "";
+      return `<div class="pick-pitch-row" data-row="${escapeHtml(row.id)}">
+        ${row.slots.map((slot) => {
+          const player = slotMap[slot];
+          if (!player) {
+            return `<div class="pick-slot pick-slot--empty">
+              <div class="pick-slot-plus">+</div>
+              <div class="pick-slot-pos-label">${escapeHtml(rowLabel)}</div>
+            </div>`;
+          }
+          const lastName = String(player.name || "").trim().split(/\s+/).pop() || player.name;
+          const ovr = getPlayerCardValue(player);
+          return `<div class="pick-slot pick-slot--filled">
+            <img class="pick-slot-img" src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy">
+            <div class="pick-slot-overlay">
+              <div class="pick-slot-name">${escapeHtml(lastName)}</div>
+              <div class="pick-slot-ovr">${escapeHtml(String(ovr))}</div>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    }).join("");
+  }
+
+  // Lineup meta header
+  if (lineupMeta) {
+    const lineupCount = Math.min(myPicks.length, 11);
+    const avgOvr = lineupCount > 0
+      ? Math.round(myPicks.slice(0, 11).reduce((s, p) => s + Number(getPlayerCardValue(p) || 0), 0) / lineupCount)
+      : null;
+    const plan = state.draftGamePlans.find((p) => String(p.id) === String(state.draftGamePlanSelectedId));
+    const metaKey = `${lineupCount}|${maxPicks}|${formation}|${avgOvr}|${plan?.name ?? ""}`;
+    if (lineupMeta.dataset.metaKey !== metaKey) {
+      lineupMeta.dataset.metaKey = metaKey;
+      lineupMeta.innerHTML = `
+        <span class="pick-lineup-count">${lineupCount}/${Math.min(maxPicks, 11)}</span>
+        <span class="pick-lineup-formation">${escapeHtml(formation)}</span>
+        ${avgOvr !== null ? `<span class="pick-lineup-avgovr">Avg OVR ${avgOvr}</span>` : ""}
+        ${plan ? `<span class="pick-lineup-plan-badge">● ${escapeHtml(plan.name)}</span>` : ""}
+      `;
+    }
+  }
+}
+
+function renderPickAllowanceBar(room, mySide, myPicks, maxPicks) {
+  const bar = document.getElementById("pickAllowanceBar");
+  const confirmBtn = document.getElementById("confirmPicksBtn");
+  const moreLabel = document.getElementById("pickMoreLabel");
+  if (!bar) return;
+
+  const cfg = room?.config || {};
+  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
+  const caps = cfg.allowanceCaps || {};
+  const allowance = cfg.allowance || {};
+
+  const pills = [];
+  if (enabled.length) {
+    for (const key of enabled) {
+      const cap = Math.max(0, Math.floor(Number(caps[key]) || 0));
+      if (!cap) continue;
+      const val = String(allowance[key] || "").trim();
+      if (!val) continue;
+      const used = myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, val)).length;
+      const label = val.length <= 12 ? val.toUpperCase() : key.toUpperCase();
+      pills.push({ label, used, cap });
+    }
+  }
+
+  const barKey = pills.map((p) => `${p.label}:${p.used}/${p.cap}`).join("|") + `|${myPicks.length}`;
+  if (bar.dataset.barKey !== barKey) {
+    bar.dataset.barKey = barKey;
+    bar.innerHTML = pills.length
+      ? `<span class="pick-allowance-label">ALLOWANCE</span>` +
+        pills.map((p) => `<span class="pick-allowance-pill ${p.used >= p.cap ? "is-maxed" : ""}">${escapeHtml(p.label)} ${p.used}/${p.cap}</span>`).join("")
+      : "";
+  }
+
+  const remaining = maxPicks - myPicks.length;
+  if (confirmBtn) confirmBtn.hidden = remaining > 0;
+  if (moreLabel) moreLabel.textContent = remaining > 0 ? `${remaining} MORE` : "";
+}
+
+function renderPickLiveFeed(room, theirSide, theirPicks, maxPicks, revealMode) {
+  const oppDot = document.getElementById("pickOppDot");
+  const oppName = document.getElementById("pickOppName");
+  const oppCount = document.getElementById("pickOppCount");
+  const progFill = document.getElementById("pickOppProgressFill");
+  const feed = document.getElementById("pickOppFeed");
+  const statusDot = document.getElementById("pickLiveStatusDot");
+  const statusText = document.getElementById("pickLiveStatusText");
+  const syncEl = document.getElementById("pickLiveSync");
+  if (!feed) return;
+
+  const theirInfo = room[theirSide] || null;
+  const isOnline = Boolean(theirInfo?.id);
+  if (oppDot) oppDot.classList.toggle("is-online", isOnline);
+  if (oppName) oppName.textContent = theirInfo?.username || "Opponent";
+  if (oppCount) oppCount.textContent = `${theirPicks.length}/${maxPicks}`;
+  if (progFill) progFill.style.width = maxPicks > 0 ? `${Math.min(100, (theirPicks.length / maxPicks) * 100)}%` : "0%";
+  if (statusDot) statusDot.classList.toggle("is-online", isOnline && !state.presenceError);
+  if (statusText) statusText.textContent = !isOnline ? "Left the room" : state.presenceError ? "Reconnecting..." : "Picking...";
+  if (syncEl) {
+    const elapsed = state.lastRoomUpdatedAt ? Math.round((Date.now() - state.lastRoomUpdatedAt) / 100) / 10 : 0;
+    syncEl.textContent = `Synced ${elapsed}s ago`;
+  }
+
+  // Feed rows — hidden-mode: show "picks hidden" if revealMode = hidden
+  const feedKey = revealMode === REVEAL_MODE_HIDDEN ? "hidden" : theirPicks.map((p) => p.id).join(",");
+  if (feed.dataset.feedKey === feedKey) return;
+  feed.dataset.feedKey = feedKey;
+
+  if (revealMode === REVEAL_MODE_HIDDEN) {
+    feed.innerHTML = `<div class="pick-feed-waiting"><div class="pick-feed-wait-dot"></div><span class="pick-feed-wait-text">Picks hidden — revealed after match</span></div>`;
+    return;
+  }
+
+  const rows = theirPicks.map((p, i) => `
+    <div class="pick-feed-row ${i === theirPicks.length - 1 ? "is-new" : ""}">
+      <div class="pick-feed-thumb">
+        <img src="${escapeHtml(getPlayerImageSrc(p))}" alt="${escapeHtml(p.name || "Player")}" loading="lazy">
+      </div>
+      <div class="pick-feed-info">
+        <div class="pick-feed-name">${escapeHtml(p.name || "—")}</div>
+        <div class="pick-feed-meta">${escapeHtml(p.position || "—")} · OVR ${escapeHtml(String(getPlayerCardValue(p)))}</div>
+      </div>
+      ${i === theirPicks.length - 1 ? '<span class="pick-feed-badge">NEW</span>' : ""}
+    </div>`).join("");
+
+  const waiting = Array.from({ length: Math.max(0, maxPicks - theirPicks.length) }, (_, i) =>
+    `<div class="pick-feed-waiting"><div class="pick-feed-wait-dot"></div><span class="pick-feed-wait-text">Waiting for pick… (${theirPicks.length + i + 1} of ${maxPicks})</span></div>`
+  ).join("");
+
+  feed.innerHTML = rows + waiting;
+}
+
 function renderDraftUi() {
   const room = state.room;
   if (!room || (state.phase !== "draft" && state.phase !== "ready")) return;
@@ -1042,68 +1360,53 @@ function renderDraftUi() {
       const pickSearch = document.getElementById("pickSearch");
       if (pickSearch && pickSearch !== document.activeElement) pickSearch.value = state.pickSearch || "";
       renderPickToolbar();
+      renderPickPosTabs();
 
-      const myPicksCountEl = document.getElementById("draftMyPicksCount");
-      const opponentPicksCountEl = document.getElementById("draftOpponentPicksCount");
-      const maxPicks = Math.max(0, Math.floor(Number(room.config?.pickCountPerSide) || 0));
-      if (myPicksCountEl) myPicksCountEl.textContent = `${myPicks.length}/${maxPicks || FIXED_PICKS_PER_SIDE}`;
-      if (opponentPicksCountEl) opponentPicksCountEl.textContent = `${theirPicks.length}/${maxPicks || FIXED_PICKS_PER_SIDE}`;
-
-      const opponentSection = document.getElementById("draftOpponentPicksSection");
+      const maxPicks = Math.max(0, Math.floor(Number(room.config?.pickCountPerSide) || 0)) || FIXED_PICKS_PER_SIDE;
+      const canStillPick = myPicks.length < maxPicks;
       const revealMode = normalizeRevealMode(room.config?.revealMode);
-      if (opponentSection) opponentSection.hidden = revealMode !== REVEAL_MODE_INSTANT;
 
-      // Render my picks strip with state-key diff guard
-      const myPicksStrip = document.getElementById("draftMyPicksStrip");
-      if (myPicksStrip) {
-        const myPicksKey = myPicks.map((p) => String(p.id)).join(",");
-        if (myPicksStrip.dataset.picksKey !== myPicksKey) {
-          const prevCount = myPicksStrip.children.length;
-          myPicksStrip.dataset.picksKey = myPicksKey;
-          myPicksStrip.innerHTML = myPicks.length ? myPicks.map((p) => imageOnlyThumbHtml(p, "md")).join("") : "";
-          if (myPicksStrip.children.length > prevCount) myPicksStrip.lastElementChild?.classList.add("is-new");
-        }
-      }
+      // ── Quick-load bar ─────────────────────────────────────
+      renderPickQuickLoad();
 
-      // Render opponent picks strip
-      const opponentPicksStrip = document.getElementById("draftOpponentPicksStrip");
-      if (opponentPicksStrip && revealMode === REVEAL_MODE_INSTANT) {
-        const theirPicksKey = theirPicks.map((p) => String(p.id)).join(",");
-        if (opponentPicksStrip.dataset.picksKey !== theirPicksKey) {
-          const prevCount = opponentPicksStrip.children.length;
-          opponentPicksStrip.dataset.picksKey = theirPicksKey;
-          opponentPicksStrip.innerHTML = theirPicks.length ? theirPicks.map((p) => imageOnlyThumbHtml(p, "md")).join("") : "";
-          if (opponentPicksStrip.children.length > prevCount) opponentPicksStrip.lastElementChild?.classList.add("is-new");
-        }
-      }
-
-      // Render pick grid with state-key diff guard
+      // ── Pick grid (my squad pool, left panel) ──────────────
+      const opponentBanIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b.id)));
+      const pickRows = getPickListPlayers();
       const pickGrid = document.getElementById("pickGrid");
       if (pickGrid) {
-        const canStillPick = !maxPicks || myPicks.length < maxPicks;
-        const pickRows = getPickListPlayers();
         const pickGridKey = [
-          isMyTurn ? 1 : 0,
           canStillPick ? 1 : 0,
           pickRows.map((p) => {
-            const id = String(p.id || p._raw?.id || "");
-            return id + (room.pickedPlayerIds.includes(id) ? "p" : "");
+            const id = String(p.id || "");
+            const banned = opponentBanIds.has(id);
+            const picked = room.pickedPlayerIds.includes(id);
+            return id + (banned ? "b" : picked ? "p" : "");
           }).join(","),
         ].join("|");
         if (pickGrid.dataset.stateKey !== pickGridKey) {
           pickGrid.dataset.stateKey = pickGridKey;
           pickGrid.innerHTML = pickRows.length
             ? pickRows.map((p) => {
-                const id = String(p.id || p._raw?.id || "");
+                const id = String(p.id || "");
+                const isBanned = opponentBanIds.has(id);
                 const alreadyPicked = room.pickedPlayerIds.includes(id);
-                const clickable = isMyTurn && canStillPick && !alreadyPicked;
-                return banPlayerCardHtml(p, { banned: false, picked: alreadyPicked, clickable });
+                const clickable = canStillPick && !isBanned && !alreadyPicked;
+                return banPlayerCardHtml(p, { banned: isBanned, picked: alreadyPicked, clickable });
               }).join("")
             : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(
-                state.loadingPlayers ? "Loading players..." : "No players found."
+                state.loadingPlayers ? "Loading your squad..." : "No players found."
               )}</div>`;
         }
       }
+
+      // ── Formation pitch (center panel) ─────────────────────
+      renderPickPitch(room, mySide, myPicks, maxPicks);
+
+      // ── Allowance bar + confirm button ─────────────────────
+      renderPickAllowanceBar(room, mySide, myPicks, maxPicks);
+
+      // ── Live opponent feed (right panel) ───────────────────
+      renderPickLiveFeed(room, theirSide, theirPicks, maxPicks, revealMode);
     }
   }
 
@@ -1114,63 +1417,69 @@ function renderDraftUi() {
       const theirReadyState = Boolean(room.matchReady?.[theirSide]);
       const readyBtn = document.getElementById("draftReadyBtn");
       if (readyBtn) {
-        readyBtn.textContent = myReadyState ? "UNREADY" : "READY";
+        readyBtn.textContent = myReadyState ? "UNREADY" : "READY →";
         readyBtn.classList.toggle("btn--ghost", myReadyState);
         readyBtn.classList.toggle("btn--primary", !myReadyState);
       }
       const hint = document.getElementById("readyPhaseHint");
       if (hint) {
-        const myName = room[mySide]?.username || (mySide === "host" ? "Host" : "Guest");
         const theirName = room[theirSide]?.username || (theirSide === "host" ? "Host" : "Guest");
         if (myReadyState && theirReadyState) {
           hint.textContent = "Both players ready — starting…";
         } else if (myReadyState) {
-          hint.textContent = `Waiting for ${theirName}…`;
+          hint.textContent = `OPPONENT READY · WAITING FOR YOU`;
         } else if (theirReadyState) {
-          hint.textContent = `${theirName} is ready. Click READY to start!`;
+          hint.textContent = `${theirName} is ready — click READY to start!`;
         } else {
           hint.textContent = "Click READY when you're set to play.";
         }
       }
 
       const revealMode = normalizeRevealMode(room.config?.revealMode);
+      const myFormation = getPickFormation();
+
+      // Pitch columns
       const cols = document.getElementById("readyPhaseColumns");
       if (cols) {
         const colKey = [
           myPicks.map((p) => String(p.id)).join(","),
           theirPicks.map((p) => String(p.id)).join(","),
-          revealMode,
-          mySide,
+          revealMode, mySide,
+          myReadyState ? "1" : "0",
+          theirReadyState ? "1" : "0",
         ].join("|");
         if (cols.dataset.colKey !== colKey) {
           cols.dataset.colKey = colKey;
-          const myName = room[mySide]?.username || (mySide === "host" ? "Host" : "Guest");
-          const theirName = room[theirSide]?.username || (theirSide === "host" ? "Host" : "Guest");
-          const pickRowHtml = (p) => `
-            <div class="ready-phase-pick-row">
-              <div class="ready-phase-pick-thumb">
-                <img src="${escapeHtml(getPlayerImageSrc(p))}" alt="${escapeHtml(p.name || "Player")}" loading="lazy" />
-              </div>
-              <div style="min-width:0">
-                <div class="ready-phase-pick-name">${escapeHtml(p.name || "—")}</div>
-                <div class="ready-phase-pick-pos">${escapeHtml(p.position || "—")}</div>
-              </div>
-              <div class="ready-phase-pick-ovr">${escapeHtml(getPlayerCardValue(p))}</div>
-            </div>`;
-          const myCol = `
-            <div class="ready-phase-col">
-              <div class="ready-phase-col-title is-me">${escapeHtml(myName)} (YOU)</div>
-              ${myPicks.map(pickRowHtml).join("") || '<div class="ban-phase-empty">No picks yet.</div>'}
-            </div>`;
-          const theirCol = revealMode === REVEAL_MODE_INSTANT
-            ? `<div class="ready-phase-col">
-                <div class="ready-phase-col-title">${escapeHtml(theirName)}</div>
-                ${theirPicks.map(pickRowHtml).join("") || '<div class="ban-phase-empty">No picks yet.</div>'}
+          const theirColHtml = revealMode === REVEAL_MODE_HIDDEN
+            ? `<div class="sm-col sm-col--opp sm-col--hidden">
+                <div class="sm-col-head">
+                  <div class="sm-col-avatar">${escapeHtml((room[theirSide]?.username || "O").charAt(0).toUpperCase())}</div>
+                  <div class="sm-col-info">
+                    <div class="sm-col-name">${escapeHtml(room[theirSide]?.username || "Opponent")}</div>
+                    <div class="sm-col-meta">OPPONENT</div>
+                  </div>
+                  <div class="sm-col-badge ${theirReadyState ? "is-ready" : "is-writing"}">${theirReadyState ? "✦ READY" : "✦ WRITING"}</div>
+                </div>
+                <div class="sm-hidden-msg">Picks hidden — revealed after match</div>
               </div>`
-            : `<div class="ready-phase-hidden-col">
-                <div class="ready-phase-hidden-msg">Opponent picks are hidden.<br>Reveal after the match!</div>
-              </div>`;
-          cols.innerHTML = myCol + theirCol;
+            : renderReadyPitchColHtml(room, theirSide, theirPicks, DEFAULT_FORMATION, false);
+          cols.innerHTML = renderReadyPitchColHtml(room, mySide, myPicks, myFormation, true)
+            + `<div class="sm-vs-col"><div class="sm-vs-circle">VS</div></div>`
+            + theirColHtml;
+        }
+      }
+
+      // Stats bar
+      const statsEl = document.getElementById("startMatchStats");
+      if (statsEl) {
+        const statsKey = [
+          myPicks.map((p) => `${p.id}:${getPlayerCardValue(p)}`).join(","),
+          theirPicks.map((p) => `${p.id}:${getPlayerCardValue(p)}`).join(","),
+          myFormation,
+        ].join("|");
+        if (statsEl.dataset.statsKey !== statsKey) {
+          statsEl.dataset.statsKey = statsKey;
+          statsEl.innerHTML = renderReadyStatsHtml(myPicks, theirPicks, myFormation, DEFAULT_FORMATION);
         }
       }
     }
@@ -1387,6 +1696,67 @@ function initDraftControls() {
   document.getElementById("confirmBansBtn")?.addEventListener("click", () => {
     void confirmStagedBans();
   });
+
+  // CONFIRM PICKS button → advance to ready phase
+  document.getElementById("confirmPicksBtn")?.addEventListener("click", () => {
+    if (state.phase !== "draft" || !state.room) return;
+    const room = state.room;
+    const maxPicks = Math.max(0, Math.floor(Number(room.config?.pickCountPerSide) || 0)) || FIXED_PICKS_PER_SIDE;
+    if ((room.picks?.[state.mySide] || []).length < maxPicks) return;
+    beginPostDraftReadyPhase(room);
+    renderDraftUi();
+  });
+
+  // CLEAR ALL picks (local optimistic clear — server resyncs on next poll)
+  document.getElementById("pickClearAllBtn")?.addEventListener("click", async () => {
+    if (!state.room) return;
+    const ok = await askConfirm({ title: "Clear Lineup", message: "Remove all your picks?", okText: "Clear" });
+    if (!ok) return;
+    const room = state.room;
+    const mySide = state.mySide;
+    const myPickIds = new Set((room.picks?.[mySide] || []).map((p) => String(p.id)));
+    room.picks[mySide] = [];
+    room.pickedPlayerIds = (room.pickedPlayerIds || []).filter((id) => !myPickIds.has(String(id)));
+    renderDraftUi();
+  });
+
+  // Quick-load plan card clicks
+  document.getElementById("pickQlCards")?.addEventListener("click", (e) => {
+    const card = e.target instanceof Element ? e.target.closest("[data-pick-ql-plan]") : null;
+    if (!card) return;
+    const planId = card.getAttribute("data-pick-ql-plan");
+    state.draftGamePlanSelectedId = planId || null;
+    if (planId) {
+      const plan = state.draftGamePlans.find((p) => String(p.id) === planId);
+      if (plan) state.pickManualFormation = normalizeFormation(plan.formation);
+      void loadDraftGamePlanPlayers(planId).then(() => renderDraftUi());
+    } else {
+      renderDraftUi();
+    }
+  });
+
+  // Formation dropdown toggle + selection
+  document.getElementById("pickQlFormationBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById("pickQlFormationPanel");
+    if (panel) panel.hidden = !panel.hidden;
+  });
+
+  document.addEventListener("click", (e) => {
+    const panel = document.getElementById("pickQlFormationPanel");
+    if (!panel || panel.hidden) return;
+    const wrap = document.querySelector(".pick-ql-formation-wrap");
+    if (wrap && e.target instanceof Element && !wrap.contains(e.target)) panel.hidden = true;
+  });
+
+  document.getElementById("pickQlFormationPanel")?.addEventListener("click", (e) => {
+    const btn = e.target instanceof Element ? e.target.closest("[data-pick-formation]") : null;
+    if (!btn) return;
+    state.pickManualFormation = btn.getAttribute("data-pick-formation") || DEFAULT_FORMATION;
+    document.getElementById("pickQlFormationPanel").hidden = true;
+    renderDraftUi();
+  });
+
   document.getElementById("draftMyBansStrip")?.addEventListener("click", (e) => {
     const btn = e.target instanceof Element ? e.target.closest("[data-remove-ban]") : null;
     if (!btn) return;

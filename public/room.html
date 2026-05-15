@@ -348,15 +348,39 @@
 
               <!-- Pick Phase -->
               <section class="draft-panel draft-panel--pick-phase" id="draftPickPhaseBoard" hidden>
+
+                <!-- Quick-load plan bar -->
+                <div class="pick-quickload-bar">
+                  <div class="pick-ql-info">
+                    <div class="pick-ql-kicker">QUICK-LOAD</div>
+                    <div class="pick-ql-sub">Your saved plans</div>
+                  </div>
+                  <div class="pick-ql-cards" id="pickQlCards"></div>
+                  <div class="pick-ql-formation-wrap">
+                    <button class="pick-ql-formation-btn" id="pickQlFormationBtn" type="button">
+                      <span class="pick-ql-hash">#</span>
+                      <span>FORMATION:&nbsp;</span><span id="pickQlFormationLabel">4-3-3</span>
+                      <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="pick-ql-formation-panel" id="pickQlFormationPanel" hidden></div>
+                  </div>
+                </div>
+
                 <div class="pick-phase-layout">
+
+                  <!-- Left: My squad pool -->
                   <div class="pick-phase-left">
+                    <div class="pick-squad-header">
+                      <div class="pick-squad-kicker">MY SQUAD POOL</div>
+                      <div class="pick-squad-sub">Pick from your roster</div>
+                    </div>
                     <div class="pick-phase-controls">
                       <div class="team-search-bar">
                         <div class="team-search-wrap">
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                             <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                           </svg>
-                          <input type="text" id="pickSearch" placeholder="Search your players..." autocomplete="off">
+                          <input type="text" id="pickSearch" placeholder="Search your squad..." autocomplete="off">
                         </div>
                         <div class="sort-group">
                           <div class="ap-dd-wrap" id="pickSortWrap">
@@ -366,7 +390,7 @@
                                 <line x1="8" y1="18" x2="21" y2="18"></line>
                                 <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
                               </svg>
-                              <span id="pickSortLabel">Overall Max</span>
+                              <span id="pickSortLabel">OVR MAX</span>
                               <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                               </svg>
@@ -377,55 +401,86 @@
                             <span id="pickSortDirIcon">↓</span>
                           </button>
                         </div>
-                        <div class="ap-dd-wrap" id="pickPosWrap">
-                          <button class="ap-dd-btn" id="pickPosBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                            </svg>
-                            <span>POSITION</span>
-                            <span class="dd-active-dot" id="pickPosDot" style="display:none;"></span>
-                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </button>
-                          <div class="ap-dd-panel" id="pickPosPanel"></div>
-                        </div>
                       </div>
+                    </div>
+                    <!-- Position tab bar: ALL GK DEF MID ATT -->
+                    <div class="pick-pos-tabs" id="pickPosTabs">
+                      <button class="pick-pos-tab is-active" data-pick-tab="all" type="button">ALL</button>
+                      <button class="pick-pos-tab" data-pick-tab="gk"  type="button">GK</button>
+                      <button class="pick-pos-tab" data-pick-tab="def" type="button">DEF</button>
+                      <button class="pick-pos-tab" data-pick-tab="mid" type="button">MID</button>
+                      <button class="pick-pos-tab" data-pick-tab="att" type="button">ATT</button>
                     </div>
                     <div class="pick-phase-grid" id="pickGrid"></div>
                   </div>
 
-                  <aside class="pick-phase-right" aria-label="Pick summary">
-                    <div class="pick-side-section">
-                      <div class="pick-side-head">
-                        <span class="pick-side-title">MY PICKS</span>
-                        <span class="pick-count" id="draftMyPicksCount">0/23</span>
-                      </div>
-                      <div class="pick-phase-strip pick-side-strip" id="draftMyPicksStrip"></div>
+                  <!-- Center: Formation pitch -->
+                  <div class="pick-phase-center">
+                    <div class="pick-lineup-head">
+                      <div class="pick-lineup-meta" id="pickLineupMeta"></div>
+                      <button class="btn btn--small btn--ghost pick-clear-btn" id="pickClearAllBtn" type="button">CLEAR ALL</button>
                     </div>
-                    <div class="pick-side-section" id="draftOpponentPicksSection">
-                      <div class="pick-side-head">
-                        <span class="pick-side-title">OPPONENT PICKS</span>
-                        <span class="pick-count" id="draftOpponentPicksCount">0/23</span>
+                    <div class="pick-pitch-wrap">
+                      <div class="pick-pitch" id="pickPitch"></div>
+                    </div>
+                    <div class="pick-bottom-bar">
+                      <div class="pick-allowance-bar" id="pickAllowanceBar"></div>
+                      <div class="pick-bottom-actions">
+                        <button class="btn btn--primary pick-confirm-btn" id="confirmPicksBtn" type="button" hidden>CONFIRM PICKS ▶</button>
+                        <span class="pick-more-label" id="pickMoreLabel"></span>
                       </div>
-                      <div class="pick-phase-strip pick-side-strip" id="draftOpponentPicksStrip"></div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Live opponent picks feed -->
+                  <aside class="pick-phase-right" aria-label="Live picks">
+                    <div class="pick-live-header">
+                      <span class="pick-live-tag">LIVE</span>
+                    </div>
+                    <div class="pick-opp-section">
+                      <div class="pick-opp-head">
+                        <div class="pick-opp-identity">
+                          <span class="pick-opp-dot is-online" id="pickOppDot"></span>
+                          <span class="pick-opp-name" id="pickOppName">Opponent</span>
+                        </div>
+                        <span class="pick-opp-count" id="pickOppCount">0/11</span>
+                      </div>
+                      <div class="pick-opp-progress-wrap">
+                        <div class="pick-opp-progress-fill" id="pickOppProgressFill"></div>
+                      </div>
+                      <div class="pick-opp-feed" id="pickOppFeed"></div>
+                    </div>
+                    <div class="pick-live-footer">
+                      <span class="pick-live-footer-dot is-online" id="pickLiveStatusDot"></span>
+                      <span class="pick-live-status-text" id="pickLiveStatusText">Picking...</span>
+                      <span class="pick-live-sync" id="pickLiveSync"></span>
                     </div>
                   </aside>
+
                 </div>
               </section>
 
-              <!-- Ready Phase -->
+              <!-- Ready Phase = Start Match view -->
               <section class="draft-panel draft-panel--ready-phase" id="draftReadyPhaseBoard" hidden>
-                <div class="ready-phase-layout">
-                  <div class="ready-phase-head">
-                    <div class="draft-kicker">DRAFT COMPLETE</div>
-                    <h3>Ready to start the match?</h3>
+                <div class="sm-layout">
+                  <div class="sm-head">
+                    <div class="sm-kicker"><span class="sm-kicker-dot"></span> READY PHASE · CONFIRM TO BEGIN MATCH</div>
+                    <h2 class="sm-title">START <span class="sm-title-green">MATCH</span></h2>
+                    <p class="sm-sub">Both squads locked. Confirm <strong>READY</strong> on both sides to start.</p>
                   </div>
-                  <div class="ready-phase-columns" id="readyPhaseColumns"></div>
-                  <div class="ready-phase-actions">
-                    <button type="button" class="btn btn--primary" id="draftReadyBtn">READY</button>
-                    <p class="ready-phase-hint" id="readyPhaseHint"></p>
+                  <div class="sm-columns" id="readyPhaseColumns"></div>
+                  <div class="sm-stats-wrap" id="startMatchStats"></div>
+                  <div class="sm-footer">
+                    <div class="sm-footer-left">
+                      <button type="button" class="btn btn--primary sm-ready-btn" id="draftReadyBtn">READY →</button>
+                      <div class="sm-legend">
+                        <span class="sm-dot-you"></span><span>YOU</span>
+                        <span class="sm-dot-opp"></span><span>OPPONENT</span>
+                      </div>
+                    </div>
+                    <p class="sm-hint" id="readyPhaseHint"></p>
                   </div>
+                  <p class="sm-tip">Tip · review opponent's lineup before confirming. Once both sides are ready the match starts and the room moves to summary.</p>
                 </div>
               </section>
             </div>

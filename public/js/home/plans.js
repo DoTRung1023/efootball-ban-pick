@@ -297,6 +297,7 @@ async function createPlan(userId) {
     if (!res.ok) { showToast(data.error || "Could not create plan.", "error"); return; }
     gamePlans.plans.push(data.plan);
     renderPlansGrid(userId);
+    cb.refreshRoomsStats();
   } catch {
     showToast("Could not create plan.", "error");
   } finally {
@@ -316,6 +317,7 @@ async function deletePlan(userId, planId) {
     gamePlans.plans = gamePlans.plans.filter((p) => p.id !== planId);
     renderPlansGrid(userId);
     showToast("Game plan deleted.", "success");
+    cb.refreshRoomsStats();
   } catch {
     showToast("Could not delete plan.", "error");
   }
@@ -1151,6 +1153,7 @@ async function deleteSelectedPlans(userId) {
   renderPlansGrid(userId);
   if (failed) showToast(`${failed} plan(s) could not be deleted.`, "error");
   else showToast(`${ids.length} game plan${ids.length > 1 ? "s" : ""} deleted.`, "success");
+  cb.refreshRoomsStats();
 }
 
 export function initGamePlans(userId) {

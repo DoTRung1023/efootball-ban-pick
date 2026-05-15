@@ -1397,6 +1397,133 @@ app.put("/api/game-plans/:id/players/:slot", async (req, res) => {
   }
 });
 
+// ── Admin ────────────────────────────────────────────────────
+function checkAdminKey(req, res) {
+  const key = req.headers["x-admin-key"] || req.query.adminKey;
+  const expected = process.env.ADMIN_KEY || "admin-dev";
+  if (!key || key !== expected) {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+  return true;
+}
+
+app.get("/api/admin/stats", async (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  try {
+    const [[catalogRow]] = await db.query("SELECT COUNT(*) AS cnt FROM players_catalog");
+    const [[usersRow]] = await db.query("SELECT COUNT(*) AS cnt FROM users");
+    const [[weekRow]] = await db.query(
+      "SELECT COUNT(*) AS cnt FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+    );
+    const [[lastScrape]] = await db.query(
+      "SELECT id, scrape_type, started_at, finished_at, players_upserted FROM scrape_logs ORDER BY id DESC LIMIT 1"
+    );
+    const now = Date.now();
+    const ttl = DRAFT_PRESENCE_TTL_MS;
+    const activeRooms = [...roomPresence.entries()].filter(
+      ([, e]) => !e.closed && now - e.updatedAt < ttl * 3
+    );
+    const draftCount = activeRooms.filter(([, e]) => e.status === "draft").length;
+    res.json({
+      catalogCount: catalogRow.cnt,
+      userCount: usersRow.cnt,
+      newUsersThisWeek: weekRow.cnt,
+      activeRoomCount: activeRooms.length,
+      draftRoomCount: draftCount,
+      lastScrape: lastScrape || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/rooms", (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  const now = Date.now();
+  const ttl = DRAFT_PRESENCE_TTL_MS;
+  const rooms = [];
+  for (const [code, entry] of roomPresence) {
+    if (entry.closed) continue;
+    if (now - entry.updatedAt >= ttl * 3) continue;
+    let phase = entry.status;
+    if (entry.status === "draft" && entry.turnIndex === 0) phase = "ban";
+    else if (entry.status === "draft" && entry.turnIndex === 1) phase = "pick";
+    rooms.push({
+      code,
+      host: entry.host?.username || null,
+      guest: entry.guest?.username || null,
+      phase,
+      ageSec: Math.floor((now - entry.updatedAt) / 1000),
+      startedAt: entry.updatedAt,
+    });
+  }
+  rooms.sort((a, b) => a.ageSec - b.ageSec);
+  res.json({ rooms });
+});
+
+app.get("/api/admin/scrape-logs", async (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  try {
+    const [rows] = await db.query(
+      "SELECT id, scrape_type, started_at, finished_at, players_upserted, max_pesdb_id FROM scrape_logs ORDER BY id DESC LIMIT ?",
+      [limit]
+    );
+    res.json({ logs: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/recent-users", async (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  const limit = Math.min(Number(req.query.limit) || 10, 50);
+  try {
+    const [rows] = await db.query(
+      `SELECT u.id, u.username, u.email, u.created_at,
+              COUNT(DISTINCT p.id) AS playerCount,
+              COUNT(DISTINCT gp.id) AS planCount
+       FROM users u
+       LEFT JOIN players p ON p.user_id = u.id
+       LEFT JOIN game_plans gp ON gp.user_id = u.id
+       GROUP BY u.id
+       ORDER BY u.created_at DESC
+       LIMIT ?`,
+      [limit]
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/data-quality", async (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  try {
+    const [[{ total }]] = await db.query("SELECT COUNT(*) AS total FROM players_catalog");
+    const [[{ missingStyle }]] = await db.query(
+      "SELECT COUNT(*) AS missingStyle FROM players_catalog WHERE playing_style IS NULL OR playing_style = ''"
+    );
+    const [[{ missingRegion }]] = await db.query(
+      "SELECT COUNT(*) AS missingRegion FROM players_catalog WHERE region IS NULL OR region = ''"
+    );
+    const [[{ missingOverallMax }]] = await db.query(
+      "SELECT COUNT(*) AS missingOverallMax FROM players_catalog WHERE overall_max IS NULL"
+    );
+    const [[{ dupCount }]] = await db.query(
+      "SELECT COUNT(*) AS dupCount FROM (SELECT pesdb_id FROM players_catalog GROUP BY pesdb_id HAVING COUNT(*) > 1) t"
+    );
+    res.json({ total, missingStyle, missingRegion, missingOverallMax, dupPesdbId: dupCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/admin", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "admin.html"));
+});
+
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "home.html"));
 });

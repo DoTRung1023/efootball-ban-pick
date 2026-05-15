@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin · eFOOTBALL Ban &amp; Pick</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/admin.css" />
+  </head>
+  <body>
+
+    <!-- Login overlay -->
+    <div id="loginOverlay" class="login-overlay">
+      <div class="login-card">
+        <div class="login-logo">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK · ADMIN</span>
+        </div>
+        <p class="login-hint">Enter your admin key to continue</p>
+        <form id="loginForm">
+          <input id="loginKey" type="password" class="login-input" placeholder="Admin key" autocomplete="current-password" />
+          <button type="submit" class="btn btn--primary login-btn">ENTER</button>
+        </form>
+        <p id="loginError" class="login-error"></p>
+      </div>
+    </div>
+
+    <!-- Main dashboard (hidden until authenticated) -->
+    <div id="dashboard" class="dashboard" hidden>
+
+      <!-- Top nav -->
+      <nav class="admin-nav">
+        <div class="admin-nav-brand">
+          <img src="/logo/logo.png" alt="logo" class="admin-nav-logo" />
+          <div>
+            <span class="brand-game">eFOOTBALL</span>
+            <span class="brand-sub">BAN &amp; PICK · ADMIN</span>
+          </div>
+        </div>
+        <div class="admin-nav-tabs">
+          <button class="admin-tab is-active" data-tab="overview">OVERVIEW</button>
+          <button class="admin-tab" data-tab="scrapes">SCRAPES</button>
+          <button class="admin-tab" data-tab="players">PLAYERS</button>
+          <button class="admin-tab" data-tab="users">USERS</button>
+          <button class="admin-tab" data-tab="rooms">ROOMS</button>
+        </div>
+        <div class="admin-nav-right">
+          <span class="admin-badge">
+            <span class="admin-dot"></span>
+            ADMIN
+          </span>
+          <button id="logoutBtn" class="btn btn--ghost btn--sm">LOGOUT</button>
+        </div>
+      </nav>
+
+      <!-- ── OVERVIEW TAB ────────────────────────────────────── -->
+      <div id="tabOverview" class="tab-panel">
+
+        <!-- Stats row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">PLAYERS IN CATALOG</div>
+            <div id="statCatalog" class="stat-value">—</div>
+            <div id="statCatalogSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">REGISTERED USERS</div>
+            <div id="statUsers" class="stat-value">—</div>
+            <div id="statUsersSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">ACTIVE ROOMS</div>
+            <div id="statRooms" class="stat-value">—</div>
+            <div id="statRoomsSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">LAST SCRAPE</div>
+            <div id="statScrape" class="stat-value">—</div>
+            <div id="statScrapeSub" class="stat-sub"></div>
+          </div>
+        </div>
+
+        <!-- Scrape Runs + Active Rooms -->
+        <div class="panel-grid-2">
+
+          <!-- Scrape Runs -->
+          <div class="panel" id="panelScrapes">
+            <div class="panel-header">
+              <span class="panel-title">SCRAPE RUNS</span>
+              <div class="panel-actions">
+                <button id="refreshScrapes" class="btn btn--ghost btn--sm">+ REFRESH</button>
+              </div>
+            </div>
+            <div id="scrapeRunningBanner" class="running-banner" hidden>
+              <span class="running-dot"></span>
+              <span id="scrapeRunningLabel">Running…</span>
+              <div id="scrapeRunningBar" class="running-bar"><div id="scrapeRunningFill" class="running-fill"></div></div>
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>RUN</th>
+                    <th>MODE</th>
+                    <th>PLAYERS</th>
+                    <th>DURATION</th>
+                    <th>STARTED</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="scrapeLogsBody">
+                  <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Active Rooms -->
+          <div class="panel" id="panelRooms">
+            <div class="panel-header">
+              <span class="panel-title">ACTIVE ROOMS <span id="roomsLiveCount" class="live-badge">0 LIVE</span></span>
+              <button id="refreshRooms" class="btn btn--ghost btn--sm">+ REFRESH</button>
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>CODE</th>
+                    <th>HOST</th>
+                    <th>GUEST</th>
+                    <th>PHASE</th>
+                    <th>AGE</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="roomsBody">
+                  <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Signups + Data Quality -->
+        <div class="panel-grid-2">
+
+          <!-- Recent Signups -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">RECENT SIGNUPS</span>
+              <button class="btn btn--ghost btn--sm" data-tab-switch="users">VIEW ALL</button>
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>USER</th>
+                    <th>PLAYERS</th>
+                    <th>PLANS</th>
+                    <th>JOINED</th>
+                  </tr>
+                </thead>
+                <tbody id="signupsBody">
+                  <tr><td colspan="4" class="td-empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Data Quality -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">DATA QUALITY</span>
+              <a href="https://www.pesmaster.com/efootball/" target="_blank" class="btn btn--ghost btn--sm">PESDB ↗</a>
+            </div>
+            <div id="dataQualityBody" class="dq-list">
+              <div class="dq-row dq-skeleton">Loading…</div>
+            </div>
+            <div class="panel-footer-hint">
+              Tip — run <code>npm run scrape:missing</code> to refetch detail pages for players with empty fields.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── SCRAPES TAB ─────────────────────────────────────── -->
+      <div id="tabScrapes" class="tab-panel" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">ALL SCRAPE RUNS</span>
+            <button id="refreshScrapesFull" class="btn btn--ghost btn--sm">+ REFRESH</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>RUN</th>
+                  <th>MODE</th>
+                  <th>PLAYERS</th>
+                  <th>DURATION</th>
+                  <th>STARTED</th>
+                  <th>FINISHED</th>
+                  <th>MAX PESDB ID</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="scrapeFullBody">
+                <tr><td colspan="8" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PLAYERS TAB ─────────────────────────────────────── -->
+      <div id="tabPlayers" class="tab-panel" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">CATALOG · TOP OF LEAGUE BY RATING</span>
+            <div class="panel-actions">
+              <input id="catalogSearch" type="text" class="search-input" placeholder="Find by name or pesdb id…" />
+              <button id="catalogSortBtn" class="btn btn--ghost btn--sm sort-btn">
+                <span id="catalogSortLabel">OVERALL MAX</span> <span class="sort-arrow">▼</span>
+              </button>
+              <button id="exportCsvBtn" class="btn btn--ghost btn--sm">EXPORT CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table catalog-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>PLAYER</th>
+                  <th>POS</th>
+                  <th>OVR</th>
+                  <th>MAX</th>
+                  <th>CARD TYPE</th>
+                  <th>CLUB</th>
+                  <th>LEAGUE</th>
+                  <th>REGION</th>
+                  <th>PESDB ID</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="catalogBody">
+                <tr><td colspan="11" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <button id="catalogPrev" class="btn btn--ghost btn--sm" disabled>‹ PREV</button>
+            <span id="catalogPageInfo" class="page-info">—</span>
+            <button id="catalogNext" class="btn btn--ghost btn--sm">NEXT ›</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USERS TAB ───────────────────────────────────────── -->
+      <div id="tabUsers" class="tab-panel" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">ALL USERS</span>
+            <button id="refreshUsers" class="btn btn--ghost btn--sm">+ REFRESH</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>USERNAME</th>
+                  <th>EMAIL</th>
+                  <th>PLAYERS</th>
+                  <th>PLANS</th>
+                  <th>JOINED</th>
+                </tr>
+              </thead>
+              <tbody id="usersFullBody">
+                <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ROOMS TAB ───────────────────────────────────────── -->
+      <div id="tabRooms" class="tab-panel" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">ACTIVE ROOMS <span id="roomsFullCount" class="live-badge">0 LIVE</span></span>
+            <button id="refreshRoomsFull" class="btn btn--ghost btn--sm">+ REFRESH</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>CODE</th>
+                  <th>HOST</th>
+                  <th>GUEST</th>
+                  <th>PHASE</th>
+                  <th>AGE</th>
+                  <th>WATCH</th>
+                </tr>
+              </thead>
+              <tbody id="roomsFullBody">
+                <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <script type="module" src="/js/admin.js"></script>
+  </body>
+</html>

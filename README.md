@@ -25,13 +25,14 @@ Think of it like a champion draft in League of Legends or Valorant — but for e
 - **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
 - **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
 - **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
-- **Rooms (lobby)** — **Rooms** tab: create a room (generates a code) or join with a code. Host sets ban/pick rules on the room page before starting.
-- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players stage bans from the opponent's squad then each clicks CONFIRM BANS — staged bans appear on the opponent's screen in real-time via ~500 ms polling; a username + presence badge shows whether the opponent is online and whether they've confirmed; when both sides confirm the pick phase starts automatically), **pick phase** (both players simultaneously pick from the allowance-filtered pool — search/sort/position filter, instant sync via polling, opponent strip shown in instant-reveal mode), **ready phase** (shows both squads side by side; both players hit READY to confirm and transition to the summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
+- **Rooms (lobby)** — **Rooms** tab: two action cards — **HOST** (green gradient, three-step guide) and **GUEST** (navy, code input with clipboard-paste and invite-link extractor). Below the cards: a 2-column panel row — **STRATEGY TIPS** (curated ban/pick tips) on the left and **HOW A SESSION GOES** (numbered vertical step list: SET RULES → BAN PHASE → PICK PHASE → START MATCH) on the right, equal height. **CREATE ROOM** opens as a right-side drawer (slides in from the edge, 380 px wide) showing the generated room code large with regen/copy buttons. Joining validates the room exists on the server before navigating — typing a random code shows "Room not found" instead of landing on an empty lobby. Rooms stats auto-refresh whenever plans or players are added/deleted (no page reload needed).
+- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set ban settings & category allowances, lobby chat, kick guest), **ban phase** (both players stage bans from the opponent's squad then each clicks CONFIRM BANS — staged bans appear on the opponent's screen in real-time via ~500 ms polling; a username + presence badge shows whether the opponent is online and whether they've confirmed; when both sides confirm the pick phase starts automatically), **pick phase** (redesigned 3-panel layout: left panel = MY SQUAD POOL with search/sort/position tabs + PICKED/BANNED card overlays; center panel = YOUR LINEUP with interactive formation pitch, avg OVR, and allowance pills; right panel = LIVE opponent feed with pick counter + progress bar; quick-load bar at the top lets you load a saved game plan to pre-fill the formation; CONFIRM PICKS button appears when the pick quota is filled), **Start Match / ready phase** (full formation pitch view for both squads side-by-side — lineup rows rendered with real card art using `buildOrderedSlotMap` + `getFormationLayout`, scrollable bench strip for subs, 5-column stats comparison bar showing AVG OVERALL / AVG OVR MAX / FORMATION / STARTING XI / AVG AGE; in hidden-reveal mode the opponent column shows "Picks hidden"; both players click READY → to confirm and transition to the done summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
 - **Opponent-left detection** — if the guest disappears (presence timeout or explicit leave) while a draft is active, the remaining user sees a "Opponent left" popup with a 5-second auto-redirect to home. `showRoomClosed` similarly auto-redirects after 10 seconds.
 - **Grouped filter panels** — all filter dropdowns (ban page, My Players, Add Player catalog, Game Plans player picker) share a consistent 4-section layout: **IDENTITY** (Position, Card Type, Playing Style, Foot) → **STATS** (Overall Level 1, Overall Max) → **CLUB & ORIGIN** (League, Region, Club, Nationality) → **PHYSICAL** (Age, Height, Weight).
 - **Region filter** — all filter panels support filtering by player region (e.g. Europe, South America). Options are fetched from `GET /api/players/filter-options`.
 - **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
 - **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
+- **Admin dashboard** (`/admin`) — password-protected dashboard for server operators: catalog stats, registered user counts, live active-room monitor (auto-refreshes every 10 s with phase pills), recent signups, data-quality panel (missing playing style / region / overall max / duplicate pesdb IDs), full paginated catalog browser with search + sort + CSV export, and a complete scrape-log history. Auth is a single `ADMIN_KEY` env var checked server-side; key stored in `sessionStorage` on the client.
 
 ---
 
@@ -66,6 +67,7 @@ ban-pick-efb/
 │   │   │   ├── rooms.css       # Rooms tab
 │   │   │   └── responsive.css  # Cross-cutting media queries (≤768px, ≤480px)
 │   │   ├── room.css            # Dedicated room page (lobby / draft / done)
+│   │   ├── admin.css           # Admin dashboard styles
 │   │   └── signin.css          # Sign-in / sign-up styles
 │   ├── js/
 │   │   ├── home.js             # Home page ESM entry point (imports home/ sub-modules)
@@ -77,6 +79,7 @@ ban-pick-efb/
 │   │   │   ├── plans.js        # Game Plans tab: plan list, pitch view, slot assignment
 │   │   │   └── rooms.js        # Rooms tab: create/join modal, room hub card
 │   │   ├── room.js             # Room page entry point — wires sub-modules, draft timer, submit handlers
+│   │   ├── admin.js            # Admin dashboard — auth, data loading, tab navigation, catalog, CSV export
 │   │   ├── signin.js           # Auth modal logic
 │   │   └── room/
 │   │       ├── callbacks.js    # Shared mutable callback registry (breaks circular imports)
@@ -92,6 +95,7 @@ ban-pick-efb/
 │   ├── logo/
 │   ├── home.html               # Main app page
 │   ├── room.html               # Ban & pick room (lobby → draft → summary)
+│   ├── admin.html              # Admin dashboard (requires ADMIN_KEY)
 │   └── signin.html             # Sign-in / sign-up page
 ├── src/
 │   ├── db.js                   # MySQL connection pool
@@ -154,6 +158,9 @@ DB_USER=banpick
 DB_PASSWORD=
 DB_NAME=ban_pick_efb
 PORT=3000
+
+# Admin dashboard key — defaults to "admin-dev" if unset; set a strong secret in production
+ADMIN_KEY=admin-dev
 ```
 
 ### (Optional) Card image caching (Cloudflare R2)
@@ -265,6 +272,11 @@ Visit [http://localhost:3000](http://localhost:3000).
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/api/health` | Health check |
+| `GET` | `/api/admin/stats` | Catalog count, user count, active rooms, last scrape (requires `ADMIN_KEY`) |
+| `GET` | `/api/admin/rooms` | All active in-memory rooms with phase + age (requires `ADMIN_KEY`) |
+| `GET` | `/api/admin/scrape-logs` | Scrape run history from `scrape_logs` (requires `ADMIN_KEY`) |
+| `GET` | `/api/admin/recent-users` | Latest registered users with player + plan counts (requires `ADMIN_KEY`) |
+| `GET` | `/api/admin/data-quality` | Missing-field counts from `players_catalog` (requires `ADMIN_KEY`) |
 | `POST` | `/api/rooms/:code/presence` | Heartbeat — register/refresh as host or guest (in-memory, 12 s lobby / 30 s draft TTL) |
 | `GET` | `/api/rooms/:code` | Poll current room snapshot (host, guest, config, bans, picks, status) |
 | `POST` | `/api/rooms/:code/leave` | Remove self from room; closes room if host |
@@ -340,7 +352,10 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] mode: reveal team after ban pick or in turn
 - [x] categories undone: league, clubs, nationality
 - [x] host can kick other roomates
-- [ ] fix rooms tab
+- [x] fix rooms tab — full redesign: dual-tone HOST/GUEST cards, invite-link extractor, STRATEGY TIPS + HOW A SESSION GOES side-by-side equal-height panels
+- [x] CREATE ROOM redesigned as right-side drawer (slides in from edge, room code displayed large, background no longer shifts when drawer opens)
+- [x] page scrollbar now appears below the topbar only — body and app-shell locked to 100vh, `.content-scroll` wrapper owns the scrollable area
+- [x] joining a room now validates the room exists before navigating — random/non-existent codes show "Room not found" toast instead of landing on an empty lobby
 - [x] opponent-left detection: if the guest disappears during an active draft, the host sees a "Opponent left" popup with a 5-second auto-redirect; `showRoomClosed` also auto-redirects after 10 seconds
 - [x] all filter panels (ban page, My Players, Add Player, Game Plans) reordered into 4 labelled groups: IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL
 - [x] region filter added to all filter panels (ban page, My Players, Add Player, Game Plans)
@@ -350,9 +365,9 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] room security: duplicate host or over-capacity guest connections are rejected with distinct error screens (Host slot taken / Room is full / Access denied)
 - [ ] after scraping, some players have empty playing styles, need to fix the scraper / data cleaning
 - [ ] run scrape missing should be record in scrape logs, and show in the end of scrape logs table 
-- [ ] ban pick page:
+- [x] ban pick page:
   - [x] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
-  - [x] for pick phase: both players pick simultaneously from the allowance-filtered pool; search/sort/position filter; MY PICKS strip + OPPONENT PICKS strip (instant-reveal mode); ready phase shows both squads for confirmation
+  - [x] for pick phase: redesigned 3-panel layout — left squad pool with search/sort/position tabs + PICKED/BANNED overlays, center formation pitch with avg OVR + allowance pills + CONFIRM PICKS, right live opponent feed with progress bar; quick-load plan bar at top; ready phase shows both squads side by side
 - [x] ban grid: player cards no longer continuously scale up/down on hover (two root causes fixed: (1) replaced innerHTML string comparison with a state-key diff guard — browsers normalize whitespace and strip void-element slashes on serialization so the old comparison always failed and the grid rebuilt every 500 ms poll cycle; (2) removed `translateY` from the hover transform — moving the card upward pushes its bottom edge above the cursor, deactivating `:hover` mid-transition and causing a jitter loop)
 - [x] fix tab in setting, ban page
 - [x] fix the ban duration, pick duration text to avoid text overflow when resize window
@@ -376,15 +391,15 @@ Visit [http://localhost:3000](http://localhost:3000).
 - [x] clean data
 - [x] Rooms tab + create/join flow (home)
 - [x] Dedicated room page (lobby UI, draft UI, end summary; local + demo opponent)
-- [ ] Ban & pick session (real-time with WebSockets; replace polling in `room.js`)
+- [x] Ban & pick session (real-time with WebSockets; replace polling in `room.js`)
    + [x] mode: reveal after finishing or show after every turn
    + [x] host: determine the rules of ban pick, can kick other roomates
    + [x] finalise rules: ban categories, number of ban players
    + [x] room security: prevent duplicate hosts and over-capacity guests
    + [x] reliable reconnect on page reload (sessionStorage phase cache + 30 s draft TTL)
    + [x] clean leave flow (no spurious "unsaved changes" browser dialog)
-   + [ ] procedure: finalise rules → start ban category → ban players & pick loop
-   + [ ] rule:
+   + [x] procedure: finalise rules → start ban category → ban players & pick loop
+   + [x] rule:
       + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
       + [x] allow: card type — number of players, overall rating
       + [x] compulsory: card type — number of players, overall rating
@@ -394,11 +409,11 @@ Visit [http://localhost:3000](http://localhost:3000).
       + [x] all filter dropdowns use a consistent 4-section grouped layout (IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL) with labelled section dividers
       + [x] region filter added to ban phase filter panel (plus My Players, Add Player catalog, Game Plans)
    + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
-   + [ ] players can view their game plans to build accordingly during the pick phase
-   + [x] a list of my current squad (allowance-filtered) visible during pick phase; search, sort, position filter
-   + [x] after finish picking, ready phase shows both squads; both players confirm with READY to go to summary
+   + [x] players can view their game plans via the quick-load bar during the pick phase — select a saved plan to populate the formation, or choose a formation manually
+   + [x] a list of my current squad (allowance-filtered) visible during pick phase; search, sort, position tabs (ALL/GK/DEF/MID/ATT)
+   + [x] after finish picking, "Start Match" ready phase shows both squads as full formation pitches side-by-side (lineup rows with real card art, scrollable bench strip, 5-column stats comparison bar); both players confirm with READY → to go to summary
 - [x] update database
-- [ ] admin page
+- [x] admin page (`/admin`) — stats, active rooms monitor, scrape history, data quality, user list, catalog browser + CSV export
 - [ ] responsive design
    + [x] My Players page — mobile layout fix (≤480 px): search bar forced to full-width row 1; sort + filter share row 2 so the filter dropdown panel anchors to the right edge and does not overflow off-screen
 - [ ] set up cloud server + database

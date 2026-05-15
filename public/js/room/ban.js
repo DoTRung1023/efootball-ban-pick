@@ -311,6 +311,8 @@ export function banPlayerCardHtml(player, o) {
     "player-card",
     clickable ? "is-clickable" : "",
     unavailable ? "is-unavailable" : "",
+    banned ? "is-ban-taken" : "",
+    picked ? "is-pick-taken" : "",
   ]
     .filter(Boolean)
     .join(" ");

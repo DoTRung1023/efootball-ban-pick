@@ -2,27 +2,32 @@ import { POSITION_OPTIONS } from './constants.js';
 import { cb } from './callbacks.js';
 import { state } from './state.js';
 import { defaultRoomConfig } from './state.js';
-import { normalizeBanSortValue, normalizeBanPositionValue } from './ban.js';
-import { normalizeApiPlayer } from './players.js';
-import { normalizeClubValue } from './allowance.js';
-import { playerMatchesAllowanceCategory } from './allowance.js';
-import { escapeHtml, showToast } from './utils.js';
+import { normalizeBanSortValue } from './ban.js';
+import { normalizeMySquadPlayerForDraft } from './players.js';
+import { escapeHtml, showToast, getUser } from './utils.js';
+
+// Position groups for the tab bar
+const PICK_TAB_GROUPS = {
+  all: [],
+  gk:  ["GK"],
+  def: ["CB", "LB", "RB"],
+  mid: ["DMF", "CMF", "LMF", "RMF", "AMF"],
+  att: ["CF", "SS", "RWF", "LWF"],
+};
 
 export function renderPickToolbar() {
   const sortLabel = document.getElementById("pickSortLabel");
   const sortPanel = document.getElementById("pickSortPanel");
-  const posPanel = document.getElementById("pickPosPanel");
-  const posDot = document.getElementById("pickPosDot");
   const sortDirIcon = document.getElementById("pickSortDirIcon");
-  if (!sortLabel || !sortPanel || !posPanel) return;
+  if (!sortLabel || !sortPanel) return;
 
   const sortVal = normalizeBanSortValue(state.pickSort);
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
   const labelMap = {
-    overall_max: "Overall Max",
-    overall: "Overall Level 1",
-    name: "Player Name",
+    overall_max: "OVR MAX",
+    overall: "OVR Lvl 1",
+    name: "Name",
     position: "Position",
     height: "Height",
     weight: "Weight",
@@ -30,7 +35,7 @@ export function renderPickToolbar() {
     club: "Club",
     nationality: "Nationality",
   };
-  sortLabel.textContent = labelMap[baseKey] || "Overall Max";
+  sortLabel.textContent = labelMap[baseKey] || "OVR MAX";
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
   const sortCats = [
@@ -48,26 +53,14 @@ export function renderPickToolbar() {
     const active = c.key === baseKey;
     return `<div class="sort-option ${active ? "active" : ""}" data-pick-sort-cat="${escapeHtml(c.key)}"><span>${escapeHtml(c.label)}</span><span class="sort-check">✓</span></div>`;
   }).join("");
+}
 
-  const selPos = (Array.isArray(state.pickFilterPosition) ? state.pickFilterPosition : []).map(normalizeBanPositionValue).filter(Boolean);
-  posPanel.innerHTML = `
-    <div class="filter-section">
-      <div class="filter-section-label">POSITION</div>
-      <div class="pos-multiselect">
-        <button class="pos-ms-btn ${selPos.length ? "has-pos-filter" : ""}" id="pickPosMsBtn" type="button">
-          <span id="pickPosMsLabel">${escapeHtml(!selPos.length ? "All positions" : selPos.length <= 7 ? selPos.join(", ") : `${selPos.slice(0, 7).join(", ")} +${selPos.length - 7}`)}</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="pickPosMsPanel">
-          ${POSITION_OPTIONS.map((v) => `<div class="pos-ms-item ${selPos.includes(v) ? "checked" : ""}" data-pick-pos-ms="${escapeHtml(v)}"><span class="pos-ms-check"></span><span>${escapeHtml(v)}</span></div>`).join("")}
-        </div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <button class="filter-clear-btn" id="pickClearFiltersBtn">CLEAR FILTERS</button>
-    </div>
-  `;
-  if (posDot) posDot.style.display = selPos.length ? "inline-block" : "none";
+export function renderPickPosTabs() {
+  const tabs = document.querySelectorAll("[data-pick-tab]");
+  tabs.forEach((tab) => {
+    const g = tab.getAttribute("data-pick-tab") || "all";
+    tab.classList.toggle("is-active", g === state.pickPosTab);
+  });
 }
 
 export function bindPickPhaseUiOnce() {
@@ -77,9 +70,6 @@ export function bindPickPhaseUiOnce() {
   const sortWrap = document.getElementById("pickSortWrap");
   const sortPanel = document.getElementById("pickSortPanel");
   const sortDirBtn = document.getElementById("pickSortDirBtn");
-  const posBtn = document.getElementById("pickPosBtn");
-  const posWrap = document.getElementById("pickPosWrap");
-  const posPanel = document.getElementById("pickPosPanel");
   if (!search) return;
   state.pickUiBound = true;
 
@@ -88,26 +78,22 @@ export function bindPickPhaseUiOnce() {
     cb.renderDraftUi();
   });
 
-  const closeAll = () => {
+  const closeSort = () => {
     sortBtn?.classList.remove("open");
-    posBtn?.classList.remove("open");
     sortPanel?.classList.remove("open");
-    posPanel?.classList.remove("open");
     sortBtn?.setAttribute("aria-expanded", "false");
-    posBtn?.setAttribute("aria-expanded", "false");
   };
 
   document.addEventListener("click", (e) => {
     const t = e.target;
     const insideSort = sortWrap && t instanceof Element ? Boolean(t.closest("#pickSortWrap")) : false;
-    const insidePos = posWrap && t instanceof Element ? Boolean(t.closest("#pickPosWrap")) : false;
-    if (!insideSort && !insidePos) closeAll();
+    if (!insideSort) closeSort();
   });
 
   sortBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     const open = !Boolean(sortPanel?.classList.contains("open"));
-    closeAll();
+    closeSort();
     if (open) {
       renderPickToolbar();
       sortBtn.classList.add("open");
@@ -124,18 +110,6 @@ export function bindPickPhaseUiOnce() {
     cb.renderDraftUi();
   });
 
-  posBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    const open = !Boolean(posPanel?.classList.contains("open"));
-    closeAll();
-    if (open) {
-      renderPickToolbar();
-      posBtn.classList.add("open");
-      posPanel?.classList.add("open");
-      posBtn.setAttribute("aria-expanded", "true");
-    }
-  });
-
   sortPanel?.addEventListener("click", (e) => {
     const opt = e.target instanceof Element ? e.target.closest("[data-pick-sort-cat]") : null;
     if (!opt) return;
@@ -144,96 +118,55 @@ export function bindPickPhaseUiOnce() {
     const dir = cur.endsWith("_asc") ? "asc" : "desc";
     state.pickSort = normalizeBanSortValue(`${cat}_${dir}`);
     cb.renderDraftUi();
-    closeAll();
+    closeSort();
   });
 
-  posPanel?.addEventListener("click", (e) => {
-    if (!(e.target instanceof Element)) return;
-    const clear = e.target.closest("#pickClearFiltersBtn");
-    if (clear) {
-      state.pickFilterPosition = [];
-      cb.renderDraftUi();
-      return;
-    }
-    const item = e.target.closest("[data-pick-pos-ms]");
-    if (item) {
-      const raw = item.getAttribute("data-pick-pos-ms") || "";
-      const v = normalizeBanPositionValue(raw);
-      if (!v) return;
-      const cur = new Set((Array.isArray(state.pickFilterPosition) ? state.pickFilterPosition : []).map(normalizeBanPositionValue).filter(Boolean));
-      cur.has(v) ? cur.delete(v) : cur.add(v);
-      state.pickFilterPosition = [...cur];
-      cb.renderDraftUi();
-      return;
-    }
-    const msBtn = e.target.closest("#pickPosMsBtn");
-    if (msBtn) {
-      const panel = document.getElementById("pickPosMsPanel");
-      if (panel) {
-        const open = !panel.classList.contains("open");
-        panel.classList.toggle("open", open);
-        msBtn.classList.toggle("open", open);
-      }
-      e.stopPropagation();
-    }
+  // Position tab bar
+  const posTabs = document.getElementById("pickPosTabs");
+  posTabs?.addEventListener("click", (e) => {
+    const btn = e.target instanceof Element ? e.target.closest("[data-pick-tab]") : null;
+    if (!btn) return;
+    const group = btn.getAttribute("data-pick-tab") || "all";
+    state.pickPosTab = group;
+    state.pickFilterPosition = PICK_TAB_GROUPS[group] || [];
+    renderPickPosTabs();
+    cb.renderDraftUi();
   });
 }
 
+// Load the user's own squad for the pick grid (not the general catalog)
 export async function fetchPlayers() {
-  const params = new URLSearchParams({ limit: "500", sortBy: "overall_max_desc" });
-  if (state.search.trim()) params.set("q", state.search.trim());
-  if (state.position) params.set("position", state.position);
-  const cfg = state.room?.config || defaultRoomConfig();
-  const a = cfg.allowance || {};
-  const enabled = new Set(cfg.allowanceEnabled || []);
-  if (!cfg.allowAllPlayers) {
-    if (enabled.has("position") && a.position) params.set("positions", a.position);
-    if (enabled.has("overallMin") && a.overallMin) params.set("overallMin", a.overallMin);
-    if (enabled.has("overallMax") && a.overallMax) params.set("overallMax", a.overallMax);
-    if (enabled.has("overallMaxMin") && a.overallMaxMin) params.set("maxOverallMin", a.overallMaxMin);
-    if (enabled.has("overallMaxMax") && a.overallMaxMax) params.set("maxOverallMax", a.overallMaxMax);
-    if (enabled.has("club") && a.club) {
-      const clubs = normalizeClubValue(a.club);
-      if (clubs.length === 1) params.set("club", clubs[0]);
-    }
-    if (enabled.has("league") && a.league) params.set("league", a.league);
-    if (enabled.has("nationality") && a.nationality) params.set("nationality", a.nationality);
-    if (enabled.has("heightMin") && a.heightMin) params.set("heightMin", a.heightMin);
-    if (enabled.has("heightMax") && a.heightMax) params.set("heightMax", a.heightMax);
-    if (enabled.has("weightMin") && a.weightMin) params.set("weightMin", a.weightMin);
-    if (enabled.has("weightMax") && a.weightMax) params.set("weightMax", a.weightMax);
-    if (enabled.has("ageMin") && a.ageMin) params.set("ageMin", a.ageMin);
-    if (enabled.has("ageMax") && a.ageMax) params.set("ageMax", a.ageMax);
-    if (enabled.has("cardType") && a.cardType) params.set("cardType", a.cardType);
-    if (enabled.has("foot") && a.foot) params.set("foot", a.foot);
-    if (enabled.has("playingStyle") && a.playingStyle) params.set("playingStyle", a.playingStyle);
-  }
-  const res = await fetch(`/api/players?${params}`);
+  const user = getUser();
+  if (!user?.id) return [];
+  const res = await fetch(`/api/my-players?userId=${encodeURIComponent(user.id)}`);
   if (!res.ok) throw new Error("Players unavailable");
   const data = await res.json();
-  let rows = data.players || [];
-  if (!cfg.allowAllPlayers && enabled.has("club") && a.club) {
-    rows = rows.filter((p) => playerMatchesAllowanceCategory({ _raw: p }, "club", a.club));
-  }
-  if (!cfg.allowAllPlayers && enabled.has("region") && a.region) {
-    const regionQ = String(a.region).toLowerCase();
-    rows = rows.filter((p) => String(p.region || "").toLowerCase().includes(regionQ));
-  }
-  return rows.map(normalizeApiPlayer);
+  const rows = Array.isArray(data.players) ? data.players : [];
+  const dedup = new Map();
+  rows.forEach((row) => {
+    const p = normalizeMySquadPlayerForDraft(row);
+    if (p.id && !dedup.has(p.id)) dedup.set(p.id, p);
+  });
+  return Array.from(dedup.values());
 }
 
 export async function loadDraftPlayers() {
   const loading = document.getElementById("draftLoading");
   state.loadingPlayers = true;
+  state.mySquadLoading = true;
   if (loading) loading.hidden = false;
   try {
-    state.players = await fetchPlayers();
+    const players = await fetchPlayers();
+    state.players = players;
+    state.mySquadPlayers = players;
   } catch {
     state.players = [];
-    showToast("Could not load players.");
+    state.mySquadPlayers = [];
+    showToast("Could not load your squad.");
   } finally {
     state.loadingPlayers = false;
-    if (loading) loading.hidden = state.loadingOpponentBanPlayers;
+    state.mySquadLoading = false;
+    if (loading) loading.hidden = true;
     cb.renderDraftUi();
   }
 }

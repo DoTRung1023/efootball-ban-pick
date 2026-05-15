@@ -2,7 +2,7 @@ import { requireAuth, initTabs, initUserMenu, initEditProfile } from './home/uti
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from './home/squad.js';
 import { initAddPlayerModal, initPlayerPopup } from './home/catalog.js';
 import { loadGamePlans, initGamePlans } from './home/plans.js';
-import { initRoomModal, initRoomHub } from './home/rooms.js';
+import { initRoomModal, initRoomHub, loadRoomsStats } from './home/rooms.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireAuth();
@@ -19,4 +19,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   initGamePlans(user.id);
   await loadSquad(user.id);
   loadGamePlans(user.id);
+  loadRoomsStats(user.id);
 });

@@ -14,4 +14,7 @@ export const cb = {
   openPlayerPopup:    (_player, _addBtn) => {},
   openAddPlayerModal: () => {},
   onPlayersDeleted:   () => {},
+
+  // Set by rooms.js
+  refreshRoomsStats: () => {},
 };
