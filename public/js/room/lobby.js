@@ -1009,17 +1009,42 @@ export function renderLobby() {
   hostSlot.classList.toggle("is-ready", !!room.host);
   guestSlot.classList.toggle("is-ready", !!room.guest);
 
-  document.getElementById("lobbyGuestStatus").textContent = room.guest ? "● Connected" : "";
-  if (room.guest && room.ready?.guest) {
-    document.getElementById("lobbyGuestStatus").textContent = "● Ready";
+  // Avatar initials
+  const hostAvatar = document.getElementById("lobbyHostAvatar");
+  const guestAvatar = document.getElementById("lobbyGuestAvatar");
+  if (hostAvatar) hostAvatar.textContent = (room.host?.username?.[0] || "?").toUpperCase();
+  if (guestAvatar) {
+    guestAvatar.textContent = room.guest ? (room.guest.username?.[0] || "?").toUpperCase() : "?";
+    guestAvatar.classList.toggle("ls-avatar--empty", !room.guest);
   }
-  document.getElementById("lobbyGuestStatus").classList.toggle("player-slot-status--ok", !!room.guest);
 
-  const hint = document.getElementById("lobbyHint");
-  if (isHost) {
-    hint.textContent = "Share code, agree settings in chat, then start.";
-  } else {
-    hint.textContent = "Waiting for host to finalize rules and start…";
+  // Guest sub: show "Share the invite link" only when no guest
+  const guestSub = document.getElementById("lobbyGuestSub");
+  if (guestSub) guestSub.hidden = !!room.guest;
+
+  const guestStatusEl = document.getElementById("lobbyGuestStatus");
+  if (guestStatusEl) {
+    guestStatusEl.textContent = room.guest
+      ? (room.ready?.guest ? "● ready" : "● connected")
+      : "";
+    guestStatusEl.classList.toggle("player-slot-status--ok", !!room.guest);
+  }
+
+  // Waiting pill in center
+  const waitingEl = document.getElementById("lobbyWaiting");
+  const waitingTextEl = document.getElementById("lobbyWaitingText");
+  if (waitingEl) {
+    const bothReady = room.ready?.host && room.ready?.guest;
+    waitingEl.hidden = bothReady;
+    if (waitingTextEl) {
+      if (!room.guest) {
+        waitingTextEl.textContent = "Waiting for opponent";
+      } else if (isHost) {
+        waitingTextEl.textContent = room.ready?.guest ? "Opponent ready" : "Waiting for opponent ready";
+      } else {
+        waitingTextEl.textContent = "Waiting for host to start";
+      }
+    }
   }
 
   const allowAllEl = document.getElementById("allowAllPlayersInput");
@@ -1036,6 +1061,18 @@ export function renderLobby() {
   if (banDurationEl && !banDurationEl.dataset.touched) banDurationEl.value = String(normalizeBanDurationSec(cfg.banDurationSec));
   if (pickDurationEl && !pickDurationEl.dataset.touched) pickDurationEl.value = String(normalizePickDurationSec(cfg.pickDurationSec));
   if (revealModeEl && !revealModeEl.dataset.touched) revealModeEl.value = normalizeRevealMode(cfg.revealMode);
+
+  // Sync lv-settings-panel visual controls from config
+  const banCountValEl = document.getElementById("banCountVal");
+  if (banCountValEl) banCountValEl.textContent = String(cfg.banCountPerSide ?? 0);
+  const banDurActive = normalizeBanDurationSec(cfg.banDurationSec);
+  document.querySelectorAll("#banDurationPills .lv-time-pill").forEach((p) => {
+    p.classList.toggle("is-active", Number(p.dataset.dur) === banDurActive);
+  });
+  const pickDurActive = normalizePickDurationSec(cfg.pickDurationSec);
+  document.querySelectorAll("#pickDurationPills .lv-time-pill").forEach((p) => {
+    p.classList.toggle("is-active", Number(p.dataset.dur) === pickDurActive);
+  });
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   if (revealModeLabel) {
     revealModeLabel.textContent = revealModeValue === REVEAL_MODE_HIDDEN
@@ -1133,6 +1170,24 @@ export function renderLobby() {
   cb.updateStageTabs?.();
 }
 
+async function loadLobbyStats(userId) {
+  if (!userId) return;
+  try {
+    const [playersRes, plansRes] = await Promise.all([
+      fetch(`/api/my-players?userId=${encodeURIComponent(userId)}`),
+      fetch(`/api/game-plans?userId=${encodeURIComponent(userId)}`),
+    ]);
+    const players = playersRes.ok ? await playersRes.json() : [];
+    const plans = plansRes.ok ? await plansRes.json() : [];
+    const el = document.getElementById("lobbyHostStats");
+    if (el) {
+      const pc = Array.isArray(players) ? players.length : 0;
+      const gc = Array.isArray(plans) ? plans.length : 0;
+      el.innerHTML = `${pc} players<span class="ls-dot"> · </span>${gc} plans`;
+    }
+  } catch { /* ignore */ }
+}
+
 export function initLobby() {
   const q = parseQuery();
   const user = getUser();
@@ -1205,6 +1260,8 @@ export function initLobby() {
     renderLobby();
   }
 
+  if (user?.id) void loadLobbyStats(user.id);
+
   void registerAndPollPresence();
 
   document.getElementById("startDraftBtn")?.addEventListener("click", () => cb.startDraftFromLobby());
@@ -1264,6 +1321,48 @@ export function initLobby() {
     const normalized = normalizePickDurationSec(e.target.value);
     e.target.value = String(normalized);
     state.room.config.pickDurationSec = normalized;
+    scheduleLobbyConfigPush();
+  });
+
+  // Ban count stepper
+  const _stepBans = (delta) => {
+    if (state.mySide !== "host") return;
+    const bansEl = document.getElementById("lobbyBansInput");
+    if (!bansEl) return;
+    const next = Math.max(0, Math.floor(Number(bansEl.value) || 0) + delta);
+    bansEl.value = String(next);
+    state.room.config.banCountPerSide = next;
+    renderLobby();
+    scheduleLobbyConfigPush();
+  };
+  document.getElementById("banCountMinus")?.addEventListener("click", () => _stepBans(-1));
+  document.getElementById("banCountPlus")?.addEventListener("click", () => _stepBans(1));
+
+  // Ban duration pills
+  document.getElementById("banDurationPills")?.addEventListener("click", (e) => {
+    if (state.mySide !== "host") return;
+    const pill = e.target.closest(".lv-time-pill");
+    if (!pill) return;
+    const dur = Number(pill.dataset.dur);
+    if (!dur) return;
+    const input = document.getElementById("lobbyBanDurationInput");
+    if (input) input.value = String(dur);
+    state.room.config.banDurationSec = dur;
+    renderLobby();
+    scheduleLobbyConfigPush();
+  });
+
+  // Pick duration pills
+  document.getElementById("pickDurationPills")?.addEventListener("click", (e) => {
+    if (state.mySide !== "host") return;
+    const pill = e.target.closest(".lv-time-pill");
+    if (!pill) return;
+    const dur = Number(pill.dataset.dur);
+    if (!dur) return;
+    const input = document.getElementById("lobbyPickDurationInput");
+    if (input) input.value = String(dur);
+    state.room.config.pickDurationSec = dur;
+    renderLobby();
     scheduleLobbyConfigPush();
   });
 
