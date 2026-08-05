@@ -20,9 +20,28 @@ const closestTarget = (e, selector) =>
 export function initDraftControls() {
   initReadyControls();
   initBanControls();
+  initBanPlanPanel();
   initPickControls();
   initFormationDropdown();
   initLeaveControl();
+}
+
+/** Ban-phase "consult a plan" reference panel: plan switcher + collapse toggle. */
+function initBanPlanPanel() {
+  on("banPlanSelect", "change", (e) => {
+    const planId = e.target.value || null;
+    state.draftGamePlanSelectedId = planId;
+    if (!planId) {
+      renderDraftUi();
+      return;
+    }
+    void loadDraftGamePlanPlayers(planId).then(renderDraftUi);
+  });
+
+  on("banPlanToggle", "click", () => {
+    state.banPlanPanelOpen = state.banPlanPanelOpen === false;
+    renderDraftUi();
+  });
 }
 
 function initReadyControls() {

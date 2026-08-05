@@ -77,6 +77,11 @@ global error handlers, wires the `cb` registry, and boots the lobby on
 - `gamePlans.js` — `loadDraftGamePlans`, `loadDraftGamePlanPlayers`, `getPickFormation`
   (selected plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`),
   `getSelectedPlan`.
+- `planPreview.js` — the ban-phase "consult a plan" reference panel:
+  `renderBanPlanPanel()` (plan `<select>` + collapse toggle + preview) and
+  `renderSlotMapPreview()` (pitch rows 1–11 + bench 12–23). Read-only; it never affects
+  the draft. Both the pitch and the panel are behind a `data-planKey` state guard.
+  The pick phase does not use it — it has its own plan chips and a live pitch.
 - `draftControls.js` — `initDraftControls()`, all draft-view event wiring.
 - `ban.js` — ban-phase data + toolbar: `getBanListPlayers`, `getPickListPlayers`,
   `renderBanToolbar`, `bindBanPhaseUiOnce`, `attachMiniCardGridHandlers`,

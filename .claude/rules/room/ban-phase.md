@@ -91,3 +91,22 @@ Related invariants:
   Weight) — using `.filter-group-label` dividers. Built in `renderBanToolbar()` and
   event-delegated in `bindBanPhaseUiOnce()` (runs once; guarded by `state.banUiBound`).
   Clearing all filters resets all 16 state fields.
+## "Consult this plan" reference panel
+
+The third `.ban-side-section` in `.ban-phase-right` (`#banPlanSection`) shows a read-only
+view of one of the user's saved game plans, so they can see their intended lineup while
+choosing bans. It is purely a reference — nothing in it affects the draft.
+
+- Rendered by `renderBanPlanPanel()` in `room/planPreview.js`, called at the end of
+  `renderBanBoard()`. Guarded by `data-planKey` on `#banPlanPreview`, since
+  `renderBanBoard` runs on every presence poll.
+- The plan `<select>` (`#banPlanSelect`) and the collapse toggle (`#banPlanToggle`) are
+  wired in `draftControls.js`. Collapsed state lives in `state.banPlanPanelOpen` and is
+  per-session only.
+- The panel is `flex: 0 0 auto` so it does not squeeze the two ban strips; the preview
+  scrolls internally at `max-height: 260px`.
+- The `.formation-*` markup is shared with the full-size preview; `room.css` scopes a
+  compact variant under `.ban-plan-panel` for the 320 px sidebar (vertical slot cards,
+  nationality hidden, rows use `grid-auto-flow: column` so any slot count fits).
+- If the markup is absent, `renderBanPlanPanel()` returns early — removing the panel from
+  `room.html` degrades to a no-op rather than an error.

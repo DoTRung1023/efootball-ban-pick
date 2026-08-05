@@ -21,6 +21,7 @@ import {
   stagedBanThumbHtml,
 } from './ban.js';
 import { banLimit } from './draftFlow.js';
+import { renderBanPlanPanel } from './planPreview.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
 
@@ -76,6 +77,7 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
   });
 
   renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase });
+  renderBanPlanPanel();
 }
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);

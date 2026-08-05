@@ -372,6 +372,21 @@
                       <button class="btn btn--primary ban-confirm-btn" id="confirmBansBtn" type="button" disabled>CONFIRM BANS</button>
                     </div>
 
+                    <!-- Read-only reference: consult a saved game plan while banning -->
+                    <div class="ban-side-section ban-plan-panel" id="banPlanSection">
+                      <div class="ban-side-head">
+                        <span class="ban-side-title">GAME PLAN</span>
+                        <button class="ban-plan-toggle" id="banPlanToggle" type="button"
+                                aria-expanded="true" aria-controls="banPlanBody"
+                                title="Show or hide the plan preview">▾</button>
+                      </div>
+                      <div class="ban-plan-body" id="banPlanBody">
+                        <select class="draft-select draft-plan-select" id="banPlanSelect" aria-label="Game plan to consult"></select>
+                        <div class="draft-plan-meta" id="banPlanMeta"></div>
+                        <div class="ban-plan-preview" id="banPlanPreview"></div>
+                      </div>
+                    </div>
+
                   </aside>
                 </div>
               </section>
