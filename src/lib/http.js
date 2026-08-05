@@ -32,11 +32,27 @@ export function requireUserIdQuery(req, res, extra = {}) {
 
 /** Maps a MySQL duplicate-key error on the users table to the offending field. */
 export function duplicateUserField(err) {
-  return err.message.includes("uq_users_email") ? "email" : "username";
+  return String(err?.message || "").includes("uq_users_email") ? "email" : "username";
+}
+
+/**
+ * Human-readable one-liner for a caught error.
+ *
+ * mysql2 connection failures carry an empty `message` — the useful part is in
+ * `code` (ECONNREFUSED, ER_ACCESS_DENIED_ERROR, ER_NO_SUCH_TABLE, …). Logging
+ * `err.message` alone prints nothing and hides the cause, so prefer the code
+ * when there is no message.
+ */
+export function describeError(err) {
+  if (!err) return "unknown error";
+  const message = String(err.message || "").trim();
+  const code = err.code ? String(err.code) : "";
+  if (message && code) return `${code}: ${message}`;
+  return message || code || String(err);
 }
 
 export function errorHandler(err, _req, res, _next) {
-  console.error("unhandled route error:", err?.message || err);
+  console.error("unhandled route error:", describeError(err));
   if (res.headersSent) return;
   res.status(500).json({ error: "Something went wrong." });
 }

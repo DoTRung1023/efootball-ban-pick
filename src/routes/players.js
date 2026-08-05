@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db.js";
-import { asyncHandler, requireUserIdQuery } from "../lib/http.js";
+import { asyncHandler, requireUserIdQuery, describeError } from "../lib/http.js";
 import {
   CATALOG_COLUMNS,
   DEFAULT_SORT,
@@ -74,7 +74,7 @@ router.get("/players/filter-options", async (_req, res) => {
     );
     res.json(Object.fromEntries(entries));
   } catch (err) {
-    console.error("filter-options error:", err.message);
+    console.error("filter-options error:", describeError(err));
     res.status(503).json(Object.fromEntries(FILTER_OPTION_COLUMNS.map((col) => [col, []])));
   }
 });
@@ -96,7 +96,7 @@ router.get("/players", async (req, res) => {
 
     res.json({ players: rows });
   } catch (err) {
-    console.error("players db error:", err.message);
+    console.error("players db error:", describeError(err));
     res.status(503).json({ error: "Database unavailable", players: [] });
   }
 });
@@ -120,7 +120,7 @@ router.get("/my-players", async (req, res) => {
     );
     res.json({ players: rows });
   } catch (err) {
-    console.error("my-players error:", err.message);
+    console.error("my-players error:", describeError(err));
     res.status(503).json({ error: "Database unavailable", players: [] });
   }
 });
@@ -143,7 +143,7 @@ router.post("/my-players", asyncHandler(async (req, res) => {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Player is already in your squad." });
     }
-    console.error("add player error:", err.message);
+    console.error("add player error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -163,7 +163,7 @@ router.delete("/my-players", asyncHandler(async (req, res) => {
     );
     res.json({ message: "Removed." });
   } catch (err) {
-    console.error("delete player error:", err.message);
+    console.error("delete player error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));

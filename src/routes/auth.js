@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import db from "../db.js";
-import { asyncHandler, duplicateUserField } from "../lib/http.js";
+import { asyncHandler, duplicateUserField, describeError } from "../lib/http.js";
 
 const router = Router();
 
@@ -56,7 +56,7 @@ router.post("/signin", asyncHandler(async (req, res) => {
 
     res.json({ id: user.id, username: user.username, email: user.email });
   } catch (err) {
-    console.error("signin error:", err.message);
+    console.error("signin error:", describeError(err));
     res.status(500).json({ error: GENERIC_ERROR });
   }
 }));
@@ -84,7 +84,7 @@ router.post("/signup", asyncHandler(async (req, res) => {
       const field = duplicateUserField(err);
       return res.status(409).json({ error: `That ${field} is already taken.` });
     }
-    console.error("signup error:", err.message);
+    console.error("signup error:", describeError(err));
     res.status(500).json({ error: GENERIC_ERROR });
   }
 }));
@@ -137,7 +137,7 @@ router.put("/profile", asyncHandler(async (req, res) => {
       const field = duplicateUserField(err);
       return res.status(409).json({ error: `That ${field} is already taken.`, field });
     }
-    console.error("profile update error:", err.message);
+    console.error("profile update error:", describeError(err));
     res.status(500).json({ error: GENERIC_ERROR });
   }
 }));

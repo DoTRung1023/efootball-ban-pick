@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db.js";
-import { asyncHandler, requireAdminKey } from "../lib/http.js";
+import { asyncHandler, describeError, requireAdminKey } from "../lib/http.js";
 import { isActiveDraft, listActiveRooms, roomPhase } from "../rooms/store.js";
 
 const router = Router();
@@ -13,9 +13,10 @@ router.use(requireAdminKey);
 
 const readLimit = (raw) => Math.min(Number(raw) || DEFAULT_LIMIT, MAX_LIMIT);
 
-/** Reports err.message to the client — these routes are admin-only. */
+/** Reports the underlying error to the client — these routes are admin-only. */
 function sendAdminError(res, err) {
-  res.status(500).json({ error: err.message });
+  console.error("admin route error:", describeError(err));
+  res.status(500).json({ error: describeError(err) });
 }
 
 router.get("/stats", asyncHandler(async (_req, res) => {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db.js";
-import { asyncHandler, requireUserIdQuery } from "../lib/http.js";
+import { asyncHandler, requireUserIdQuery, describeError } from "../lib/http.js";
 
 const router = Router();
 
@@ -45,7 +45,7 @@ router.get("/", async (req, res) => {
     );
     res.json({ plans });
   } catch (err) {
-    console.error("game-plans error:", err.message);
+    console.error("game-plans error:", describeError(err));
     res.status(503).json({ error: "Database unavailable", plans: [] });
   }
 });
@@ -76,7 +76,7 @@ router.post("/", asyncHandler(async (req, res) => {
     );
     res.status(201).json({ plan });
   } catch (err) {
-    console.error("create game-plan error:", err.message);
+    console.error("create game-plan error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -114,7 +114,7 @@ router.put("/:id", asyncHandler(async (req, res) => {
     if (result.affectedRows === 0) return res.status(404).json({ error: "Plan not found." });
     res.json({ message: "Plan updated." });
   } catch (err) {
-    console.error("update game-plan error:", err.message);
+    console.error("update game-plan error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -132,7 +132,7 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     if (result.affectedRows === 0) return res.status(404).json({ error: "Plan not found." });
     res.json({ message: "Plan deleted." });
   } catch (err) {
-    console.error("delete game-plan error:", err.message);
+    console.error("delete game-plan error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -157,7 +157,7 @@ router.get("/:id/players", asyncHandler(async (req, res) => {
     );
     res.json({ players: rows });
   } catch (err) {
-    console.error("game-plan players error:", err.message);
+    console.error("game-plan players error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -206,7 +206,7 @@ router.put("/:id/swap", asyncHandler(async (req, res) => {
 
     res.json({ message: "Slots swapped." });
   } catch (err) {
-    console.error("swap slots error:", err.message);
+    console.error("swap slots error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
@@ -243,7 +243,7 @@ router.put("/:id/players/:slot", asyncHandler(async (req, res) => {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Player is already in this game plan." });
     }
-    console.error("update slot error:", err.message);
+    console.error("update slot error:", describeError(err));
     res.status(500).json({ error: "Something went wrong." });
   }
 }));
