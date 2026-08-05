@@ -1,7 +1,5 @@
-import { POSITION_OPTIONS } from './constants.js';
 import { cb } from './callbacks.js';
 import { state } from './state.js';
-import { defaultRoomConfig } from './state.js';
 import { normalizeBanSortValue } from './ban.js';
 import { normalizeMySquadPlayerForDraft } from './players.js';
 import { escapeHtml, showToast, getUser } from './utils.js';

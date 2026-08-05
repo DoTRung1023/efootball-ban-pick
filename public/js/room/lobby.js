@@ -1,7 +1,6 @@
 import {
   ALLOWANCE_CATEGORY_DEFS,
   ALLOWANCE_DEF_MAP,
-  ALLOWANCE_CAP_OPTIONS,
   POSITION_OPTIONS,
   FOOT_OPTIONS,
   CARD_TYPE_OPTIONS,
@@ -10,7 +9,6 @@ import {
   TEXT_ALLOWANCE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
   REVEAL_MODE_HIDDEN,
-  REVEAL_MODE_INSTANT,
 } from './constants.js';
 
 import {
@@ -46,9 +44,9 @@ import {
 } from './allowance.js';
 
 import { cb } from './callbacks.js';
-import { state, defaultRoomConfig, normalizeRoomConfig, applyPresenceSnapshot, emptyRoom } from './state.js';
+import { state, defaultRoomConfig, applyPresenceSnapshot, emptyRoom } from './state.js';
 import { normalizeBanDurationSec, normalizePickDurationSec, normalizeRevealMode } from './state.js';
-import { escapeHtml, showToast, askConfirm, showView, getRoomCodeFromUrl, parseQuery, getUser, getCurrentIdentity, getAnonId } from './utils.js';
+import { escapeHtml, showToast, askConfirm, showView, getRoomCodeFromUrl, parseQuery, getUser, getCurrentIdentity } from './utils.js';
 import { registerAndPollPresence, stopPresencePolling, leavePresence } from './presence.js';
 import { fetchFilterOptions } from './ban.js';
 

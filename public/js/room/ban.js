@@ -16,7 +16,7 @@ import {
   normalizeApiPlayer,
 } from './players.js';
 
-import { escapeHtml, showToast } from './utils.js';
+import { escapeHtml } from './utils.js';
 import { cb } from './callbacks.js';
 import { state } from './state.js';
 import { applyPresenceSnapshot } from './state.js';
