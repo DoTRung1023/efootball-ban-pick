@@ -156,14 +156,6 @@ export function renderLobby() {
   // Sync lv-settings-panel visual controls from config
   const banCountValEl = document.getElementById("banCountVal");
   if (banCountValEl) banCountValEl.textContent = String(cfg.banCountPerSide ?? 0);
-  const banDurActive = normalizeBanDurationSec(cfg.banDurationSec);
-  document.querySelectorAll("#banDurationPills .lv-time-pill").forEach((p) => {
-    p.classList.toggle("is-active", Number(p.dataset.dur) === banDurActive);
-  });
-  const pickDurActive = normalizePickDurationSec(cfg.pickDurationSec);
-  document.querySelectorAll("#pickDurationPills .lv-time-pill").forEach((p) => {
-    p.classList.toggle("is-active", Number(p.dataset.dur) === pickDurActive);
-  });
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   if (revealModeLabel) {
     revealModeLabel.textContent = revealModeValue === REVEAL_MODE_HIDDEN
@@ -429,33 +421,6 @@ export function initLobby() {
   document.getElementById("banCountMinus")?.addEventListener("click", () => _stepBans(-1));
   document.getElementById("banCountPlus")?.addEventListener("click", () => _stepBans(1));
 
-  // Ban duration pills
-  document.getElementById("banDurationPills")?.addEventListener("click", (e) => {
-    if (state.mySide !== "host") return;
-    const pill = e.target.closest(".lv-time-pill");
-    if (!pill) return;
-    const dur = Number(pill.dataset.dur);
-    if (!dur) return;
-    const input = document.getElementById("lobbyBanDurationInput");
-    if (input) input.value = String(dur);
-    state.room.config.banDurationSec = dur;
-    renderLobby();
-    scheduleLobbyConfigPush();
-  });
-
-  // Pick duration pills
-  document.getElementById("pickDurationPills")?.addEventListener("click", (e) => {
-    if (state.mySide !== "host") return;
-    const pill = e.target.closest(".lv-time-pill");
-    if (!pill) return;
-    const dur = Number(pill.dataset.dur);
-    if (!dur) return;
-    const input = document.getElementById("lobbyPickDurationInput");
-    if (input) input.value = String(dur);
-    state.room.config.pickDurationSec = dur;
-    renderLobby();
-    scheduleLobbyConfigPush();
-  });
 
   const closeAllLobbyDropdowns = () => {
     const categoryPanel = document.getElementById("allowanceCategoryPanel");

@@ -133,24 +133,24 @@
 
                       <div class="lv-field-group">
                         <div class="lv-field-label">BAN DURATION</div>
-                        <div class="lv-time-pills" id="banDurationPills">
-                          <button type="button" class="lv-time-pill" data-dur="30">30s</button>
-                          <button type="button" class="lv-time-pill" data-dur="60">1m</button>
-                          <button type="button" class="lv-time-pill is-active" data-dur="120">2m</button>
-                          <button type="button" class="lv-time-pill" data-dur="180">3m</button>
+                        <div class="lv-duration-field">
+                          <input type="number" class="lv-duration-input" id="lobbyBanDurationInput"
+                                 min="5" max="900" step="1" value="120"
+                                 inputmode="numeric" aria-describedby="banDurationHint">
+                          <span class="lv-duration-unit">sec</span>
                         </div>
-                        <input type="number" id="lobbyBanDurationInput" min="5" max="120" value="120" hidden>
+                        <div class="lv-field-hint" id="banDurationHint">5–900 seconds</div>
                       </div>
 
                       <div class="lv-field-group">
                         <div class="lv-field-label">PICK DURATION</div>
-                        <div class="lv-time-pills" id="pickDurationPills">
-                          <button type="button" class="lv-time-pill" data-dur="60">1m</button>
-                          <button type="button" class="lv-time-pill" data-dur="120">2m</button>
-                          <button type="button" class="lv-time-pill is-active" data-dur="300">5m</button>
-                          <button type="button" class="lv-time-pill" data-dur="600">10m</button>
+                        <div class="lv-duration-field">
+                          <input type="number" class="lv-duration-input" id="lobbyPickDurationInput"
+                                 min="5" max="1200" step="1" value="300"
+                                 inputmode="numeric" aria-describedby="pickDurationHint">
+                          <span class="lv-duration-unit">sec</span>
                         </div>
-                        <input type="number" id="lobbyPickDurationInput" min="5" max="300" value="300" hidden>
+                        <div class="lv-field-hint" id="pickDurationHint">5–1200 seconds</div>
                       </div>
 
                       <div class="lv-field-group lv-field-group--reveal">

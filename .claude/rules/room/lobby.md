@@ -30,8 +30,13 @@ inputs the user is actively editing).
 - `.lv-stepper` — `display: inline-flex; align-self: flex-start` (prevents cross-axis
   stretch in the flex parent). Contains `.lv-stepper-btn` (38×38 px, green, transparent
   bg) and `.lv-stepper-val` (min-width 44 px, centered, green inner borders).
-- `.lv-time-pills` / `.lv-time-pill` — pill row; `is-active` = green border + subtle
-  tint. Each pill carries `data-dur` (seconds).
+- `.lv-duration-field` — free-entry duration control for BAN DURATION and PICK
+  DURATION. Wraps `.lv-duration-input` (`type="number"`, native spinners suppressed)
+  plus a `.lv-duration-unit` "SEC" label, and mirrors `.lv-stepper`'s framing so all
+  three settings read as one control family. `:focus-within` gives the green ring;
+  `:out-of-range` turns the value red. An optional `.lv-field-hint` under the field
+  states the allowed range. The old `.lv-time-pill` preset row was replaced by this —
+  fixed presets could not express arbitrary durations.
 - `.lv-reveal-cards` (2-column grid) / `.lv-reveal-card` — always-visible mode option
   cards; `is-selected` = green border + glow. Each card carries
   `data-lobby-reveal-mode-option`. The old trigger+panel dropdown pattern is gone —
@@ -49,5 +54,16 @@ Layout:
   (settings left, chat right).
 
 Guest read-only: `.prep-col--settings.is-readonly :is(button, ...)` disables all
-interactive elements including `.lv-stepper-btn`, `.lv-time-pill`, and
-`.lv-reveal-card` — no extra CSS needed for new controls.
+interactive elements including `.lv-stepper-btn` and `.lv-reveal-card` — no extra CSS
+needed for new controls. `renderLobby()` additionally sets `.disabled` on the two
+duration inputs directly (`banDurationEl.disabled = !isHost`).
+
+## Duration input ranges
+
+The `min`/`max` attributes must match `MIN/MAX_BAN_DURATION_SECONDS` and
+`MIN/MAX_PICK_DURATION_SECONDS` in `room/constants.js`, which in turn mirror
+`src/rooms/config.js`: **ban 5–900 s, pick 5–1200 s**. The `input` handler updates
+`state.room.config` as the user types without pushing; the `change` handler (blur or
+Enter) clamps through `normalizeBanDurationSec` / `normalizePickDurationSec`, writes the
+clamped value back into the field, and schedules the config push. `startDraftFromLobby`
+re-validates both fields and refuses to start on an out-of-range value.
