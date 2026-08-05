@@ -19,178 +19,50 @@ mysql -u root -e "CREATE USER IF NOT EXISTS 'banpick'@'localhost' IDENTIFIED BY 
 mysql -u root < database/schema.sql
 ```
 
-## Architecture
+## Runtime
 
-**Runtime**: Node.js ≥ 18 with ESM (`"type": "module"`). Express serves both the API and static files from `public/`.
+Node.js ≥ 18 with ESM (`"type": "module"`). Express serves both the API and static files
+from `public/`. MySQL 8+ via mysql2. Real-time sync is **polling-only** (500 ms presence
+heartbeat); there is no WebSocket layer.
 
-**Backend** (`src/`):
-- `server.js` — all Express routes in a single file. No session middleware; auth is stateless (userId is passed in request bodies/query params and trusted client-side).
-- `db.js` — mysql2 connection pool, exported as default.
-- `cardImageCacheR2.js` — proxies player card images; caches to Cloudflare R2 if configured, otherwise redirects to pesdb.net.
-- `scrape.js` / `scrape-missing.js` — scrape pesdb.net with cheerio. `scrape.js` uses `.scrape-state.json` for resume support; incremental runs use `max_pesdb_id` from `scrape_logs`.
+## Layout
 
-**Room state is fully in-memory** (`roomPresence` Map in `server.js`). Room data does not persist across server restarts. Presence TTL is **12 s in lobby** and **30 s during an active draft** (`PRESENCE_TTL_MS` / `DRAFT_PRESENCE_TTL_MS`) — clients must POST `/api/rooms/:code/presence` every ~5 s to stay connected. The longer draft TTL gives enough headroom for a page reload without losing draft state. Real-time sync is polling-only; WebSocket integration is not yet implemented.
+- `src/` — backend: `server.js` composition root, `routes/`, `rooms/`, `players/`, `lib/`.
+- `public/` — three pages: `home.html` (squad / game plans / rooms), `room.html` (the
+  ban-pick draft), `admin.html`. Each has an ESM entry file in `public/js/` plus a
+  sub-module directory.
+- `database/schema.sql` — MySQL schema.
 
-**Room security**: The server rejects duplicate connections via HTTP 409:
-- A second host attempt (different userId) → 409 "Room already has an active host."
-- A second guest attempt (different userId) → 409 "Room already has an active guest."
-- A kicked guest → 403.
-The client maps these to three distinct error states (`is-host-lock`, `is-room-full`, `is-access-denied`) in `#viewError`, each with its own CSS color theme in `room.css`.
+## Cross-cutting conventions
 
-**Reload / reconnect behaviour** (`presence.js` + `room.js`):
-- When entering the draft view, `state.phase` is written to `sessionStorage` under key `efb_room_${code}_phase`.
-- On page load, `initLobby` reads this key: if the cached phase is `"draft"` or `"ready"`, the lobby view is skipped entirely while the async reconnect completes (`registerAndPollPresence`). If the server confirms the room is still drafting, `tryEnterDraftFromRoomSnapshot` transitions directly to the draft view; otherwise the cache is cleared and the lobby is shown.
-- The cache is cleared on: `leavePresence()`, `showDone()`, `showRoomClosed()`, `showOpponentLeft()`, and any failed reconnect.
+**Position order**: Throughout the codebase, positions follow the canonical order
+CF → SS → RWF → LWF → AMF → RMF → LMF → CMF → DMF → RB → LB → CB → GK (forward-first).
+This order is mirrored in `SORT_MAP` in `src/players/catalogQuery.js` and in
+`public/js/room/constants.js`.
 
-**Leave button** (`presence.js` + `room.js`):
-- There is no `beforeunload` guard. The dialog was removed because the `sessionStorage` phase cache makes reloading safe — the draft is fully restored on reconnect. Both `#lobbyLeaveBtn` and `#draftLeaveBtn` call `leavePresence()` then set `window.location.href = "/"` directly.
+**Room state is in-memory only** and does not survive a server restart. See
+`.claude/rules/room/presence-and-reconnect.md`.
 
-**Frontend** (`public/`):
-- `home.html` + `public/js/home.js` — main app entry point (`type="module"`); 23-line ESM boot file that imports from `public/js/home/` sub-modules.
-- `public/js/home/` — home page split into ES modules:
-  - `utils.js` — shared helpers: `getUser`, `requireAuth`, `showToast`, `showConfirm`, `initTabs`, `initUserMenu`, `initEditProfile`, sort helpers (`POSITION_LINE_ORDER`, `positionLineRank`, `tiebreakOverallDescThenName`, `ovrMaxForSort`, `compareByPositionLine`), DD panel helpers (`openDdPanel`, `closeDdPanel`, `toggleDdPanel`), player detail helpers (`playerDetailSublineHtml`, `playerDetailTooltipText`, `ovrPairInnerHtml`).
-  - `callbacks.js` — shared mutable callback registry (identical pattern to `room/callbacks.js`). Squad sets `getSquadPlayers`, `addToSquadState`, `removeFromSquadState`, `renderSquad`; catalog sets `openPlayerPopup`, `openAddPlayerModal`, `onPlayersDeleted`; rooms sets `refreshRoomsStats` (called by `plans.js` after plan create/delete and by `squad.js` + `catalog.js` after player add/delete so the Rooms tab stats auto-refresh without a page reload).
-  - `squad.js` — My Players tab: player grid, search/sort/filter, select mode, single + bulk delete, card click → popup via `cb.openPlayerPopup`. Exports `loadSquad`, `initSquadSearchSortFilter`, `initSquadControls`.
-  - `catalog.js` — Add Player modal and player popup: catalog list, sort/filter dropdowns, add/remove player, `initAutocomplete`, `wireAttributeMultiselects`, `playerFilterOptionsCache` / `getPlayerFilterOptions` (shared with `squad.js` and `plans.js`). Exports `openAddPlayerModal`, `initAddPlayerModal`, `initPlayerPopup`.
-  - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot assignment. Exports `loadGamePlans`, `initGamePlans`.
-  - `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`, `initRoomHub`, `loadRoomsStats`. `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first; if `room.host` is null (room not found) it shows an error toast and stops navigation, preventing users from entering a non-existent room. `initRoomModal` opens/closes the right-side drawer (`#roomOverlay`); when opening it measures the scrollbar width and adds matching `padding-right` to the body so the background does not shift. `initRoomHub` wires: code input normalisation, `#pasteCodeBtn` (clipboard paste, URL-aware), `#joinRoomLink` (invite-link input). `loadRoomsStats(userId)` stores `_statsUserId` and registers `cb.refreshRoomsStats = () => loadRoomsStats(_statsUserId)` so stats auto-refresh when plans or players change elsewhere.
-- `public/css/home/` — home page CSS split into 8 focused files (loaded in order via `<link>` tags):
-  - `base.css` — `:root` variables, resets, scrollbar, body (`height: 100vh; overflow: hidden` — locks page-level scroll), pitch background, glow orbs, app shell (`height: 100vh; overflow: hidden; flex-direction: column`), `.content-scroll` (`flex: 1; min-height: 0; overflow-y: auto` — the scrollable area that sits below the topbar; the scrollbar appears at the viewport right edge below the nav), topbar.
-  - `player-card.css` — `.player-card`, `.pc-img-wrap`, `.pc-footer`, skeleton, empty state, load-more.
-  - `squad.css` — `.main-content` (centered container, `max-width: 1400px; margin: 0 auto` — no `flex: 1`, that is owned by `.content-scroll` in `base.css`), tab panels, squad toolbar (search bar, sort/filter, select mode, empty state).
-  - `plans.css` — game plans panel, plan cards, plan toolbar, plan detail modal.
-  - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`, `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`).
-  - `modals.css` — shared modal overlay/card base, spinner, player popup, toast, confirm dialog, edit profile modal. **Room CREATE drawer**: `#roomOverlay` is overridden to `justify-content: flex-end; align-items: stretch; padding: 0` so it anchors right. `.room-drawer` (380 px wide, full height, `transform: translateX(100%)` → `translateX(0)` on open, slides in from the right). Inner layout: `.rd-close-row` (close button row), `.rd-hero` (`rd-kicker` + `rd-title` + `rd-sub`), `.rd-body` (`rd-code-label` + `.rd-code-row` with `rd-code-input` + two `rd-icon-btn` for regen/copy + `rd-hint`), `.rd-footer` (`rd-start-btn` green primary + `rd-cancel-btn` ghost). On mobile (≤420 px) `.room-drawer` expands to full width.
-  - `rooms.css` — Rooms tab. Key blocks: `.rooms-dual-cards` (2-column grid); `.rooms-card--create` (deep green gradient, green glow border) / `.rooms-card--join` (deep navy gradient, cyan glow border); `.rooms-create-step` (dark pill, per-step icon colour); `.rooms-create-cta` / `.rooms-join-cta` / `.rooms-invite-area`. **Bottom row**: `.rooms-bottom-row` (`display: grid; grid-template-columns: 1fr 1fr; align-items: stretch`) — left child is `.rooms-info-row` (single-panel STRATEGY TIPS with gold `border-top`), right child is `.rooms-how` (HOW A SESSION GOES card). `.rooms-how` inner: `.rooms-how-kicker` (small uppercase heading), `.rooms-how-steps` list of `.rooms-how-step` (flex row: `.rooms-how-num` faint green number + div with `.rooms-how-step-title` + `.rooms-how-step-desc`; each step separated by `border-bottom`). `.rooms-bottom-row .rooms-info-row, .rooms-info-panel { height: 100% }` ensures both sides are equal height. Responsive: ≤960 px `.rooms-bottom-row` and dual cards → single column; ≤720 px same.
-  - `responsive.css` — cross-cutting media queries (`≤768px`, `≤480px`). Mobile fix: `.team-search-wrap { flex: 1 0 100% }` forces the search input to its own row so the FILTER button stays right-aligned and its `right: 0` dropdown panel does not overflow off the left screen edge.
-- `room.html` + `public/js/room.js` — entry point for the room page; imports all sub-modules and wires up callbacks. Keeps: draft timer, stage advancement, `applyLocalAction`, `submitBan`, `submitPick`, `renderDraftUi`, `showDone`, `showOpponentLeft` (5-second countdown to home when opponent leaves during draft), `showRoomClosed` (10-second countdown to home when room closes), `initDraftControls`, and all side-panel / formation rendering.
-- `public/js/room/callbacks.js` — shared mutable callback registry (`cb`) that breaks circular imports between sub-modules. Sub-modules call `cb.renderDraftUi()` etc.; `room.js` sets the real implementations after defining them. Registered callbacks: `renderDraftUi`, `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `showDone`, `showRoomClosed`, `startDraftFromLobby`, `onOpponentLeft`.
-- `public/js/room/state.js` — `state` singleton (includes `stagedBans[]`, `opponentStagedBans[]`, `banFilterRegion[]`, `pickPosTab`, `pickManualFormation`, `mySquadPlayers[]`, `mySquadLoading`), `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed` and opponent's `stagedBans` from each snapshot), `buildTurnSchedule`, and all room-config normalisation helpers.
-- `public/js/room/utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`, `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
-- `public/js/room/players.js` — pure player-data helpers: `normalizeApiPlayer`, `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`, `miniCardHtml`, `playerDetailTooltipText`, formation/slot utilities.
-- `public/js/room/ban.js` — ban phase logic: `getBanListPlayers`, `getPickListPlayers`, `renderBanToolbar`, `bindBanPhaseUiOnce`, `attachMiniCardGridHandlers`, `fetchFilterOptions`, `imageOnlyThumbHtml`, `stagedBanThumbHtml`, `opponentStagedBanThumbHtml`. All render calls go through `cb.renderDraftUi()`.
-- `public/js/room/pick.js` — pick phase logic: `renderPickToolbar`, `renderPickPosTabs`, `bindPickPhaseUiOnce`, `fetchPlayers` (loads user's own squad from `/api/my-players`), `loadDraftPlayers`. Position tabs (ALL/GK/DEF/MID/ATT) set `state.pickPosTab` and `state.pickFilterPosition`; tab groups are defined in the module-level `PICK_TAB_GROUPS` map.
-- `public/js/room/lobby.js` — full lobby: `renderLobby`, `initLobby`, config push, club autocomplete, lobby chat. Sets `cb.renderLobby = renderLobby` during module init.
-- `public/js/room/presence.js` — presence polling: `registerPresence`, `fetchRoomSnapshot`, `leavePresence`, `pollPresence`, `registerAndPollPresence`, `stopPresencePolling`. Detects opponent departure: if guest disappears (`prevGuestId` present but `nextGuestId` absent) while `state.phase` is `"draft"` or `"ready"`, sets `state.phase = "abandoned"`, stops polling, and calls `cb.onOpponentLeft()`. All cross-module render calls use `cb.*`.
-- `public/js/room/allowance.js` — all allowance/cap logic (position caps, card type caps, range checks) shared between room.js and the server normalizes the same data independently.
-- `public/js/room/constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`, `REGION_OPTIONS`, etc.
-- `admin.html` + `public/js/admin.js` + `public/css/admin.css` — admin dashboard at `/admin`. Single vanilla ES module; no build step.
-  - **Auth**: login overlay on first visit stores the key in `sessionStorage` (`efb_admin_key`). Every API call appends `?adminKey=<key>`. Server checks `req.headers["x-admin-key"] || req.query.adminKey` against `process.env.ADMIN_KEY` (defaults to `"admin-dev"` if unset).
-  - **Tabs**: OVERVIEW · SCRAPES · PLAYERS · USERS · ROOMS. All share a single `switchTab(tab)` function; inactive panels are `hidden`.
-  - **OVERVIEW**: stats row (catalog count, user count, active rooms + draft count, last scrape age) + 2×2 grid of panels: Scrape Runs, Active Rooms (auto-refreshes every 10 s), Recent Signups, Data Quality.
-  - **SCRAPES tab**: full `scrape_logs` table (up to 50 rows) showing run id, type, players upserted, duration, started/finished timestamps, max pesdb_id, status pill.
-  - **PLAYERS tab**: paginated catalog browser (`/api/players`) with search-by-name, cycling sort (OVERALL MAX ↓ / ↑ / OVERALL / NAME / POSITION), and client-side CSV export of up to 5 000 rows.
-  - **USERS tab**: all users via `/api/admin/recent-users?limit=50` with id, username, email, player count, plan count, join date.
-  - **ROOMS tab**: active in-memory rooms via `/api/admin/rooms` with phase pills (BAN / PICK / LOBBY / READY / DONE) and WATCH links to `/room/:code`.
-  - **Admin API routes** (all in `server.js`, all behind `checkAdminKey`):
-    - `GET /api/admin/stats` — catalog count, user count, new users this week, active/draft room counts, last scrape row.
-    - `GET /api/admin/rooms` — iterates `roomPresence`, filters closed/stale entries (TTL × 3), returns `{ code, host, guest, phase, ageSec }`.
-    - `GET /api/admin/scrape-logs?limit=N` — reads `scrape_logs` DESC.
-    - `GET /api/admin/recent-users?limit=N` — users JOIN players + game_plans, most recent first.
-    - `GET /api/admin/data-quality` — four COUNT queries on `players_catalog`: missing `playing_style`, `region`, `overall_max`, duplicate `pesdb_id`.
-  - **CSS** (`admin.css`): self-contained; reuses the same `:root` CSS variables as `home/base.css` (green/black theme, Rajdhani + Orbitron fonts). Key blocks: `.login-overlay` / `.login-card`, `.admin-nav` (sticky 56 px), `.stats-row` (4-column grid), `.panel-grid-2` (2-column grid), `.admin-table` (sticky thead, hover rows), phase pills (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills (`.status-pill.is-running/success`), data-quality bars (`.dq-bar.is-ok/warn/bad`), pagination bar.
+**Duplicated logic to keep in sync**: allowance-cap normalisation exists independently in
+`src/rooms/config.js` and `public/js/room/allowance.js`.
 
-**Room page layout** (`#viewDraft`):
-- There is no topbar and no turn pill (`#turnPill` / `.turn-pill-*` fully removed from HTML, CSS, and JS). Phase context comes from the stage dots alone.
-- The `.stage-progress-container` is `justify-content: space-between` with the timer ring (`#timerRing`) in `.stage-header-left` on the left and the Leave button (`#draftLeaveBtn`) in `.stage-header-right` on the right. The `.stage-progress-bar` sits between them with `flex: 1; max-width: 620px`.
-- The timer ring is **56×56 px** with a **44×44 px** inner circle; JS drives the conic-gradient via `ring.style.background`. There is a single canonical `.timer-ring` / `.timer-inner` definition in `room.css` — no context-specific overrides. There is no READY button in the topbar — `#draftTopReadyBtn` has been removed from HTML (JS already null-guards it).
-- The draft schedule (`buildTurnSchedule`) always returns exactly two entries: `{ side: "both", action: "ban" }` then `{ side: "both", action: "pick" }`. Both phases are simultaneous — there are no per-player turns.
-- Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks (bans-on-me / my-bans). Bans are **staged** before submitting: clicking a card calls `submitBan(player)` which appends to `state.stagedBans[]` and re-renders — no API call yet. Staged bans appear in the MY BANS strip alongside confirmed bans, and sync to the opponent's BANS ON ME section via the presence heartbeat (every ~500 ms). Once satisfied, the user clicks **CONFIRM BANS** → `confirmStagedBans()` flushes staged bans to `POST /api/rooms/:code/ban` then calls `POST /api/rooms/:code/ban-confirm`. When both sides confirm, the server advances `turnIndex = 1` (pick phase) and sets `turnEndsAt`. The BANS ON ME header contains a `.ban-opponent-badge` pill showing the opponent's username, a colored presence dot (`.ban-opponent-dot.is-online`), and a status text (`· is choosing...` / `· confirmed ✓` / `· left the room`).
-- Pick phase board: `#draftPickPhaseBoard` with a horizontal **quick-load bar** (`.pick-quickload-bar`) at the top — plan chip cards (`#pickQlCards`) + formation dropdown (`#pickQlFormationBtn` / `#pickQlFormationPanel`). Below it, `.pick-phase-layout` is a 3-column CSS grid (`300px | 1fr | 252px`):
-  - **Left** (`.pick-phase-left`): "MY SQUAD POOL" header + search/sort controls + position tab bar (`#pickPosTabs` with ALL/GK/DEF/MID/ATT buttons) + `#pickGrid`. Cards are rendered with `banPlayerCardHtml` and carry `is-pick-taken` (green "PICKED" overlay) or `is-ban-taken` (red "BANNED" overlay) classes based on what you've picked or what the opponent has banned.
-  - **Center** (`.pick-phase-center`): `#pickLineupMeta` (pick count / formation badge / avg OVR / active plan name) + CLEAR ALL button + `#pickPitch` (formation rows rendered by `renderPickPitch` using `buildOrderedSlotMap` and `getFormationLayout`) + bottom bar with `#pickAllowanceBar` (allowance pills) and `#confirmPicksBtn` / `#pickMoreLabel`.
-  - **Right** (`.pick-phase-right`): LIVE label + opponent identity row (`#pickOppDot`, `#pickOppName`, `#pickOppCount`) + progress bar (`#pickOppProgressFill`) + scrollable pick feed (`#pickOppFeed`) + footer with sync timestamp. Hidden-mode shows a "picks hidden" placeholder instead of the feed.
-- `getPickFormation()` in `room.js` resolves the active formation: selected game plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`. `renderPickQuickLoad()` builds the plan chip cards and formation panel; `renderPickPitch()` renders the pitch slots; `renderPickAllowanceBar()` renders pills and shows/hides CONFIRM PICKS; `renderPickLiveFeed()` updates the live opponent section.
-- Ready phase board ("Start Match"): `#draftReadyPhaseBoard` shown when `isReadyPhase`. Full redesigned layout inside `.sm-layout`:
-  - **Header** (`.sm-head`): kicker badge with pulsing dot (`READY PHASE · CONFIRM TO BEGIN MATCH`), `h2` title (`START MATCH`), subtitle.
-  - **Columns** (`#readyPhaseColumns`): 3-column grid (`.sm-columns`) — my column (`.sm-col`) | VS circle (`.sm-vs-circle`) | opponent column. Each column has an avatar initials badge, username, READY/WRITING status badge (`.sm-col-badge.is-ready` / `.is-writing`), a role label (YOU/OPPONENT), formation pitch rows (`.sm-pitch-row` built with `renderReadyPitchColHtml()` using `buildOrderedSlotMap` + `getFormationLayout`), and a bench strip (`.sm-bench-strip`, picks 12–23). State-key diff guard: key = `[myPickIds, theirPickIds, revealMode, mySide, myReady, theirReady].join("|")`.
-  - **Stats bar** (`#startMatchStats`): 5-column grid (`.sm-stats-row`) comparing AVG OVERALL (lineup avg of `overall_rating`), AVG OVR MAX (all-picks avg), FORMATION (text badge), STARTING XI (count), AVG AGE. Each cell has green/cyan progress bars (`.sm-stat-bar--me` / `.sm-stat-bar--opp`). State-key diff guard on pick IDs + OVR values + formation.
-  - **Footer** (`.sm-footer`): READY → / UNREADY button (`#draftReadyBtn`, `btn--primary` / `btn--ghost`), legend dots (`.sm-dot-you` green, `.sm-dot-opp` cyan), and hint text (`#readyPhaseHint`).
-  - In `hidden` reveal mode the opponent column shows a "Picks hidden — revealed after match" message instead of their pitch. Opponent formation always uses `DEFAULT_FORMATION` ("4-3-3") since formations aren't synced via presence.
+## Detailed rules
 
-**Lobby settings UI** (`room.html` + `lobby.js` + `room.css`):
-- `#lobbySettings` (`.lv-settings-panel`) is a **direct child** of `.prep-col--settings` — no inner `.prep-section` wrapper. The outer prep-col card provides the container; the `lv-settings-panel` flows flat inside it, followed by `.prep-section--allowance`.
-- **Hidden-input source-of-truth pattern**: `pushLobbyConfig()` reads `#lobbyBansInput.value`, `#lobbyBanDurationInput.value`, `#lobbyPickDurationInput.value`, `#lobbyRevealModeInput.value` directly. Visual controls write to these hidden inputs and call `scheduleLobbyConfigPush()`. `renderLobby()` syncs hidden inputs *from* `room.config` on every 500 ms poll (guarded by `data-touched` for inputs the user is actively editing). Never update the visual display by writing to these inputs directly — always update `state.room.config` then call `renderLobby()`.
-- **CSS system** — `.lv-settings-panel` (`flex column; gap: 14px; margin-bottom: 14px`) → `.lv-field-group` (`flex column; gap: 7px`) → controls:
-  - `.lv-stepper` — `display: inline-flex; align-self: flex-start` (prevents cross-axis stretch in the flex parent). Contains `.lv-stepper-btn` (38×38 px, green, transparent bg) and `.lv-stepper-val` (min-width 44 px, centered, green inner borders).
-  - `.lv-time-pills` / `.lv-time-pill` — pill row; `is-active` = green border + subtle tint. Each pill carries `data-dur` (seconds).
-  - `.lv-reveal-cards` (2-column grid) / `.lv-reveal-card` — always-visible mode option cards; `is-selected` = green border + glow. Each card carries `data-lobby-reveal-mode-option`. The old trigger+panel dropdown pattern is gone — `renderLobby()` toggles `is-selected` on each card directly, and the existing click-delegation in `initLobby()` handles selection.
-- `.prep-title` — `border-left: 2px solid var(--green); padding-left: 10px; margin-bottom: 16px`. Shared by both "BAN SETTING" and "LOBBY CHAT" headings; do not add a second rule for this selector.
-- `.prep-col--chat` — `display: grid; grid-template-rows: auto minmax(0, 1fr) auto` (3 rows: title → chat-log → compose form). No `prep-sub` element in this panel.
-- `.lobby-bottom-row` — `grid-template-columns: minmax(0, 1fr) minmax(280px, 0.78fr)` (settings left, chat right).
-- Guest read-only: `.prep-col--settings.is-readonly :is(button, ...)` disables all interactive elements including the new `.lv-stepper-btn`, `.lv-time-pill`, and `.lv-reveal-card` buttons — no extra CSS needed for new controls.
+Topic rules live in `.claude/rules/`. Each carries `paths:` frontmatter and loads
+automatically when a matching file is read:
 
-**Ban phase interaction** (`ban.js` + `room.js`):
-- Bans are **per-side and independent**: each user bans from the opponent's squad (User A bans to restrict User B's picks; User B bans to restrict User A's picks). Both users can ban the same player without conflict — the duplicate-ban check only prevents a user from banning the same player twice on their own side.
-- Clicking a player card in the ban grid calls `submitBan(player)` which **stages** the ban in `state.stagedBans[]` and calls `renderDraftUi()` — no API call at this point.
-- `confirmStagedBans()` (CONFIRM BANS button) flushes the staged array via `flushStagedBansLocally()` + `submitBansToApi()`, then calls `callBanConfirm()` → `POST /api/rooms/:code/ban-confirm`. The server marks `bansConfirmed[side] = true`; if both sides are confirmed it advances `turnIndex = 1` (pick phase), sets `turnEndsAt`, clears `stagedBans`/`bansConfirmed`, and returns the updated room snapshot. The client that called confirm starts the pick timer immediately in `callBanConfirm`; the other client's `renderDraftUi` detects `!isBanPhase && !state.turnTimer` and starts it on the next render cycle.
-- **Duplicate-ban prevention** uses only the current user's own bans: the server checks `entry.bans[sideKey]` (not the shared `bannedPlayerIds` union); the client checks `room.bans[mySide]` in both `applyLocalAction` and `submitBan`. The ban grid renderer computes `myConfirmedBanIds` from `room.bans[mySide]` — a card is greyed out only if YOU already confirmed that ban, not if the opponent banned it. `bannedPlayerIds` (the union of all bans) is still maintained in `entry`/`room` for other uses but is no longer the authority for ban-phase duplicate detection.
-- Staged bans sync to the opponent in real-time via the presence heartbeat: `registerPresence()` sends `state.stagedBans` as `{ id, name }` objects; the server stores them under `entry.stagedBans[role]` and returns them in the snapshot. `applyPresenceSnapshot` reads the opponent's array into `state.opponentStagedBans` and `renderDraftUi()` renders them in the BANS ON ME strip using `opponentStagedBanThumbHtml` (dimmed, red inset outline).
-- `renderDraftUi()` runs unconditionally every 500 ms (driven by `pollPresence`). To avoid destroying and recreating DOM nodes on every cycle, the ban grid and both ban strips use a **state-key diff guard**: a compact fingerprint of the current data (player IDs in sorted/filtered order + ban/pick flags + turn state) is stored as a `data-state-key` / `data-bans-key` attribute and compared before any `innerHTML` write. **Do not replace this with an `innerHTML` string comparison** — browsers normalize whitespace and drop the `/` on void elements (`<img />` → `<img>`) when serializing, so the strings never match and the grid would rebuild every poll cycle. The ban grid state key uses `myConfirmedBanIds` (`"b"` suffix), staged ban IDs (`"s"` suffix), and picked IDs (`"p"` suffix). The BANS ON ME strip key encodes confirmed bans (`"c"` suffix), opponent staged bans (`"s"` suffix), and the remaining empty-slot count — all three must agree before a write is skipped.
-- When a new thumb is added to either ban strip, `is-new` is added to the last child via JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `room.css`).
-- The `is-hovered` class is **only added to `.mini-card` elements** (JS-driven hover for the pick grid). `.player-card` elements in the ban grid rely purely on the CSS `:hover` pseudo-class — adding `is-hovered` to them would mutate the DOM and break the state-key guard.
-
-**Pick phase interaction** (`pick.js` + `room.js`):
-- Clicking a player card in the pick grid calls `submitPick(player)` — no intermediate pending/confirm step.
-- `submitPick` validates allowance cap violations (via `getAllowanceCapViolation`) and the `pickCountPerSide` limit before calling `applyLocalAction(room, player)` for an optimistic update, then fires `POST /api/rooms/:code/pick`. On API failure a toast is shown and the next presence poll restores authoritative state.
-- The pick grid shows `getPickListPlayers()` which filters `state.players` client-side by `state.pickSearch`, `state.pickFilterPosition` (set by the position tabs), and `state.pickSort`. `state.players` is loaded once at draft start by `loadDraftPlayers()` → `fetchPlayers()` which reads from `/api/my-players` (the user's own squad), not the catalog.
-- Position tabs (ALL/GK/DEF/MID/ATT) set `state.pickPosTab` and `state.pickFilterPosition` via `PICK_TAB_GROUPS` in `pick.js`.
-- The formation pitch is rendered by `renderPickPitch()`: picks are mapped to slots in order via `buildOrderedSlotMap(myPicks.slice(0, 11))` — pick[0] → slot 1 (GK), pick[1-4] → DEF row, etc. A state-key (`formation|pick-ids`) prevents re-renders when nothing changes.
-- CLEAR ALL (`#pickClearAllBtn`) shows a confirm dialog then zeroes `room.picks[mySide]` locally; the next presence poll will restore authoritative state if the API disagrees.
-- Opponent picks sync identically to bans: every 500 ms presence poll returns the full room snapshot including `picks`, which triggers `renderDraftUi()` on the opponent's next poll.
-- The pick grid uses the same **state-key diff guard** as the ban phase — `data-stateKey` prevents DOM rebuilds on every poll cycle.
-- When all allowed picks are completed, CONFIRM PICKS (`#confirmPicksBtn`) appears; clicking it calls `beginPostDraftReadyPhase()`. The pick timer expiry also calls it. Clicking READY calls `setMatchReady()` → `POST /api/rooms/:code/match-ready`. When both sides are ready the server sets `status = "done"` and `showDone()` is called.
-
-**Ban phase filter & sort** (`ban.js`):
-- `getBanListPlayers()` filters `state.opponentBanPlayers` entirely client-side — 16 filter state fields cover position, foot, playing style, card type, league, region, overall level 1/max ranges, club, nationality, height/weight/age ranges.
-- Sort supports 9 categories: overall_max, overall, name, position, club, nationality, height, weight, age. `normalizeBanSortValue()` is the validator.
-- `BAN_LEAGUE_OPTIONS` is a module-level mutable array populated by `fetchFilterOptions()` alongside `CARD_TYPE_OPTIONS`, `PLAYING_STYLE_OPTIONS`, `REGION_OPTIONS`. All are fetched from `GET /api/players/filter-options`.
-- `comparePlayersByBanSort()` reads `height/weight/age` from both `player._raw.*` and top-level fields — ban players from `/api/my-players` store these at the top level (not under `_raw`).
-- The filter dropdown panel is grouped into 4 labelled sections — **IDENTITY** (Position, Card Type, Playing Style, Foot), **STATS** (Overall Level 1, Overall Max), **CLUB & ORIGIN** (League, Region, Club, Nationality), **PHYSICAL** (Age, Height, Weight) — using `.filter-group-label` dividers. Built in `renderBanToolbar()` and event-delegated in `bindBanPhaseUiOnce()` (runs once; guarded by `state.banUiBound`). Clearing all filters resets all 16 state fields.
-
-**Ban phase card hover** (`room.css`):
-- The sole hover rule for ban grid cards is `.ban-phase-grid .player-card:not(.is-unavailable):hover` — applies to all non-unavailable cards (including non-clickable browse-mode cards), not just `is-clickable` ones. Uses `scale(1.04)` only — **no `translateY`**. Removing the vertical translate prevents CSS hover jitter: `translateY(-Npx)` moves the card's bottom edge above the cursor when near the bottom, deactivating `:hover`, causing the card to snap back into the cursor, reactivating it, and looping visually.
-- There is no separate `.player-card.is-clickable:hover` rule — it was removed as dead code (always overridden by the more specific ban-grid rule for every element in scope).
-- `room.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match `home/base.css` values so shared components like `.player-card` look identical across both pages.
-
-**Ban card thumbnails** (`.ban-phase-thumb` in `room.css`):
-- `border-radius: 0` — no rounded corners on cards in "Bans on Me" / "My Bans" strips.
-- `height` is fixed (96 px for `--md`); **no explicit width** — the `img` is set to `height: 100%; width: auto` so the card's natural aspect ratio determines the container width. This avoids letterboxing since pesdb.net card images are taller than the old 3:4 container ratio.
-- The empty-state dashed placeholder (`.ban-side-strip:empty::before`) uses `68×96 px` with `border-radius: 0` to match the natural card proportions.
-
-**CSS parity — `room.css` vs `home/catalog.css`**: The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`, `.filter-clear-btn`, `.filter-group-label` etc. These are defined in `room.css` and kept visually in sync with `public/css/home/catalog.css`. Key rules: `.ap-dd-btn.has-active` (green highlight when filter active), `.filter-clear-btn` (red destructive style), `.select-mode-btn` (`border-radius: 7px`), `.filter-group-label` (section divider: uppercase label, subtle green tint, top/bottom border — both files share an identical definition).
-
-**Pick phase CSS** (`room.css`): `.pick-phase-layout` is a 3-column CSS grid (`300px | minmax(0,1fr) | 252px`); at ≤1100 px it narrows to `260px | 1fr | 220px`; at ≤860 px the center column is hidden and the layout becomes 2-column; at ≤620 px it collapses to a single column. Key blocks:
-- `.pick-quickload-bar` — horizontal flex bar with plan chips (`.pick-ql-card`, `.pick-ql-card.is-selected`) and a formation dropdown (`.pick-ql-formation-btn`, `.pick-ql-formation-panel`).
-- `.pick-pos-tabs` / `.pick-pos-tab` / `.pick-pos-tab.is-active` — tab bar with `--cyan` accent on active tab.
-- `.pick-phase-grid` — same `player-card` component as `.ban-phase-grid`; hover uses CSS `:hover` only (`scale(1.04)`, no `translateY`) for the same anti-jitter reason. Overlay CSS: `.pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after { content: "PICKED"; background: rgba(0,180,90,0.78) }` and `.is-ban-taken::after { content: "BANNED"; background: rgba(200,40,40,0.78) }`.
-- `.pick-pitch` / `.pick-pitch-row` / `.pick-slot` — formation pitch; empty slots use `.pick-slot--empty` (dashed green border + `+` icon + row label); filled slots use `.pick-slot--filled` (card image + `.pick-slot-overlay` gradient with name + OVR).
-- `.pick-bottom-bar` / `.pick-allowance-bar` / `.pick-allowance-pill` / `.pick-allowance-pill.is-maxed` — allowance pills in green; `is-maxed` highlights the pill when the cap is reached.
-- `.pick-phase-right` / `.pick-live-*` / `.pick-opp-*` / `.pick-feed-row` / `.pick-feed-waiting` — live feed sidebar with cyan accent, scrollable feed, and footer sync timestamp.
-- Ready phase ("Start Match") uses the `.sm-*` CSS system (see below).
-
-**Ready phase (Start Match) CSS** (`room.css`): All rules use the `.sm-` prefix. Key blocks:
-- `.sm-layout` — `display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px` — scrollable container for the full Start Match view.
-- `.sm-kicker` / `.sm-kicker-dot` — small uppercase label with a pulsing green dot (`.sm-kicker-dot` uses `@keyframes smDotPulse`).
-- `.sm-columns` — `display: grid; grid-template-columns: 1fr 52px 1fr` — two squad columns flanking a VS circle.
-- `.sm-vs-circle` — 42×42 px centered circle with subtle green border and "VS" text.
-- `.sm-col` — card container (`border: 1px solid rgba(0,230,118,0.12); border-radius: 12px; background: rgba(6,18,12,0.5); overflow: hidden`).
-- `.sm-col-badge.is-ready` (green) / `.sm-col-badge.is-writing` (cyan) — status pill in the column header.
-- `.sm-pitch-row` — `display: flex; justify-content: center; gap: 4px`; cards inside use `flex: 1; max-width: 105px; min-width: 0`.
-- `.sm-bench-strip` — `display: flex; gap: 4px; overflow-x: auto`; bench cards are `flex-shrink: 0; width: 68px`.
-- `.sm-stats-row` — `display: grid; grid-template-columns: repeat(5, 1fr)` — stat comparison grid.
-- `.sm-stat-bar--me` (green) / `.sm-stat-bar--opp` (cyan) — progress bars inside each stat cell.
-- `.sm-dot-you` / `.sm-dot-opp` — 7×7 px legend dots (green / cyan).
-- Responsive: at ≤860 px `.sm-columns` stacks to single column; at ≤620 px `.sm-stats-row` reduces to 3 columns.
-
-**CSS conventions for `room.css`**: Each component has a **single canonical rule block** — do not add a second rule for the same selector later in the file to tweak values; update the existing block instead. Late overrides with the same selector caused widespread redundancy (`.timer-ring`, `.stage-progress-dot`, `.stage-progress-dot::before`, `.stage-progress-dot .stage-dot-label`, `.stage-progress-line`, `.chat-item`, `.stage-progress-container--lobby` all had duplicate blocks that have since been merged). Context-specific variants use modifier classes (e.g. `.is-active`, `.is-completed`, `.is-mine`) or scoped parent selectors, not repeated base selectors.
-
-**Key architectural pattern — allowance system**: The room config holds `allowanceEnabled` (which categories are active), `allowance` (the filter values per category), and `allowanceCaps` (per-category per-value player count caps). The server normalizes cap values on write; the client enforces caps in `getAllowanceCapViolation()` during pick selection. Both sides share the same normalization logic (duplicated between `server.js` and `public/js/room/allowance.js`).
-
-**Database schema** (MySQL 8+):
-- `players_catalog` — ~41k scraped players; `pesdb_id` is the stable external key (BIGINT, up to 15 digits for newer cards).
-- `players` — user roster; links to `players_catalog.pesdb_id` via nullable FK.
-- `game_plans` / `game_plan_players` — up to 20 plans per user; slots 1–11 = LINEUP, 12–23 = SUB.
-- `scrape_logs` — one row per scrape run; `max_pesdb_id` drives incremental cutoff.
-
-**Position order**: Throughout the codebase, positions follow the canonical order CF → SS → RWF → LWF → AMF → RMF → LMF → CMF → DMF → RB → LB → CB → GK (forward-first). This order is mirrored in `SORT_MAP` in `server.js` and in the client constants.
+| Rule | Scope |
+| --- | --- |
+| `backend.md` | `src/**` |
+| `database.md` | schema, `db.js`, catalog queries, scrapers |
+| `allowance.md` | allowance caps (client + server) |
+| `admin-dashboard.md` | `/admin` page and its API |
+| `home/modules.md`, `home/css.md` | home page JS modules and CSS |
+| `room/modules.md` | room page module map |
+| `room/presence-and-reconnect.md` | presence TTLs, 409 room security, reload cache |
+| `room/draft-shell.md` | `#viewDraft` shell, timer ring, turn schedule |
+| `room/lobby.md` | lobby settings UI + hidden-input pattern |
+| `room/ban-phase.md` | staged bans, state-key diff guard, filter/sort |
+| `room/pick-phase.md` | pick board, formation pitch, allowance enforcement |
+| `room/ready-phase.md` | Start Match screen |
+| `room/css.md` | `room.css` conventions and component map |
