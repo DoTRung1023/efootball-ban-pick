@@ -64,6 +64,7 @@ import {
 } from './utils.js';
 import { registerAndPollPresence, stopPresencePolling, leavePresence } from './presence.js';
 import { fetchFilterOptions } from './ban.js';
+import { getJson } from './api.js';
 
 import { renderAllowanceList } from './lobby/allowanceView.js';
 import { renderLobbyChat, sendLobbyChatMessage } from './lobby/chat.js';
@@ -253,6 +254,26 @@ export function renderLobby() {
   cb.updateStageTabs?.();
 }
 
+const pluralize = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+/** "24 players · 6 plans" under the host's name. */
+async function loadLobbyStats(userId) {
+  const el = document.getElementById("lobbyHostStats");
+  if (!userId || !el) return;
+
+  const [squad, plans] = await Promise.all([
+    getJson(`/api/my-players?userId=${encodeURIComponent(userId)}`),
+    getJson(`/api/game-plans?userId=${encodeURIComponent(userId)}`),
+  ]);
+
+  // Both endpoints wrap their rows — { players: [...] } and { plans: [...] }.
+  const playerCount = Array.isArray(squad.players) ? squad.players.length : 0;
+  const planCount = Array.isArray(plans.plans) ? plans.plans.length : 0;
+
+  el.innerHTML =
+    `${pluralize(playerCount, "player")}<span class="ls-dot"> · </span>${pluralize(planCount, "plan")}`;
+}
+
 export function initLobby() {
   const q = parseQuery();
   const user = getUser();
@@ -324,6 +345,8 @@ export function initLobby() {
     showView("viewLobby");
     renderLobby();
   }
+
+  if (user?.id) void loadLobbyStats(user.id);
 
   void registerAndPollPresence();
 
