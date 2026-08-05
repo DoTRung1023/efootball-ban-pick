@@ -9,8 +9,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "scrape": "node src/scrape.js",
-    "scrape:missing": "node src/scrape-missing.js",
-    "db:migrate": "node src/migrate-players-catalog.js"
+    "scrape:missing": "node src/scrape-missing.js"
   },
   "engines": {
     "node": ">=18"

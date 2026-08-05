@@ -14,8 +14,16 @@ overrides with the same selector caused widespread redundancy (`.timer-ring`,
 `.stage-progress-dot`, `.stage-progress-dot::before`,
 `.stage-progress-dot .stage-dot-label`, `.stage-progress-line`, `.chat-item`,
 `.stage-progress-container--lobby` all had duplicate blocks that have since been merged).
+A later pass merged eight more: `#viewLobby`, `.centered-box--lobby`,
+`.lobby-stage-row`, `.stage-progress-bar`, `.draft-panel--ban-phase`,
+`.ban-phase-right`, `.filter-dd-panel`, `#viewDraft > .stage-progress-container`.
 Context-specific variants use modifier classes (e.g. `.is-active`, `.is-completed`,
 `.is-mine`) or scoped parent selectors, not repeated base selectors.
+
+`room.css` and `signin.css` currently have **zero** duplicated top-level selectors. Rules
+inside `@media` blocks are a separate scope and do not count as duplicates. When merging
+a duplicate, keep the **later** block's position — it is the one winning the cascade —
+and carry over only the properties the winning block does not already set.
 
 `room.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match
 `home/base.css` values so shared components like `.player-card` look identical across
