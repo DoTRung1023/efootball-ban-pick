@@ -24,7 +24,10 @@ Supporting modules:
 
 - `db.js` — mysql2 connection pool, exported as default.
 - `lib/http.js` — `asyncHandler`, `requireAdminKey`, `requireUserIdQuery`,
-  `duplicateUserField`, `errorHandler`, `notFoundHandler`.
+  `duplicateUserField`, `describeError`, `errorHandler`, `notFoundHandler`.
+  **Log with `describeError(err)`, never bare `err.message`** — mysql2 connection
+  failures have an empty message and put the cause in `err.code`, so `err.message`
+  alone prints nothing and hides outages like `ECONNREFUSED`.
 - `lib/paths.js` — `ROOT_DIR`, `PUBLIC_DIR`.
 - `rooms/store.js` — the in-memory `roomPresence` Map plus every helper that reads or
   mutates it (`ensureRoomEntry`, `serializeRoomEntry`, `roomPhase`, `listActiveRooms`,
