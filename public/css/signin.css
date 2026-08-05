@@ -230,6 +230,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 20px;
+  animation: wrapperFadeIn 0.7s cubic-bezier(0.4,0,0.2,1) both;
 }
 
 /* ============================================================
@@ -327,6 +328,7 @@ body {
     0 8px 48px rgba(0,0,0,0.6),
     0 0 80px rgba(0,230,118,0.06),
     inset 0 1px 0 rgba(0,230,118,0.1);
+  animation: cardSlideIn 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s both;
 }
 
 .card-glow {
@@ -901,17 +903,9 @@ body {
 /* ============================================================
    ENTRANCE ANIMATION
    ============================================================ */
-.signin-wrapper {
-  animation: wrapperFadeIn 0.7s cubic-bezier(0.4,0,0.2,1) both;
-}
-
 @keyframes wrapperFadeIn {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-.signin-card {
-  animation: cardSlideIn 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s both;
 }
 
 @keyframes cardSlideIn {

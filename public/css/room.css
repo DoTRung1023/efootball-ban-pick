@@ -174,14 +174,6 @@ body {
   background: transparent;
 }
 
-#viewLobby {
-  justify-content: flex-start;
-  overflow-y: hidden;
-  height: 100vh;
-  max-height: 100vh;
-  padding: 0;
-}
-
 .view--draft {
   align-items: stretch;
   justify-content: flex-start;
@@ -206,15 +198,6 @@ body {
   width: 100%;
   padding: 24px;
   text-align: center;
-}
-
-.centered-box--lobby {
-  max-width: none;
-  height: 100vh;
-  max-height: 100vh;
-  min-height: 0;
-  padding: 0;
-  overflow: hidden;
 }
 
 .error-text {
@@ -461,21 +444,6 @@ body {
 }
 
 /* ── Top navigation bar ──────────────────────────────────── */
-
-.lobby-stage-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  flex-shrink: 0;
-  min-height: 54px;
-  padding: 8px 16px 6px;
-  background: rgba(2, 7, 5, 0.94);
-  border-bottom: 1px solid rgba(0, 230, 118, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  position: relative;
-  z-index: 10;
-}
 
 .lobby-leave {
   flex-shrink: 0;
@@ -2059,16 +2027,6 @@ body {
   -webkit-backdrop-filter: none;
 }
 
-.stage-progress-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  position: relative;
-  max-width: 640px;
-  flex: 1;
-  padding: 0 8px;
-}
-
 .stage-progress-line {
   position: absolute;
   top: 19px;
@@ -2300,14 +2258,6 @@ body {
 }
 
 /* Ban phase 3-row board (image-only) */
-.draft-panel--ban-phase {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
-}
-
 .ban-phase-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -2326,14 +2276,6 @@ body {
   border-radius: 14px;
   border: 1px solid rgba(0, 230, 118, 0.12);
   background: rgba(10, 12, 24, 0.18);
-}
-
-.ban-phase-right {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .ban-phase-row--right {
@@ -2823,6 +2765,8 @@ body {
   transform-origin: top right;
   max-height: 70vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 230, 118, 0.22) transparent;
 }
 
 .filter-section {
@@ -3042,10 +2986,6 @@ body {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
-.filter-dd-panel {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 230, 118, 0.22) transparent;
-}
 .filter-dd-panel::-webkit-scrollbar { width: 5px; }
 .filter-dd-panel::-webkit-scrollbar-track { background: transparent; }
 .filter-dd-panel::-webkit-scrollbar-thumb { background: rgba(0, 230, 118, 0.22); border-radius: 99px; }
@@ -3377,6 +3317,11 @@ body {
   border: none;
   box-shadow: none;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Ban phase board styles live above */
@@ -4166,6 +4111,10 @@ body {
   max-width: 620px;
   padding: 0 20px;
   align-items: flex-start;
+  display: flex;
+  gap: 0;
+  position: relative;
+  flex: 1;
 }
 
 /* Default dot — numbered circle */
@@ -4243,19 +4192,14 @@ body {
   min-height: 60px;
   padding: 8px 16px 6px;
   position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 /* ── Draft view stage progress: full-width header bar ───────────── */
-
-#viewDraft > .stage-progress-container {
-  width: 100%;
-  padding: 12px 0 10px;
-  background: linear-gradient(180deg, rgba(3, 9, 7, 0.97) 0%, rgba(4, 12, 9, 0.94) 100%);
-  border-bottom: 1px solid rgba(0, 230, 118, 0.1);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  flex-shrink: 0;
-}
 
 /* draft-shell now only needs to fill remaining height */
 .view--draft .draft-shell {
@@ -4283,6 +4227,10 @@ body {
     0 16px 48px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(0, 230, 118, 0.08),
     inset 0 0 0 0 rgba(0, 230, 118, 0);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* BANS ON ME and MY BANS sections — each takes equal share of space */
@@ -4446,6 +4394,12 @@ body {
   justify-content: space-between;
   gap: 14px;
   padding: 7px 20px;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(3, 9, 7, 0.97) 0%, rgba(4, 12, 9, 0.94) 100%);
+  border-bottom: 1px solid rgba(0, 230, 118, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  flex-shrink: 0;
 }
 
 #viewDraft > .stage-progress-container .stage-progress-bar {
