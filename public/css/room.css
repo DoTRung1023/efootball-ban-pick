@@ -615,16 +615,6 @@ body {
   font-weight: 500;
 }
 
-.ls-stats {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
-  min-height: 1.2em;
-  text-align: center;
-}
-
-.ls-stats .ls-dot { color: var(--text-muted); }
-
 .ls-sub {
   font-size: 11px;
   color: var(--text-muted);

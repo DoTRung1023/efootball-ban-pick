@@ -253,24 +253,6 @@ export function renderLobby() {
   cb.updateStageTabs?.();
 }
 
-async function loadLobbyStats(userId) {
-  if (!userId) return;
-  try {
-    const [playersRes, plansRes] = await Promise.all([
-      fetch(`/api/my-players?userId=${encodeURIComponent(userId)}`),
-      fetch(`/api/game-plans?userId=${encodeURIComponent(userId)}`),
-    ]);
-    const players = playersRes.ok ? await playersRes.json() : [];
-    const plans = plansRes.ok ? await plansRes.json() : [];
-    const el = document.getElementById("lobbyHostStats");
-    if (el) {
-      const pc = Array.isArray(players) ? players.length : 0;
-      const gc = Array.isArray(plans) ? plans.length : 0;
-      el.innerHTML = `${pc} players<span class="ls-dot"> · </span>${gc} plans`;
-    }
-  } catch { /* ignore */ }
-}
-
 export function initLobby() {
   const q = parseQuery();
   const user = getUser();
@@ -342,8 +324,6 @@ export function initLobby() {
     showView("viewLobby");
     renderLobby();
   }
-
-  if (user?.id) void loadLobbyStats(user.id);
 
   void registerAndPollPresence();
 
