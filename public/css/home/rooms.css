@@ -301,6 +301,10 @@
 
 .rooms-code-input {
   flex: 1;
+  /* Without this the input's default intrinsic width (~20 chars at 0.24em
+     tracking) keeps the row from shrinking, pushing the paste button off
+     screen below ~340px. */
+  min-width: 0;
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid rgba(0, 160, 255, 0.2);

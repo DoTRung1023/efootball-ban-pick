@@ -6,6 +6,43 @@ paths:
 
 # `room.css` conventions and component map
 
+## Colour system (hard rule)
+
+**Never write a raw `rgba()` for green, cyan, red, amber, a light text colour, or a dark
+panel surface — use the `:root` token.** The file once carried 26 different alphas of the
+same green and a dozen near-identical off-whites; ~340 literals were snapped onto the
+ladder below and it must not drift back. Adding an intermediate rung is how the drift
+starts: pick the closest existing one.
+
+Hue meanings, applied page-wide:
+
+| Hue | Means |
+| --- | --- |
+| green | you / your side / primary action / confirmed |
+| cyan | the opponent / incoming |
+| amber | pending, waiting on someone |
+| red | destructive only (close room, kick, leave) |
+| gold | achievement (Start Match stats) |
+
+Ladders — `--g-*` (green) and `--c-*` (cyan) carry the same rungs, so an opponent-side
+component is a hue swap, not a re-design:
+
+- `-line-faint` → `-line` → `-line-hover` → `-line-active` — borders/outlines
+- `-fill-faint` → `-fill` → `-fill-strong` — backgrounds
+- `-glow-soft` → `-glow` — box-shadows
+- `-text` / `-text-dim` — accent-coloured text below full strength
+
+Also `--r-line|-line-hover|-fill|-fill-hover` (destructive), `--a-glow` (amber pulse),
+`--text|-dim|-muted`, and `--surface-sunken|-control|-card` (recessed → raised).
+
+Deliberate exceptions that are *not* tokens: alphas above the ladder (a filled button
+gradient, a bright focus ring), `rgba(...,0)` keyframe endpoints, the blue-tinted
+surfaces in the draft view, and the purple/pink in the body's ambient background art.
+
+Keep `:root` free of dead tokens — `--panel`, `--panel-2`, `--green-dim`, `--cyan-dim`,
+`--purple-dim`, `--pink-dim` and `--red-dim` were all declared and never referenced, and
+have been removed.
+
 ## Single canonical rule block (hard rule)
 
 Each component has a **single canonical rule block** — do not add a second rule for the
@@ -64,8 +101,10 @@ definition).
 ## Pick phase
 
 `.pick-phase-layout` is a 3-column CSS grid (`300px | minmax(0,1fr) | 252px`); at
-≤1100 px it narrows to `260px | 1fr | 220px`; at ≤860 px the center column is hidden and
-the layout becomes 2-column; at ≤620 px it collapses to a single column. Key blocks:
+≤1100 px it narrows to `260px | 1fr | 220px`; at ≤860 px it collapses to a single
+column. **Do not hide `.pick-phase-center` on narrow screens** — it carries
+`#confirmPicksBtn`, so hiding it (as ≤860 px used to) leaves no way to finish the draft
+on a phone. Key blocks:
 
 - `.pick-quickload-bar` — horizontal flex bar with plan chips (`.pick-ql-card`,
   `.pick-ql-card.is-selected`) and a formation dropdown (`.pick-ql-formation-btn`,
@@ -112,3 +151,67 @@ the layout becomes 2-column; at ≤620 px it collapses to a single column. Key b
 - `.sm-dot-you` / `.sm-dot-opp` — 7×7 px legend dots (green / cyan).
 - Responsive: at ≤860 px `.sm-columns` stacks to single column; at ≤620 px
   `.sm-stats-row` reduces to 3 columns.
+
+## Responsive ladder
+
+Widths `1200` → `1100` → `900` → `860` → `620` → `480`, plus a **height** rung:
+`max-height: 760px`, which pairs with `1200` for the lobby (`@media (max-width: 1200px),
+(max-height: 760px)`) — a short desktop window hits the same layout problems as a phone.
+
+The last four blocks in the file are ordered `1200/760 → 900 → 620 → 480` and live **at
+the end on purpose**: several components they override (`.ban-phase-right`,
+`.ban-side-section`, `.ap-dd-panel`, `.pick-phase-grid`, `.prep-scroll`, `.chat-log`) are
+declared after the earlier 900 px block, so an override placed there silently loses the
+cascade. Check where a selector is declared before adding a media rule for it.
+
+- **≤1200 px or ≤760 px tall — the lobby becomes one scrolling page.** Switching
+  `#viewLobby` to `overflow-y: auto` is not enough on its own: `.centered-box--lobby`
+  shrinks back to the viewport unless it is `flex: 0 0 auto`, and `.lobby-board` keeps
+  its desktop `overflow: hidden`, so everything past the fold (rest of BAN SETTING, the
+  chat column, START DRAFT) is clipped with no way to reach it. The settings panel's
+  `.prep-scroll` also drops its inner scroll here so there is one scroll, not a nested
+  pane.
+  - Use **`flex: 1 0 auto`**, not `height: auto`, on `.lobby-board` / `.lobby-layout` /
+    `.prep-scroll`: basis is the content height, grow into spare space, never shrink.
+    Plain `height: auto` scrolls correctly but collapses the panels to content, which
+    on a tall viewport (iPad portrait) leaves ~600 px of dead space and unpins the
+    `.lobby-cta-bar` from the panel bottom.
+  - `.chat-log`'s `45vh` cap belongs in the **≤900 px** block, where the layout is
+    stacked and the page scrolls. Applying it on wide-but-short viewports just leaves a
+    gap, because the chat column's grid already bounds the log there. Stacked, the log
+    also has no column height to fill, so it needs a floor:
+    `min(38vh, 260px)` at ≤900 px, `min(32vh, 200px)` in the `max-height: 760px` block
+    (which wins on short screens) — without one it collapses to ~140 px, four lines.
+- **≤900 px — the draft view stops being a fixed-height app shell.** `.view--draft` gets
+  `overflow-y: auto` and the panels (`.draft-shell`, `.draft-workspace`,
+  `.ban-side-section`, `.pick-phase-center`) go to content height. Stacked, each region
+  was being squeezed into a fraction of one viewport height and its content spilled over
+  the section below. `.ban-phase-grid` / `.pick-phase-grid` keep a `vh` cap so the page
+  does not grow by hundreds of cards, and `.pick-pitch-wrap` needs an explicit
+  `min-height` or it collapses (it is `flex: 1` inside an auto-height column).
+- **≤620 px — lobby controls stack full width.** `.lobby-actions` and `#addAllowanceBtn`
+  both carry `margin-left: auto` (which pins them right on desktop); it has to be cleared
+  here or they stay at content width on the right edge of a stacked column. Stretch the
+  CTA via `.lobby-actions .btn`, **not** `.lobby-bottom-row .btn--primary` — the latter
+  also matches the chat Send button and squashes the message input to ~20 px.
+  `.lv-field-row` also drops its 190 px track cap here (`minmax(136px, 1fr)`): the cap
+  keeps a three-digit field from spanning a third of a wide panel, but at one or two
+  columns it just leaves a ragged edge beside the full-width MODE cards.
+- **≤620 px — the stage header wraps to two rows**, and toolbar dropdowns re-anchor.
+  Side by side, leave/identity (or timer/leave) + the four-step bar need ~455 px, more
+  with a long username, and because `.view` has no horizontal scroll that width becomes
+  the layout width for every panel below it. `.lobby-stage-row` and
+  `#viewDraft > .stage-progress-container` get `flex-wrap: wrap`, with the bar at
+  `flex: 1 0 100%; order: 3`; the bar's `min-width: 280px` floor is cleared here.
+  Separately, `.ap-dd-panel` normally anchors to its button (sort left-aligned, filter
+  right-aligned), which puts one of them off an edge on a narrow toolbar — so
+  `.ban-phase-controls` / `.pick-phase-controls` become `position: relative`, the
+  `.ap-dd-wrap` goes `position: static`, and the panel spans `left: 0; right: 0` under
+  the whole toolbar.
+- **≤480 px** — smaller stage labels, tighter card grids (`.ban-phase-grid` 104 px /
+  `.pick-phase-grid` 76 px columns), and the quick-load bar wraps.
+
+Toolbar search bars (`.ban-phase-controls`, `.pick-phase-controls`) are `flex-wrap: wrap`
+with `.team-search-wrap { flex: 1 1 180px / 150px }`. They were `nowrap`, which squeezed
+the input to its icon on the ban side and ran the placeholder under the sort button in
+the 300 px pick pool column at **every** width.

@@ -101,15 +101,6 @@ export function renderLobby() {
   hostSlot.classList.toggle("is-ready", !!room.host);
   guestSlot.classList.toggle("is-ready", !!room.guest);
 
-  // Avatar initials
-  const hostAvatar = document.getElementById("lobbyHostAvatar");
-  const guestAvatar = document.getElementById("lobbyGuestAvatar");
-  if (hostAvatar) hostAvatar.textContent = (room.host?.username?.[0] || "?").toUpperCase();
-  if (guestAvatar) {
-    guestAvatar.textContent = room.guest ? (room.guest.username?.[0] || "?").toUpperCase() : "?";
-    guestAvatar.classList.toggle("ls-avatar--empty", !room.guest);
-  }
-
   // Guest sub: show "Share the invite link" only when no guest
   const guestSub = document.getElementById("lobbyGuestSub");
   if (guestSub) guestSub.hidden = !!room.guest;
@@ -156,7 +147,10 @@ export function renderLobby() {
 
   // Sync lv-settings-panel visual controls from config
   const banCountValEl = document.getElementById("banCountVal");
-  if (banCountValEl) banCountValEl.textContent = String(cfg.banCountPerSide ?? 0);
+  const banCount = Number(cfg.banCountPerSide ?? 0);
+  if (banCountValEl) banCountValEl.textContent = String(banCount);
+  const banCountHintEl = document.getElementById("banCountHint");
+  if (banCountHintEl) banCountHintEl.textContent = `${pluralize(banCount * 2, "ban")} in total`;
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   if (revealModeLabel) {
     revealModeLabel.textContent = revealModeValue === REVEAL_MODE_HIDDEN
@@ -177,12 +171,6 @@ export function renderLobby() {
     revealModeTrigger.setAttribute("aria-expanded", String(Boolean(state.openRevealModeMenu)));
   }
 
-  const meta = document.getElementById("lobbyMeta");
-  if (meta) {
-    meta.textContent = "";
-    meta.hidden = true;
-  }
-
   const startBtn = document.getElementById("startDraftBtn");
   const lobbyLeaveBtn = document.getElementById("lobbyLeaveBtn");
   const kickGuestBtn = document.getElementById("kickGuestBtn");
@@ -199,13 +187,16 @@ export function renderLobby() {
     startBtn.hidden = false;
     settings.hidden = false;
 
+    // The reason it is disabled is spelled out by #lobbyWaiting beside it in
+    // .lobby-cta-bar, so the label stays a label.
     const canStart = room.guest && guestReady;
     startBtn.disabled = !canStart;
-    startBtn.textContent = !room.guest
-      ? "Waiting for opponent…"
-      : !guestReady
-        ? "Waiting for opponent ready…"
-        : "START DRAFT";
+    startBtn.textContent = "START DRAFT";
+    startBtn.title = canStart
+      ? ""
+      : !room.guest
+        ? "Waiting for an opponent to join"
+        : "Waiting for the opponent to be ready";
     startBtn.classList.toggle("btn--primary", canStart);
     startBtn.classList.toggle("btn--ghost", !canStart);
     if (kickGuestBtn) {
@@ -222,6 +213,7 @@ export function renderLobby() {
     startBtn.hidden = false;
     startBtn.disabled = !room.host || !room.guest;
     startBtn.textContent = guestReady ? "UNREADY" : "READY";
+    startBtn.title = "";
     startBtn.classList.add("btn--primary");
     startBtn.classList.remove("btn--ghost");
     settings.hidden = false;
@@ -302,6 +294,9 @@ export function initLobby() {
     settingsPanel.dataset.readonlyGuardBound = "1";
     settingsPanel.addEventListener("click", (e) => {
       if (state.mySide === "host" || !settingsPanel.classList.contains("is-readonly")) return;
+      // The CTA bar is inside this panel but is not a ban setting — it holds the
+      // guest's own READY button, which they are allowed to press.
+      if (e.target.closest(".lobby-cta-bar")) return;
       e.preventDefault();
       e.stopPropagation();
       const now = Date.now();

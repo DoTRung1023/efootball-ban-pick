@@ -43,6 +43,12 @@ This order is mirrored in `SORT_MAP` in `src/players/catalogQuery.js` and in
 **Room state is in-memory only** and does not survive a server restart. See
 `.claude/rules/room/presence-and-reconnect.md`.
 
+**Both pages are responsive down to 320 px** and each keeps its own breakpoint ladder —
+home: `768 → 480`; room: `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 760px`
+rung. The two ladders are documented in `home/css.md` and `room/css.md`; do not invent a
+new rung without checking them. Verify with a measured harness, not by eye — see
+`responsive-testing.md`.
+
 **Duplicated logic to keep in sync**: allowance-cap normalisation exists independently in
 `src/rooms/config.js` and `public/js/room/allowance.js`.
 
@@ -54,6 +60,7 @@ automatically when a matching file is read:
 | Rule | Scope |
 | --- | --- |
 | `backend.md` | `src/**` |
+| `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
 | `allowance.md` | allowance caps (client + server) |
 | `admin-dashboard.md` | `/admin` page and its API |

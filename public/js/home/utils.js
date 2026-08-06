@@ -91,14 +91,12 @@ export function showToast(message, type = "info") {
    User Menu
    ============================================================ */
 export function initUserMenu(user) {
-  const avatar   = document.getElementById("userAvatar");
   const name     = document.getElementById("userName");
   const menu     = document.getElementById("userMenu");
   const trigger  = document.getElementById("userTrigger");
   const dropUser = document.getElementById("dropUsername");
   const dropMail = document.getElementById("dropEmail");
 
-  if (avatar)   avatar.textContent   = user.username[0].toUpperCase();
   if (name)     name.textContent     = user.username;
   if (dropUser) dropUser.textContent = user.username;
   if (dropMail) dropMail.textContent = user.email;

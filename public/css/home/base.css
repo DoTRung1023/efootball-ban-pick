@@ -13,6 +13,9 @@
   --bg: #060b0e;
   --bg-card: rgba(6, 18, 12, 0.82);
   --bg-card-hover: rgba(8, 26, 16, 0.92);
+  /* Opaque stand-in for --bg-card, for surfaces that overlap their own content
+     (sticky headers) where a translucent panel would let it show through. */
+  --bg-card-solid: #050f0a;
   --border: rgba(0, 230, 118, 0.18);
   --border-active: rgba(0, 230, 118, 0.7);
   --text: #e8f5e9;
@@ -56,11 +59,14 @@ html, body { height: 100%; }
 
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* dvh so the mobile browser's collapsing URL bar does not push the bottom of
+   the shell (and the last stretch of .content-scroll) off-screen. */
 body {
   font-family: var(--font-main);
   background: var(--bg);
   color: var(--text);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -126,6 +132,7 @@ body {
   position: relative;
   z-index: 10;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

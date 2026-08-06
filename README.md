@@ -1,156 +1,81 @@
 # eFootball Ban & Pick
 
-A web app that brings a structured **ban & pick draft system** to eFootball — letting players build, manage, and compete with curated squads through a fair and strategic selection process.
+A draft system for eFootball. Instead of both sides fielding whatever they like, each
+player bans from the *opponent's* squad first, then picks a lineup from what survives —
+the same idea as a champion draft in League of Legends, applied to football cards.
 
----
+**How a session goes:** set the rules → ban phase → pick phase → start match.
 
-## Idea
-
-In competitive eFootball, matches are often unbalanced because one side can field any combination of the strongest cards. **Ban & Pick** solves this by introducing a draft phase before each match:
-
-1. Both players **ban** a set of players they don't want the opponent to use. Each player bans independently from the opponent's squad — both can ban the same player without conflict, since each ban only restricts the other side's picks.
-2. Both players then **pick** from the remaining pool to build their lineup.
-3. The result is a fairer, more strategic match where preparation and knowledge of the player pool matter as much as in-game skill.
-
-Think of it like a champion draft in League of Legends or Valorant — but for eFootball.
+1. **Ban** — each side bans independently from the opponent's squad. Both may ban the
+   same player; a ban only restricts the other side.
+2. **Pick** — each side builds a 23-player squad from the remaining pool, subject to
+   whatever category allowances the host configured.
+3. **Start match** — both squads are revealed side by side, and you go play the game.
 
 ---
 
 ## Features
 
-- **Authentication** — sign up / sign in with username + hashed password (bcryptjs)
-- **Player Catalog** — full database of ~41 k eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/), including position, overall rating, club, **league**, nationality, height, weight, age, and more detail fields
-- **My Team** — build a personal squad: search, sort, and filter the catalog; add or remove players; manage your roster with multi-select delete
-- **Team Search & Filter** — client-side search, sort (name, overall, position, height, weight, age, club, nationality), and position multi-filter for your own team list
-- **Player Detail Popup** — click any catalog row or squad card to open a full-screen popup with the player's card art and stats
-- **Game Plans** — view your saved game plans (up to 20 plans of 23 players each)
-- **Smart Scraper** — `npm run scrape` keeps the player catalog up to date; auto-backs up `players_catalog` before every fresh run, then enriches players concurrently (4× parallel) for ~5–6× faster throughput; incremental runs only fetch newly added cards
-- **Rooms (lobby)** — **Rooms** tab: two action cards — **HOST** (green gradient, three-step guide) and **GUEST** (navy, code input with clipboard-paste and invite-link extractor). Below the cards: a 2-column panel row — **STRATEGY TIPS** (curated ban/pick tips) on the left and **HOW A SESSION GOES** (numbered vertical step list: SET RULES → BAN PHASE → PICK PHASE → START MATCH) on the right, equal height. **CREATE ROOM** opens as a right-side drawer (slides in from the edge, 380 px wide) showing the generated room code large with regen/copy buttons. Joining validates the room exists on the server before navigating — typing a random code shows "Room not found" instead of landing on an empty lobby. Rooms stats auto-refresh whenever plans or players are added/deleted (no page reload needed).
-- **Room page** (`/room/:code`) — full-screen multiplayer flow: **lobby** (share invite link, set rules via the lv-* settings panel — stepper for bans per side, time pills for ban/pick durations, always-visible reveal-mode cards — plus category allowances and lobby chat; host can kick the guest), **ban phase** (both players stage bans from the opponent's squad then each clicks CONFIRM BANS — staged bans appear on the opponent's screen in real-time via ~500 ms polling; a username + presence badge shows whether the opponent is online and whether they've confirmed; when both sides confirm the pick phase starts automatically), **pick phase** (redesigned 3-panel layout: left panel = MY SQUAD POOL with search/sort/position tabs + PICKED/BANNED card overlays; center panel = YOUR LINEUP with interactive formation pitch, avg OVR, and allowance pills; right panel = LIVE opponent feed with pick counter + progress bar; quick-load bar at the top lets you load a saved game plan to pre-fill the formation; CONFIRM PICKS button appears when the pick quota is filled), **Start Match / ready phase** (full formation pitch view for both squads side-by-side — lineup rows rendered with real card art using `buildOrderedSlotMap` + `getFormationLayout`, scrollable bench strip for subs, 5-column stats comparison bar showing AVG OVERALL / AVG OVR MAX / FORMATION / STARTING XI / AVG AGE; in hidden-reveal mode the opponent column shows "Picks hidden"; both players click READY → to confirm and transition to the done summary), **summary** on completion. Sync is polling-based (every ~500 ms during draft); WebSocket integration is planned.
-- **Opponent-left detection** — if the guest disappears (presence timeout or explicit leave) while a draft is active, the remaining user sees a "Opponent left" popup with a 5-second auto-redirect to home. `showRoomClosed` similarly auto-redirects after 10 seconds.
-- **Grouped filter panels** — all filter dropdowns (ban page, My Players, Add Player catalog, Game Plans player picker) share a consistent 4-section layout: **IDENTITY** (Position, Card Type, Playing Style, Foot) → **STATS** (Overall Level 1, Overall Max) → **CLUB & ORIGIN** (League, Region, Club, Nationality) → **PHYSICAL** (Age, Height, Weight).
-- **Region filter** — all filter panels support filtering by player region (e.g. Europe, South America). Options are fetched from `GET /api/players/filter-options`.
-- **Room security** — duplicate host connections and over-capacity guest connections are rejected server-side (HTTP 409/403) with distinct error screens: “Host slot taken”, “Room is full”, or “Access denied” (kicked).
-- **Reconnect on reload** — reloading during an active draft skips the lobby flash and returns directly to the draft view using a `sessionStorage` phase cache. No “unsaved changes” browser dialog is shown on reload — the draft is always safely recoverable.
-- **Admin dashboard** (`/admin`) — password-protected dashboard for server operators: catalog stats, registered user counts, live active-room monitor (auto-refreshes every 10 s with phase pills), recent signups, data-quality panel (missing playing style / region / overall max / duplicate pesdb IDs), full paginated catalog browser with search + sort + CSV export, and a complete scrape-log history. Auth is a single `ADMIN_KEY` env var checked server-side; key stored in `sessionStorage` on the client.
+**Squad building** (`/`)
+- Catalog of ~41 k eFootball players scraped from [pesdb.net](https://pesdb.net/efootball/)
+  — position, overall, overall max, club, league, region, nationality, foot, playing
+  style, height, weight, age.
+- Personal squad with search, sort, position multi-filter, and multi-select delete.
+- Up to 20 game plans of 23 players each (11 starters + 12 subs), built on a formation
+  pitch with a player picker.
+- Every filter panel shares one grouped layout: IDENTITY / STATS / CLUB & ORIGIN /
+  PHYSICAL.
+
+**Draft room** (`/room/:code`)
+- **Lobby** — invite link, chat, and host-set rules: bans per side, ban/pick durations,
+  reveal mode (instant vs hidden), and per-category allowance caps (position, overall,
+  card type, region, league, club…). Host can kick the guest.
+- **Ban phase** — stage bans off the opponent's squad, then CONFIRM. Staged bans appear
+  on the opponent's screen live; when both confirm, the pick phase starts.
+- **Pick phase** — squad pool with PICKED/BANNED overlays, a formation pitch with live
+  average OVR and allowance pills, and an opponent feed. A quick-load bar pre-fills the
+  formation from a saved game plan.
+- **Start match** — both lineups as full pitches with real card art, bench strips, and a
+  stats comparison bar. In hidden mode the opponent's column stays masked until here.
+- Reloading mid-draft reconnects straight back into it. Duplicate hosts and
+  over-capacity guests are rejected server-side with distinct error screens, and if your
+  opponent disappears you get a countdown popup rather than a frozen room.
+
+**Admin** (`/admin`) — password-protected: catalog and user stats, live active-room
+monitor, recent signups, data-quality panel, paginated catalog browser with CSV export,
+and scrape history.
+
+Both pages are responsive down to 320 px.
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js ≥ 18 |
-| Server | Express.js |
-| Database | MySQL 8+ |
-| Scraper | `cheerio` (HTML parsing) + native `fetch` |
-| Auth | `bcryptjs` (password hashing) |
-| Frontend | Vanilla HTML / CSS / JS |
+| Runtime | Node.js ≥ 18, ESM |
+| Server | Express 4 |
+| Database | MySQL 8+ (`mysql2`) |
+| Frontend | Vanilla HTML / CSS / JS — no build step |
+| Scraper | `cheerio` + native `fetch` |
+| Auth | `bcryptjs` |
+| Image cache | Cloudflare R2 (optional) |
+
+Real-time sync is **polling**, not WebSockets — a ~500 ms presence heartbeat during the
+draft.
 
 ---
 
-## Project Structure
+## Getting started
 
-```
-ban-pick-efb/
-├── database/
-│   └── schema.sql              # All CREATE TABLE statements
-├── public/
-│   ├── css/
-│   │   ├── home/               # Home page styles (split into 8 focused files)
-│   │   │   ├── base.css        # :root vars, resets, app shell, topbar
-│   │   │   ├── player-card.css # .player-card component
-│   │   │   ├── squad.css       # My Players tab: toolbar, search, select mode
-│   │   │   ├── plans.css       # Game Plans tab and plan detail modal
-│   │   │   ├── catalog.css     # Add Player modal + sort/filter dropdown UI
-│   │   │   ├── modals.css      # Shared overlays, player popup, toast, confirm dialog
-│   │   │   ├── rooms.css       # Rooms tab
-│   │   │   └── responsive.css  # Cross-cutting media queries (≤768px, ≤480px)
-│   │   ├── room.css            # Dedicated room page (lobby / draft / done)
-│   │   ├── admin.css           # Admin dashboard styles
-│   │   └── signin.css          # Sign-in / sign-up styles
-│   ├── js/
-│   │   ├── home.js             # Home page ESM entry point (imports home/ sub-modules)
-│   │   ├── home/               # Home page modules
-│   │   │   ├── utils.js        # Shared helpers: auth, toast, tabs, sort, DD panels, player detail
-│   │   │   ├── callbacks.js    # Shared mutable callback registry (breaks circular imports)
-│   │   │   ├── squad.js        # My Players tab: grid, search/sort/filter, select, delete
-│   │   │   ├── catalog.js      # Add Player modal, player popup, filter options cache
-│   │   │   ├── plans.js        # Game Plans tab: plan list, pitch view, slot assignment
-│   │   │   └── rooms.js        # Rooms tab: create/join modal, room hub card
-│   │   ├── room.js             # Room page entry point — wires sub-modules, draft timer, submit handlers
-│   │   ├── admin.js            # Admin dashboard — auth, data loading, tab navigation, catalog, CSV export
-│   │   ├── signin.js           # Auth modal logic
-│   │   └── room/
-│   │       ├── callbacks.js    # Shared mutable callback registry (breaks circular imports)
-│   │       ├── state.js        # state singleton, defaultRoomConfig, applyPresenceSnapshot
-│   │       ├── utils.js        # escapeHtml, showToast, showView, getUser, getCurrentIdentity
-│   │       ├── players.js      # Player normalisation helpers, miniCardHtml, formation/slot utils
-│   │       ├── ban.js          # Ban phase: filter/sort, toolbar, grid event binding, fetchFilterOptions
-│   │       ├── pick.js         # Pick phase: toolbar, grid binding, fetchPlayers, loadDraftPlayers
-│   │       ├── lobby.js        # Full lobby UI: renderLobby, initLobby, config push, chat
-│   │       ├── presence.js     # Presence polling: register, fetchSnapshot, leave, pollPresence
-│   │       ├── allowance.js    # Allowance/cap logic shared with server
-│   │       └── constants.js    # POSITION_OPTIONS, CARD_TYPE_OPTIONS, REGION_OPTIONS, etc.
-│   ├── logo/
-│   ├── home.html               # Main app page
-│   ├── room.html               # Ban & pick room (lobby → draft → summary)
-│   ├── admin.html              # Admin dashboard (requires ADMIN_KEY)
-│   └── signin.html             # Sign-in / sign-up page
-├── src/
-│   ├── db.js                   # MySQL connection pool
-│   ├── cardImageCacheR2.js     # R2 card image cache (/img/card/:id.png)
-│   ├── scrape.js               # Player catalog scraper (full + incremental)
-│   ├── scrape-missing.js       # Missing-only repair: diffs site vs DB, fills gaps
-│   └── server.js               # Express app + API routes
-├── .env.example                # Environment variable template
-└── package.json
-```
-
----
-
-## Database Schema
-
-```
-scrape_logs             — history of every scrape run
-players_catalog         — all eFootball players (from pesdb.net)
-players_catalog_backup  — snapshot taken automatically before each fresh scrape
-users                   — registered accounts
-players                 — user-owned team rosters
-game_plans              — up to 20 plans per user (11 starters + 12 subs)
-game_plan_players       — junction: which players are in which plan
-```
-
----
-
-## Getting Started
-
-### 1. Prerequisites
-
-- Node.js ≥ 18
-- MySQL 8+
-
-Install MySQL on macOS:
-```bash
-brew install mysql
-brew services start mysql
-```
-
-### 2. Clone & install dependencies
+**Prerequisites:** Node.js ≥ 18 and MySQL 8+ (`brew install mysql && brew services start mysql`).
 
 ```bash
-git clone <repo-url>
-cd ban-pick-efb
 npm install
 ```
 
-### 3. Configure environment
+**Environment** — create a `.env` in the project root:
 
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your database credentials:
 ```
 DB_HOST=localhost
 DB_PORT=3306
@@ -158,21 +83,13 @@ DB_USER=banpick
 DB_PASSWORD=
 DB_NAME=ban_pick_efb
 PORT=3000
-
-# Admin dashboard key — defaults to "admin-dev" if unset; set a strong secret in production
-ADMIN_KEY=admin-dev
+ADMIN_KEY=admin-dev        # /admin password; set a real secret in production
 ```
 
-### (Optional) Card image caching (Cloudflare R2)
-
-By default the UI loads card images via your server at `/img/card/<pesdb_id>.png`.
-
-- If R2 is **not** configured, the server will fall back to redirecting to pesdb.net.
-- If R2 **is** configured, the server will cache each image as `cards/f<pesdb_id>.png`.
-- If you set `R2_PUBLIC_BASE_URL`, the server will **302 redirect** to:
-  `R2_PUBLIC_BASE_URL/cards/f<pesdb_id>.png` after the first cache fill (best for production + CDN).
-
-Required environment variables:
+Optional Cloudflare R2 card-image cache. Without it the server redirects
+`/img/card/:id.png` straight to pesdb.net; with it, images are cached as
+`cards/f<pesdb_id>.png`. Setting `R2_PUBLIC_BASE_URL` makes the server 302 to your CDN
+after the first fill — best for production.
 
 ```
 R2_BUCKET=
@@ -180,258 +97,122 @@ R2_REGION=auto
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-```
-
-Recommended (public bucket or CDN):
-
-```
 R2_PUBLIC_BASE_URL=
 ```
 
-### 4. Set up the database
+**Database:**
 
-Create the database user and tables:
 ```bash
-# Create a dedicated user (no password)
 mysql -u root -e "
   CREATE USER IF NOT EXISTS 'banpick'@'localhost' IDENTIFIED BY '';
   GRANT ALL PRIVILEGES ON ban_pick_efb.* TO 'banpick'@'localhost';
   FLUSH PRIVILEGES;
 "
-
-# Run the schema
 mysql -u root < database/schema.sql
 ```
 
-### 5. Scrape player data
+**Player data** — the first `npm run scrape` is a full ~41 k-player run and takes a
+while; later runs are incremental and take seconds.
 
 ```bash
 npm run scrape
 ```
 
-Additional scraping commands:
-
-- **`npm run scrape`**: Smart scrape
-  - **Backup**: drops and recreates `players_catalog_backup` from `players_catalog` before starting any fresh run
-  - First run: **full** catalog scrape (walks all list pages + fetches detail pages for all ~41 k players)
-  - Subsequent runs: **incremental** (only fetches newly added cards since last finished run)
-  - **Concurrent enrichment**: fetches up to 4 player detail pages in parallel, spaced 400 ms apart — ~5–6× faster than sequential
-  - Resume: if interrupted, re-run `npm run scrape` to resume from `.scrape-state.json` (no backup on resume)
-
-- **`npm run scrape:missing`**: Missing-only repair
-  - Backs up `players_catalog` to `players_catalog_backup` before starting
-  - Scans all pesdb list pages to collect every `pesdb_id`
-  - Diffs against `players_catalog`
-  - Fetches detail pages and upserts **only missing IDs** (concurrently, 4 at a time)
-
-Optional environment flags:
-
-- **`SCRAPE_SHOW_LOGS=1`**: print the “last 5 runs” scrape log table at the end of `npm run scrape`
-
-**First run** — full scrape (~41 k players):
-```
-💾 Backing up players_catalog → players_catalog_backup…
-   41,314 rows backed up.
-
-📦 Mode: FULL  (list by overall_rating + Dream Team detail per player)
-   41,314 players · ~1181 pages
-   [████████████████████████████] 41,314/41,314  page 1181  NNNs
-✅ Done!  41,314 players upserted.
-```
-
-**Subsequent runs** — incremental (seconds):
-```
-📬 Mode: INCREMENTAL  (new players since 2026-04-14)
-   Cutoff pesdb_id: 387,113,187,158,919
-   Found 12 new players  page 1  2s
-✅ Done!  12 players upserted.
-```
-
-If a run is interrupted, just run `npm run scrape` again — it resumes automatically from the last saved page.
-
-### 6. Start the server
+**Run it:**
 
 ```bash
-npm run dev    # development (auto-reload)
-npm start      # production
+npm run dev      # auto-reload
+npm start        # production
 ```
 
-Visit [http://localhost:3000](http://localhost:3000).
-
-### Rooms and the room page
-
-1. Sign in, open the **Rooms** tab, then **CREATE ROOM** (or **JOIN** with a code). Creating a room navigates to `/room/<CODE>` (host view); sharing the **Copy invite link** button sends the guest to `/room/<CODE>?mode=join`.
-2. On the **room page**, the host configures rules in the lobby settings panel: **bans per side** (stepper), **ban/pick durations** (time pills), **reveal mode** (INSTANT / HIDDEN cards), and **category allowances** (restrict the pick pool by position, overall, card type, region, etc. with per-category caps). The guest clicks **READY**; the host then **START DRAFT**.
-3. Presence is maintained via `POST /api/rooms/:code/presence` (heartbeat every ~5 s). The client polls `GET /api/rooms/:code` to detect guest join, config changes, and draft start. During an active draft the TTL extends to 30 s so page reloads don't drop the session.
-4. If a second user tries to open the host URL, they receive a **"Host slot taken"** error with a suggestion to use the invite link. If both slots are filled, any additional attempt gets a **"Room is full"** error.
+Then open <http://localhost:3000>.
 
 ---
 
-## API Endpoints
-
-| Method | Route | Description |
-|---|---|---|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/admin/stats` | Catalog count, user count, active rooms, last scrape (requires `ADMIN_KEY`) |
-| `GET` | `/api/admin/rooms` | All active in-memory rooms with phase + age (requires `ADMIN_KEY`) |
-| `GET` | `/api/admin/scrape-logs` | Scrape run history from `scrape_logs` (requires `ADMIN_KEY`) |
-| `GET` | `/api/admin/recent-users` | Latest registered users with player + plan counts (requires `ADMIN_KEY`) |
-| `GET` | `/api/admin/data-quality` | Missing-field counts from `players_catalog` (requires `ADMIN_KEY`) |
-| `POST` | `/api/rooms/:code/presence` | Heartbeat — register/refresh as host or guest (in-memory, 12 s lobby / 30 s draft TTL) |
-| `GET` | `/api/rooms/:code` | Poll current room snapshot (host, guest, config, bans, picks, status) |
-| `POST` | `/api/rooms/:code/leave` | Remove self from room; closes room if host |
-| `POST` | `/api/rooms/:code/start` | Host starts the draft (requires guest ready) |
-| `POST` | `/api/rooms/:code/ready` | Guest toggles ready state |
-| `POST` | `/api/rooms/:code/ban` | Submit a ban during the ban phase |
-| `POST` | `/api/rooms/:code/ban-confirm` | Confirm staged bans; advances to pick phase when both sides confirm |
-| `POST` | `/api/rooms/:code/pick` | Submit a pick during the pick phase |
-| `POST` | `/api/rooms/:code/match-ready` | Toggle post-draft match-ready state |
-| `POST` | `/api/rooms/:code/kick-guest` | Host removes the current guest |
-| `POST` | `/api/rooms/:code/config` | Host updates ban/pick settings |
-| `GET` | `/img/card/:id.png` | Player card image (cached to R2 if configured) |
-| `GET` | `/api/top-players` | Curated carousel of featured legends & top stars |
-| `GET` | `/api/players` | Searchable, filterable, sortable player catalog |
-| `GET` | `/api/players/filter-options` | Distinct filter values (card types, leagues, playing styles, regions) |
-| `GET` | `/api/players/distinct` | Distinct values for autocomplete (club, nationality) |
-| `GET` | `/api/my-players` | Get a user's team roster |
-| `POST` | `/api/my-players` | Add a player to a user's team |
-| `DELETE` | `/api/my-players` | Remove one or more players from a user's team |
-| `GET` | `/api/game-plans` | Get a user's game plans |
-| `POST` | `/api/signup` | Register a new account |
-| `POST` | `/api/signin` | Sign in and return user info |
-
-### `GET /api/players` query params
-
-| Param | Example | Description |
-|---|---|---|
-| `q` | `?q=mbappe` | Search by name |
-| `positions` | `?positions=CF,SS,RWF` | Filter by one or more positions (comma-separated) |
-| `sortBy` | `?sortBy=overall_max_desc` | Sort order (see values below; default is max rating descending) |
-| `club` | `?club=Barcelona` | Filter by club name |
-| `nationality` | `?nationality=France` | Filter by nationality |
-| `heightMin` / `heightMax` | `?heightMin=180&heightMax=195` | Height range in cm |
-| `weightMin` / `weightMax` | `?weightMin=70&weightMax=90` | Weight range in kg |
-| `ageMin` / `ageMax` | `?ageMin=20&ageMax=30` | Age range |
-| `limit` | `?limit=50` | Results per page (default 50; pick phase loads up to 500) |
-| `offset` | `?offset=60` | Pagination offset |
-
-**`sortBy` values:** `overall_max_desc`, `overall_max_asc`, `overall_desc`, `overall_asc`, `name_asc`, `name_desc`, `position_asc`, `position_desc`, `height_desc`, `height_asc`, `weight_desc`, `weight_asc`, `age_desc`, `age_asc`, `club_asc`, `club_desc`, `nationality_asc`, `nationality_desc`
-
-### `GET /api/players/distinct` query params
-
-| Param | Example | Description |
-|---|---|---|
-| `field` | `?field=club` | Field to get distinct values for (`club` or `nationality`) |
-| `q` | `?q=barca` | Prefix search for autocomplete |
-
----
-
-## NPM Scripts
+## Scripts
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start dev server with auto-reload |
-| `npm start` | Start production server |
-| `npm run scrape` | Full or incremental catalog update (backs up DB first) |
-| `npm run scrape:missing` | Repair gaps: diff site vs DB, fill missing entries |
+| `npm run dev` | Dev server with `node --watch` |
+| `npm start` | Production server |
+| `npm run scrape` | Full on first run, incremental after. Backs up `players_catalog` before a fresh run, enriches 4 detail pages in parallel, and resumes from `.scrape-state.json` if interrupted. `SCRAPE_SHOW_LOGS=1` prints the last 5 runs. |
+| `npm run scrape:missing` | Repair gaps — diff every pesdb list page against the DB and fetch only the missing IDs. |
 
 ---
 
-## Bug found
+## Layout
 
-- [x] username length to 50 characters
-- [x] player list info: region - country / league - club / foot - playing style / height - weight - age
-- [x] in databased, change card label = card type
-- [x] sort: overall, overall max
-- [x] filter: foot, playing style, overall, overall max, card type, league
-- [x] select mode in game plans: tick box should always show, an abandon tick box appears on that select string
-- [x] change my team to my players on section strip
-- [x] add option in my players tab to show and hide players info
-- [x] create room page: make it prettier and more smoothly
-- [x] add limit number of each categories
-- [x] mode: reveal team after ban pick or in turn
-- [x] categories undone: league, clubs, nationality
-- [x] host can kick other roomates
-- [x] fix rooms tab — full redesign: dual-tone HOST/GUEST cards, invite-link extractor, STRATEGY TIPS + HOW A SESSION GOES side-by-side equal-height panels
-- [x] CREATE ROOM redesigned as right-side drawer (slides in from edge, room code displayed large, background no longer shifts when drawer opens)
-- [x] page scrollbar now appears below the topbar only — body and app-shell locked to 100vh, `.content-scroll` wrapper owns the scrollable area
-- [x] joining a room now validates the room exists before navigating — random/non-existent codes show "Room not found" toast instead of landing on an empty lobby
-- [x] opponent-left detection: if the guest disappears during an active draft, the host sees a "Opponent left" popup with a 5-second auto-redirect; `showRoomClosed` also auto-redirects after 10 seconds
-- [x] all filter panels (ban page, My Players, Add Player, Game Plans) reordered into 4 labelled groups: IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL
-- [x] region filter added to all filter panels (ban page, My Players, Add Player, Game Plans)
-- [x] auto-backup `players_catalog` → `players_catalog_backup` before every fresh scrape run
-- [x] reloading the page during a draft now reconnects directly to the draft (no lobby flash, no draft state loss)
-- [x] "reload site / changes not saved" browser dialog removed — draft is always safely recoverable via sessionStorage cache
-- [x] room security: duplicate host or over-capacity guest connections are rejected with distinct error screens (Host slot taken / Room is full / Access denied)
-- [-] after scraping, some players have empty playing styles, need to fix the scraper / data cleaning
-- [ ] run scrape missing should be record in scrape logs, and show in the end of scrape logs table 
-- [x] ban pick page:
-  - [x] for ban phase: I can see opponents squad and ban, also both users can see other opponent's ban player card
-  - [x] for pick phase: redesigned 3-panel layout — left squad pool with search/sort/position tabs + PICKED/BANNED overlays, center formation pitch with avg OVR + allowance pills + CONFIRM PICKS, right live opponent feed with progress bar; quick-load plan bar at top; ready phase shows both squads side by side
-- [x] ban grid: player cards no longer continuously scale up/down on hover (two root causes fixed: (1) replaced innerHTML string comparison with a state-key diff guard — browsers normalize whitespace and strip void-element slashes on serialization so the old comparison always failed and the grid rebuilt every 500 ms poll cycle; (2) removed `translateY` from the hover transform — moving the card upward pushes its bottom edge above the cursor, deactivating `:hover` mid-transition and causing a jitter loop)
-- [x] fix tab in setting, ban page
-- [x] fix the ban duration, pick duration text to avoid text overflow when resize window
-- [x] after confirming bans, players can still add/remove players to ban list before the pick phase starts, remove hover effect.
-- [x] when waiting for opponent to confirm bans, if I already confirmed, I cannot change my ban list.
-- [ ] design:
-   - [x] lobby — redesigned settings panel with `lv-*` controls (stepper for ban count, time pills for durations, reveal-mode cards); green left-border accent on section titles; removed nested card wrapper and redundant subtitle text for cleaner hierarchy; chat panel grid fixed to 3 rows; column proportions rebalanced
-   - [ ] pick
-   - [ ] start
-- [ ] scrape
-- [ ] In ban room, when show and hide info, the scroll bar make the content of players box move
+```
+src/
+├── server.js              # composition root: middleware, router mounts, static, errors
+├── db.js                  # mysql2 pool
+├── cardImageCacheR2.js    # /img/card/:id.png — R2 cache or pesdb redirect
+├── scrape.js              # catalog scraper (full + incremental, resumable)
+├── scrape-missing.js      # missing-only repair
+├── routes/                # players, auth, gamePlans, rooms, admin, pages
+├── rooms/                 # store.js (in-memory room map), config.js (TTLs, allowances)
+├── players/               # catalogQuery.js — SORT_MAP, filter + sort builders
+└── lib/                   # http.js (handlers, error middleware), paths.js
+
+public/
+├── home.html   room.html   signin.html   admin.html
+├── css/home/              # 8 files: base, player-card, squad, plans, catalog,
+│                          #   modals, rooms, responsive
+├── css/room.css           # the whole draft page
+└── js/
+    ├── home.js  + home/   # utils, callbacks, squad, catalog, plans, rooms
+    └── room.js  + room/   # ~25 modules: state, presence, api, ban/pick/ready views,
+                           #   draft flow + session + controls, lobby/, allowance
+database/schema.sql
+```
+
+Room state lives **in memory only** and does not survive a server restart.
 
 ---
 
-## Roadmap
+## API
 
-- [x] Sign-in / sign-up page with hashed passwords
-- [x] Player catalog (scraped + stored in MySQL)
-- [x] Incremental scraper with resume support and scrape logs
-- [x] Home page with My Team panel and Game Plans panel
-- [x] Add / remove players from team with search, sort, and multi-filter
-- [x] Player detail popup with card art and full stats
-- [x] Team-side search, sort, and position filter
-- [x] edit profile
-- [x] Game plan builder (drag-and-drop formation view)
-- [x] clean data
-- [x] Rooms tab + create/join flow (home)
-- [x] Dedicated room page (lobby UI, draft UI, end summary; local + demo opponent)
-- [x] Ban & pick session (real-time with WebSockets; replace polling in `room.js`)
-   + [x] mode: reveal after finishing or show after every turn
-   + [x] host: determine the rules of ban pick, can kick other roomates
-   + [x] finalise rules: ban categories, number of ban players
-   + [x] room security: prevent duplicate hosts and over-capacity guests
-   + [x] reliable reconnect on page reload (sessionStorage phase cache + 30 s draft TTL)
-   + [x] clean leave flow (no spurious "unsaved changes" browser dialog)
-   + [x] procedure: finalise rules → start ban category → ban players & pick loop
-   + [x] rule:
-      + [x] ban category: player name, position, overall, overall_max, club, nationality, height, weight, age, card type, region, foot, playing style, league
-      + [x] allow: card type — number of players, overall rating
-      + [x] compulsory: card type — number of players, overall rating
-      + [x] ban players: each user bans independently from the opponent's squad (both can ban the same player); stage bans → CONFIRM BANS → both sides confirming advances to pick phase automatically; staged bans sync to opponent's screen in real-time; opponent presence badge shows username + online/offline + choosing/confirmed status; duplicate-ban check is per-side only (your own bans, not opponent's)
-      + [x] pick players: pick exact player card (click-to-pick; syncs to opponent via polling; allowance cap validation)
-      + [x] opponent-left handling: guest leaving during draft stops the timer and shows a 5-second countdown popup on the host's screen
-      + [x] all filter dropdowns use a consistent 4-section grouped layout (IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL) with labelled section dividers
-      + [x] region filter added to ban phase filter panel (plus My Players, Add Player catalog, Game Plans)
-   + [x] a player can see opponent's picks (instant-reveal mode) / picks hidden until ready phase (hidden mode)
-   + [x] players can view their game plans via the quick-load bar during the pick phase — select a saved plan to populate the formation, or choose a formation manually
-   + [x] a list of my current squad (allowance-filtered) visible during pick phase; search, sort, position tabs (ALL/GK/DEF/MID/ATT)
-   + [x] after finish picking, "Start Match" ready phase shows both squads as full formation pitches side-by-side (lineup rows with real card art, scrollable bench strip, 5-column stats comparison bar); both players confirm with READY → to go to summary
-- [x] update database
-- [x] admin page (`/admin`) — stats, active rooms monitor, scrape history, data quality, user list, catalog browser + CSV export
-- [ ] responsive design
-   + [x] My Players page — mobile layout fix (≤480 px): search bar forced to full-width row 1; sort + filter share row 2 so the filter dropdown panel anchors to the right edge and does not overflow off-screen
-- [ ] set up cloud server + database
-- [ ] set up R2 + CDN for card image caching
-- [ ] analytics + error monitoring
-- [ ] testing (unit + integration)
-- [ ] documentation
-- [ ] code cleanup and refactoring
-   + [x] `room.css` — merged all duplicate/late-override rule blocks into single canonical definitions (timer ring, stage progress dots & labels, connecting line, chat item, lobby container)
-   + [x] `room.js` — ban grid and ban strips use state-key diffing (not innerHTML) to avoid unnecessary DOM recreation during 500 ms polling cycles; `is-hovered` removed from `.player-card` elements (CSS `:hover` only) to prevent DOM mutation breaking the guard
-   + [x] `room.css` — ban grid hover consolidated to single `.ban-phase-grid .player-card:not(.is-unavailable):hover` rule; `scale` only (no `translateY`) to prevent hover jitter; `--bg-card`, `--bg-card-hover`, `--transition` added to `:root` to match `home.css`
-   + [x] `room.js` split into phase-based modules: `callbacks.js`, `state.js`, `utils.js`, `players.js`, `ban.js`, `pick.js`, `lobby.js`, `presence.js` — entry `room.js` reduced from ~5000 lines to ~1200; circular imports broken via shared mutable `cb` registry
-   + [x] `home.js` split into ES modules under `public/js/home/`: `utils.js`, `callbacks.js`, `squad.js`, `catalog.js`, `plans.js`, `rooms.js` — entry `home.js` reduced to 23-line ESM boot; same `cb` pattern used to break squad ↔ catalog circular dependency
-   + [x] `home.css` split into 8 focused files under `public/css/home/`: `base.css`, `player-card.css`, `squad.css`, `plans.css`, `catalog.css`, `modals.css`, `rooms.css`, `responsive.css`
-- [ ] UI polish and animations
-- [ ] deploy
+All routes are JSON. Auth is stateless — there is no session middleware; `userId` is
+passed in the request body or query string and trusted client-side, so this is **not
+hardened for untrusted public deployment**.
+
+| Area | Endpoints |
+|---|---|
+| Health | `GET /api/health` |
+| Auth | `POST /api/signup` · `POST /api/signin` · `PUT /api/profile` |
+| Catalog | `GET /api/players` · `/api/players/filter-options` · `/api/players/distinct` · `/api/top-players` |
+| Squad | `GET`/`POST`/`DELETE /api/my-players` |
+| Game plans | `GET`/`POST /api/game-plans` · `PUT`/`DELETE /api/game-plans/:id` · `GET`/`PUT /api/game-plans/:id/players[/:slot]` · `PUT /api/game-plans/:id/swap` |
+| Room | `GET /api/rooms/:code` · `POST /api/rooms/:code/` + `presence` `leave` `ready` `start` `config` `chat` `kick-guest` `ban` `ban-confirm` `pick` `match-ready` |
+| Admin | `GET /api/admin/` + `stats` `rooms` `scrape-logs` `recent-users` `data-quality` — all require `ADMIN_KEY` |
+| Images | `GET /img/card/:id.png` |
+
+**`GET /api/players`** takes `q`, `positions` (comma-separated), `club`, `nationality`,
+`heightMin`/`Max`, `weightMin`/`Max`, `ageMin`/`Max`, `limit` (default 50), `offset`, and
+`sortBy` — `{overall_max,overall,name,position,height,weight,age,club,nationality}_{asc,desc}`,
+defaulting to `overall_max_desc`.
+
+---
+
+## Database
+
+```
+players_catalog          — every eFootball player from pesdb.net
+players_catalog_backup   — snapshot taken by the scraper before each fresh run
+scrape_logs              — history of scrape runs
+users                    — accounts (bcrypt password hashes)
+players                  — user-owned squads
+game_plans               — up to 20 per user
+game_plan_players        — plan ↔ player, slot 1–11 lineup / 12–23 subs
+```
+
+---
+
+## Known gaps
+
+- Card art occasionally missing playing style / region — a scraper data-cleaning issue.
+- `npm run scrape:missing` doesn't write to `scrape_logs`.
+- Ban room: toggling player info shifts the grid as the scrollbar appears.
+- Pick and start-match screens haven't had the design pass the lobby got.
+- No tests, no analytics or error monitoring, and nothing is deployed yet — no cloud
+  server, database, or CDN.

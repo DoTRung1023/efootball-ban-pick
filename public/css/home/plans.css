@@ -211,9 +211,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 22px 14px;
+  /* Right padding clears the close button, which is positioned out of flow. */
+  padding: 16px 54px 14px 22px;
   border-bottom: 1px solid var(--border);
   background: rgba(4,12,8,0.6);
+}
+
+/* The shared -4px/-4px offset puts the button under .modal-card's overflow
+   clip, so half the hit area is unreachable. */
+.plan-detail-modal .modal-close {
+  top: 12px;
+  right: 14px;
 }
 
 .plan-name-wrap { flex: 1; min-width: 0; }
@@ -256,7 +264,8 @@
 
 /* ── LEFT COLUMN (Starting XI) ── */
 .plan-left-col {
-  flex: 0 0 55%;
+  flex: 0 1 55%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -264,8 +273,10 @@
 }
 
 /* ── MIDDLE COLUMN (Bench) ── */
+/* Fixed width, not a percentage: the bench grid is 2 × 82px + gap, so a
+   percentage column starts clipping the second bench card below ~1220px. */
 .plan-mid-col {
-  flex: 0 0 15%;
+  flex: 0 0 200px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -492,7 +503,8 @@
   flex: 1;
 }
 
-/* Individual pitch slot */
+/* Individual pitch slot — width is fluid (basis 0, capped at 110px) so a row
+   of five defenders shrinks to fit instead of wrapping on a narrow column. */
 .pitch-slot {
   display: flex;
   flex-direction: column;
@@ -503,7 +515,7 @@
   border-radius: 0;
   border: 1.5px solid transparent;
   transition: all var(--transition);
-  min-width: 86px;
+  min-width: 0;
   max-width: 110px;
   flex: 1;
   position: relative;
@@ -525,10 +537,13 @@
   box-shadow: 0 0 14px rgba(0,230,118,0.3);
 }
 
-/* Shared card size — used by both placeholder and filled card */
+/* Shared card size — used by both placeholder and filled card.
+   Fills its slot up to 82px, so pitch and bench cards scale down together
+   once the column gets narrower than the desktop layout. */
 .pitch-slot-placeholder,
 .pitch-card-wrap {
-  width: 82px;
+  width: 100%;
+  max-width: 82px;
   aspect-ratio: 72 / 100;
   border-radius: 0;
   flex-shrink: 0;
@@ -667,6 +682,17 @@
 .bench-slot:hover .pitch-remove-btn { opacity: 1; transform: scale(1); }
 .pitch-remove-btn:hover { background: #ef4444; }
 
+/* Touch devices never hover, so the remove button has to stay visible —
+   otherwise a player can be assigned but never taken off the plan. */
+@media (hover: none) {
+  .pitch-remove-btn {
+    opacity: 1;
+    transform: scale(1);
+    width: 22px;
+    height: 22px;
+  }
+}
+
 .plan-bench-list {
   flex: 1;
   overflow-y: auto;
@@ -716,7 +742,8 @@
 
 /* ── RIGHT COLUMN (picker) ── */
 .plan-right-col {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 260px;
   display: flex;
   flex-direction: column;
   overflow: hidden;

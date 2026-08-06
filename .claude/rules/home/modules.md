@@ -31,6 +31,10 @@ ESM boot file that imports from `public/js/home/` sub-modules.
   `plans.js`). Exports `openAddPlayerModal`, `initAddPlayerModal`, `initPlayerPopup`.
 - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot
   assignment. Exports `loadGamePlans`, `initGamePlans`.
+  - `STACKED_PLAN_LAYOUT` (`max-width: 900px`) must match the plan detail modal
+    breakpoint in `css/home/responsive.css`. Below it the modal's three columns stack,
+    so `scrollPlanSectionIntoView` moves the sheet to the picker when a slot is selected
+    and back to the pitch/bench after a player is assigned. It is a no-op on desktop.
 - `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`,
   `initRoomHub`, `loadRoomsStats`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;

@@ -90,13 +90,10 @@ function renderColumns({ room, mySide, theirSide, myPicks, theirPicks, myFormati
 const readyBadgeHtml = (isReady) =>
   `<div class="sm-col-badge ${isReady ? "is-ready" : "is-writing"}">${isReady ? "✦ READY" : "✦ WRITING"}</div>`;
 
-const avatarInitial = (name) => escapeHtml(String(name || "O").charAt(0).toUpperCase());
-
 function hiddenColumnHtml(theirInfo, theirReady) {
   const name = theirInfo?.username || "Opponent";
   return `<div class="sm-col sm-col--opp sm-col--hidden">
     <div class="sm-col-head">
-      <div class="sm-col-avatar">${avatarInitial(name)}</div>
       <div class="sm-col-info">
         <div class="sm-col-name">${escapeHtml(name)}</div>
         <div class="sm-col-meta">OPPONENT</div>
@@ -126,8 +123,7 @@ function squadColumnHtml(room, side, picks, formation, isMe) {
   return `
     <div class="sm-col ${isMe ? "sm-col--me" : "sm-col--opp"}">
       <div class="sm-col-head">
-        <div class="sm-col-avatar">${avatarInitial(name)}</div>
-        <div class="sm-col-info">
+          <div class="sm-col-info">
           <div class="sm-col-name">${escapeHtml(name)}</div>
           <div class="sm-col-meta">${escapeHtml(isMe ? "YOU" : "OPPONENT")} · ${escapeHtml(formation)} · AVG ${avgOvr}</div>
         </div>

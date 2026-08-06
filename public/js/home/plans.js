@@ -472,6 +472,26 @@ function makeBenchSlotEl(slot, player) {
   return el;
 }
 
+/* Below 900px the plan detail modal stacks its three columns into one scrolling
+   sheet (see responsive.css), so the picker sits far below the pitch. Move the
+   sheet to whichever section the user needs next instead of making them hunt. */
+const STACKED_PLAN_LAYOUT = "(max-width: 900px)";
+
+function scrollPlanSectionIntoView(selector) {
+  if (!window.matchMedia(STACKED_PLAN_LAYOUT).matches) return;
+  const el       = document.querySelector(selector);
+  const scroller = document.querySelector(".plan-detail-cols");
+  if (!el || !scroller) return;
+
+  // Already looking at it — scrolling again would just yank the view around.
+  const box  = el.getBoundingClientRect();
+  const view = scroller.getBoundingClientRect();
+  const visible = Math.min(box.bottom, view.bottom) - Math.max(box.top, view.top);
+  if (visible >= Math.min(box.height, view.height) * 0.6) return;
+
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function selectPlanSlot(slot) {
   const pendingId = gamePlans.pickerPendingPlayerId;
   if (pendingId != null) {
@@ -514,6 +534,7 @@ function selectPlanSlot(slot) {
   });
   setPickerHint(slot);
   renderPlanPicker();
+  scrollPlanSectionIntoView(".plan-right-col");
 }
 
 async function swapSlots(slotA, slotB) {
@@ -1051,6 +1072,7 @@ async function assignToSlot(slot, player) {
     renderDetailSlots();
     renderPlanPicker();
     syncPlanCounts(gamePlans.currentId, user.id);
+    scrollPlanSectionIntoView(slot <= 11 ? ".plan-left-col" : ".plan-mid-col");
   } catch {
     showToast("Could not assign player.", "error");
   }

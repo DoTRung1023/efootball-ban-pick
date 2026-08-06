@@ -11,8 +11,8 @@ Shown when `isReadyPhase`. Full layout inside `.sm-layout`:
 - **Header** (`.sm-head`): kicker badge with pulsing dot (`READY PHASE · CONFIRM TO
   BEGIN MATCH`), `h2` title (`START MATCH`), subtitle.
 - **Columns** (`#readyPhaseColumns`): 3-column grid (`.sm-columns`) — my column
-  (`.sm-col`) | VS circle (`.sm-vs-circle`) | opponent column. Each column has an avatar
-  initials badge, username, READY/WRITING status badge (`.sm-col-badge.is-ready` /
+  (`.sm-col`) | VS circle (`.sm-vs-circle`) | opponent column. Each column has a
+  username, READY/WRITING status badge (`.sm-col-badge.is-ready` /
   `.is-writing`), a role label (YOU/OPPONENT), formation pitch rows (`.sm-pitch-row`
   built with `renderReadyPitchColHtml()` using `buildOrderedSlotMap` +
   `getFormationLayout`), and a bench strip (`.sm-bench-strip`, picks 12–23).

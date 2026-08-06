@@ -13,7 +13,10 @@ paths:
 - The `.stage-progress-container` is `justify-content: space-between` with the timer ring
   (`#timerRing`) in `.stage-header-left` on the left and the Leave button
   (`#draftLeaveBtn`) in `.stage-header-right` on the right. The `.stage-progress-bar`
-  sits between them with `flex: 1; max-width: 620px`.
+  sits between them with `flex: 1; max-width: 620px`. Below **480 px** the container
+  wraps: timer + Leave on row 1, the bar full width on row 2 — see the responsive ladder
+  in the room CSS rule. Side by side the three parts need ~455 px, and since `.view` has
+  no horizontal scroll that width leaks down into every panel of the draft.
 - The timer ring is **56×56 px** with a **44×44 px** inner circle; JS drives the
   conic-gradient via `ring.style.background`. There is a single canonical `.timer-ring` /
   `.timer-inner` definition in `room.css` — no context-specific overrides. There is no

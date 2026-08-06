@@ -75,41 +75,32 @@
             <div class="lobby-summary">
               <!-- HOST -->
               <div class="ls-player ls-player--host" id="lobbyHostSlot">
-                <div class="ls-role">HOST</div>
-                <div class="ls-avatar" id="lobbyHostAvatar"></div>
-                <div class="ls-name" id="lobbyHostName">—</div>
-                <div class="ls-stats" id="lobbyHostStats"></div>
-                <div class="ls-conn" id="lobbyHostStatus">● connected</div>
+                <div class="ls-meta">
+                  <div class="ls-role">HOST</div>
+                  <div class="ls-name" id="lobbyHostName">—</div>
+                  <div class="ls-stats" id="lobbyHostStats"></div>
+                  <div class="ls-conn" id="lobbyHostStatus">● connected</div>
+                </div>
               </div>
 
-              <!-- CENTER: code + VS + waiting + actions -->
+              <!-- CENTER: room code + invite -->
               <div class="ls-center">
-                <div class="ls-code-block">
-                  <div class="room-code-label">ROOM CODE</div>
-                  <div class="room-code-big" id="lobbyCodeDisplay">—</div>
-                  <div class="ls-btns">
-                    <button type="button" class="btn btn--ghost ls-btn" id="copyCodeBtn">⊞ COPY CODE</button>
-                    <button type="button" class="btn btn--ghost ls-btn" id="copyInviteBtn">⌁ INVITE LINK</button>
-                  </div>
-                </div>
-                <div class="ls-vs">VS</div>
-                <div class="ls-waiting" id="lobbyWaiting">
-                  <span class="ls-pulse"></span>
-                  <span id="lobbyWaitingText">Waiting for opponent</span>
-                </div>
-                <div class="lobby-meta" id="lobbyMeta"></div>
-                <div class="lobby-actions">
-                  <button type="button" class="btn btn--primary" id="startDraftBtn" hidden>START DRAFT</button>
+                <div class="room-code-label">ROOM CODE</div>
+                <div class="room-code-big" id="lobbyCodeDisplay">—</div>
+                <div class="ls-btns">
+                  <button type="button" class="btn btn--ghost ls-btn" id="copyCodeBtn">⊞ COPY CODE</button>
+                  <button type="button" class="btn btn--ghost ls-btn" id="copyInviteBtn">⌁ INVITE LINK</button>
                 </div>
               </div>
 
               <!-- GUEST -->
               <div class="ls-player ls-player--guest" id="lobbyGuestSlot">
-                <div class="ls-role">GUEST</div>
-                <div class="ls-avatar ls-avatar--empty" id="lobbyGuestAvatar"></div>
-                <div class="ls-name" id="lobbyGuestName">Waiting…</div>
-                <div class="ls-sub" id="lobbyGuestSub">Share the invite link</div>
-                <div class="ls-conn" id="lobbyGuestStatus"></div>
+                <div class="ls-meta">
+                  <div class="ls-role">GUEST</div>
+                  <div class="ls-name" id="lobbyGuestName">Waiting…</div>
+                  <div class="ls-sub" id="lobbyGuestSub">Share the invite link</div>
+                  <div class="ls-conn" id="lobbyGuestStatus"></div>
+                </div>
                 <button type="button" class="btn btn--small btn--ghost lobby-kick-btn" id="kickGuestBtn" hidden>Kick</button>
               </div>
             </div>
@@ -119,38 +110,42 @@
                 <div class="prep-col prep-col--settings">
                   <div class="prep-title">BAN SETTING</div>
 
-                  <div class="lv-settings-panel" id="lobbySettings" hidden>
+                  <div class="prep-scroll">
+                    <div class="lv-settings-panel" id="lobbySettings" hidden>
 
-                      <div class="lv-field-group">
-                        <div class="lv-field-label">BAN PER SIDE</div>
-                        <div class="lv-stepper">
-                          <button type="button" class="lv-stepper-btn" id="banCountMinus" aria-label="Decrease bans">−</button>
-                          <span class="lv-stepper-val" id="banCountVal">3</span>
-                          <button type="button" class="lv-stepper-btn" id="banCountPlus" aria-label="Increase bans">+</button>
+                      <div class="lv-field-row">
+                        <div class="lv-field-group">
+                          <div class="lv-field-label">BAN PER SIDE</div>
+                          <div class="lv-stepper">
+                            <button type="button" class="lv-stepper-btn" id="banCountMinus" aria-label="Decrease bans">−</button>
+                            <span class="lv-stepper-val" id="banCountVal">3</span>
+                            <button type="button" class="lv-stepper-btn" id="banCountPlus" aria-label="Increase bans">+</button>
+                          </div>
+                          <input type="number" id="lobbyBansInput" min="0" value="3" hidden>
+                          <div class="lv-field-hint" id="banCountHint">6 bans in total</div>
                         </div>
-                        <input type="number" id="lobbyBansInput" min="0" value="3" hidden>
-                      </div>
 
-                      <div class="lv-field-group">
-                        <div class="lv-field-label">BAN DURATION</div>
-                        <div class="lv-duration-field">
-                          <input type="number" class="lv-duration-input" id="lobbyBanDurationInput"
-                                 min="5" max="900" step="1" value="120"
-                                 inputmode="numeric" aria-describedby="banDurationHint">
-                          <span class="lv-duration-unit">sec</span>
+                        <div class="lv-field-group">
+                          <div class="lv-field-label">BAN DURATION</div>
+                          <div class="lv-duration-field">
+                            <input type="number" class="lv-duration-input" id="lobbyBanDurationInput"
+                                   min="5" max="900" step="1" value="120"
+                                   inputmode="numeric" aria-describedby="banDurationHint">
+                            <span class="lv-duration-unit">sec</span>
+                          </div>
+                          <div class="lv-field-hint" id="banDurationHint">5–900 seconds</div>
                         </div>
-                        <div class="lv-field-hint" id="banDurationHint">5–900 seconds</div>
-                      </div>
 
-                      <div class="lv-field-group">
-                        <div class="lv-field-label">PICK DURATION</div>
-                        <div class="lv-duration-field">
-                          <input type="number" class="lv-duration-input" id="lobbyPickDurationInput"
-                                 min="5" max="1200" step="1" value="300"
-                                 inputmode="numeric" aria-describedby="pickDurationHint">
-                          <span class="lv-duration-unit">sec</span>
+                        <div class="lv-field-group">
+                          <div class="lv-field-label">PICK DURATION</div>
+                          <div class="lv-duration-field">
+                            <input type="number" class="lv-duration-input" id="lobbyPickDurationInput"
+                                   min="5" max="1200" step="1" value="300"
+                                   inputmode="numeric" aria-describedby="pickDurationHint">
+                            <span class="lv-duration-unit">sec</span>
+                          </div>
+                          <div class="lv-field-hint" id="pickDurationHint">5–1200 seconds</div>
                         </div>
-                        <div class="lv-field-hint" id="pickDurationHint">5–1200 seconds</div>
                       </div>
 
                       <div class="lv-field-group lv-field-group--reveal">
@@ -176,28 +171,39 @@
 
                     </div>
 
-                  <div class="prep-section prep-section--allowance">
-                    <div class="prep-section-title">CATEGORY ALLOWANCE</div>
-                    <div class="prep-section-sub">Add filters. Set max cards per category, or leave it empty for unlimited.</div>
-                    <div class="prep-row">
-                      <label class="prep-check">
-                        <input type="checkbox" id="allowAllPlayersInput" />
-                        <span>Allow all players (ignore category filters)</span>
-                      </label>
-                    </div>
-                    <div class="allowance-controls" id="allowanceControls">
-                      <div class="allowance-category-dd" id="allowanceCategoryDd">
-                        <button type="button" class="draft-select allowance-category-trigger" id="allowanceCategoryTrigger" aria-haspopup="true" aria-expanded="false">
-                          <span id="allowanceCategoryLabel">Select category</span>
-                          <span class="allowance-category-caret" aria-hidden="true"></span>
-                        </button>
-                        <div class="allowance-category-panel" id="allowanceCategoryPanel"></div>
+                    <div class="prep-section prep-section--allowance">
+                      <div class="prep-section-title">CATEGORY ALLOWANCE</div>
+                      <div class="prep-section-sub">Add filters. Set max cards per category, or leave it empty for unlimited.</div>
+                      <div class="prep-row">
+                        <label class="prep-check">
+                          <input type="checkbox" id="allowAllPlayersInput" />
+                          <span>Allow all players (ignore category filters)</span>
+                        </label>
                       </div>
-                      <button type="button" class="btn btn--small btn--ghost" id="addAllowanceBtn">Add category</button>
-                    </div>
+                      <div class="allowance-controls" id="allowanceControls">
+                        <div class="allowance-category-dd" id="allowanceCategoryDd">
+                          <button type="button" class="draft-select allowance-category-trigger" id="allowanceCategoryTrigger" aria-haspopup="true" aria-expanded="false">
+                            <span id="allowanceCategoryLabel">Select category</span>
+                            <span class="allowance-category-caret" aria-hidden="true"></span>
+                          </button>
+                          <div class="allowance-category-panel" id="allowanceCategoryPanel"></div>
+                        </div>
+                        <button type="button" class="btn btn--small btn--ghost" id="addAllowanceBtn">Add category</button>
+                      </div>
 
-                    <div class="allowance-list" id="allowanceList">
-                      <div class="allowance-empty">No categories added. All players are allowed.</div>
+                      <div class="allowance-list" id="allowanceList">
+                        <div class="allowance-empty">No categories added. All players are allowed.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="lobby-cta-bar">
+                    <div class="ls-waiting" id="lobbyWaiting">
+                      <span class="ls-pulse"></span>
+                      <span id="lobbyWaitingText">Waiting for opponent</span>
+                    </div>
+                    <div class="lobby-actions">
+                      <button type="button" class="btn btn--primary" id="startDraftBtn" hidden>START DRAFT</button>
                     </div>
                   </div>
                 </div>
