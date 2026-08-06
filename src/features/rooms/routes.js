@@ -6,7 +6,7 @@ import {
   normalizeCapForField,
   normalizePickDurationSec,
   normalizeRevealMode,
-} from "../rooms/config.js";
+} from "./config.js";
 import {
   ROOM_STATUS,
   emptyRoomSnapshot,
@@ -20,7 +20,7 @@ import {
   resolveSide,
   roomPresence,
   serializeRoomEntry,
-} from "../rooms/store.js";
+} from "./store.js";
 
 const router = Router({ mergeParams: true });
 
