@@ -8,7 +8,7 @@ import {
   FILTER_OPTION_COLUMNS,
   buildCatalogFilter,
   resolveSortOrder,
-} from "../players/catalogQuery.js";
+} from "./catalogQuery.js";
 
 const router = Router();
 

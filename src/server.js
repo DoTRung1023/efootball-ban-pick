@@ -7,7 +7,7 @@ import { adminRoutes } from "#features/admin/index.js";
 import { authRoutes } from "#features/auth/index.js";
 import gamePlanRoutes from "./routes/gamePlans.js";
 import pageRoutes from "./routes/pages.js";
-import playerRoutes from "./routes/players.js";
+import { playerRoutes } from "#features/players/index.js";
 import { roomRoutes } from "#features/rooms/index.js";
 
 const app = express();
