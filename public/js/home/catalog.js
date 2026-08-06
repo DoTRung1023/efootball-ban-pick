@@ -3,6 +3,21 @@ import { PAGE_SIZE, getUser, showToast,
          posClass, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          openDdPanel, closeDdPanel, toggleDdPanel } from './utils.js';
 import { cb } from './callbacks.js';
+import {
+  buildPlayerFilterPanel,
+  resetPlayerFilterState,
+  getPlayerFilterOptions,
+} from "./filterPanel.js";
+
+/* The filter panel and its option helpers are shared with squad.js and
+   plans.js — see ./filterPanel.js. Re-exported here because both of those
+   modules already import them from "./catalog.js". */
+export {
+  initAutocomplete,
+  playerFilterOptionsCache,
+  getPlayerFilterOptions,
+  wireAttributeMultiselects,
+} from "./filterPanel.js";
 
 export const SORT_CATEGORIES = [
   { key: "overall_max", label: "Overall Max",       descVal: "overall_max_desc", ascVal: "overall_max_asc", bidir: true,  descTip: "Highest max rating first", ascTip: "Lowest max rating first" },
@@ -45,116 +60,6 @@ const catalog = {
   loading:       false,
   addedPesdbIds: new Set(),
 };
-
-export function initAutocomplete(inputEl, listEl, field, onPick) {
-  let timer = null;
-
-  inputEl.addEventListener("input", () => {
-    clearTimeout(timer);
-    const q = inputEl.value.trim();
-    if (!q) { listEl.innerHTML = ""; listEl.classList.remove("open"); return; }
-
-    timer = setTimeout(async () => {
-      try {
-        const res   = await fetch(`/api/players/distinct?field=${field}&q=${encodeURIComponent(q)}`);
-        const items = await res.json();
-        if (!items.length) { listEl.innerHTML = ""; listEl.classList.remove("open"); return; }
-
-        listEl.innerHTML = items
-          .map((v) => `<div class="autocomplete-item" data-val="${v.replace(/"/g, "&quot;")}">${v}</div>`)
-          .join("");
-        listEl.classList.add("open");
-
-        listEl.querySelectorAll(".autocomplete-item").forEach((el) => {
-          el.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-            inputEl.value = el.dataset.val;
-            onPick(el.dataset.val);
-            listEl.innerHTML = "";
-            listEl.classList.remove("open");
-          });
-        });
-      } catch (_) {}
-    }, 200);
-  });
-
-  inputEl.addEventListener("blur", () => {
-    setTimeout(() => { listEl.innerHTML = ""; listEl.classList.remove("open"); }, 150);
-  });
-}
-
-export let playerFilterOptionsCache = null;
-
-export async function getPlayerFilterOptions() {
-  if (playerFilterOptionsCache) return playerFilterOptionsCache;
-  try {
-    const res = await fetch("/api/players/filter-options");
-    playerFilterOptionsCache = res.ok ? await res.json() : null;
-  } catch {
-    playerFilterOptionsCache = null;
-  }
-  if (!playerFilterOptionsCache) {
-    playerFilterOptionsCache = { foot: [], playing_style: [], card_type: [], league: [], region: [] };
-  }
-  return playerFilterOptionsCache;
-}
-
-/** Multiselect dropdowns backed by distinct catalog values (foot, style, card type, league). */
-export function wireAttributeMultiselects(panel, optionsByKey, configs) {
-  for (const cfg of configs) {
-    const values = optionsByKey[cfg.optionsKey] ?? [];
-    const msPanel = panel.querySelector(cfg.panelSel);
-    const msBtn = panel.querySelector(cfg.btnSel);
-    const msLabel = panel.querySelector(cfg.labelSel);
-    if (!msPanel || !msBtn || !msLabel) continue;
-
-    const stateSet = cfg.stateSet;
-    msPanel.innerHTML = "";
-
-    function updateLabel() {
-      const sel = [...stateSet];
-      msLabel.textContent =
-        sel.length === 0
-          ? cfg.allLabel
-          : sel.length <= 3
-            ? sel.join(", ")
-            : `${sel.slice(0, 3).join(", ")} +${sel.length - 3}`;
-      msBtn.classList.toggle("has-pos-filter", sel.length > 0);
-    }
-
-    values.forEach((val) => {
-      const item = document.createElement("div");
-      item.className = `pos-ms-item${stateSet.has(val) ? " checked" : ""}`;
-      item.innerHTML = `<span class="pos-ms-check"></span><span>${escapeHtml(val)}</span>`;
-      item.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (stateSet.has(val)) {
-          stateSet.delete(val);
-          item.classList.remove("checked");
-        } else {
-          stateSet.add(val);
-          item.classList.add("checked");
-        }
-        updateLabel();
-        cfg.onChange();
-      });
-      msPanel.appendChild(item);
-    });
-
-    msBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const open = msPanel.classList.toggle("open");
-      msBtn.classList.toggle("open", open);
-    });
-    document.addEventListener("click", () => {
-      msPanel.classList.remove("open");
-      msBtn.classList.remove("open");
-    });
-    msPanel.addEventListener("click", (e) => e.stopPropagation());
-
-    updateLabel();
-  }
-}
 
 function hasActiveFilters() {
   return catalog.filterPositions.size || catalog.filterFoot.size || catalog.filterPlayingStyle.size
@@ -494,294 +399,39 @@ function buildSortPanel() {
   return panel;
 }
 
+const CATALOG_FILTER_IDS = {
+  posWrap: "posMultiselect", posBtn: "posMsBtn", posLabel: "posMsLabel", posPanel: "posMsPanel",
+  ctWrap: "fcCtMs",     ctBtn: "fcCtMsBtn",     ctLabel: "fcCtMsLabel",     ctPanel: "fcCtMsPanel",
+  psWrap: "fcPsMs",     psBtn: "fcPsMsBtn",     psLabel: "fcPsMsLabel",     psPanel: "fcPsMsPanel",
+  footWrap: "fcFootMs", footBtn: "fcFootMsBtn", footLabel: "fcFootMsLabel", footPanel: "fcFootMsPanel",
+  lgWrap: "fcLgMs",     lgBtn: "fcLgMsBtn",     lgLabel: "fcLgMsLabel",     lgPanel: "fcLgMsPanel",
+  rgWrap: "fcRgMs",     rgBtn: "fcRgMsBtn",     rgLabel: "fcRgMsLabel",     rgPanel: "fcRgMsPanel",
+  ovrMin: "fcOvrMin",       ovrMax: "fcOvrMax",
+  ovrMaxMin: "fcOvrMaxMin", ovrMaxMax: "fcOvrMaxMax",
+  club: "fcClub", clubAc: "fcClubAc", nation: "fcNation", nationAc: "fcNationAc",
+  ageMin: "fcAgeMin",       ageMax: "fcAgeMax",
+  heightMin: "fcHeightMin", heightMax: "fcHeightMax",
+  weightMin: "fcWeightMin", weightMax: "fcWeightMax",
+  clearBtn: "clearFiltersBtn",
+};
+
 function buildFilterPanel() {
-  const panel = document.createElement("div");
-  panel.className = "ap-dd-panel filter-dd-panel";
-  panel.id        = "filterPanel";
-
-  panel.innerHTML = `
-    <div class="filter-group-label">IDENTITY</div>
-    <div class="filter-section">
-      <div class="filter-section-label">POSITION</div>
-      <div class="pos-multiselect" id="posMultiselect">
-        <button class="pos-ms-btn" id="posMsBtn" type="button">
-          <span id="posMsLabel">All positions</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="posMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">CARD TYPE</div>
-      <div class="pos-multiselect" id="fcCtMs">
-        <button class="pos-ms-btn" id="fcCtMsBtn" type="button">
-          <span id="fcCtMsLabel">Any card type</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcCtMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect" id="fcPsMs">
-        <button class="pos-ms-btn" id="fcPsMsBtn" type="button">
-          <span id="fcPsMsLabel">Any playing style</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcPsMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect" id="fcFootMs">
-        <button class="pos-ms-btn" id="fcFootMsBtn" type="button">
-          <span id="fcFootMsLabel">Any foot</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcFootMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-group-label">STATS</div>
-    <div class="filter-section">
-      <div class="filter-section-label">OVERALL LEVEL 1</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcOvrMin" placeholder="Min" value="${catalog.filterOverallMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcOvrMax" placeholder="Max" value="${catalog.filterOverallMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">OVERALL MAX</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcOvrMaxMin" placeholder="Min" value="${catalog.filterMaxOverallMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcOvrMaxMax" placeholder="Max" value="${catalog.filterMaxOverallMax}">
-      </div>
-    </div>
-    <div class="filter-group-label">CLUB & ORIGIN</div>
-    <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
-      <div class="pos-multiselect" id="fcLgMs">
-        <button class="pos-ms-btn" id="fcLgMsBtn" type="button">
-          <span id="fcLgMsLabel">Any league</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcLgMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">REGION</div>
-      <div class="pos-multiselect" id="fcRgMs">
-        <button class="pos-ms-btn" id="fcRgMsBtn" type="button">
-          <span id="fcRgMsLabel">Any region</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="fcRgMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">CLUB</div>
-      <div class="autocomplete-wrap">
-        <input type="text" class="filter-input" id="fcClub" placeholder="e.g. FC Barcelona" value="${catalog.filterClub}" autocomplete="off">
-        <div class="autocomplete-list" id="fcClubAc"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">NATIONALITY</div>
-      <div class="autocomplete-wrap">
-        <input type="text" class="filter-input" id="fcNation" placeholder="e.g. Brazil" value="${catalog.filterNation}" autocomplete="off">
-        <div class="autocomplete-list" id="fcNationAc"></div>
-      </div>
-    </div>
-    <div class="filter-group-label">PHYSICAL</div>
-    <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcAgeMin" placeholder="Min" value="${catalog.filterAgeMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcAgeMax" placeholder="Max" value="${catalog.filterAgeMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">HEIGHT (cm)</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcHeightMin" placeholder="Min" value="${catalog.filterHeightMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcHeightMax" placeholder="Max" value="${catalog.filterHeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">WEIGHT (kg)</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="fcWeightMin" placeholder="Min" value="${catalog.filterWeightMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="fcWeightMax" placeholder="Max" value="${catalog.filterWeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <button class="filter-clear-btn" id="clearFiltersBtn">CLEAR ALL FILTERS</button>
-    </div>
-  `;
-
-  // Position multi-select dropdown
-  const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
-  const msPanel  = panel.querySelector("#posMsPanel");
-  const msBtn    = panel.querySelector("#posMsBtn");
-  const msLabel  = panel.querySelector("#posMsLabel");
-
-  function updatePosLabel() {
-    const sel = [...catalog.filterPositions];
-    msLabel.textContent = sel.length === 0 ? "All positions"
-      : sel.length <= 7  ? sel.join(", ")
-      : `${sel.slice(0, 7).join(", ")} +${sel.length - 7}`;
-    msBtn.classList.toggle("has-pos-filter", sel.length > 0);
-  }
-
-  POS_LIST.forEach((pos) => {
-    const item = document.createElement("div");
-    item.className  = `pos-ms-item${catalog.filterPositions.has(pos) ? " checked" : ""}`;
-    item.dataset.pos = pos;
-    item.innerHTML  = `<span class="pos-ms-check"></span><span>${pos}</span>`;
-    item.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (catalog.filterPositions.has(pos)) {
-        catalog.filterPositions.delete(pos);
-        item.classList.remove("checked");
-      } else {
-        catalog.filterPositions.add(pos);
-        item.classList.add("checked");
-      }
-      updatePosLabel();
+  return buildPlayerFilterPanel({
+    panelId: "filterPanel",
+    ids: CATALOG_FILTER_IDS,
+    state: catalog,
+    autocomplete: true,
+    onChange: () => { updateFilterBadge(); reloadCatalog(); },
+    onClear: () => {
+      resetPlayerFilterState(catalog);
+      // rebuild so the inputs reset visually
+      const wrap = document.getElementById("filterDropWrap");
+      document.getElementById("filterPanel")?.remove();
+      wrap.appendChild(buildFilterPanel());
       updateFilterBadge();
       reloadCatalog();
-    });
-    msPanel.appendChild(item);
+    },
   });
-
-  msBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const isOpen = msPanel.classList.toggle("open");
-    msBtn.classList.toggle("open", isOpen);
-  });
-
-  // Close pos panel when clicking outside
-  document.addEventListener("click", () => msPanel.classList.remove("open"));
-  msPanel.addEventListener("click", (e) => e.stopPropagation());
-
-  updatePosLabel();
-
-  // Text inputs (debounced)
-  let filterTimer = null;
-  function onFilterInput(id, key) {
-    const el = panel.querySelector(`#${id}`);
-    el?.addEventListener("input", () => {
-      clearTimeout(filterTimer);
-      catalog[key] = el.value.trim();
-      filterTimer = setTimeout(() => { updateFilterBadge(); reloadCatalog(); }, 400);
-    });
-  }
-  onFilterInput("fcClub",      "filterClub");
-  onFilterInput("fcNation",    "filterNation");
-
-  // Autocomplete for club & nationality
-  initAutocomplete(
-    panel.querySelector("#fcClub"),
-    panel.querySelector("#fcClubAc"),
-    "club",
-    (val) => { catalog.filterClub = val; updateFilterBadge(); reloadCatalog(); }
-  );
-  initAutocomplete(
-    panel.querySelector("#fcNation"),
-    panel.querySelector("#fcNationAc"),
-    "nationality",
-    (val) => { catalog.filterNation = val; updateFilterBadge(); reloadCatalog(); }
-  );
-  onFilterInput("fcOvrMin",    "filterOverallMin");
-  onFilterInput("fcOvrMax",    "filterOverallMax");
-  onFilterInput("fcOvrMaxMin", "filterMaxOverallMin");
-  onFilterInput("fcOvrMaxMax", "filterMaxOverallMax");
-  onFilterInput("fcHeightMin", "filterHeightMin");
-  onFilterInput("fcHeightMax", "filterHeightMax");
-  onFilterInput("fcWeightMin", "filterWeightMin");
-  onFilterInput("fcWeightMax", "filterWeightMax");
-  onFilterInput("fcAgeMin",    "filterAgeMin");
-  onFilterInput("fcAgeMax",    "filterAgeMax");
-
-  const runCatMs = (o) =>
-    wireAttributeMultiselects(panel, o, [
-      {
-        optionsKey: "foot",
-        stateSet: catalog.filterFoot,
-        panelSel: "#fcFootMsPanel",
-        btnSel: "#fcFootMsBtn",
-        labelSel: "#fcFootMsLabel",
-        allLabel: "Any foot",
-        onChange: () => { updateFilterBadge(); reloadCatalog(); },
-      },
-      {
-        optionsKey: "playing_style",
-        stateSet: catalog.filterPlayingStyle,
-        panelSel: "#fcPsMsPanel",
-        btnSel: "#fcPsMsBtn",
-        labelSel: "#fcPsMsLabel",
-        allLabel: "Any playing style",
-        onChange: () => { updateFilterBadge(); reloadCatalog(); },
-      },
-      {
-        optionsKey: "card_type",
-        stateSet: catalog.filterCardType,
-        panelSel: "#fcCtMsPanel",
-        btnSel: "#fcCtMsBtn",
-        labelSel: "#fcCtMsLabel",
-        allLabel: "Any card type",
-        onChange: () => { updateFilterBadge(); reloadCatalog(); },
-      },
-      {
-        optionsKey: "league",
-        stateSet: catalog.filterLeague,
-        panelSel: "#fcLgMsPanel",
-        btnSel: "#fcLgMsBtn",
-        labelSel: "#fcLgMsLabel",
-        allLabel: "Any league",
-        onChange: () => { updateFilterBadge(); reloadCatalog(); },
-      },
-      {
-        optionsKey: "region",
-        stateSet: catalog.filterRegion,
-        panelSel: "#fcRgMsPanel",
-        btnSel: "#fcRgMsBtn",
-        labelSel: "#fcRgMsLabel",
-        allLabel: "Any region",
-        onChange: () => { updateFilterBadge(); reloadCatalog(); },
-      },
-    ]);
-  if (playerFilterOptionsCache) runCatMs(playerFilterOptionsCache);
-  else getPlayerFilterOptions().then(runCatMs);
-
-  // Clear all
-  panel.querySelector("#clearFiltersBtn")?.addEventListener("click", () => {
-    catalog.filterPositions.clear();
-    catalog.filterFoot.clear();
-    catalog.filterPlayingStyle.clear();
-    catalog.filterCardType.clear();
-    catalog.filterLeague.clear();
-    catalog.filterRegion.clear();
-    catalog.filterClub = catalog.filterNation = "";
-    catalog.filterOverallMin = catalog.filterOverallMax = "";
-    catalog.filterMaxOverallMin = catalog.filterMaxOverallMax = "";
-    catalog.filterHeightMin = catalog.filterHeightMax = "";
-    catalog.filterWeightMin = catalog.filterWeightMax = "";
-    catalog.filterAgeMin    = catalog.filterAgeMax    = "";
-    // Rebuild filter panel to reset inputs visually
-    const wrap = document.getElementById("filterDropWrap");
-    const old  = document.getElementById("filterPanel");
-    if (old) old.remove();
-    wrap.appendChild(buildFilterPanel());
-    updateFilterBadge();
-    reloadCatalog();
-  });
-
-  return panel;
 }
 
 

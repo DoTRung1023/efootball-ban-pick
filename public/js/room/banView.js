@@ -21,9 +21,49 @@ import {
   stagedBanThumbHtml,
 } from './ban.js';
 import { banLimit } from './draftFlow.js';
-import { renderBanPlanPanel } from './planPreview.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
+
+/* ── Ban slot sizing ───────────────────────────────────────────────
+   Ban cards are height-driven (`.ban-phase-thumb img` is `height: 100%;
+   width: auto`), so the strip scales from the single `--ban-slot-h` custom
+   property. A high ban cap needs more rows than fit — at 12 bans the natural
+   96px card wants ~408px per strip, and the two strips share the sidebar — so
+   pick the largest height at which every slot fits without scrolling. */
+const SLOT_GAP = 8;      // .ban-side-strip gap
+const SLOT_MAX_H = 96;   // natural .ban-phase-thumb--md height
+const SLOT_MIN_H = 44;   // below this the card art stops being recognisable
+const SLOT_RATIO = 68 / 96;
+
+/**
+ * Publishes `--ban-slot-h` on the panel so both strips scale together.
+ *
+ * The strip's own height comes from the flex layout, not from its content, so
+ * measuring it here cannot feed back into the value we set.
+ */
+function applyBanSlotHeight(strip, maxBans) {
+  const panel = strip?.closest(".ban-phase-right");
+  if (!panel) return;
+
+  const availH = strip.clientHeight;
+  const availW = strip.clientWidth;
+  // not laid out yet (panel hidden) — leave whatever is already set
+  if (!maxBans || maxBans < 1 || availH < 1 || availW < 1) return;
+
+  let best = SLOT_MIN_H;
+  for (let h = SLOT_MAX_H; h >= SLOT_MIN_H; h -= 2) {
+    // a shorter card is also narrower, so more fit per row
+    const cols = Math.max(1, Math.floor((availW + SLOT_GAP) / (h * SLOT_RATIO + SLOT_GAP)));
+    const rows = Math.ceil(maxBans / cols);
+    if (rows * (h + SLOT_GAP) - SLOT_GAP <= availH) { best = h; break; }
+  }
+
+  // only write on change; this runs on every presence poll
+  if (panel.dataset.slotH !== String(best)) {
+    panel.dataset.slotH = String(best);
+    panel.style.setProperty("--ban-slot-h", `${best}px`);
+  }
+}
 
 const BAN_BOARD_IDS = [
   "draftBanPhaseBoard",
@@ -60,6 +100,8 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
   renderMyBadge(room[mySide], myConfirmed);
   renderMyBansStatus(myConfirmed, theirConfirmed);
 
+  applyBanSlotHeight(el.draftMyBansStrip, maxBans);
+
   renderBanStrip(el.draftMyBansStrip, {
     confirmed: myBans,
     staged: state.stagedBans,
@@ -77,7 +119,6 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
   });
 
   renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase });
-  renderBanPlanPanel();
 }
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);

@@ -100,7 +100,6 @@ export const state = {
   draftGamePlansLoading: false,
   draftGamePlanPlayersLoading: false,
   /** Ban-phase "consult a plan" panel; collapsed state is per-session only. */
-  banPlanPanelOpen: true,
   actionError: "",
   presenceError: false,
 };

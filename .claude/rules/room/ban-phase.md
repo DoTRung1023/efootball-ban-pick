@@ -10,9 +10,27 @@ paths:
 ## Layout
 
 Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks
-(bans-on-me / my-bans). The BANS ON ME header contains a `.ban-opponent-badge` pill
-showing the opponent's username, a colored presence dot (`.ban-opponent-dot.is-online`),
-and a status text (`· is choosing...` / `· confirmed ✓` / `· left the room`).
+(bans-on-me / my-bans) and a `.ban-side-actions` footer. Each section header contains a
+`.ban-opponent-badge` pill showing the username, a colored presence dot
+(`.ban-opponent-dot.is-online`), and a status text (`· is choosing...` /
+`· confirmed ✓` / `· left the room`).
+
+**Keep the two sections structurally identical — head + badge + strip, nothing else.**
+Both are `flex: 1` (basis 0), so they always get the same height, but anything extra
+placed *inside* one section eats into that section's strip and the two ban boxes stop
+matching. CONFIRM BANS (`#confirmBansBtn`) and the confirm-status line
+(`#draftMyBansStatus`) used to live inside the MY BANS section and made its strip ~54 px
+shorter than the other; they now sit in the `.ban-side-actions` footer, which is
+`flex: 0 0 auto` and spans the panel. Measured: both strips are pixel-identical at
+760 / 900 / 1100 px viewport heights.
+
+A high ban cap no longer scrolls: `applyBanSlotHeight()` shrinks the shared
+`--ban-slot-h` so every slot fits its strip. See the ban-thumbnail section in
+`room/css.md` for the sizing rule and the measured results — the short version is that
+the cards stay height-driven (`width: auto`), so one number scales the strip without
+letterboxing the art. It runs on every presence poll but only writes when the value
+changes, and the strip's height comes from the flex layout rather than its contents, so
+the measurement cannot feed back into what it sets.
 
 ## Interaction
 
@@ -91,22 +109,15 @@ Related invariants:
   Weight) — using `.filter-group-label` dividers. Built in `renderBanToolbar()` and
   event-delegated in `bindBanPhaseUiOnce()` (runs once; guarded by `state.banUiBound`).
   Clearing all filters resets all 16 state fields.
-## "Consult this plan" reference panel
+## Removed: the "Consult this plan" reference panel
 
-The third `.ban-side-section` in `.ban-phase-right` (`#banPlanSection`) shows a read-only
-view of one of the user's saved game plans, so they can see their intended lineup while
-choosing bans. It is purely a reference — nothing in it affects the draft.
+`.ban-phase-right` used to carry a third `.ban-side-section` (`#banPlanSection`) showing
+a read-only preview of a saved game plan while banning. **It has been removed** — along
+with `room/planPreview.js`, its `draftControls.js` wiring, `state.banPlanPanelOpen`, and
+the `.ban-plan-*` / `.draft-plan-*` / `.formation-*` rules in `room.css` (the panel was
+their only consumer).
 
-- Rendered by `renderBanPlanPanel()` in `room/planPreview.js`, called at the end of
-  `renderBanBoard()`. Guarded by `data-planKey` on `#banPlanPreview`, since
-  `renderBanBoard` runs on every presence poll.
-- The plan `<select>` (`#banPlanSelect`) and the collapse toggle (`#banPlanToggle`) are
-  wired in `draftControls.js`. Collapsed state lives in `state.banPlanPanelOpen` and is
-  per-session only.
-- The panel is `flex: 0 0 auto` so it does not squeeze the two ban strips; the preview
-  scrolls internally at `max-height: 260px`.
-- The `.formation-*` markup is shared with the full-size preview; `room.css` scopes a
-  compact variant under `.ban-plan-panel` for the 320 px sidebar (vertical slot cards,
-  nationality hidden, rows use `grid-auto-flow: column` so any slot count fits).
-- If the markup is absent, `renderBanPlanPanel()` returns early — removing the panel from
-  `room.html` degrades to a no-op rather than an error.
+The sidebar is now BANS ON ME → MY BANS → CONFIRM BANS, and the two ban strips stretch
+to fill the column. The pick phase's own plan chips and live pitch are unaffected — they
+are a separate feature and still use `gamePlans.js`
+(`state.draftGamePlanSelectedId`, `loadDraftGamePlanPlayers`).

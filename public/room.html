@@ -7,7 +7,7 @@
     <link rel="icon" href="/logo/logo.png" type="image/png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/css/room.css" />
   </head>
   <body>
@@ -373,24 +373,15 @@
                         <span class="ban-opponent-name" id="draftMyBansName">YOU</span>
                         <span class="ban-opponent-status-text" id="draftMyBansBadgeStatus"></span>
                       </div>
-                      <p id="draftMyBansStatus" class="ban-status-hint"></p>
                       <div class="ban-phase-strip ban-side-strip" id="draftMyBansStrip"></div>
-                      <button class="btn btn--primary ban-confirm-btn" id="confirmBansBtn" type="button" disabled>CONFIRM BANS</button>
                     </div>
 
-                    <!-- Read-only reference: consult a saved game plan while banning -->
-                    <div class="ban-side-section ban-plan-panel" id="banPlanSection">
-                      <div class="ban-side-head">
-                        <span class="ban-side-title">GAME PLAN</span>
-                        <button class="ban-plan-toggle" id="banPlanToggle" type="button"
-                                aria-expanded="true" aria-controls="banPlanBody"
-                                title="Show or hide the plan preview">▾</button>
-                      </div>
-                      <div class="ban-plan-body" id="banPlanBody">
-                        <select class="draft-select draft-plan-select" id="banPlanSelect" aria-label="Game plan to consult"></select>
-                        <div class="draft-plan-meta" id="banPlanMeta"></div>
-                        <div class="ban-plan-preview" id="banPlanPreview"></div>
-                      </div>
+                    <!-- Panel-level action + status. Kept outside both .ban-side-sections
+                         so the two ban strips stay the same size — anything placed inside
+                         one section shortens only that section's strip. -->
+                    <div class="ban-side-actions">
+                      <p id="draftMyBansStatus" class="ban-status-hint"></p>
+                      <button class="btn btn--primary ban-confirm-btn" id="confirmBansBtn" type="button" disabled>CONFIRM BANS</button>
                     </div>
 
                   </aside>

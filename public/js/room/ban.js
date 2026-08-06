@@ -290,20 +290,6 @@ export async function loadOpponentBanPlayers() {
   }
 }
 
-export function banHistoryCardHtml(player) {
-  return `
-    <div class="ban-history-card">
-      <div class="ban-history-thumb">
-        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
-      </div>
-      <div class="ban-history-text">
-        <div class="ban-history-name">${escapeHtml(player.name || "—")}</div>
-        <div class="ban-history-meta">${escapeHtml(player.position || "—")} · OVR ${escapeHtml(getPlayerCardValue(player))}</div>
-      </div>
-    </div>
-  `;
-}
-
 export function banPlayerCardHtml(player, o) {
   const { banned, picked, clickable } = o;
   const unavailable = banned || picked;

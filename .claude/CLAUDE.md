@@ -30,8 +30,22 @@ heartbeat); there is no WebSocket layer.
 - `src/` — backend: `server.js` composition root, `routes/`, `rooms/`, `players/`, `lib/`.
 - `public/` — three pages: `home.html` (squad / game plans / rooms), `room.html` (the
   ban-pick draft), `admin.html`. Each has an ESM entry file in `public/js/` plus a
-  sub-module directory.
+  sub-module directory. `public/js/shared/` holds the few helpers the home and room
+  bundles genuinely share (`playerMeta.js`: card-image paths, `escapeHtml`,
+  `makePlayerImg`, the player metadata block). Each bundle **re-exports** them from its
+  own utils module, so sub-modules keep importing from their own bundle as before —
+  when adding a shared helper, follow that pattern rather than importing
+  `shared/` directly from a leaf module.
 - `database/schema.sql` — MySQL schema.
+
+## Visual design
+
+**`DESIGN.md` in the repo root is the source of truth for how the app looks** — colour
+tokens and their meanings, the green/cyan accent ladders, type scale, radius/spacing
+scales, elevation, motion, and copy-paste component recipes. Read it before writing any
+CSS or markup with a visual result, and before acting on any "make it look better /
+more modern" request. Do not introduce a colour, radius, or spacing value that is not on
+one of its ladders.
 
 ## Cross-cutting conventions
 

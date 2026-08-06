@@ -6,27 +6,23 @@
    eFootball Ban & Pick — Home Page
    ============================================================ */
 
-export const CARD_IMG    = (id) => `/img/card/${id}.png`;
-export const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
+/* Card art, escaping and the player metadata block are shared with the room
+   bundle — see ../shared/playerMeta.js. Re-exported here so home sub-modules
+   keep importing them from "./utils.js" as before. */
+import { escapeHtml } from "../shared/playerMeta.js";
+export {
+  CARD_IMG,
+  ANON_PLAYER_IMG,
+  escapeHtml,
+  makePlayerImg,
+  playerDetailSublineHtml,
+  playerDetailTooltipText,
+} from "../shared/playerMeta.js";
+
 export const PAGE_SIZE   = 50;
 export const POS_DEF     = ["CB","LB","RB"];
 export const POS_MID     = ["CMF","DMF", "RMF", "LMF", "AMF"];
 export const POS_FWD     = ["RWF","LWF","CF","SS"];
-
-export function makePlayerImg(src, alt = "Player image") {
-  const img = document.createElement("img");
-  img.src = src || ANON_PLAYER_IMG;
-  img.alt = alt;
-  img.loading = "lazy";
-  img.addEventListener("error", () => {
-    if (img.dataset.fallbackApplied === "1") {
-      return;
-    }
-    img.dataset.fallbackApplied = "1";
-    img.src = ANON_PLAYER_IMG;
-  });
-  return img;
-}
 
 /* ============================================================
    Auth
@@ -361,74 +357,6 @@ export function toggleDdPanel(panelId, btnId, otherPanelId, otherBtnId) {
     closeDdPanel(otherPanelId, otherBtnId);
     openDdPanel(panelId, btnId);
   }
-}
-
-export function escapeHtml(str) {
-  const d = document.createElement("div");
-  d.textContent = str ?? "";
-  return d.innerHTML;
-}
-
-/**
- * Stacked lines (each "/" in the spec = newline): region - country; league - club; foot - style; H - W - age.
- * Hyphens only within a line. Catalog, popup, plan picker, squad footer.
- */
-export function playerDetailSublineHtml(player) {
-  const h = (s) => (s != null && String(s).trim() ? escapeHtml(String(s).trim()) : "");
-  const hyph = `<span class="pmeta-sep pmeta-hyphen"> · </span>`;
-
-  function dashLine(...raw) {
-    const bits = raw
-      .filter((v) => v != null && String(v).trim())
-      .map((v) => h(String(v).trim()));
-    return bits.length ? bits.join(hyph) : "";
-  }
-
-  const phys = [
-    player.height ? `${player.height} cm` : null,
-    player.weight ? `${player.weight} kg` : null,
-    player.age ? `${player.age} yo` : null,
-  ];
-
-  const rows = [
-    dashLine(player.region, player.nationality),
-    dashLine(player.league, player.club),
-    dashLine(player.foot, player.playing_style),
-    dashLine(...phys),
-  ].filter(Boolean);
-
-  if (!rows.length) {
-    return `<div class="pmeta-stack"><div class="pmeta-row pmeta-empty">—</div></div>`;
-  }
-  return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
-}
-
-// Generate tooltip text with all player detail info (for card titles).
-export function playerDetailTooltipText(player) {
-  if (!player) return "";
-  const h = (s) => (s != null && String(s).trim() ? String(s).trim() : "");
-
-  function dashLine(...raw) {
-    const bits = raw
-      .filter((v) => v != null && String(v).trim())
-      .map((v) => h(String(v).trim()));
-    return bits.length ? bits.join(" · ") : "";
-  }
-
-  const phys = [
-    player.height ? `${player.height} cm` : null,
-    player.weight ? `${player.weight} kg` : null,
-    player.age ? `${player.age} yo` : null,
-  ];
-
-  const rows = [
-    dashLine(player.region, player.nationality),
-    dashLine(player.league, player.club),
-    dashLine(player.foot, player.playing_style),
-    dashLine(...phys),
-  ].filter(Boolean);
-
-  return rows.length ? rows.join("\n") : "—";
 }
 
 /** Both ratings known — show level 1 and max side by side (compact layout in catalog rows). */

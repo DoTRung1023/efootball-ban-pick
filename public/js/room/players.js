@@ -7,18 +7,14 @@ import {
 } from './constants.js';
 import { escapeHtml } from './utils.js';
 
-export function makePlayerImg(src, alt = "Player image") {
-  const img = document.createElement("img");
-  img.src = src || ANON_PLAYER_IMG;
-  img.alt = alt;
-  img.loading = "lazy";
-  img.addEventListener("error", () => {
-    if (img.dataset.fallbackApplied === "1") return;
-    img.dataset.fallbackApplied = "1";
-    img.src = ANON_PLAYER_IMG;
-  });
-  return img;
-}
+/* Card art + the player metadata block are shared with the home bundle —
+   see ../shared/playerMeta.js. Re-exported so room modules keep importing
+   them from "./players.js" as before. */
+export {
+  makePlayerImg,
+  playerDetailSublineHtml,
+  playerDetailTooltipText,
+} from "../shared/playerMeta.js";
 
 export function normalizeFormation(f) {
   const s = String(f || "").trim();
@@ -125,63 +121,6 @@ export function slotCardsSummary(players) {
   return `${count}/${FIXED_PICKS_PER_SIDE}`;
 }
 
-export function playerDetailSublineHtml(player) {
-  const h = (s) => (s != null && String(s).trim() ? escapeHtml(String(s).trim()) : "");
-  const hyph = `<span class="pmeta-sep pmeta-hyphen"> · </span>`;
-
-  function dashLine(...raw) {
-    const bits = raw
-      .filter((v) => v != null && String(v).trim())
-      .map((v) => h(String(v).trim()));
-    return bits.length ? bits.join(hyph) : "";
-  }
-
-  const phys = [
-    player.height ? `${player.height} cm` : null,
-    player.weight ? `${player.weight} kg` : null,
-    player.age ? `${player.age} yo` : null,
-  ];
-
-  const rows = [
-    dashLine(player.region, player.nationality),
-    dashLine(player.league, player.club),
-    dashLine(player.foot, player.playing_style),
-    dashLine(...phys),
-  ].filter(Boolean);
-
-  if (!rows.length) {
-    return `<div class="pmeta-stack"><div class="pmeta-row pmeta-empty">—</div></div>`;
-  }
-  return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
-}
-
-export function playerDetailTooltipText(player) {
-  if (!player) return "";
-  const h = (s) => (s != null && String(s).trim() ? String(s).trim() : "");
-
-  function dashLine(...raw) {
-    const bits = raw
-      .filter((v) => v != null && String(v).trim())
-      .map((v) => h(String(v).trim()));
-    return bits.length ? bits.join(" · ") : "";
-  }
-
-  const phys = [
-    player.height ? `${player.height} cm` : null,
-    player.weight ? `${player.weight} kg` : null,
-    player.age ? `${player.age} yo` : null,
-  ];
-
-  const rows = [
-    dashLine(player.region, player.nationality),
-    dashLine(player.league, player.club),
-    dashLine(player.foot, player.playing_style),
-    dashLine(...phys),
-  ].filter(Boolean);
-
-  return rows.length ? rows.join("\n") : "—";
-}
-
 export function normalizePlayerForFooter(player) {
   if (!player || typeof player !== "object") return {};
   return {
@@ -195,36 +134,4 @@ export function normalizePlayerForFooter(player) {
     weight: player.weight ?? "",
     age: player.age ?? "",
   };
-}
-
-export function miniCardHtml(player, o) {
-  const { banned, picked, clickable, isBanPhase } = o;
-  const unavailable = banned || picked;
-  return `
-    <div class="mini-card ${isBanPhase ? "is-ban-phase" : "is-pick-phase"} ${unavailable ? (banned ? "is-ban" : "is-pick") : ""} ${clickable ? "is-clickable" : ""}"
-         data-player-id="${escapeHtml(player.id)}"
-         tabindex="${clickable ? 0 : -1}">
-      <div class="mini-thumb">
-        <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
-      </div>
-      ${isBanPhase ? "" : `
-        <div class="mini-row">
-          <div class="mini-ovr">${getPlayerCardValue(player)}</div>
-          <div style="min-width:0">
-            <div class="mini-name">${escapeHtml(player.name)}</div>
-            <div class="mini-sub">${escapeHtml(player.position)} · ${escapeHtml(player.nation)}</div>
-          </div>
-        </div>
-        <div class="mini-stats">
-          ${["SPD", "FIN", "PAS"]
-            .map((l, i) => {
-              const vals = [player.speed, player.finishing, player.passing];
-              return `<div class="mini-stat"><div class="mini-stat-l">${l}</div><div class="mini-stat-v">${vals[i] ?? "—"}</div></div>`;
-            })
-            .join("")}
-        </div>
-        <div class="mini-cta ${isBanPhase ? "is-ban" : "is-pick"} mini-cta-hover" style="display:none"></div>
-      `}
-    </div>
-  `;
 }

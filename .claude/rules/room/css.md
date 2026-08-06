@@ -91,12 +91,24 @@ definition).
 ## Ban card thumbnails (`.ban-phase-thumb`)
 
 - `border-radius: 0` — no rounded corners on cards in "Bans on Me" / "My Bans" strips.
-- `height` is fixed (96 px for `--md`); **no explicit width** — the `img` is set to
-  `height: 100%; width: auto` so the card's natural aspect ratio determines the container
-  width. This avoids letterboxing since pesdb.net card images are taller than the old 3:4
-  container ratio.
-- The empty-state dashed placeholder (`.ban-side-strip:empty::before`) uses `68×96 px`
-  with `border-radius: 0` to match the natural card proportions.
+- **Height-driven, never width-driven.** `--md` is `height: var(--ban-slot-h, 96px)` with
+  **no explicit width** — the `img` is `height: 100%; width: auto`, so the card's natural
+  aspect ratio sets the container width. This avoids letterboxing, since pesdb.net card
+  images are taller than the old 3:4 ratio. Do not add a `width` or swap the strip to
+  grid columns; that reintroduces letterboxing.
+- `--ban-slot-h` is declared on `.ban-phase-right` (default `96px`) and **set at render
+  time** by `applyBanSlotHeight()` in `banView.js`: it picks the largest height at which
+  every slot for the current ban cap fits its strip without scrolling, floor 44 px. Both
+  strips inherit it, so they scale together. Because a shorter card is also narrower,
+  more fit per row — the search recomputes the column count at each candidate height.
+  Measured (1440 px wide): cap 3 → 96 px at every viewport height; cap 12 → 90 px at
+  1100 px tall, 70 px at 900, 56 px at 760; cap 18 → 46 px at 760. Nothing scrolls.
+- Keep the `var(--ban-slot-h, 96px)` **fallback**: `--md` thumbs rendered outside
+  `.ban-phase-right` have no such variable in scope, and without the fallback the
+  declaration is invalid and the height is dropped entirely.
+- The empty placeholder (`.ban-side-empty-slot`, and `.ban-side-strip:empty::before`)
+  uses the same `height` plus `aspect-ratio: 68 / 96; width: auto`, so it tracks the
+  card size instead of being pinned at 68×96.
 
 ## Pick phase
 

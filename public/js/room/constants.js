@@ -1,5 +1,5 @@
 // ── Colours ──────────────────────────────────────────────────────
-export const GREEN = "#00e676";
+export const GREEN = "#2ccf75";
 export const RED = "#ff4444";
 
 // ── Draft config ─────────────────────────────────────────────────
@@ -15,8 +15,8 @@ export const REVEAL_MODE_INSTANT = "instant";
 export const REVEAL_MODE_HIDDEN = "hidden";
 
 // ── Image helpers ─────────────────────────────────────────────────
-export const CARD_IMG = (id) => `/img/card/${id}.png`;
-export const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
+// Shared with the home bundle — see ../shared/playerMeta.js.
+export { CARD_IMG, ANON_PLAYER_IMG } from "../shared/playerMeta.js";
 
 // ── Formations ────────────────────────────────────────────────────
 export const DEFAULT_FORMATION = "4-3-3";
@@ -102,7 +102,6 @@ export const LEGACY_ALLOWANCE_KEY_MAP = {
   weightMin:     "weight",
   ageMin:        "age",
 };
-export const ALLOWANCE_CAP_OPTIONS = Array.from({ length: FIXED_PICKS_PER_SIDE }, (_, i) => i + 1);
 
 // ── Player attribute options ──────────────────────────────────────
 export const POSITION_OPTIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];

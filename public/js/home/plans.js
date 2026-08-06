@@ -6,6 +6,7 @@ import { getUser, showToast, showConfirm, escapeHtml,
          openDdPanel, closeDdPanel, toggleDdPanel } from './utils.js';
 import { cb } from './callbacks.js';
 import { playerFilterOptionsCache, getPlayerFilterOptions, wireAttributeMultiselects, SORT_CATEGORIES } from './catalog.js';
+import { buildPlayerFilterPanel } from './filterPanel.js';
 
 const gamePlans = {
   plans:      [],
@@ -639,243 +640,36 @@ function buildPpSortPanel() {
   return panel;
 }
 
+const PP_FILTER_IDS = {
+  posWrap: "ppPosMs",   posBtn: "ppPosMsBtn",   posLabel: "ppPosMsLabel",   posPanel: "ppPosMsPanel",
+  ctWrap: "ppCtMs",     ctBtn: "ppCtMsBtn",     ctLabel: "ppCtMsLabel",     ctPanel: "ppCtMsPanel",
+  psWrap: "ppPsMs",     psBtn: "ppPsMsBtn",     psLabel: "ppPsMsLabel",     psPanel: "ppPsMsPanel",
+  footWrap: "ppFootMs", footBtn: "ppFootMsBtn", footLabel: "ppFootMsLabel", footPanel: "ppFootMsPanel",
+  lgWrap: "ppLgMs",     lgBtn: "ppLgMsBtn",     lgLabel: "ppLgMsLabel",     lgPanel: "ppLgMsPanel",
+  rgWrap: "ppRgMs",     rgBtn: "ppRgMsBtn",     rgLabel: "ppRgMsLabel",     rgPanel: "ppRgMsPanel",
+  ovrMin: "ppFcOvrMin",       ovrMax: "ppFcOvrMax",
+  ovrMaxMin: "ppFcOvrMaxMin", ovrMaxMax: "ppFcOvrMaxMax",
+  club: "ppFcClub", nation: "ppFcNation",   // no autocomplete lists on the plan picker
+  ageMin: "ppFcAMin",    ageMax: "ppFcAMax",
+  heightMin: "ppFcHMin", heightMax: "ppFcHMax",
+  weightMin: "ppFcWMin", weightMax: "ppFcWMax",
+  clearBtn: "ppClearFilters",
+};
+
 function buildPpFilterPanel() {
-  const panel = document.createElement("div");
-  panel.className = "ap-dd-panel filter-dd-panel";
-  panel.id = "ppFilterPanel";
-
-  const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
-
-  panel.innerHTML = `
-    <div class="filter-group-label">IDENTITY</div>
-    <div class="filter-section">
-      <div class="filter-section-label">POSITION</div>
-      <div class="pos-multiselect" id="ppPosMs">
-        <button class="pos-ms-btn" id="ppPosMsBtn" type="button">
-          <span id="ppPosMsLabel">All positions</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppPosMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">CARD TYPE</div>
-      <div class="pos-multiselect" id="ppCtMs">
-        <button class="pos-ms-btn" id="ppCtMsBtn" type="button">
-          <span id="ppCtMsLabel">Any card type</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppCtMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">PLAYING STYLE</div>
-      <div class="pos-multiselect" id="ppPsMs">
-        <button class="pos-ms-btn" id="ppPsMsBtn" type="button">
-          <span id="ppPsMsLabel">Any playing style</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppPsMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">FOOT</div>
-      <div class="pos-multiselect" id="ppFootMs">
-        <button class="pos-ms-btn" id="ppFootMsBtn" type="button">
-          <span id="ppFootMsLabel">Any foot</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppFootMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-group-label">STATS</div>
-    <div class="filter-section">
-      <div class="filter-section-label">OVERALL LEVEL 1</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcOvrMin" placeholder="Min" value="${ppState.filterOverallMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcOvrMax" placeholder="Max" value="${ppState.filterOverallMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">OVERALL MAX</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcOvrMaxMin" placeholder="Min" value="${ppState.filterMaxOverallMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcOvrMaxMax" placeholder="Max" value="${ppState.filterMaxOverallMax}">
-      </div>
-    </div>
-    <div class="filter-group-label">CLUB & ORIGIN</div>
-    <div class="filter-section">
-      <div class="filter-section-label">LEAGUE</div>
-      <div class="pos-multiselect" id="ppLgMs">
-        <button class="pos-ms-btn" id="ppLgMsBtn" type="button">
-          <span id="ppLgMsLabel">Any league</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppLgMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">REGION</div>
-      <div class="pos-multiselect" id="ppRgMs">
-        <button class="pos-ms-btn" id="ppRgMsBtn" type="button">
-          <span id="ppRgMsLabel">Any region</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="pos-ms-panel" id="ppRgMsPanel"></div>
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">CLUB</div>
-      <input type="text" class="filter-input" id="ppFcClub" placeholder="e.g. FC Barcelona" value="${ppState.filterClub}" autocomplete="off">
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">NATIONALITY</div>
-      <input type="text" class="filter-input" id="ppFcNation" placeholder="e.g. Brazil" value="${ppState.filterNation}" autocomplete="off">
-    </div>
-    <div class="filter-group-label">PHYSICAL</div>
-    <div class="filter-section">
-      <div class="filter-section-label">AGE</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcAMin" placeholder="Min" value="${ppState.filterAgeMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcAMax" placeholder="Max" value="${ppState.filterAgeMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">HEIGHT (cm)</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcHMin" placeholder="Min" value="${ppState.filterHeightMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcHMax" placeholder="Max" value="${ppState.filterHeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <div class="filter-section-label">WEIGHT (kg)</div>
-      <div class="range-pair">
-        <input type="number" class="filter-input" id="ppFcWMin" placeholder="Min" value="${ppState.filterWeightMin}">
-        <span class="range-sep">—</span>
-        <input type="number" class="filter-input" id="ppFcWMax" placeholder="Max" value="${ppState.filterWeightMax}">
-      </div>
-    </div>
-    <div class="filter-section">
-      <button class="filter-clear-btn" id="ppClearFilters">CLEAR ALL FILTERS</button>
-    </div>`;
-
-  const msPanel = panel.querySelector("#ppPosMsPanel");
-  const msBtn   = panel.querySelector("#ppPosMsBtn");
-  const msLabel = panel.querySelector("#ppPosMsLabel");
-
-  function updatePosLabel() {
-    const sel = [...ppState.filterPositions];
-    msLabel.textContent = sel.length === 0 ? "All positions"
-      : sel.length <= 5 ? sel.join(", ")
-      : `${sel.slice(0,5).join(", ")} +${sel.length - 5}`;
-    msBtn.classList.toggle("has-pos-filter", sel.length > 0);
-  }
-
-  POS_LIST.forEach((pos) => {
-    const item = document.createElement("div");
-    item.className   = `pos-ms-item${ppState.filterPositions.has(pos) ? " checked" : ""}`;
-    item.dataset.pos = pos;
-    item.innerHTML   = `<span class="pos-ms-check"></span><span>${pos}</span>`;
-    item.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (ppState.filterPositions.has(pos)) { ppState.filterPositions.delete(pos); item.classList.remove("checked"); }
-      else { ppState.filterPositions.add(pos); item.classList.add("checked"); }
-      updatePosLabel();
+  return buildPlayerFilterPanel({
+    panelId: "ppFilterPanel",
+    ids: PP_FILTER_IDS,
+    state: ppState,
+    onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+    onClear: () => {
+      resetPpState();
+      rebuildPpPanels();
+      updatePpSortUI();
       updatePpFilterDot();
       renderPlanPicker();
-    });
-    msPanel.appendChild(item);
+    },
   });
-
-  msBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const open = msPanel.classList.toggle("open");
-    msBtn.classList.toggle("open", open);
-  });
-  document.addEventListener("click", () => msPanel.classList.remove("open"));
-  msPanel.addEventListener("click", (e) => e.stopPropagation());
-  updatePosLabel();
-
-  let ft = null;
-  function onIn(id, key) {
-    const el = panel.querySelector(`#${id}`);
-    el?.addEventListener("input", () => {
-      clearTimeout(ft);
-      ppState[key] = el.value.trim();
-      ft = setTimeout(() => { updatePpFilterDot(); renderPlanPicker(); }, 300);
-    });
-  }
-  onIn("ppFcClub",  "filterClub");   onIn("ppFcNation", "filterNation");
-  onIn("ppFcOvrMin", "filterOverallMin"); onIn("ppFcOvrMax", "filterOverallMax");
-  onIn("ppFcOvrMaxMin", "filterMaxOverallMin"); onIn("ppFcOvrMaxMax", "filterMaxOverallMax");
-  onIn("ppFcHMin",  "filterHeightMin"); onIn("ppFcHMax", "filterHeightMax");
-  onIn("ppFcWMin",  "filterWeightMin"); onIn("ppFcWMax", "filterWeightMax");
-  onIn("ppFcAMin",  "filterAgeMin");    onIn("ppFcAMax", "filterAgeMax");
-
-  const runPpMs = (o) =>
-    wireAttributeMultiselects(panel, o, [
-      {
-        optionsKey: "foot",
-        stateSet: ppState.filterFoot,
-        panelSel: "#ppFootMsPanel",
-        btnSel: "#ppFootMsBtn",
-        labelSel: "#ppFootMsLabel",
-        allLabel: "Any foot",
-        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
-      },
-      {
-        optionsKey: "playing_style",
-        stateSet: ppState.filterPlayingStyle,
-        panelSel: "#ppPsMsPanel",
-        btnSel: "#ppPsMsBtn",
-        labelSel: "#ppPsMsLabel",
-        allLabel: "Any playing style",
-        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
-      },
-      {
-        optionsKey: "card_type",
-        stateSet: ppState.filterCardType,
-        panelSel: "#ppCtMsPanel",
-        btnSel: "#ppCtMsBtn",
-        labelSel: "#ppCtMsLabel",
-        allLabel: "Any card type",
-        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
-      },
-      {
-        optionsKey: "league",
-        stateSet: ppState.filterLeague,
-        panelSel: "#ppLgMsPanel",
-        btnSel: "#ppLgMsBtn",
-        labelSel: "#ppLgMsLabel",
-        allLabel: "Any league",
-        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
-      },
-      {
-        optionsKey: "region",
-        stateSet: ppState.filterRegion,
-        panelSel: "#ppRgMsPanel",
-        btnSel: "#ppRgMsBtn",
-        labelSel: "#ppRgMsLabel",
-        allLabel: "Any region",
-        onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
-      },
-    ]);
-  if (playerFilterOptionsCache) runPpMs(playerFilterOptionsCache);
-  else getPlayerFilterOptions().then(runPpMs);
-
-  panel.querySelector("#ppClearFilters")?.addEventListener("click", () => {
-    resetPpState();
-    rebuildPpPanels();
-    updatePpSortUI();
-    updatePpFilterDot();
-    renderPlanPicker();
-  });
-
-  return panel;
 }
 
 function renderPlanPicker() {

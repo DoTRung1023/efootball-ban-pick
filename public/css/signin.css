@@ -1,24 +1,24 @@
 /* ============================================================
    eFootball Ban & Pick — Sign In Page
-   Theme: Black + Electric Green
+   Theme: Deep Navy + Emerald  (bg #0b1b29 · accent #2ccf75)
    ============================================================ */
 
 :root {
-  --green: #00e676;
-  --green-dim: #00c853;
-  --green-dark: #00701e;
-  --green-glow: rgba(0, 230, 118, 0.35);
-  --green-glow-sm: rgba(0, 230, 118, 0.15);
-  --black: #030507;
-  --bg: #060b0e;
-  --bg-card: rgba(6, 18, 12, 0.82);
+  --green: #2ccf75;
+  --green-dim: #22b063;
+  --green-dark: #14663a;
+  --green-glow: rgba(44, 207, 117, 0.35);
+  --green-glow-sm: rgba(44, 207, 117, 0.15);
+  --black: #061119;
+  --bg: #0b1b29;
+  --bg-card: rgba(11, 31, 49, 0.82);
   --bg-field: rgba(255,255,255,0.03);
-  --border: rgba(0, 230, 118, 0.18);
-  --border-active: rgba(0, 230, 118, 0.7);
-  --text: #e8f5e9;
-  --text-dim: #7bab8a;
-  --font-main: 'Rajdhani', system-ui, sans-serif;
-  --font-display: 'Orbitron', 'Rajdhani', sans-serif;
+  --border: rgba(44, 207, 117, 0.18);
+  --border-active: rgba(44, 207, 117, 0.7);
+  --text: #e7f0f6;
+  --text-dim: #8aa5b8;
+  --font-main: 'Inter', system-ui, sans-serif;
+  --font-display: 'Orbitron', 'Inter', sans-serif;
   --radius: 12px;
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -57,10 +57,10 @@ body {
   inset: 0;
   background:
     /* outer border */
-    linear-gradient(transparent 4%, rgba(0,230,118,0.06) 4%, rgba(0,230,118,0.06) 4.1%, transparent 4.1%),
-    linear-gradient(transparent 95.9%, rgba(0,230,118,0.06) 95.9%, rgba(0,230,118,0.06) 96%, transparent 96%),
-    linear-gradient(90deg, transparent 3%, rgba(0,230,118,0.06) 3%, rgba(0,230,118,0.06) 3.2%, transparent 3.2%),
-    linear-gradient(90deg, transparent 96.8%, rgba(0,230,118,0.06) 96.8%, rgba(0,230,118,0.06) 97%, transparent 97%);
+    linear-gradient(transparent 4%, rgba(44,207,117,0.06) 4%, rgba(44,207,117,0.06) 4.1%, transparent 4.1%),
+    linear-gradient(transparent 95.9%, rgba(44,207,117,0.06) 95.9%, rgba(44,207,117,0.06) 96%, transparent 96%),
+    linear-gradient(90deg, transparent 3%, rgba(44,207,117,0.06) 3%, rgba(44,207,117,0.06) 3.2%, transparent 3.2%),
+    linear-gradient(90deg, transparent 96.8%, rgba(44,207,117,0.06) 96.8%, rgba(44,207,117,0.06) 97%, transparent 97%);
   background-size: 100% 100%;
 }
 
@@ -71,7 +71,7 @@ body {
   transform: translateX(-50%);
   width: 1px;
   height: 100%;
-  background: rgba(0, 230, 118, 0.05);
+  background: rgba(44, 207, 117, 0.05);
 }
 
 .pitch-center-circle {
@@ -81,7 +81,7 @@ body {
   transform: translate(-50%, -50%);
   width: min(55vw, 55vh);
   height: min(55vw, 55vh);
-  border: 1px solid rgba(0, 230, 118, 0.05);
+  border: 1px solid rgba(44, 207, 117, 0.05);
   border-radius: 50%;
 }
 
@@ -94,8 +94,8 @@ body {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: rgba(0, 230, 118, 0.08);
-  border: 1px solid rgba(0, 230, 118, 0.15);
+  background: rgba(44, 207, 117, 0.08);
+  border: 1px solid rgba(44, 207, 117, 0.15);
 }
 
 /* ============================================================
@@ -112,7 +112,7 @@ body {
 .glow-orb-1 {
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(0,230,118,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(44,207,117,0.12) 0%, transparent 70%);
   top: -200px;
   right: -150px;
   animation: orbFloat 12s ease-in-out infinite;
@@ -121,7 +121,7 @@ body {
 .glow-orb-2 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(0,180,100,0.09) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(25,172,100,0.09) 0%, transparent 70%);
   bottom: -150px;
   left: -100px;
   animation: orbFloat 16s ease-in-out infinite reverse;
@@ -130,7 +130,7 @@ body {
 .glow-orb-3 {
   width: 350px;
   height: 350px;
-  background: radial-gradient(circle, rgba(0,230,118,0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(44,207,117,0.07) 0%, transparent 70%);
   top: 40%;
   left: 10%;
   animation: orbFloat 20s ease-in-out infinite 3s;
@@ -258,7 +258,7 @@ body {
   object-fit: contain;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: rgba(0,230,118,0.05);
+  background: rgba(44,207,117,0.05);
   padding: 4px;
 }
 
@@ -286,7 +286,7 @@ body {
   font-weight: 900;
   letter-spacing: 0.08em;
   color: var(--green);
-  text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,230,118,0.2);
+  text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(44,207,117,0.2);
 }
 
 .brand-sub {
@@ -324,10 +324,10 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(0,230,118,0.05),
+    0 0 0 1px rgba(44,207,117,0.05),
     0 8px 48px rgba(0,0,0,0.6),
-    0 0 80px rgba(0,230,118,0.06),
-    inset 0 1px 0 rgba(0,230,118,0.1);
+    0 0 80px rgba(44,207,117,0.06),
+    inset 0 1px 0 rgba(44,207,117,0.1);
   animation: cardSlideIn 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s both;
 }
 
@@ -359,7 +359,7 @@ body {
   letter-spacing: 0.1em;
   color: var(--text);
   margin-bottom: 6px;
-  text-shadow: 0 0 30px rgba(0,230,118,0.15);
+  text-shadow: 0 0 30px rgba(44,207,117,0.15);
 }
 
 .card-subtitle {
@@ -410,7 +410,7 @@ body {
 
 .field-input {
   width: 100%;
-  background: rgba(0, 230, 118, 0.04);
+  background: rgba(44, 207, 117, 0.04);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
@@ -423,14 +423,14 @@ body {
 }
 
 .field-input::placeholder {
-  color: rgba(123,171,138,0.45);
+  color: rgba(138,165,184,0.45);
   font-size: 0.9rem;
 }
 
 .field-input:focus {
   border-color: var(--border-active);
-  background: rgba(0, 230, 118, 0.07);
-  box-shadow: 0 0 0 3px rgba(0,230,118,0.1), 0 0 20px rgba(0,230,118,0.08);
+  background: rgba(44, 207, 117, 0.07);
+  box-shadow: 0 0 0 3px rgba(44,207,117,0.1), 0 0 20px rgba(44,207,117,0.08);
 }
 
 .field-input:focus + .field-icon,
@@ -479,7 +479,7 @@ body {
   height: 16px;
   border: 1.5px solid var(--border);
   border-radius: 4px;
-  background: rgba(0,230,118,0.04);
+  background: rgba(44,207,117,0.04);
   position: relative;
   flex-shrink: 0;
   transition: border-color var(--transition), background var(--transition);
@@ -534,10 +534,10 @@ body {
   gap: 10px;
   padding: 13px 24px;
   margin-top: 8px;
-  background: linear-gradient(135deg, #00c853 0%, #00e676 50%, #69f0ae 100%);
+  background: linear-gradient(135deg, #22b063 0%, #2ccf75 50%, #6ee6a4 100%);
   border: none;
   border-radius: 8px;
-  color: #021008;
+  color: #06131c;
   font-family: var(--font-display);
   font-size: 0.9rem;
   font-weight: 700;
@@ -545,18 +545,18 @@ body {
   cursor: pointer;
   overflow: hidden;
   transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
-  box-shadow: 0 4px 24px rgba(0,230,118,0.4), 0 0 0 1px rgba(0,230,118,0.3);
+  box-shadow: 0 4px 24px rgba(44,207,117,0.4), 0 0 0 1px rgba(44,207,117,0.3);
 }
 
 .signin-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,230,118,0.55), 0 0 0 1px rgba(0,230,118,0.5);
+  box-shadow: 0 8px 32px rgba(44,207,117,0.55), 0 0 0 1px rgba(44,207,117,0.5);
   filter: brightness(1.05);
 }
 
 .signin-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 12px rgba(0,230,118,0.3);
+  box-shadow: 0 2px 12px rgba(44,207,117,0.3);
 }
 
 .signin-btn:disabled {
@@ -608,8 +608,8 @@ body {
   position: absolute;
   width: 20px;
   height: 20px;
-  border: 2.5px solid rgba(0,16,8,0.3);
-  border-top-color: #021008;
+  border: 2.5px solid rgba(8,21,32,0.3);
+  border-top-color: #06131c;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -733,8 +733,8 @@ body {
   width: 60px;
   /* border-radius: 6px; */
   overflow: hidden;
-  border: 1px solid rgba(0,230,118,0.15);
-  background: rgba(0,230,118,0.05);
+  border: 1px solid rgba(44,207,117,0.15);
+  background: rgba(44,207,117,0.05);
   cursor: pointer;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
   position: relative;
@@ -761,7 +761,7 @@ body {
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: rgba(6, 18, 12, 0.95);
+  background: rgba(11, 31, 49, 0.95);
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font-main);
@@ -827,7 +827,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(3, 5, 7, 0.75);
+  background: rgba(6, 17, 25, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   opacity: 0;
@@ -851,10 +851,10 @@ body {
   -webkit-backdrop-filter: blur(32px) saturate(1.5);
   overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(0,230,118,0.06),
+    0 0 0 1px rgba(44,207,117,0.06),
     0 12px 60px rgba(0,0,0,0.7),
-    0 0 100px rgba(0,230,118,0.07),
-    inset 0 1px 0 rgba(0,230,118,0.12);
+    0 0 100px rgba(44,207,117,0.07),
+    inset 0 1px 0 rgba(44,207,117,0.12);
   transform: translateY(24px) scale(0.97);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -879,7 +879,7 @@ body {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: rgba(0,230,118,0.08);
+  background: rgba(44,207,117,0.08);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-dim);
@@ -892,7 +892,7 @@ body {
 
 .modal-close:hover {
   color: var(--green);
-  background: rgba(0,230,118,0.14);
+  background: rgba(44,207,117,0.14);
   border-color: var(--border-active);
 }
 

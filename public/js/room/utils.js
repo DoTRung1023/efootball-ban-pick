@@ -1,12 +1,8 @@
 import { state } from './state.js';
 
-export function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+/* Shared with the home bundle — see ../shared/playerMeta.js. Re-exported so
+   room modules keep importing it from "./utils.js" as before. */
+export { escapeHtml } from "../shared/playerMeta.js";
 
 export function showToast(message, variant = "default") {
   const el = document.getElementById("toast");

@@ -345,6 +345,27 @@ export function initLobby() {
 
   void registerAndPollPresence();
 
+  bindDraftSettings(user);
+
+
+
+  bindRevealModeDropdown();
+  bindAddAllowanceButton();
+  bindAllowanceListClick();
+  bindAllowanceListChange();
+  bindAllowanceCategoryDropdown();
+  bindAllowanceCapInputs();
+  bindGlobalDropdownDismiss();
+  bindLobbyChatAndExit();
+}
+
+// Set the renderLobby callback so presence.js can call it
+cb.renderLobby = renderLobby;
+
+/* ── initLobby wiring, split by concern ─────────────────────────── */
+
+/** Ban count / durations / allow-all / START DRAFT. */
+function bindDraftSettings(user) {
   document.getElementById("startDraftBtn")?.addEventListener("click", () => cb.startDraftFromLobby());
 
   document.getElementById("allowAllPlayersInput")?.addEventListener("change", (e) => {
@@ -418,9 +439,10 @@ export function initLobby() {
   };
   document.getElementById("banCountMinus")?.addEventListener("click", () => _stepBans(-1));
   document.getElementById("banCountPlus")?.addEventListener("click", () => _stepBans(1));
+}
 
-
-  const closeAllLobbyDropdowns = () => {
+/** Closes every open lobby dropdown (reveal mode, category picker, caps). */
+function closeAllLobbyDropdowns() {
     const categoryPanel = document.getElementById("allowanceCategoryPanel");
     const categoryTrigger = document.getElementById("allowanceCategoryTrigger");
     const modePanel = document.getElementById("lobbyRevealModePanel");
@@ -461,8 +483,10 @@ export function initLobby() {
     state.openAllowancePlayingStyleCapKey = "";
     state.clubSearchOpen = false;
     state.clubSearchActiveIndex = -1;
-  };
+  }
 
+/** Ban reveal mode dropdown. */
+function bindRevealModeDropdown() {
   document.getElementById("lobbyRevealModeTrigger")?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -487,6 +511,10 @@ export function initLobby() {
     scheduleLobbyConfigPush();
   });
 
+}
+
+/** ADD CATEGORY button on the allowance panel. */
+function bindAddAllowanceButton() {
   document.getElementById("addAllowanceBtn")?.addEventListener("click", () => {
     if (state.mySide !== "host") return;
     const dropdown = document.getElementById("allowanceCategoryDd");
@@ -532,6 +560,10 @@ export function initLobby() {
     scheduleLobbyConfigPush();
   });
 
+}
+
+/** Allowance list: clicks (chips, removes, cap toggles, multi-selects). */
+function bindAllowanceListClick() {
   document.getElementById("allowanceList")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-allowance-remove]");
     if (btn && state.mySide === "host") {
@@ -763,6 +795,10 @@ export function initLobby() {
     }
   });
 
+}
+
+/** Allowance list: select / checkbox commits. */
+function bindAllowanceListChange() {
   document.getElementById("allowanceList")?.addEventListener("change", (e) => {
     const capInput = e.target.closest(".allowance-cap-input");
     if (capInput && state.mySide === "host") {
@@ -814,6 +850,10 @@ export function initLobby() {
     }
   });
 
+}
+
+/** The category picker beside ADD CATEGORY. */
+function bindAllowanceCategoryDropdown() {
   const allowanceDropdown = document.getElementById("allowanceCategoryDd");
   const allowanceTrigger = document.getElementById("allowanceCategoryTrigger");
   const allowancePanel = document.getElementById("allowanceCategoryPanel");
@@ -845,6 +885,10 @@ export function initLobby() {
     renderLobby();
   });
 
+}
+
+/** Allowance list: cap number fields (input / change / keydown). */
+function bindAllowanceCapInputs() {
   document.getElementById("allowanceList")?.addEventListener("input", (e) => {
     const searchInput = e.target.closest(".allowance-club-search");
     if (searchInput && state.mySide === "host") {
@@ -1063,6 +1107,10 @@ export function initLobby() {
     const addBtn = searchInput.closest(".allowance-item")?.querySelector(`[data-allowance-club-add='${key}']`);
     if (addBtn && !addBtn.disabled) addBtn.click();
   });
+}
+
+/** Any outside click closes the lobby dropdowns. */
+function bindGlobalDropdownDismiss() {
   document.addEventListener("click", (e) => {
     if (e.target.closest("#allowanceCategoryDd")) return;
     if (e.target.closest("#allowanceCategoryPanel")) return;
@@ -1080,6 +1128,10 @@ export function initLobby() {
     }
   });
 
+}
+
+/** Chat submit, LEAVE / close room, KICK guest. */
+function bindLobbyChatAndExit() {
   document.getElementById("chatForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = document.getElementById("chatInput");
@@ -1140,6 +1192,3 @@ export function initLobby() {
     }
   });
 }
-
-// Set the renderLobby callback so presence.js can call it
-cb.renderLobby = renderLobby;

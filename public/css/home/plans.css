@@ -22,8 +22,8 @@
 
 .plan-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(0,230,118,0.45);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 0 16px rgba(0,230,118,0.12);
+  border-color: rgba(44,207,117,0.45);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 0 16px rgba(44,207,117,0.12);
 }
 
 .plan-formation {
@@ -32,7 +32,7 @@
   font-weight: 700;
   color: var(--green);
   letter-spacing: 0.05em;
-  text-shadow: 0 0 14px rgba(0,230,118,0.3);
+  text-shadow: 0 0 14px rgba(44,207,117,0.3);
 }
 
 .plan-name {
@@ -40,7 +40,7 @@
   font-weight: 700;
   color: var(--green);
   letter-spacing: 0.02em;
-  text-shadow: 0 0 16px rgba(0,230,118,0.3);
+  text-shadow: 0 0 16px rgba(44,207,117,0.3);
 }
 
 .plan-formation-tag {
@@ -48,12 +48,12 @@
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
-  color: rgba(0,230,118,0.9);
+  color: rgba(44,207,117,0.9);
 }
 
 .plan-date {
   font-size: 0.78rem;
-  color: rgba(180,210,190,0.75);
+  color: rgba(186,196,204,0.75);
   letter-spacing: 0.02em;
 }
 
@@ -72,11 +72,11 @@
   height: 64px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(0,230,118,0.05);
+  background: rgba(44,207,117,0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0,230,118,0.3);
+  color: rgba(44,207,117,0.3);
 }
 
 .plans-empty h3 {
@@ -89,7 +89,7 @@
 
 .plans-empty p {
   font-size: 0.85rem;
-  color: rgba(123,171,138,0.55);
+  color: rgba(138,165,184,0.55);
   max-width: 280px;
 }
 
@@ -110,7 +110,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--green);
-  text-shadow: 0 0 12px rgba(0,230,118,0.3);
+  text-shadow: 0 0 12px rgba(44,207,117,0.3);
 }
 
 /* ── Plan card select mode ── */
@@ -121,8 +121,8 @@
   width: 20px;
   height: 20px;
   border-radius: 5px;
-  background: rgba(3,8,6,0.75);
-  border: 2px solid rgba(0,230,118,0.4);
+  background: rgba(5,14,22,0.75);
+  border: 2px solid rgba(44,207,117,0.4);
   display: none;
   align-items: center;
   justify-content: center;
@@ -144,16 +144,16 @@
   content: '';
   width: 5px;
   height: 8px;
-  border: 2px solid #021008;
+  border: 2px solid #06131c;
   border-top: none;
   border-left: none;
   transform: rotate(45deg) translateY(-1px);
 }
 
 .plan-card.selected {
-  border-color: rgba(0,230,118,0.7);
-  background: rgba(0,230,118,0.08);
-  box-shadow: 0 0 0 2px rgba(0,230,118,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  border-color: rgba(44,207,117,0.7);
+  background: rgba(44,207,117,0.08);
+  box-shadow: 0 0 0 2px rgba(44,207,117,0.2), 0 4px 16px rgba(0,0,0,0.3);
 }
 
 .plan-delete-btn {
@@ -214,7 +214,7 @@
   /* Right padding clears the close button, which is positioned out of flow. */
   padding: 16px 54px 14px 22px;
   border-bottom: 1px solid var(--border);
-  background: rgba(4,12,8,0.6);
+  background: rgba(8,21,32,0.6);
 }
 
 /* The shared -4px/-4px offset puts the button under .modal-card's overflow
@@ -240,7 +240,7 @@
   letter-spacing: 0.06em;
   transition: border-color var(--transition), color var(--transition);
   cursor: text;
-  text-shadow: 0 0 22px rgba(0,230,118,0.35);
+  text-shadow: 0 0 22px rgba(44,207,117,0.35);
 }
 
 .plan-name-input:focus { border-bottom-color: var(--green); }
@@ -249,7 +249,7 @@
 .plan-name-hint {
   font-size: 1rem;
   font-weight: 500;
-  color: rgba(123,171,138,0.72);
+  color: rgba(138,165,184,0.72);
   display: block;
   margin-top: 5px;
   letter-spacing: 0.05em;
@@ -303,7 +303,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--green);
-  text-shadow: 0 0 14px rgba(0,230,118,0.35);
+  text-shadow: 0 0 14px rgba(44,207,117,0.35);
 }
 
 .plan-section-header.plan-xi-header-row {
@@ -346,8 +346,8 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--green);
-  background: linear-gradient(180deg, rgba(12,42,24,0.95) 0%, rgba(4,18,10,0.98) 100%);
-  border: 1px solid rgba(0,230,118,0.4);
+  background: linear-gradient(180deg, rgba(20,55,85,0.95) 0%, rgba(10,29,45,0.98) 100%);
+  border: 1px solid rgba(44,207,117,0.4);
   border-radius: 10px;
   cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
@@ -355,13 +355,13 @@
 }
 
 .plan-formation-trigger:hover {
-  border-color: rgba(0,230,118,0.65);
-  box-shadow: 0 0 16px rgba(0,230,118,0.18), 0 2px 12px rgba(0,0,0,0.35);
+  border-color: rgba(44,207,117,0.65);
+  box-shadow: 0 0 16px rgba(44,207,117,0.18), 0 2px 12px rgba(0,0,0,0.35);
 }
 
 .plan-formation-trigger.open {
-  border-color: rgba(0,230,118,0.75);
-  box-shadow: 0 0 20px rgba(0,230,118,0.22), inset 0 0 12px rgba(0,230,118,0.06);
+  border-color: rgba(44,207,117,0.75);
+  box-shadow: 0 0 20px rgba(44,207,117,0.22), inset 0 0 12px rgba(44,207,117,0.06);
 }
 
 .plan-formation-trigger:focus {
@@ -369,17 +369,17 @@
 }
 
 .plan-formation-trigger:focus-visible {
-  outline: 2px solid rgba(0,230,118,0.45);
+  outline: 2px solid rgba(44,207,117,0.45);
   outline-offset: 2px;
 }
 
 .plan-formation-value {
-  text-shadow: 0 0 12px rgba(0,230,118,0.35);
+  text-shadow: 0 0 12px rgba(44,207,117,0.35);
 }
 
 .plan-formation-dd-chevron {
   flex-shrink: 0;
-  color: rgba(0,230,118,0.85);
+  color: rgba(44,207,117,0.85);
   transition: transform var(--transition);
   transform: rotate(0deg);
 }
@@ -399,13 +399,13 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px 0;
-  background: rgba(4, 14, 9, 0.98);
-  border: 1px solid rgba(0,230,118,0.28);
+  background: rgba(9, 23, 36, 0.98);
+  border: 1px solid rgba(44,207,117,0.28);
   border-radius: 12px;
   backdrop-filter: blur(16px);
   box-shadow:
     0 12px 40px rgba(0,0,0,0.55),
-    0 0 0 1px rgba(0,230,118,0.08),
+    0 0 0 1px rgba(44,207,117,0.08),
     inset 0 1px 0 rgba(255,255,255,0.03);
   opacity: 0;
   pointer-events: none;
@@ -434,11 +434,11 @@
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: rgba(200, 220, 210, 0.88);
+  color: rgba(204, 210, 216, 0.88);
   text-align: left;
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
-  border-bottom: 1px solid rgba(0,230,118,0.06);
+  border-bottom: 1px solid rgba(44,207,117,0.06);
 }
 
 .plan-formation-option:last-child {
@@ -447,14 +447,14 @@
 
 .plan-formation-option:hover,
 .plan-formation-option:focus {
-  background: rgba(0,230,118,0.1);
+  background: rgba(44,207,117,0.1);
   color: var(--text);
   outline: none;
 }
 
 .plan-formation-option.active {
   color: var(--green);
-  background: rgba(0,230,118,0.09);
+  background: rgba(44,207,117,0.09);
   font-weight: 700;
 }
 
@@ -462,7 +462,7 @@
   flex-shrink: 0;
   opacity: 0;
   color: var(--green);
-  filter: drop-shadow(0 0 6px rgba(0,230,118,0.45));
+  filter: drop-shadow(0 0 6px rgba(44,207,117,0.45));
 }
 
 .plan-formation-option.active .plan-formation-check {
@@ -483,8 +483,8 @@
   flex-direction: column;
   flex: 1;
   gap: 8px;
-  background: linear-gradient(180deg, rgba(0,55,18,0.45) 0%, rgba(0,38,13,0.55) 100%);
-  border: 1px solid rgba(0,180,70,0.15);
+  background: linear-gradient(180deg, rgba(20,55,86,0.45) 0%, rgba(17,47,74,0.55) 100%);
+  border: 1px solid rgba(25,172,76,0.15);
   border-radius: 10px;
   padding: 10px 8px;
   position: relative;
@@ -523,8 +523,8 @@
 }
 
 .pitch-slot.empty:hover .pitch-slot-placeholder {
-  border-color: rgba(0,230,118,0.45);
-  background: rgba(0,230,118,0.05);
+  border-color: rgba(44,207,117,0.45);
+  background: rgba(44,207,117,0.05);
 }
 
 .pitch-slot.active {
@@ -534,7 +534,7 @@
 
 .pitch-slot.active .pitch-slot-placeholder {
   border-color: var(--green);
-  box-shadow: 0 0 14px rgba(0,230,118,0.3);
+  box-shadow: 0 0 14px rgba(44,207,117,0.3);
 }
 
 /* Shared card size — used by both placeholder and filled card.
@@ -551,11 +551,11 @@
 }
 
 .pitch-slot-placeholder {
-  border: 2px dashed rgba(0,230,118,0.22);
+  border: 2px dashed rgba(44,207,117,0.22);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0,230,118,0.22);
+  color: rgba(44,207,117,0.22);
   transition: all var(--transition);
   background: transparent;
 }
@@ -563,7 +563,7 @@
 .pitch-slot-num {
   font-family: var(--font-display);
   font-size: 0.65rem;
-  color: rgba(123,171,138,0.3);
+  color: rgba(138,165,184,0.3);
 }
 
 /* Full player card */
@@ -590,7 +590,7 @@
 }
 .pitch-card-fallback.pos-gk    { background: rgba(255,200,0,0.18); border: 1px solid rgba(255,200,0,0.3); }
 .pitch-card-fallback.pos-def   { background: rgba(0,120,255,0.18); border: 1px solid rgba(0,120,255,0.3); }
-.pitch-card-fallback.pos-mid   { background: rgba(0,230,118,0.18); border: 1px solid rgba(0,230,118,0.3); }
+.pitch-card-fallback.pos-mid   { background: rgba(44,207,117,0.18); border: 1px solid rgba(44,207,117,0.3); }
 .pitch-card-fallback.pos-fwd   { background: rgba(255,80,0,0.18);  border: 1px solid rgba(255,80,0,0.3); }
 .pitch-card-fallback.pos-other { background: rgba(180,180,180,0.1); border: 1px solid rgba(180,180,180,0.2); }
 
@@ -598,7 +598,7 @@
   font-family: var(--font-display);
   font-size: 0.65rem;
   font-weight: 700;
-  color: #e8f5ec;
+  color: #ebeff2;
 }
 .pitch-card-ovr {
   font-family: var(--font-display);
@@ -627,13 +627,13 @@
 }
 
 .pitch-card-ovr-badge .ovr-l1 {
-  color: #f0faf3;
+  color: #f2f5f8;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 .pitch-card-ovr-badge .ovr-slash {
   opacity: 0.65;
-  color: rgba(240, 250, 243, 0.85);
+  color: rgba(242, 245, 248, 0.85);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
@@ -642,12 +642,12 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
-.pitch-slot.active .pitch-card-wrap { filter: drop-shadow(0 0 8px rgba(0,230,118,0.5)); }
+.pitch-slot.active .pitch-card-wrap { filter: drop-shadow(0 0 8px rgba(44,207,117,0.5)); }
 
 .pitch-player-name {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #e8f5ec;
+  color: #ebeff2;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -721,13 +721,13 @@
 }
 
 .bench-slot.empty:hover .pitch-slot-placeholder {
-  border-color: rgba(0,230,118,0.45);
-  background: rgba(0,230,118,0.05);
+  border-color: rgba(44,207,117,0.45);
+  background: rgba(44,207,117,0.05);
 }
 
 .bench-slot.active .pitch-slot-placeholder {
   border-color: var(--green);
-  box-shadow: 0 0 12px rgba(0,230,118,0.3);
+  box-shadow: 0 0 12px rgba(44,207,117,0.3);
 }
 
 .bench-slot.filled {
@@ -736,7 +736,7 @@
 }
 
 .bench-slot.active.filled .pitch-card-wrap {
-  filter: drop-shadow(0 0 8px rgba(0,230,118,0.5));
+  filter: drop-shadow(0 0 8px rgba(44,207,117,0.5));
 }
 
 
@@ -754,7 +754,7 @@
   flex-shrink: 0;
   padding: 10px 14px 8px;
   border-bottom: 1px solid var(--border);
-  background: rgba(4,12,8,0.3);
+  background: rgba(8,21,32,0.3);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -774,7 +774,7 @@
   gap: 10px;
   padding: 6px 16px;
   border-bottom: 1px solid var(--border);
-  background: rgba(4,12,8,0.4);
+  background: rgba(8,21,32,0.4);
 }
 
 .sp-col-pos  { width: 32px; flex-shrink: 0; }
@@ -787,7 +787,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: rgba(123,171,138,0.45);
+  color: rgba(138,165,184,0.45);
 }
 
 .sp-row {
@@ -799,8 +799,8 @@
   transition: background var(--transition);
 }
 
-.sp-row:hover              { background: rgba(0,230,118,0.06); }
-.sp-row-active             { background: rgba(0,230,118,0.1); }
+.sp-row:hover              { background: rgba(44,207,117,0.06); }
+.sp-row-active             { background: rgba(44,207,117,0.1); }
 .sp-row-used               { opacity: 0.35; cursor: not-allowed; }
 .sp-row-used:hover         { background: transparent; }
 
@@ -813,7 +813,7 @@
   color: var(--text-dim);
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--border);
-  background: rgba(4,12,8,0.3);
+  background: rgba(8,21,32,0.3);
 }
 
 .pp-player-row {
@@ -822,19 +822,19 @@
   gap: 12px;
   padding: 10px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(0,230,118,0.04);
+  border-bottom: 1px solid rgba(44,207,117,0.04);
   transition: background var(--transition);
 }
-.pp-player-row:hover       { background: rgba(0,230,118,0.05); }
-.pp-row-current            { background: rgba(0,230,118,0.09); }
-.pp-row-current:hover      { background: rgba(0,230,118,0.13); }
+.pp-player-row:hover       { background: rgba(44,207,117,0.05); }
+.pp-row-current            { background: rgba(44,207,117,0.09); }
+.pp-row-current:hover      { background: rgba(44,207,117,0.13); }
 .pp-row-used               { opacity: 0.45; cursor: not-allowed; }
 .pp-row-used:hover         { background: transparent; }
 .pp-row-pending            {
-  background: rgba(0,230,118,0.12);
-  box-shadow: inset 0 0 0 1px rgba(0,230,118,0.45);
+  background: rgba(44,207,117,0.12);
+  box-shadow: inset 0 0 0 1px rgba(44,207,117,0.45);
 }
-.pp-row-pending:hover      { background: rgba(0,230,118,0.16); }
+.pp-row-pending:hover      { background: rgba(44,207,117,0.16); }
 
 .sp-pos {
   width: 36px;
@@ -851,7 +851,7 @@
 
 .sp-pos.pos-gk    { background: rgba(255,200,0,0.15); color: #ffc800; }
 .sp-pos.pos-def   { background: rgba(0,120,255,0.15); color: #6eb5ff; }
-.sp-pos.pos-mid   { background: rgba(0,230,118,0.15); color: var(--green); }
+.sp-pos.pos-mid   { background: rgba(44,207,117,0.15); color: var(--green); }
 .sp-pos.pos-fwd   { background: rgba(255,80,0,0.15);  color: #ff7043; }
 .sp-pos.pos-other { background: rgba(180,180,180,0.1); color: #aaa; }
 

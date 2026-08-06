@@ -230,10 +230,6 @@ export function resolveSide(entry, requesterId) {
   return null;
 }
 
-export function isHostOf(entry, requesterId) {
-  return resolveSide(entry, requesterId) === "host";
-}
-
 /** Captures the fields that pruning can change, so callers can detect a real transition. */
 export function presenceFingerprint(entry) {
   return [

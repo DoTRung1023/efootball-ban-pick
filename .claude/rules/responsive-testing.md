@@ -28,6 +28,19 @@ Two things that will waste time otherwise:
 - **`file://` URLs drop a query string** (`page.html?x=1` fails to resolve). Use `#hash`
   to parameterise a harness, and always pass the absolute `file:///…` URL when the URL
   carries a fragment.
+- **`<base href>` cannot rescue the stylesheets.** Every page links `href="/css/…"`, and a
+  root-absolute path on `file://` resolves against the filesystem root (`file:///css/…`),
+  **not** against `<base>`. The page then loads with no CSS at all and every measurement
+  comes back clean — a silent false pass. Rewrite the paths instead:
+  `html.replace(/(href|src)="\/(?!\/)/g, '$1="file:///abs/path/public/')`. Assert the
+  styles actually applied (e.g. `document.body.scrollWidth === viewport`, or a known
+  token resolving) before trusting a run.
+- **Webfonts must be local.** Chrome's headless sandbox has no network, so a Google Fonts
+  `<link>` silently falls back and every text measurement is wrong. `curl` the CSS with a
+  browser UA, download the woff2 files, and rewrite `src:` to absolute `file://` URLs.
+  `document.fonts.check()` is not a reliable confirmation here (it returns false for
+  faces that are loaded, and true for weights that have not been fetched yet) — verify by
+  measuring a known string and checking the width actually differs between faces.
 
 ## Harness
 

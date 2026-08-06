@@ -32,14 +32,19 @@ global error handlers, wires the `cb` registry, and boots the lobby on
   room-config normalisation helpers.
 - `utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`,
   `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
+  `escapeHtml` is re-exported from `shared/playerMeta.js`; `showToast` is **not**
+  shared — the room toast is a different component from the home one (it uses a
+  `toast--warn` modifier and a 2.4 s timeout, vs `toast show ${type}` at 3.5 s).
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
   `REGION_OPTIONS`, `FORMATION_LAYOUTS`, etc. The option arrays are **mutable** and are
   filled at runtime by `fetchFilterOptions()`; update with `.length = 0` + `push()`,
   never reassign.
 - `players.js` — pure player-data helpers: `normalizeApiPlayer`,
-  `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`, `miniCardHtml`,
+  `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`,
   `getPlayerCardValue`, `getPlayerImageSrc`, formation/slot utilities
-  (`getFormationLayout`, `buildOrderedSlotMap`).
+  (`getFormationLayout`, `buildOrderedSlotMap`). It also re-exports
+  `makePlayerImg` / `playerDetailSublineHtml` / `playerDetailTooltipText` from
+  `public/js/shared/playerMeta.js` — see below.
 - `allowance.js` — allowance/cap logic (position caps, card-type caps, range checks).
   The server normalises the same data independently in `src/rooms/config.js`.
 
@@ -77,11 +82,6 @@ global error handlers, wires the `cb` registry, and boots the lobby on
 - `gamePlans.js` — `loadDraftGamePlans`, `loadDraftGamePlanPlayers`, `getPickFormation`
   (selected plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`),
   `getSelectedPlan`.
-- `planPreview.js` — the ban-phase "consult a plan" reference panel:
-  `renderBanPlanPanel()` (plan `<select>` + collapse toggle + preview) and
-  `renderSlotMapPreview()` (pitch rows 1–11 + bench 12–23). Read-only; it never affects
-  the draft. Both the pitch and the panel are behind a `data-planKey` state guard.
-  The pick phase does not use it — it has its own plan chips and a live pitch.
 - `draftControls.js` — `initDraftControls()`, all draft-view event wiring.
 - `ban.js` — ban-phase data + toolbar: `getBanListPlayers`, `getPickListPlayers`,
   `renderBanToolbar`, `bindBanPhaseUiOnce`, `attachMiniCardGridHandlers`,
@@ -95,6 +95,14 @@ global error handlers, wires the `cb` registry, and boots the lobby on
 
 - `lobby.js` — `renderLobby()` and `initLobby()` (view state + event wiring). Sets
   `cb.renderLobby = renderLobby` during module init.
+  - `initLobby()` is an **orchestrator only**: identity/state setup, then one call per
+    concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`,
+    `bindAddAllowanceButton`, `bindAllowanceListClick`, `bindAllowanceListChange`,
+    `bindAllowanceCategoryDropdown`, `bindAllowanceCapInputs`,
+    `bindGlobalDropdownDismiss`, `bindLobbyChatAndExit`. Add new wiring as another
+    `bind*` function, not as more statements inside `initLobby`. Each is module-level
+    and closes over nothing but module state, so they can be read in isolation;
+    `closeAllLobbyDropdowns()` is shared by the dropdown binders.
 - `lobby/allowanceView.js` — `renderAllowanceList()`. Card type / region / playing style
   share one multi-select shape and one cap-panel shape, both built from the
   `MULTI_SELECT_KINDS` / `CAP_KINDS` descriptor tables — add a category by adding a table

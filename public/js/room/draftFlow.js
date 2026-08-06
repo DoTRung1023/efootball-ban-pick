@@ -153,7 +153,7 @@ function paintTimer(secondsLeft, durationSec) {
   if (ring) {
     const deg = Math.min(1, secondsLeft / durationSec) * 360;
     ring.classList.toggle("is-low", isLow);
-    ring.style.background = `conic-gradient(${isLow ? RED : GREEN} ${deg}deg, #1a1a2a 0deg)`;
+    ring.style.background = `conic-gradient(${isLow ? RED : GREEN} ${deg}deg, #263c4e 0deg)`;
   }
 }
 

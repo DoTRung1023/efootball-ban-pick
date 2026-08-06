@@ -25,10 +25,20 @@ ESM boot file that imports from `public/js/home/` sub-modules.
 - `squad.js` — My Players tab: player grid, search/sort/filter, select mode, single +
   bulk delete, card click → popup via `cb.openPlayerPopup`. Exports `loadSquad`,
   `initSquadSearchSortFilter`, `initSquadControls`.
+- `filterPanel.js` — **the** player filter dropdown, used by all three toolbars.
+  `buildPlayerFilterPanel({ panelId, ids, state, autocomplete, onChange, onClear })`
+  plus `resetPlayerFilterState`, `initAutocomplete`, `wireAttributeMultiselects`,
+  `playerFilterOptionsCache` / `getPlayerFilterOptions`. It replaced three ~270-line
+  near-identical builders. Each call site passes an **explicit id map** (see
+  `CATALOG_FILTER_IDS` / `SQUAD_FILTER_IDS` / `PP_FILTER_IDS`) because the three id
+  schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both `room.css`
+  and the surrounding wiring reference them by string — never derive an id from a
+  prefix. `autocomplete: false` (the plan picker) drops the club/nationality
+  autocomplete wrappers. To add a filter row, edit `panelMarkup` once.
 - `catalog.js` — Add Player modal and player popup: catalog list, sort/filter
-  dropdowns, add/remove player, `initAutocomplete`, `wireAttributeMultiselects`,
-  `playerFilterOptionsCache` / `getPlayerFilterOptions` (shared with `squad.js` and
-  `plans.js`). Exports `openAddPlayerModal`, `initAddPlayerModal`, `initPlayerPopup`.
+  dropdowns, add/remove player. Re-exports the `filterPanel.js` option helpers, since
+  `squad.js` and `plans.js` import them from here. Exports `openAddPlayerModal`,
+  `initAddPlayerModal`, `initPlayerPopup`.
 - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot
   assignment. Exports `loadGamePlans`, `initGamePlans`.
   - `STACKED_PLAN_LAYOUT` (`max-width: 900px`) must match the plan detail modal
