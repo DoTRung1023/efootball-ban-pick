@@ -1,6 +1,6 @@
 import { Router } from "express";
-import db from "../db.js";
-import { asyncHandler, describeError, requireAdminKey } from "../lib/http.js";
+import db from "#lib/db.js";
+import { asyncHandler, describeError, requireAdminKey } from "#lib/http.js";
 import { isActiveDraft, listActiveRooms, roomPhase } from "../rooms/store.js";
 
 const router = Router();

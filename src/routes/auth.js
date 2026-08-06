@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import db from "../db.js";
-import { asyncHandler, duplicateUserField, describeError } from "../lib/http.js";
+import db from "#lib/db.js";
+import { asyncHandler, duplicateUserField, describeError } from "#lib/http.js";
 
 const router = Router();
 

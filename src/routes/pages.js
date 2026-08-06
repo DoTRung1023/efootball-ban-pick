@@ -1,6 +1,6 @@
 import path from "node:path";
 import { Router } from "express";
-import { PUBLIC_DIR } from "../lib/paths.js";
+import { PUBLIC_DIR } from "#lib/paths.js";
 
 const router = Router();
 

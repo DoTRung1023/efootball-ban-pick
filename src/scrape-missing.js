@@ -1,5 +1,5 @@
 import "dotenv/config";
-import db from "./db.js";
+import db from "#lib/db.js";
 import {
   fetchHTML,
   parsePlayers,

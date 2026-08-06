@@ -1,6 +1,6 @@
 import { Router } from "express";
-import db from "../db.js";
-import { asyncHandler, requireUserIdQuery, describeError } from "../lib/http.js";
+import db from "#lib/db.js";
+import { asyncHandler, requireUserIdQuery, describeError } from "#lib/http.js";
 import {
   CATALOG_COLUMNS,
   DEFAULT_SORT,

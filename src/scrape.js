@@ -27,7 +27,7 @@ import "dotenv/config";
 import * as cheerio from "cheerio";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import db from "./db.js";
+import db from "#lib/db.js";
 
 const BASE       = "https://pesdb.net/efootball/";
 const STATE_FILE = new URL("../.scrape-state.json", import.meta.url).pathname;
