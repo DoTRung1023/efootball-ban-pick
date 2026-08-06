@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "scrape": "node src/scrape.js",
-    "scrape:missing": "node src/scrape-missing.js"
+    "scrape": "node src/features/ingestion/scrape.js",
+    "scrape:missing": "node src/features/ingestion/scrapeMissing.js"
   },
   "engines": {
     "node": ">=18"
