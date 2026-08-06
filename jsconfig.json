@@ -1,0 +1,25 @@
+{
+  "//": [
+    "Editor-only config — this project has no TypeScript and no build step.",
+    "It exists so VS Code resolves the `@/` (browser) and `#` (Node) aliases.",
+    "",
+    "At runtime those aliases are resolved by:",
+    "  @/  -> the <script type='importmap'> in each public/*.html  -> /js/",
+    "  #   -> the `imports` field in package.json                  -> ./src/",
+    "Keep all three in sync when adding a mapping."
+  ],
+  "compilerOptions": {
+    "checkJs": false,
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["public/js/*"],
+      "#features/*": ["src/features/*"],
+      "#lib/*": ["src/lib/*"]
+    }
+  },
+  "include": ["public/js/**/*.js", "src/**/*.js"],
+  "exclude": ["node_modules"]
+}

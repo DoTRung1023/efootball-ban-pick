@@ -21,5 +21,9 @@
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "mysql2": "^3.22.0"
+  },
+  "imports": {
+    "#features/*": "./src/features/*",
+    "#lib/*": "./src/lib/*"
   }
 }
