@@ -4,7 +4,7 @@ import { handleCardImage } from "./cardImageCacheR2.js";
 import { PUBLIC_DIR } from "#lib/paths.js";
 import { errorHandler, notFoundHandler } from "#lib/http.js";
 import adminRoutes from "./routes/admin.js";
-import authRoutes from "./routes/auth.js";
+import { authRoutes } from "#features/auth/index.js";
 import gamePlanRoutes from "./routes/gamePlans.js";
 import pageRoutes from "./routes/pages.js";
 import playerRoutes from "./routes/players.js";
