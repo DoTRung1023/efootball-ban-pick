@@ -2,8 +2,8 @@
    Cross-cutting responsive rules. **Loads last on purpose** — these override
    the phase sheets.
 
-   A contiguous slice of the original draft.css. The <link> order in room.html
-   reproduces that file exactly — see room/css.md before moving anything.
+   Split out of draft.css by concern. Rule order within this file follows the
+   original; see room/css.md for what the cascade depends on.
    ============================================================ */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -16,6 +16,7 @@
    placed at the end of the file because `.prep-*` and `.chat-log` are declared
    after them.
    ═══════════════════════════════════════════════════════════════ */
+
 @media (max-width: 1200px), (max-height: 760px) {
   .centered-box--lobby { flex: 0 0 auto; }
 
@@ -51,6 +52,7 @@
    (`.ban-phase-right`, `.ban-side-section`, `.pick-phase-grid` …) are declared
    after the earlier 900 px block, so rules placed there lose the cascade.
    ═══════════════════════════════════════════════════════════════ */
+
 @media (max-width: 900px) {
   /* Stacked, the panels can no longer share one viewport height — squeezed
      into a fraction of it their content spills over the section below. Let
@@ -85,6 +87,7 @@
    hangs off an edge (measured at 320–430 px: sort ran 2–42 px past the right,
    filter started at x = −119). Anchor both to the toolbar instead and let them
    span it. */
+
 @media (max-width: 620px) {
   /* Stage header on two rows: leave + identity (lobby) or timer + leave (draft)
      on row 1, the four-step bar full width on row 2. Side by side the parts need
@@ -141,6 +144,7 @@
 /* ═══════════════════════════════════════════════════════════════
    PHONE (≤480 px)
    ═══════════════════════════════════════════════════════════════ */
+
 @media (max-width: 480px) {
   .stage-dot-label { font-size: 9px; letter-spacing: 0.02em; }
 
@@ -163,4 +167,3 @@
   .pick-phase-center,
   .pick-phase-right { padding: 8px; }
 }
-

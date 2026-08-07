@@ -6,50 +6,78 @@ paths:
 
 # Room page CSS conventions and component map
 
-## The eleven sheets, and why the order is load-bearing
+## The seven sheets
 
-`draft.css` was 6,009 lines. It is now eleven sheets under
-`public/css/features/draft/`, linked from `room.html` in this order:
+`draft.css` was 6,009 lines. It is now seven sheets under
+`public/css/features/draft/`, grouped by concern and linked from `room.html` in
+this order:
 
-| # | Sheet | Holds |
-| --- | --- | --- |
-| 1 | `base.css` | tokens, resets, pitch background, glow orbs |
-| 2 | `views.css` | `#view*` states, error + abandoned screens, spinner, buttons |
-| 3 | `lobby.css` | top bar, matchup, settings, allowance builder, chat |
-| 4 | `stageProgress.css` | the connected stage dots and the draft layout frame |
-| 5 | `ban.css` | ban board, ported "My Players" toolbar, player cards |
-| 6 | `draftPanels.css` | panel headline, side panel, mini cards, Done, header bars |
-| 7 | `banSidebar.css` | the ban right sidebar and confirm footer |
-| 8 | `draftHeader.css` | draft-view stage header controls |
-| 9 | `pick.css` | quick-load bar, squad pool, pitch, allowance bar, live feed |
-| 10 | `ready.css` | the Start Match screen |
-| 11 | `responsive.css` | cross-cutting responsive rules |
+| Sheet | Holds |
+| --- | --- |
+| `base.css` | `:root` tokens, resets, pitch background, glow orbs |
+| `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, Done, header bars |
+| `lobby.css` | top bar, matchup, settings panel, allowance builder, chat |
+| `ban.css` | ban board, ported "My Players" toolbar, player cards, right sidebar |
+| `pick.css` | quick-load bar, squad pool, formation pitch, allowance bar, live feed |
+| `ready.css` | the Start Match screen |
+| `responsive.css` | cross-cutting responsive rules |
 
-**Each sheet is a contiguous slice of the original file, and the eleven
-concatenate back to it byte-for-byte.** There is no bundler, so the `<link>`
-order *is* the cascade — that reconstruction is the only reason the split is
-safe. Reordering the links, or moving a rule between sheets, silently
-re-renders the page; nothing will error.
+There is no bundler, so the `<link>` order **is** the cascade. `base.css` must stay
+first (everything reads its custom properties) and `responsive.css` last (it
+overrides the phase sheets). Reordering the links silently re-renders the page —
+nothing will error.
 
-### Why not one sheet per concern
+`.mini-card` and `.side-panel` live in `shell.css`, not a phase sheet: they carry
+both `.is-ban` and `.is-pick` variants.
 
-Because the original interleaves them. "shell" rules occupy four non-adjacent
-spans and "ban" two, so grouping strictly by concern reorders rules. That was
-tried and **measurably broke rendering**: with shell hoisted above lobby,
-`#allowanceCategoryTrigger` lost its `.draft-select` styling and flipped from a
-purple 7px border at 13px to a green 18px border at 10.4px. Hence sheets 4, 6, 7
-and 8, which are ordering artefacts rather than clean concerns.
+### Three rules that had to be reclassified
 
-That is also why `.mini-card` and `.side-panel` sit in `draftPanels.css`: they
-carry both `.is-ban` and `.is-pick` variants and belong to no single phase.
+The spans of the original file did not match its concerns, and three rules were
+only working because of where they happened to sit. Grouping by concern moves
+them, which changes who wins — so each was reclassified into the sheet its
+consumers actually live in:
 
-If you ever re-cut these files, verify with a computed-style diff — load a real
-captured DOM with the old and new sheet sets and compare `getComputedStyle` for
-every element plus `::before`/`::after`. Two traps in that harness, both of
-which produced convincing false results before being fixed: `getComputedStyle`
-reports *used* values, so unloaded images make it timing-dependent (strip
-`src`); and it enumerates custom properties in declaration order, which the
-split changes harmlessly (sort the property names before comparing).
+| Rule | Was in | Now in | Why |
+| --- | --- | --- | --- |
+| `.draft-select` (+ `:focus`) | stage-progress span | `lobby.css` | used on exactly **one** element in the whole app — the allowance category trigger in the lobby |
+| `.lobby-stage-row` | draft-header span | `lobby.css` | the header bar of the lobby, used once inside `#viewLobby` |
+| `.stage-progress-container--lobby` (+ its ` .stage-progress-bar`) | lobby span | `shell.css` | a modifier of a shell component, and it must stay ahead of the generic `.stage-progress-container` |
+
+Each move keeps the original relative order inside its new sheet, so the winning
+rule is unchanged.
+
+**Two of these are latent dead CSS** — worth knowing before you "fix" what looks
+wrong:
+
+- `.draft-select` overrides the purpose-built `.allowance-category-trigger`, so
+  that button renders as a purple 7px-radius box at 13px, **not** the green 18px
+  pill its own rule describes. The pill styling appears only on hover, where
+  `.allowance-category-trigger:hover` wins on specificity.
+- The base rule for `.lobby-stage-row` sits after the `@media (max-width: 900px)`
+  override in the lobby responsive block, so that override never applies.
+
+Both are preserved exactly as they were. Changing either is a visual decision,
+not a refactor.
+
+### Verifying a change to these files
+
+Moving a rule between sheets changes its cascade position. Verify with a
+computed-style diff: load a real captured DOM with the old and new sheet sets and
+compare `getComputedStyle` for every element plus `::before`/`::after`. The
+current split passes 18 comparisons (lobby/ban/pick DOM x six widths) with zero
+differences.
+
+Four traps in that harness, each of which produced a confident false result
+before being fixed:
+
+1. The repo path contains spaces — unencoded, the `file://` sheets silently fail
+   to load and *everything* differs. Assert a known token resolves first.
+2. `getComputedStyle` returns **used** values, so images still loading make the
+   signature timing-dependent. Strip every `src`.
+3. It enumerates **custom properties in declaration order**, which splitting
+   changes with no rendering effect. Sort property names before comparing.
+4. Confirm the files on disk are the build you think you are measuring — a stale
+   copy produced both a false pass and a false failure here.
 
 ## Colour system (hard rule)
 

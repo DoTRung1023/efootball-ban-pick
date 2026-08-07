@@ -2,11 +2,12 @@
    Pick phase: quick-load bar, squad pool, formation pitch, allowance bar and
    the live opponent feed.
 
-   A contiguous slice of the original draft.css. The <link> order in room.html
-   reproduces that file exactly — see room/css.md before moving anything.
+   Split out of draft.css by concern. Rule order within this file follows the
+   original; see room/css.md for what the cascade depends on.
    ============================================================ */
 
 /* ── Pick Phase ────────────────────────────────────────────── */
+
 .draft-panel--pick-phase {
   display: flex;
   flex-direction: column;
@@ -20,6 +21,7 @@
 }
 
 /* Quick-load plan bar */
+
 .pick-quickload-bar {
   display: flex;
   align-items: center;
@@ -130,6 +132,7 @@
 }
 
 /* Formation dropdown */
+
 .pick-ql-formation-wrap {
   position: relative;
   flex-shrink: 0;
@@ -190,9 +193,11 @@
 }
 
 .pick-ql-formation-panel button:hover { background: var(--c-fill); color: var(--text); }
+
 .pick-ql-formation-panel button.is-active { color: var(--cyan); }
 
 /* Three-column layout: left | center | right */
+
 .pick-phase-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 252px;
@@ -202,6 +207,7 @@
 }
 
 /* Left: squad pool */
+
 .pick-phase-left {
   min-width: 0;
   min-height: 0;
@@ -257,6 +263,7 @@
 .pick-phase-controls .sort-dir-btn { flex: 0 0 auto; }
 
 /* Position tab bar */
+
 .pick-pos-tabs {
   display: flex;
   gap: 4px;
@@ -287,6 +294,7 @@
 }
 
 /* Squad pick grid */
+
 .pick-phase-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
@@ -316,6 +324,7 @@
 .pick-phase-grid .player-card.is-clickable { cursor: pointer; }
 
 /* PICKED overlay */
+
 .pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after {
   content: "PICKED";
   position: absolute;
@@ -333,6 +342,7 @@
 }
 
 /* BANNED overlay */
+
 .pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
   content: "BANNED";
   position: absolute;
@@ -350,11 +360,15 @@
 }
 
 .pick-phase-grid::-webkit-scrollbar { width: 4px; }
+
 .pick-phase-grid::-webkit-scrollbar-track { background: transparent; }
+
 .pick-phase-grid::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 4px; }
+
 .pick-phase-grid::-webkit-scrollbar-thumb:hover { background: rgba(53, 214, 255, 0.38); }
 
 /* Center: formation pitch */
+
 .pick-phase-center {
   min-width: 0;
   min-height: 0;
@@ -425,6 +439,7 @@
 }
 
 /* Pitch */
+
 .pick-pitch-wrap {
   flex: 1;
   min-height: 0;
@@ -533,6 +548,7 @@
 }
 
 /* Bottom bar: allowance + confirm */
+
 .pick-bottom-bar {
   display: flex;
   align-items: center;
@@ -604,6 +620,7 @@
 }
 
 /* Right: live opponent feed */
+
 .pick-phase-right {
   min-width: 0;
   min-height: 0;
@@ -712,7 +729,9 @@
 }
 
 .pick-opp-feed::-webkit-scrollbar { width: 3px; }
+
 .pick-opp-feed::-webkit-scrollbar-track { background: transparent; }
+
 .pick-opp-feed::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 2px; }
 
 .pick-feed-row {
@@ -848,6 +867,7 @@
 
 /* Single column, pitch included: `.pick-phase-center` carries the CONFIRM PICKS
    button, so hiding it below this width left no way to finish the draft. */
+
 @media (max-width: 860px) {
   .pick-phase-layout { grid-template-columns: 1fr; }
 }
@@ -856,4 +876,3 @@
   .pick-phase-layout { grid-template-columns: 1fr; }
   .pick-phase-right { max-height: 200px; }
 }
-

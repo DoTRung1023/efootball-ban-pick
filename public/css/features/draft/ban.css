@@ -1,12 +1,13 @@
 /* ============================================================
-   Ban phase: the board, the ported "My Players" toolbar, the position
-   multi-select and the player cards.
+   Ban phase: the board, the ported "My Players" toolbar, the player cards and
+   the right-hand sidebar with its confirm footer.
 
-   A contiguous slice of the original draft.css. The <link> order in room.html
-   reproduces that file exactly — see room/css.md before moving anything.
+   Split out of draft.css by concern. Rule order within this file follows the
+   original; see room/css.md for what the cascade depends on.
    ============================================================ */
 
 /* Ban phase 3-row board (image-only) */
+
 .ban-phase-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -57,6 +58,7 @@
 }
 
 /* Row heading that contains the title and a right-aligned count */
+
 .ban-phase-row-head {
   display: flex;
   align-items: center;
@@ -110,6 +112,7 @@
 
 /* Fallback keeps the natural size for any --md thumb rendered outside
    .ban-phase-right, where --ban-slot-h is not in scope. */
+
 .ban-phase-thumb--md {
   height: var(--ban-slot-h, 96px);
 }
@@ -181,6 +184,7 @@
 }
 
 /* Opponent presence badge — shows username + online status prominently */
+
 .ban-opponent-badge {
   display: flex;
   align-items: center;
@@ -236,12 +240,14 @@
 }
 
 /* Status hint line under MY BANS header */
+
 /* Sits in the panel footer above CONFIRM BANS. Collapsed while empty so the
    button sits tight under the section divider — otherwise the reserved row plus
    the footer gap add 22px of dead space, which is the common state.
    Collapsing cannot cause a mis-click: this is non-empty only when the user has
    already confirmed, and CONFIRM BANS is disabled in exactly that case (see
    renderMyBansStatus / renderConfirmButton in banView.js). */
+
 .ban-status-hint {
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -265,6 +271,7 @@
 }
 
 /* Opponent staged ban in BANS ON ME — dimmed with red outline */
+
 .ban-phase-thumb.is-opponent-staged {
   opacity: 0.55;
   box-shadow: inset 0 0 0 2px rgba(255, 60, 60, 0.55), 0 10px 22px rgba(0, 0, 0, 0.28);
@@ -330,6 +337,7 @@
 }
 
 /* ── Home "My Players" toolbar + cards (ported for ban phase) ─────────────── */
+
 .team-search-bar {
   display: flex;
   align-items: center;
@@ -553,14 +561,20 @@
   outline: none;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
+
 .filter-input::placeholder { color: rgba(138, 165, 184, 0.35); font-size: 0.8rem; }
+
 .filter-input:focus { border-color: var(--g-line-active); box-shadow: 0 0 0 2px var(--g-glow-soft); }
+
 .filter-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
 .filter-input[type="number"]::-webkit-inner-spin-button,
 .filter-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
 
 .range-pair { display: flex; align-items: center; gap: 6px; }
+
 .range-pair .filter-input { flex: 1; }
+
 .range-sep { color: var(--text-dim); font-size: 0.8rem; flex-shrink: 0; }
 
 .filter-group-label {
@@ -574,6 +588,7 @@
   border-bottom: 1px solid var(--g-line-faint);
   border-top: 1px solid var(--g-line-faint);
 }
+
 .filter-group-label:first-child { border-top: none; }
 
 .filter-section-label {
@@ -617,6 +632,7 @@
 }
 
 /* Position multi-select dropdown (same as home) */
+
 .pos-multiselect {
   position: relative;
 }
@@ -751,11 +767,15 @@
 }
 
 .filter-dd-panel::-webkit-scrollbar { width: 5px; }
+
 .filter-dd-panel::-webkit-scrollbar-track { background: transparent; }
+
 .filter-dd-panel::-webkit-scrollbar-thumb { background: rgba(44, 207, 117, 0.22); border-radius: 99px; }
+
 .filter-dd-panel::-webkit-scrollbar-thumb:hover { background: rgba(44, 207, 117, 0.48); }
 
 /* Player cards (home look) for ban grid */
+
 .player-card {
   position: relative;
   background: var(--bg-card);
@@ -877,6 +897,7 @@
 }
 
 /* Squad card: keep each logical row on a single line; widen grid above if text is clipped */
+
 .player-card .pc-footer .pmeta-row {
   white-space: nowrap;
   overflow: hidden;
@@ -903,6 +924,7 @@
 }
 
 /* Card fills its grid cell; hover pops above neighbors */
+
 .ban-phase-grid .player-card {
   width: 100%;
   transform-origin: center;
@@ -918,6 +940,7 @@
 }
 
 /* Copy of home page toolbar button styles for consistent look */
+
 .select-mode-btn {
   display: inline-flex;
   align-items: center;
@@ -966,11 +989,13 @@
 }
 
 /* allow image natural height to determine row sizing */
+
 .ban-phase-grid .pc-img-wrap {
   height: auto;
 }
 
 /* Toggle class to hide per-card footers when user chooses compact view */
+
 .ban-phase-grid.info-hidden .pc-footer {
   display: none !important;
 }
@@ -1032,6 +1057,7 @@
   position: relative;
   min-height: 0;
 }
+
 .draft-workspace {
   flex: 1;
   min-height: 0;
@@ -1041,6 +1067,7 @@
   padding: 14px;
   height: 100%;
 }
+
 .draft-workspace-main {
   min-width: 0;
   min-height: 0;
@@ -1049,6 +1076,7 @@
   gap: 14px;
   height: 100%;
 }
+
 .draft-workspace-rail {
   min-width: 0;
   min-height: 0;
@@ -1058,6 +1086,7 @@
   overflow-y: auto;
   padding-right: 2px;
 }
+
 .draft-panel {
   background: linear-gradient(180deg, rgba(10, 29, 45, 0.94), rgba(6, 17, 26, 0.92));
   border: 1px solid var(--g-line-faint);
@@ -1065,6 +1094,7 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
   padding: 14px;
 }
+
 .draft-panel--formation,
 .draft-panel--plans,
 .draft-panel--opponent,
@@ -1076,6 +1106,7 @@
 }
 
 /* Outer panel for ban-phase removed — no enclosing rectangle */
+
 .draft-panel--ban-phase {
   background: transparent;
   border: none;
@@ -1089,22 +1120,26 @@
 }
 
 /* Ban phase board styles live above */
+
 .ban-tracker-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .ban-tracker-title {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text);
 }
+
 .ban-tracker-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 8px;
 }
+
 .ban-history-card {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -1115,6 +1150,7 @@
   border: 1px solid rgba(255, 68, 68, 0.24);
   background: linear-gradient(180deg, rgba(38, 12, 12, 0.86), rgba(18, 8, 8, 0.9));
 }
+
 .ban-history-thumb {
   width: 44px;
   height: 58px;
@@ -1122,9 +1158,11 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .ban-history-text {
   min-width: 0;
 }
+
 .ban-history-name {
   font-size: 12px;
   font-weight: 800;
@@ -1132,16 +1170,232 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .ban-history-meta {
   margin-top: 2px;
   color: rgba(255, 214, 214, 0.72);
   font-size: 10px;
 }
+
 .ban-history-empty {
   border-radius: 12px;
   border: 1px dashed rgba(255, 255, 255, 0.14);
   color: var(--text-dim);
   padding: 10px;
   font-size: 12px;
+  text-align: center;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BAN PHASE — REDESIGNED RIGHT SIDEBAR
+   ════════════════════════════════════════════════════════════ */
+
+/* Unified dark panel card for the right sidebar */
+
+.ban-phase-right {
+  /* Ban card height for both strips. Ban cards are height-driven (the img is
+     `height: 100%; width: auto`), so one number scales the whole strip without
+     letterboxing the art. `applyBanSlotHeight()` in banView.js shrinks this when
+     the ban cap needs more rows than fit; 96px is the natural size and the value
+     used everywhere outside this panel. */
+  --ban-slot-h: 96px;
+  gap: 0;
+  background: linear-gradient(170deg, rgba(10, 27, 43, 0.92) 0%, rgba(9, 23, 36, 0.88) 100%);
+  border: 1px solid var(--g-line);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 var(--g-glow-soft),
+    inset 0 0 0 0 rgba(44, 207, 117, 0);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* BANS ON ME and MY BANS sections — each takes equal share of space */
+
+/* The two ban sections are `flex: 1` (basis 0), so they always get the same
+   height. Keep their *contents* structurally identical too — head + badge +
+   strip and nothing else. Anything extra placed inside one section (a button, a
+   status line) shortens that section's strip only, and the two boxes visibly
+   stop matching. Panel-level chrome belongs in `.ban-side-actions` below. */
+
+.ban-side-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--g-line-faint);
+}
+
+/* Panel footer: CONFIRM BANS + the shared confirm-status line. */
+
+.ban-side-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+/* Section header row */
+
+.ban-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* "BANS ON ME" / "MY BANS" label */
+
+.ban-side-title {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--g-text);
+}
+
+/* Card strip — wraps thumbnails, scrolls vertically if needed */
+
+.ban-side-strip {
+  flex: 1;
+  min-height: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(44, 207, 117, 0.28) transparent;
+}
+
+.ban-side-strip::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ban-side-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ban-side-strip::-webkit-scrollbar-thumb {
+  background: rgba(44, 207, 117, 0.28);
+  border-radius: 99px;
+}
+
+.ban-side-strip::-webkit-scrollbar-thumb:hover {
+  background: rgba(44, 207, 117, 0.55);
+}
+
+/* Empty state: show a single dashed placeholder slot */
+
+.ban-side-strip:empty {
+  align-items: flex-start;
+}
+
+.ban-side-strip:empty::before {
+  content: '';
+  display: block;
+  height: var(--ban-slot-h, 96px);
+  aspect-ratio: 68 / 96;
+  width: auto;
+  border-radius: 0;
+  border: 1.5px dashed rgba(255, 60, 60, 0.25);
+  background: rgba(255, 60, 60, 0.02);
+}
+
+.ban-side-empty-slot {
+  height: var(--ban-slot-h, 96px);
+  aspect-ratio: 68 / 96;
+  width: auto;
+  border-radius: 0;
+  flex-shrink: 0;
+  border: 1.5px dashed rgba(255, 60, 60, 0.25);
+  background: rgba(255, 60, 60, 0.02);
+}
+
+/* Bottom confirm section — fixed height, darker tint */
+
+.ban-side-confirm {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface-sunken);
+  border-top: 1px solid var(--g-line-faint);
+}
+
+/* "SELECTED" micro-label */
+
+.ban-side-confirm-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Area that holds the pending card preview */
+
+.ban-side-confirm-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 110px;
+}
+
+/* Center the contents of the pending strip */
+
+.ban-phase-strip--center {
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Empty pending selection: dashed card-shaped placeholder */
+
+#draftPendingBanStrip:empty {
+  width: 72px;
+  height: 96px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--g-line);
+  background: var(--g-fill-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#draftPendingBanStrip:empty::before {
+  content: '+';
+  font-size: 22px;
+  font-weight: 300;
+  color: rgba(44, 207, 117, 0.22);
+  line-height: 1;
+  font-family: var(--font-display);
+}
+
+/* Full-width action buttons at the bottom of the confirm section */
+
+.ban-side-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.ban-side-actions .btn {
+  flex: 1;
+  justify-content: center;
   text-align: center;
 }

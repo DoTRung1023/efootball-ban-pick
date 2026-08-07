@@ -1,14 +1,15 @@
 /* ============================================================
-   Design tokens, resets, pitch background and glow orbs. Must load first —
-   every other sheet reads these custom properties.
+   Design tokens, resets, pitch background and glow orbs.
+   Must load first — every other sheet reads these custom properties.
 
-   A contiguous slice of the original draft.css. The <link> order in room.html
-   reproduces that file exactly — see room/css.md before moving anything.
+   Split out of draft.css by concern. Rule order within this file follows the
+   original; see room/css.md for what the cascade depends on.
    ============================================================ */
 
 /* ============================================================
    Room page — lobby · draft · done (matches app + React reference)
    ============================================================ */
+
 :root {
   --bg: #0b1b29;
 
@@ -80,8 +81,11 @@
 }
 
 * { box-sizing: border-box; }
+
 [hidden] { display: none !important; }
+
 html, body { height: 100%; margin: 0; }
+
 body {
   background:
     radial-gradient(1100px 700px at 18% 12%, rgba(53, 214, 255, 0.08), transparent 60%),
@@ -201,4 +205,3 @@ body {
   white-space: nowrap;
   border: 0;
 }
-

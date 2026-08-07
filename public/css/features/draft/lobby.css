@@ -1,9 +1,8 @@
 /* ============================================================
-   Lobby: top bar, player matchup, settings panel, allowance builder, chat,
-   and the lobby's own responsive rungs.
+   Lobby: top bar, player matchup, settings panel, allowance builder and chat.
 
-   A contiguous slice of the original draft.css. The <link> order in room.html
-   reproduces that file exactly — see room/css.md before moving anything.
+   Split out of draft.css by concern. Rule order within this file follows the
+   original; see room/css.md for what the cascade depends on.
    ============================================================ */
 
 /* ============================================================
@@ -107,6 +106,7 @@
 /* Player slot: a centred meta stack either side of the room code. There are no
    avatars — the site has no profile images, so an initial in a circle was
    decoration carrying no information. */
+
 .ls-player {
   flex: 1;
   display: flex;
@@ -136,6 +136,7 @@
 }
 
 .ls-player--host .ls-role { color: var(--g-text-dim); }
+
 .ls-player--guest .ls-role { color: var(--c-text-dim); }
 
 .ls-name {
@@ -183,10 +184,12 @@
 }
 
 .ls-player--host .ls-conn { color: var(--g-text); }
+
 .player-slot-status--ok { color: var(--c-text) !important; }
 
 /* Center column. The hairline borders replace the old single decorative centre
    line — with three columns the divider belongs on both sides of the code. */
+
 .ls-center {
   display: flex;
   flex-direction: column;
@@ -247,6 +250,7 @@
 
 /* Why the CTA is blocked. Lives in .lobby-cta-bar next to the button, so the
    button itself never has to repeat the status. */
+
 .ls-waiting {
   display: flex;
   align-items: center;
@@ -275,6 +279,7 @@
 }
 
 /* Sticky action footer of the settings panel: status on the left, CTA right. */
+
 .lobby-cta-bar {
   display: flex;
   align-items: center;
@@ -288,6 +293,7 @@
 
 /* margin-left keeps the CTA hard right even when #lobbyWaiting is hidden and
    space-between has nothing left to push against. */
+
 .lobby-actions {
   display: flex;
   justify-content: flex-end;
@@ -400,6 +406,7 @@
 
 /* The panel itself never scrolls — .prep-scroll does, so the "BAN SETTING"
    header and the CTA footer stay pinned. */
+
 .prep-col--settings {
   overflow: hidden;
   height: 100%;
@@ -419,6 +426,7 @@
 /* Guest read-only. Scoped to .prep-scroll, NOT the whole panel: the panel also
    contains .lobby-cta-bar, and the guest's own READY button lives there. A
    panel-wide rule disables it and the guest cannot ready up at all. */
+
 .prep-col--settings.is-readonly .prep-scroll {
   opacity: 0.58;
 }
@@ -459,6 +467,7 @@
 /* Ban count + both durations share one row. Tracks are capped at 190px so a
    three-digit field never stretches across a third of a wide panel; below
    ~450px they wrap to two, then one. */
+
 .lv-field-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(136px, 190px));
@@ -482,6 +491,7 @@
 
 /* Stretches to its grid cell so the three settings controls read as one row of
    equal-width fields. */
+
 .lv-stepper {
   display: flex;
   align-items: center;
@@ -507,6 +517,7 @@
 }
 
 .lv-stepper-btn:hover:not(:disabled) { background: var(--g-fill); }
+
 .lv-stepper-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .lv-stepper-val {
@@ -524,6 +535,7 @@
 
 /* Free-entry duration field. Mirrors .lv-stepper's framing so the ban count
    and the two durations read as one control family. */
+
 .lv-duration-field {
   display: flex;
   align-items: center;
@@ -588,6 +600,7 @@
 }
 
 /* Out-of-range typing is flagged live; the value is clamped on commit. */
+
 .lv-duration-input:out-of-range {
   color: var(--red);
 }
@@ -617,11 +630,13 @@
 }
 
 .lv-reveal-card:hover:not(:disabled) { border-color: var(--g-line-hover); }
+
 .lv-reveal-card.is-selected {
   border-color: rgba(44, 207, 117, 0.65);
   background: var(--g-fill);
   box-shadow: 0 0 14px var(--g-glow-soft);
 }
+
 .lv-reveal-card:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .lv-reveal-icon { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
@@ -663,6 +678,7 @@
 /* flex-shrink 0: the parent .prep-scroll is a fixed-height scrolling flex
    column, so a shrinkable basis-0 item collapses to zero content height and its
    children paint outside the border box. Grow to fill spare space, never shrink. */
+
 .prep-section--allowance {
   display: flex;
   flex-direction: column;
@@ -744,7 +760,9 @@
 }
 
 .allowance-controls.is-disabled { opacity: 0.55; pointer-events: none; }
+
 .allowance-controls.is-disabled .allowance-category-panel { display: none; }
+
 .allowance-controls.is-disabled .allowance-category-dd { pointer-events: none; }
 
 .allowance-category-dd {
@@ -778,6 +796,7 @@
 }
 
 .allowance-category-trigger:disabled { opacity: 0.38; cursor: not-allowed; }
+
 .allowance-category-trigger.is-placeholder { color: var(--text-dim); }
 
 .allowance-category-caret {
@@ -843,11 +862,17 @@
 }
 
 .allowance-category-option:last-child { border-bottom: none; }
+
 .allowance-category-option:hover:not(:disabled) { background: var(--g-fill); color: var(--text); }
+
 .allowance-category-option.is-selected { color: var(--green); background: var(--g-fill); font-weight: 700; }
+
 .allowance-category-option:disabled { cursor: not-allowed; color: var(--text-muted); }
+
 .allowance-category-option.is-disabled { opacity: 0.5; }
+
 .allowance-category-check { opacity: 0; color: var(--green); flex-shrink: 0; font-size: 11px; }
+
 .allowance-category-option.is-selected .allowance-category-check { opacity: 1; }
 
 #addAllowanceBtn {
@@ -885,6 +910,7 @@
 
 /* The list fills whatever height the panel has left, so the empty state is a
    deliberate placeholder rather than one line stranded in a void. */
+
 .allowance-list:has(.allowance-empty) { align-content: stretch; }
 
 .allowance-empty {
@@ -974,6 +1000,7 @@
 }
 
 .allowance-club-search-wrap { position: relative; width: 100%; min-width: 0; }
+
 .allowance-club-search { display: block; width: 100%; }
 
 .allowance-club-suggest-panel {
@@ -1007,12 +1034,17 @@
   width: 100%;
   transition: background 0.13s ease;
 }
+
 .allowance-club-suggest-option:last-child { border-bottom: none; }
+
 .allowance-club-suggest-option:hover { background: var(--g-fill); color: var(--green); }
+
 .allowance-club-suggest-option.is-active { background: var(--g-fill); color: var(--green); }
+
 .allowance-club-suggest-empty { padding: 9px 12px; font-size: 0.82rem; color: var(--text-muted); }
 
 /* Input / select shared styles */
+
 .allowance-item-input,
 .allowance-club-search,
 .allowance-item-range {
@@ -1052,6 +1084,7 @@
 .allowance-item-range-col { display: flex; flex-direction: column; }
 
 /* Foot list */
+
 .allowance-foot-list {
   display: flex;
   gap: 6px;
@@ -1072,17 +1105,23 @@
   cursor: pointer;
   transition: var(--transition);
 }
+
 .allowance-foot-option.is-selected {
   border-color: rgba(44, 207, 117, 0.65);
   background: var(--g-fill);
   color: var(--green);
 }
+
 .allowance-foot-option:disabled { opacity: 0.35; cursor: not-allowed; }
+
 .allowance-foot-check { display: none; }
+
 .allowance-foot-option.is-selected .allowance-foot-check { display: inline; color: var(--green); font-size: 10px; }
 
 /* Position dropdown */
+
 .allowance-pos-dropdown { position: relative; }
+
 .allowance-pos-dropdown.is-disabled { opacity: 0.42; pointer-events: none; }
 
 .allowance-pos-trigger {
@@ -1100,6 +1139,7 @@
   position: relative;
   font-family: var(--font-body);
 }
+
 .allowance-pos-trigger:hover:not(:disabled),
 .allowance-pos-dropdown.is-open .allowance-pos-trigger {
   border-color: var(--g-line-hover);
@@ -1155,7 +1195,9 @@
 }
 
 .allowance-multi-panel { grid-template-columns: 1fr 1fr; }
+
 .allowance-multi-panel--single-column { grid-template-columns: 1fr; }
+
 .allowance-multi-dropdown.is-open .allowance-multi-panel { display: grid; }
 
 .allowance-pos-cap-wrap.is-open .allowance-pos-cap-panel,
@@ -1182,21 +1224,27 @@
   width: 100%;
   text-align: left;
 }
+
 .allowance-pos-option:hover, .allowance-multi-option:hover {
   background: var(--g-fill); color: var(--text);
 }
+
 .allowance-pos-option.is-selected, .allowance-multi-option.is-selected {
   color: var(--green); background: var(--g-fill);
 }
+
 .allowance-pos-check,
 .allowance-multi-check { display: none; }
+
 .allowance-pos-option.is-selected .allowance-pos-check,
 .allowance-multi-option.is-selected .allowance-multi-check {
   display: inline; color: var(--green); font-size: 10px;
 }
+
 .allowance-multi-empty { padding: 9px 12px; font-size: 0.82rem; color: var(--text-muted); grid-column: 1 / -1; }
 
 /* Cap labels and inputs */
+
 .allowance-cap-label {
   font-family: ui-monospace, monospace;
   font-size: 9px;
@@ -1222,19 +1270,23 @@
   outline: none;
   transition: border-color 0.13s ease;
 }
+
 .allowance-cap-input:focus, .allowance-pos-cap-input:focus,
 .allowance-club-cap-input:focus, .allowance-item-cap:focus {
   border-color: var(--g-line-hover);
   box-shadow: 0 0 0 2px var(--g-glow-soft);
 }
+
 .allowance-cap-input:disabled, .allowance-pos-cap-input:disabled,
 .allowance-club-cap-input:disabled, .allowance-item-cap:disabled { opacity: 0.38; cursor: not-allowed; }
 
 /* Remove number spinner arrows */
+
 .allowance-cap-input, .allowance-pos-cap-input, .allowance-club-cap-input,
 .allowance-item-cap, .allowance-item-range {
   -moz-appearance: textfield;
 }
+
 .allowance-cap-input::-webkit-outer-spin-button,
 .allowance-cap-input::-webkit-inner-spin-button,
 .allowance-pos-cap-input::-webkit-outer-spin-button,
@@ -1247,6 +1299,7 @@
 .allowance-item-range::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* Remove button */
+
 .allowance-remove-btn {
   grid-area: remove;
   align-self: center;
@@ -1262,15 +1315,19 @@
   white-space: nowrap;
   transition: var(--transition);
 }
+
 .allowance-remove-btn:hover:not(:disabled) {
   border-color: rgba(255, 95, 95, 0.62);
   background: rgba(255, 72, 72, 0.12);
   color: #fff;
 }
+
 .allowance-remove-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* Position cap wrap */
+
 .allowance-pos-cap-wrap { position: relative; }
+
 .allowance-pos-cap-wrap.is-disabled { opacity: 0.42; pointer-events: none; }
 
 .allowance-pos-cap-trigger,
@@ -1289,6 +1346,7 @@
   transition: all 0.15s ease;
   position: relative;
 }
+
 .allowance-pos-cap-trigger:hover:not(:disabled),
 .allowance-pos-cap-wrap.is-open .allowance-pos-cap-trigger,
 .allowance-cap-trigger:hover:not(:disabled),
@@ -1307,18 +1365,25 @@
   border-bottom: 1px solid var(--g-line-faint);
   gap: 8px;
 }
+
 .allowance-pos-cap-row:last-child, .allowance-cap-row:last-child { border-bottom: none; }
 
 .allowance-pos-cap-pos { font-size: 12px; font-weight: 700; color: var(--text-dim); min-width: 32px; }
+
 .allowance-cap-item { font-size: 12px; font-weight: 700; color: var(--text-dim); min-width: 40px; }
+
 .allowance-pos-cap-empty, .allowance-cap-empty { padding: 9px 12px; font-size: 0.8rem; color: var(--text-muted); }
 
 /* Cap wrap (cardType, region, playingStyle) */
+
 .allowance-cap-wrap { position: relative; }
+
 .allowance-cap-wrap.is-disabled { opacity: 0.42; pointer-events: none; }
 
 /* Multi dropdown */
+
 .allowance-multi-dropdown { position: relative; }
+
 .allowance-multi-dropdown.is-disabled { opacity: 0.42; pointer-events: none; }
 
 .allowance-multi-trigger {
@@ -1336,6 +1401,7 @@
   transition: all 0.15s ease;
   position: relative;
 }
+
 .allowance-multi-trigger:hover:not(:disabled),
 .allowance-multi-dropdown.is-open .allowance-multi-trigger {
   border-color: var(--g-line-hover);
@@ -1344,6 +1410,7 @@
 }
 
 /* Club list */
+
 .allowance-club-list { display: flex; flex-direction: column; gap: 5px; }
 
 .allowance-club-row {
@@ -1363,6 +1430,7 @@
 }
 
 .allowance-club-cap-col { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+
 .allowance-club-cap-label { font-size: 8px; letter-spacing: 0.18em; color: var(--text-muted); font-family: ui-monospace, monospace; text-transform: uppercase; }
 
 .allowance-club-row-remove {
@@ -1379,11 +1447,13 @@
   flex-shrink: 0;
   transition: var(--transition);
 }
+
 .allowance-club-row-remove:hover:not(:disabled) {
   border-color: rgba(255, 95, 95, 0.62);
   background: rgba(255, 65, 65, 0.1);
   color: #fff;
 }
+
 .allowance-club-row-remove:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .allowance-club-empty { font-size: 11.5px; color: var(--text-muted); padding: 5px 2px; }
@@ -1401,11 +1471,13 @@
   white-space: nowrap;
   transition: var(--transition);
 }
+
 .allowance-club-add-btn:hover:not(:disabled) {
   border-color: var(--g-line-hover);
   color: var(--green);
   background: var(--g-fill);
 }
+
 .allowance-club-add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .allowance-club-remove-category {
@@ -1421,11 +1493,13 @@
   white-space: nowrap;
   transition: var(--transition);
 }
+
 .allowance-club-remove-category:hover:not(:disabled) {
   border-color: rgba(255, 95, 95, 0.62);
   background: rgba(255, 65, 65, 0.1);
   color: #fff;
 }
+
 .allowance-club-remove-category:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Chat panel ─────────────────────────────────────────── */
@@ -1460,6 +1534,7 @@
    A new message from the other side is the thing worth noticing; your own is
    just a record of what you already typed, so it stays quiet in green. The bar
    is an inset shadow rather than a border so neither variant shifts layout. */
+
 .chat-item:not(.is-mine) {
   background: var(--c-fill-strong);
   border-color: var(--c-line);
@@ -1497,6 +1572,7 @@
 }
 
 .chat-item:not(.is-mine) .chat-name { color: var(--cyan); }
+
 .chat-item.is-mine .chat-name { color: var(--green); }
 
 .chat-time {
@@ -1535,14 +1611,17 @@
 }
 
 .chat-compose input::placeholder { color: var(--text-muted); }
+
 .chat-compose input:focus {
   border-color: var(--g-line-hover);
   box-shadow: 0 0 0 3px var(--g-glow-soft);
 }
+
 .chat-compose input:disabled { opacity: 0.42; cursor: not-allowed; }
 
 /* Send is flattened out of the .btn--primary gradient: START/READY should be
    the only gradient-filled button on screen, so the eye lands on it first. */
+
 .chat-compose .btn--primary {
   background: var(--g-fill-strong);
   color: var(--green);
@@ -1599,28 +1678,6 @@
 .draft-side::-webkit-scrollbar-thumb:hover { background: rgba(44, 207, 117, 0.6); }
 
 /* ── Stage progress lobby variant ───────────────────────── */
-
-.stage-progress-container--lobby {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: transparent;
-  border-bottom: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  padding: 4px 8px 0;
-}
-
-.stage-progress-container--lobby .stage-progress-bar {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  width: min(520px, 100%);
-  min-width: 280px;
-  max-width: 520px;
-  padding: 0 14px;
-}
 
 /* ── Lobby responsive ───────────────────────────────────── */
 
@@ -1713,4 +1770,33 @@
   .chat-log { min-height: min(32vh, 200px); }
 }
 
+.draft-select {
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(179, 107, 255, 0.22);
+  background: linear-gradient(180deg, rgba(17, 47, 72, 0.85), rgba(14, 39, 61, 0.88));
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(179, 107, 255, 0.05) inset;
+}
 
+.draft-select:focus {
+  border-color: rgba(179, 107, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(179, 107, 255, 0.16), 0 12px 26px rgba(0, 0, 0, 0.34);
+}
+
+.lobby-stage-row {
+  background: linear-gradient(180deg, rgba(6, 16, 24, 0.97) 0%, rgba(8, 21, 32, 0.94) 100%);
+  border-bottom: 1px solid var(--g-line-faint);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  min-height: 60px;
+  padding: 8px 16px 6px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+  z-index: 10;
+}
