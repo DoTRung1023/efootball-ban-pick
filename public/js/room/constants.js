@@ -15,8 +15,8 @@ export const REVEAL_MODE_INSTANT = "instant";
 export const REVEAL_MODE_HIDDEN = "hidden";
 
 // ── Image helpers ─────────────────────────────────────────────────
-// Shared with the home bundle — see ../shared/playerMeta.js.
-export { CARD_IMG, ANON_PLAYER_IMG } from "../shared/playerMeta.js";
+// Shared with the home bundle — see @/shared/players/playerMeta.js.
+export { CARD_IMG, ANON_PLAYER_IMG } from "@/shared/players/playerMeta.js";
 
 // ── Formations ────────────────────────────────────────────────────
 export const DEFAULT_FORMATION = "4-3-3";

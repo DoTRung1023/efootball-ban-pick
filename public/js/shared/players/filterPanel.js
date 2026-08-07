@@ -20,7 +20,7 @@
      autocomplete list; the plan picker's do not.
    ============================================================ */
 
-import { escapeHtml } from "./utils.js";
+import { escapeHtml } from "./playerMeta.js";
 
 const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 

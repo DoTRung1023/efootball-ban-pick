@@ -1,11 +1,16 @@
-import { CARD_IMG, ANON_PLAYER_IMG, PAGE_SIZE, makePlayerImg, getUser, showToast, showConfirm,
-         posClass, POSITION_LINE_ORDER, positionLineRank,
-         tiebreakOverallDescThenName, ovrMaxForSort, tiebreakPositionLineThenName, compareByPositionLine,
-         playerDetailSublineHtml, playerDetailTooltipText,
-         closeDdPanel, toggleDdPanel } from './utils.js';
+import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
+         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
+import { PAGE_SIZE } from '@/shared/players/constants.js';
+import { posClass, POSITION_LINE_ORDER, positionLineRank } from '@/shared/players/positions.js';
+import { tiebreakOverallDescThenName, ovrMaxForSort,
+         tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
+import { buildPlayerFilterPanel, resetPlayerFilterState, playerFilterOptionsCache,
+         getPlayerFilterOptions, initAutocomplete, wireAttributeMultiselects } from '@/shared/players/filterPanel.js';
+import { getUser } from '@/shared/lib/session.js';
+import { showToast } from '@/shared/ui/toast.js';
+import { showConfirm } from '@/shared/ui/confirm.js';
+import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
 import { cb } from './callbacks.js';
-import { playerFilterOptionsCache, getPlayerFilterOptions, initAutocomplete, wireAttributeMultiselects } from './catalog.js';
-import { buildPlayerFilterPanel, resetPlayerFilterState } from './filterPanel.js';
 
 const squad = {
   players:    [],

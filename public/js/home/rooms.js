@@ -1,4 +1,5 @@
-import { getUser, showToast } from './utils.js';
+import { getUser } from '@/shared/lib/session.js';
+import { showToast } from '@/shared/ui/toast.js';
 import { cb } from './callbacks.js';
 
 let _statsUserId = null;

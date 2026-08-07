@@ -1,8 +1,11 @@
+import { getUser } from '@/shared/lib/session.js';
 import { state } from './state.js';
 
-/* Shared with the home bundle — see ../shared/playerMeta.js. Re-exported so
-   room modules keep importing it from "./utils.js" as before. */
-export { escapeHtml } from "../shared/playerMeta.js";
+/* Shared with the home bundle — see @/shared/players/playerMeta.js and
+   @/shared/lib/session.js. Re-exported so room modules keep importing them
+   from "./utils.js" as before. */
+export { escapeHtml } from "@/shared/players/playerMeta.js";
+export { getUser } from "@/shared/lib/session.js";
 
 export function showToast(message, variant = "default") {
   const el = document.getElementById("toast");
@@ -92,14 +95,6 @@ export function parseQuery() {
   return {
     mode: (q.get("mode") || "").toLowerCase(),
   };
-}
-
-export function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem("efb_user") || "null");
-  } catch {
-    return null;
-  }
 }
 
 /** Stable id for signed-out users so server presence does not churn every request */

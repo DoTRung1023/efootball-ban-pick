@@ -1,0 +1,52 @@
+/* ============================================================
+   Player sorting — the toolbar categories and the comparators
+
+   `SORT_CATEGORIES` drives the sort dropdown in both the catalog toolbar and
+   the plan picker; `descVal` / `ascVal` are the `sortBy` values the API
+   accepts (see `SORT_MAP` in `src/features/players/catalogQuery.js`).
+   ============================================================ */
+
+import { positionLineRank } from "./positions.js";
+
+export const SORT_CATEGORIES = [
+  { key: "overall_max", label: "Overall Max",       descVal: "overall_max_desc", ascVal: "overall_max_asc", bidir: true,  descTip: "Highest max rating first", ascTip: "Lowest max rating first" },
+  { key: "overall",     label: "Overall Level 1",   descVal: "overall_desc",     ascVal: "overall_asc",     bidir: true,  descTip: "Highest Level 1 first",    ascTip: "Lowest Level 1 first"    },
+  { key: "name",        label: "Player Name",    descVal: "name_asc",        ascVal: "name_desc",       bidir: true,  descTip: "A → Z",                 ascTip: "Z → A"                 },
+  { key: "position",    label: "Position",       descVal: "position_asc",    ascVal: "position_desc",   bidir: true,  descTip: "CF → SS → … → GK",     ascTip: "GK → … → SS → CF"       },
+  { key: "height",      label: "Height",         descVal: "height_desc",     ascVal: "height_asc",      bidir: true,  descTip: "Tallest first",          ascTip: "Shortest first"        },
+  { key: "weight",      label: "Weight",         descVal: "weight_desc",     ascVal: "weight_asc",      bidir: true,  descTip: "Heaviest first",         ascTip: "Lightest first"        },
+  { key: "age",         label: "Age",            descVal: "age_desc",        ascVal: "age_asc",         bidir: true,  descTip: "Oldest first",           ascTip: "Youngest first"        },
+  { key: "club",        label: "Club",           descVal: "club_asc",        ascVal: "club_desc",       bidir: true,  descTip: "A → Z (club)",          ascTip: "Z → A (club)"          },
+  { key: "nationality", label: "Nationality",    descVal: "nationality_asc", ascVal: "nationality_desc", bidir: true, descTip: "A → Z (nationality)", ascTip: "Z → A (nationality)" },
+];
+
+/** When the primary sort key ties, order by overall (highest first), then name. */
+export function tiebreakOverallDescThenName(a, b) {
+  const oa = Number(a.overall ?? -1);
+  const ob = Number(b.overall ?? -1);
+  if (ob !== oa) return ob - oa;
+  return (a.name || "").localeCompare(b.name || "");
+}
+
+/** Max OVR for sorting; falls back to level-1 overall when max is unknown. */
+export function ovrMaxForSort(p) {
+  const mx = p?.overall_max;
+  if (mx != null && Number.isFinite(Number(mx))) return Number(mx);
+  if (p?.overall != null && Number.isFinite(Number(p.overall))) return Number(p.overall);
+  return -1;
+}
+
+/** When overall rating ties: line order CF→…→GK, then name. */
+export function tiebreakPositionLineThenName(a, b) {
+  const ra = positionLineRank(a.position);
+  const rb = positionLineRank(b.position);
+  if (ra !== rb) return ra - rb;
+  return (a.name || "").localeCompare(b.name || "");
+}
+
+export function compareByPositionLine(a, b, forwardCfToGk) {
+  const ra = positionLineRank(a.position);
+  const rb = positionLineRank(b.position);
+  if (ra !== rb) return forwardCfToGk ? ra - rb : rb - ra;
+  return tiebreakOverallDescThenName(a, b);
+}

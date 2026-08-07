@@ -27,16 +27,32 @@ heartbeat); there is no WebSocket layer.
 
 ## Layout
 
-- `src/` — backend: `server.js` composition root, `routes/`, `rooms/`, `players/`, `lib/`.
+Code is grouped **by feature, not by file type**.
+
+- `src/` — backend. `server.js` is the composition root; `features/<name>/` each expose
+  their public surface through an `index.js` barrel (`admin`, `auth`, `gamePlans`,
+  `ingestion`, `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`.
 - `public/` — three pages: `home.html` (squad / game plans / rooms), `room.html` (the
   ban-pick draft), `admin.html`. Each has an ESM entry file in `public/js/` plus a
-  sub-module directory. `public/js/shared/` holds the few helpers the home and room
-  bundles genuinely share (`playerMeta.js`: card-image paths, `escapeHtml`,
-  `makePlayerImg`, the player metadata block). Each bundle **re-exports** them from its
-  own utils module, so sub-modules keep importing from their own bundle as before —
-  when adding a shared helper, follow that pattern rather than importing
-  `shared/` directly from a leaf module.
+  sub-module directory.
+- `public/js/shared/` — helpers **two or more features import today**; nothing goes here
+  speculatively. `players/` (`playerMeta.js`, `positions.js`, `sort.js`, `ovr.js`,
+  `constants.js`, `filterPanel.js`), `ui/` (`toast.js`, `confirm.js`, `dropdown.js`),
+  `lib/` (`session.js`). Import these **directly** — `shared/` deliberately has no barrel
+  files, because with no bundler a barrel makes the browser fetch every module it
+  re-exports.
 - `database/schema.sql` — MySQL schema.
+
+**Path aliases** — there is no bundler, so each alias is resolved by the platform itself:
+
+| Alias | Resolves to | Configured in |
+| --- | --- | --- |
+| `@/…` | `public/js/…` | the `<script type="importmap">` in each page's `<head>` |
+| `#features/…`, `#lib/…` | `src/features/…`, `src/lib/…` | the `imports` field in `package.json` |
+
+Node does **not** support `@/`, which is why the backend uses the `#` prefix. `jsconfig.json`
+mirrors both for the editor only. Use an alias whenever an import leaves its own folder;
+keep `./sibling.js` relative.
 
 ## Visual design
 

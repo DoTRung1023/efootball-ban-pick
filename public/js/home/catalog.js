@@ -1,35 +1,15 @@
-import { PAGE_SIZE, getUser, showToast,
-         escapeHtml, playerDetailSublineHtml, playerDetailTooltipText, hasFullOvrPair, ovrPairInnerHtml,
-         posClass, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
-         openDdPanel, closeDdPanel, toggleDdPanel } from './utils.js';
+import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
+         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
+import { PAGE_SIZE } from '@/shared/players/constants.js';
+import { hasFullOvrPair, ovrPairInnerHtml } from '@/shared/players/ovr.js';
+import { posClass } from '@/shared/players/positions.js';
+import { SORT_CATEGORIES } from '@/shared/players/sort.js';
+import { buildPlayerFilterPanel, resetPlayerFilterState,
+         getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
+import { getUser } from '@/shared/lib/session.js';
+import { showToast } from '@/shared/ui/toast.js';
+import { openDdPanel, closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
 import { cb } from './callbacks.js';
-import {
-  buildPlayerFilterPanel,
-  resetPlayerFilterState,
-  getPlayerFilterOptions,
-} from "./filterPanel.js";
-
-/* The filter panel and its option helpers are shared with squad.js and
-   plans.js — see ./filterPanel.js. Re-exported here because both of those
-   modules already import them from "./catalog.js". */
-export {
-  initAutocomplete,
-  playerFilterOptionsCache,
-  getPlayerFilterOptions,
-  wireAttributeMultiselects,
-} from "./filterPanel.js";
-
-export const SORT_CATEGORIES = [
-  { key: "overall_max", label: "Overall Max",       descVal: "overall_max_desc", ascVal: "overall_max_asc", bidir: true,  descTip: "Highest max rating first", ascTip: "Lowest max rating first" },
-  { key: "overall",     label: "Overall Level 1",   descVal: "overall_desc",     ascVal: "overall_asc",     bidir: true,  descTip: "Highest Level 1 first",    ascTip: "Lowest Level 1 first"    },
-  { key: "name",        label: "Player Name",    descVal: "name_asc",        ascVal: "name_desc",       bidir: true,  descTip: "A → Z",                 ascTip: "Z → A"                 },
-  { key: "position",    label: "Position",       descVal: "position_asc",    ascVal: "position_desc",   bidir: true,  descTip: "CF → SS → … → GK",     ascTip: "GK → … → SS → CF"       },
-  { key: "height",      label: "Height",         descVal: "height_desc",     ascVal: "height_asc",      bidir: true,  descTip: "Tallest first",          ascTip: "Shortest first"        },
-  { key: "weight",      label: "Weight",         descVal: "weight_desc",     ascVal: "weight_asc",      bidir: true,  descTip: "Heaviest first",         ascTip: "Lightest first"        },
-  { key: "age",         label: "Age",            descVal: "age_desc",        ascVal: "age_asc",         bidir: true,  descTip: "Oldest first",           ascTip: "Youngest first"        },
-  { key: "club",        label: "Club",           descVal: "club_asc",        ascVal: "club_desc",       bidir: true,  descTip: "A → Z (club)",          ascTip: "Z → A (club)"          },
-  { key: "nationality", label: "Nationality",    descVal: "nationality_asc", ascVal: "nationality_desc", bidir: true, descTip: "A → Z (nationality)", ascTip: "Z → A (nationality)" },
-];
 
 const catalog = {
   players:       [],

@@ -1,12 +1,16 @@
-import { getUser, showToast, showConfirm, escapeHtml,
-         playerDetailSublineHtml, playerDetailTooltipText, hasFullOvrPair, ovrPairInnerHtml,
-         CARD_IMG, ANON_PLAYER_IMG, makePlayerImg, posClass,
-         POSITION_LINE_ORDER, positionLineRank,
-         tiebreakOverallDescThenName, ovrMaxForSort, tiebreakPositionLineThenName, compareByPositionLine,
-         openDdPanel, closeDdPanel, toggleDdPanel } from './utils.js';
+import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
+         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
+import { hasFullOvrPair, ovrPairInnerHtml } from '@/shared/players/ovr.js';
+import { posClass, POSITION_LINE_ORDER, positionLineRank } from '@/shared/players/positions.js';
+import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
+         tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
+import { buildPlayerFilterPanel, playerFilterOptionsCache,
+         getPlayerFilterOptions, wireAttributeMultiselects } from '@/shared/players/filterPanel.js';
+import { getUser } from '@/shared/lib/session.js';
+import { showToast } from '@/shared/ui/toast.js';
+import { showConfirm } from '@/shared/ui/confirm.js';
+import { openDdPanel, closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
 import { cb } from './callbacks.js';
-import { playerFilterOptionsCache, getPlayerFilterOptions, wireAttributeMultiselects, SORT_CATEGORIES } from './catalog.js';
-import { buildPlayerFilterPanel } from './filterPanel.js';
 
 const gamePlans = {
   plans:      [],

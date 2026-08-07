@@ -1,4 +1,5 @@
-import { requireAuth, initTabs, initUserMenu, initEditProfile } from './home/utils.js';
+import { requireAuth } from '@/shared/lib/session.js';
+import { initTabs, initUserMenu, initEditProfile } from './home/utils.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from './home/squad.js';
 import { initAddPlayerModal, initPlayerPopup } from './home/catalog.js';
 import { loadGamePlans, initGamePlans } from './home/plans.js';

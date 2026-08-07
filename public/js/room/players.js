@@ -8,13 +8,13 @@ import {
 import { escapeHtml } from './utils.js';
 
 /* Card art + the player metadata block are shared with the home bundle —
-   see ../shared/playerMeta.js. Re-exported so room modules keep importing
+   see @/shared/players/playerMeta.js. Re-exported so room modules keep importing
    them from "./players.js" as before. */
 export {
   makePlayerImg,
   playerDetailSublineHtml,
   playerDetailTooltipText,
-} from "../shared/playerMeta.js";
+} from "@/shared/players/playerMeta.js";
 
 export function normalizeFormation(f) {
   const s = String(f || "").trim();
