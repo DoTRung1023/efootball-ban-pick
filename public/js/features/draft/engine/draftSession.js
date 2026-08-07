@@ -15,7 +15,7 @@ import {
 import { showToast, showView } from '@/features/draft/utils.js';
 import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
-import { loadOpponentBanPlayers, resetOpponentBanPlayers } from '@/features/draft/ban/ban.js';
+import { loadOpponentBanPlayers, resetOpponentBanPlayers } from '@/features/draft/ban/opponentSquad.js';
 import { loadDraftPlayers } from '@/features/draft/pick/pick.js';
 import { pollPresence, stopPresencePolling } from './presence.js';
 import { loadDraftGamePlans } from '@/features/draft/gamePlans.js';

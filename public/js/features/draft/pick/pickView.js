@@ -17,7 +17,8 @@ import {
   getPlayerCardValue,
   normalizeFormation,
 } from '@/features/draft/players.js';
-import { banPlayerCardHtml, getPickListPlayers } from '@/features/draft/ban/ban.js';
+import { banPlayerCardHtml } from '@/features/draft/playerCards.js';
+import { getPickListPlayers } from '@/features/draft/playerQuery.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation, getSelectedPlan } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';

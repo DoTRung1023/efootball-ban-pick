@@ -5,7 +5,8 @@
  */
 
 import { state } from '@/features/draft/state.js';
-import { attachMiniCardGridHandlers, loadOpponentBanPlayers } from '@/features/draft/ban/ban.js';
+import { attachMiniCardGridHandlers } from './cardGrid.js';
+import { loadOpponentBanPlayers } from '@/features/draft/ban/opponentSquad.js';
 import { isReadyPhase, startTurnTimer, getDraftDisplayPlayers } from '@/features/draft/engine/draftFlow.js';
 import { submitBan, submitPick } from '@/features/draft/engine/draftActions.js';
 import { renderBanBoard } from '@/features/draft/ban/banView.js';

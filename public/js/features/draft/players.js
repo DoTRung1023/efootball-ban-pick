@@ -5,7 +5,6 @@ import {
   FORMATION_LAYOUTS,
   FIXED_PICKS_PER_SIDE,
 } from './constants.js';
-import { escapeHtml } from './utils.js';
 
 /* Card art + the player metadata block are shared with the home bundle —
    see @/shared/players/playerMeta.js. Re-exported so room modules keep importing

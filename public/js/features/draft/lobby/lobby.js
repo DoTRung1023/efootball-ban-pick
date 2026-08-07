@@ -63,7 +63,7 @@ import {
   getCurrentIdentity,
 } from '@/features/draft/utils.js';
 import { registerAndPollPresence, stopPresencePolling, leavePresence } from '@/features/draft/engine/presence.js';
-import { fetchFilterOptions } from '@/features/draft/ban/ban.js';
+import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 import { getJson } from '@/features/draft/api.js';
 
 import { renderAllowanceList } from './allowanceView.js';

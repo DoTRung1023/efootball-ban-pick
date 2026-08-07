@@ -1,11 +1,34 @@
 ---
 paths:
-  - "public/js/features/draft/ban/ban.js"
-  - "public/js/features/draft/ban/banView.js"
+  - "public/js/features/draft/ban/**/*.js"
+  - "public/js/features/draft/playerQuery.js"
+  - "public/js/features/draft/playerCards.js"
+  - "public/js/features/draft/filterOptions.js"
   - "public/js/room.js"
 ---
 
-# Ban phase (`ban.js` + `room.js`)
+# Ban phase
+
+## Where the code lives
+
+`ban.js` was a 791-line module that seven other modules reached into, mostly for things
+that were not ban-specific. It is now:
+
+| Module | Holds |
+| --- | --- |
+| `ban/banView.js` | renders the board and the sidebar; owns `--ban-slot-h` |
+| `ban/banToolbar.js` | search, sort and the filter multi-selects |
+| `ban/banInteractions.js` | `bindBanPhaseUiOnce` (idempotent — the board re-renders on every poll), the grid info toggle |
+| `ban/opponentSquad.js` | `loadOpponentBanPlayers` — you ban from the *opponent's* squad |
+| `../playerQuery.js` | the list query and sort, shared with the pick phase |
+| `../playerCards.js` | `banPlayerCardHtml` + the sidebar thumbnails, shared with pick and ready |
+| `../filterOptions.js` | `fetchFilterOptions`, also used by the lobby |
+
+The three modules at the draft root are there because more than one phase imports them.
+**Their names still say `Ban`** (`normalizeBanSortValue`, `banPlayerCardHtml`) even
+though `pick.js`, `pickView.js`, `readyView.js` and `draftFlow.js` all use them — that
+misleading naming is what let the leak build up. Renaming is a separate change; until
+then, do not read `Ban` in a symbol name as "ban phase only".
 
 ## Layout
 

@@ -17,7 +17,7 @@ import {
   normalizeBanDurationSec,
   normalizePickDurationSec,
 } from '@/features/draft/state.js';
-import { getBanListPlayers, getPickListPlayers } from '@/features/draft/ban/ban.js';
+import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQuery.js';
 import { stopPresencePolling, pollPresence } from './presence.js';
 
 const FALLBACK_TURN_SECONDS = 60;

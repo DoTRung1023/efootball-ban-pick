@@ -1,6 +1,6 @@
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
-import { normalizeBanSortValue } from '@/features/draft/ban/ban.js';
+import { normalizeBanSortValue } from '@/features/draft/playerQuery.js';
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
 import { escapeHtml, showToast, getUser } from '@/features/draft/utils.js';
 

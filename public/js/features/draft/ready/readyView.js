@@ -10,7 +10,7 @@ import { DEFAULT_FORMATION, REVEAL_MODE_HIDDEN } from '@/features/draft/constant
 import { escapeHtml } from '@/features/draft/utils.js';
 import { normalizeRevealMode } from '@/features/draft/state.js';
 import { buildOrderedSlotMap, getFormationLayout, getPlayerCardValue } from '@/features/draft/players.js';
-import { banPlayerCardHtml } from '@/features/draft/ban/ban.js';
+import { banPlayerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 
 const LINEUP_SIZE = 11;

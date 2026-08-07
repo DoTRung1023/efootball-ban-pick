@@ -12,14 +12,13 @@ import { escapeHtml } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import {
   banPlayerCardHtml,
-  bindBanPhaseUiOnce,
-  getBanListPlayers,
   imageOnlyThumbHtml,
-  normalizeBanSortValue,
   opponentStagedBanThumbHtml,
-  renderBanToolbar,
   stagedBanThumbHtml,
-} from './ban.js';
+} from '@/features/draft/playerCards.js';
+import { getBanListPlayers, normalizeBanSortValue } from '@/features/draft/playerQuery.js';
+import { bindBanPhaseUiOnce } from './banInteractions.js';
+import { renderBanToolbar } from './banToolbar.js';
 import { banLimit } from '@/features/draft/engine/draftFlow.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
