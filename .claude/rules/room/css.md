@@ -1,10 +1,55 @@
 ---
 paths:
-  - "public/css/features/draft/draft.css"
+  - "public/css/features/draft/**/*.css"
   - "public/css/features/catalog/catalog.css"
 ---
 
-# `draft.css` conventions and component map
+# Room page CSS conventions and component map
+
+## The eleven sheets, and why the order is load-bearing
+
+`draft.css` was 6,009 lines. It is now eleven sheets under
+`public/css/features/draft/`, linked from `room.html` in this order:
+
+| # | Sheet | Holds |
+| --- | --- | --- |
+| 1 | `base.css` | tokens, resets, pitch background, glow orbs |
+| 2 | `views.css` | `#view*` states, error + abandoned screens, spinner, buttons |
+| 3 | `lobby.css` | top bar, matchup, settings, allowance builder, chat |
+| 4 | `stageProgress.css` | the connected stage dots and the draft layout frame |
+| 5 | `ban.css` | ban board, ported "My Players" toolbar, player cards |
+| 6 | `draftPanels.css` | panel headline, side panel, mini cards, Done, header bars |
+| 7 | `banSidebar.css` | the ban right sidebar and confirm footer |
+| 8 | `draftHeader.css` | draft-view stage header controls |
+| 9 | `pick.css` | quick-load bar, squad pool, pitch, allowance bar, live feed |
+| 10 | `ready.css` | the Start Match screen |
+| 11 | `responsive.css` | cross-cutting responsive rules |
+
+**Each sheet is a contiguous slice of the original file, and the eleven
+concatenate back to it byte-for-byte.** There is no bundler, so the `<link>`
+order *is* the cascade — that reconstruction is the only reason the split is
+safe. Reordering the links, or moving a rule between sheets, silently
+re-renders the page; nothing will error.
+
+### Why not one sheet per concern
+
+Because the original interleaves them. "shell" rules occupy four non-adjacent
+spans and "ban" two, so grouping strictly by concern reorders rules. That was
+tried and **measurably broke rendering**: with shell hoisted above lobby,
+`#allowanceCategoryTrigger` lost its `.draft-select` styling and flipped from a
+purple 7px border at 13px to a green 18px border at 10.4px. Hence sheets 4, 6, 7
+and 8, which are ordering artefacts rather than clean concerns.
+
+That is also why `.mini-card` and `.side-panel` sit in `draftPanels.css`: they
+carry both `.is-ban` and `.is-pick` variants and belong to no single phase.
+
+If you ever re-cut these files, verify with a computed-style diff — load a real
+captured DOM with the old and new sheet sets and compare `getComputedStyle` for
+every element plus `::before`/`::after`. Two traps in that harness, both of
+which produced convincing false results before being fixed: `getComputedStyle`
+reports *used* values, so unloaded images make it timing-dependent (strip
+`src`); and it enumerates custom properties in declaration order, which the
+split changes harmlessly (sort the property names before comparing).
 
 ## Colour system (hard rule)
 

@@ -1,0 +1,166 @@
+/* ============================================================
+   Cross-cutting responsive rules. **Loads last on purpose** — these override
+   the phase sheets.
+
+   A contiguous slice of the original draft.css. The <link> order in room.html
+   reproduces that file exactly — see room/css.md before moving anything.
+   ============================================================ */
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — LOBBY SCROLL
+   `#viewLobby` already switches to `overflow-y: auto` at these sizes, but
+   `.centered-box--lobby` still shrinks back to the viewport and `.lobby-board`
+   keeps its desktop `overflow: hidden`. Everything past the fold — the rest of
+   BAN SETTING, the chat column, the START DRAFT bar — was therefore clipped
+   with no way to reach it. Same query pair as the two existing lobby blocks;
+   placed at the end of the file because `.prep-*` and `.chat-log` are declared
+   after them.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 1200px), (max-height: 760px) {
+  .centered-box--lobby { flex: 0 0 auto; }
+
+  /* `flex: 1 0 auto` — basis is the content height, grow to fill whatever space
+     is left, never shrink below it. Plain `height: auto` gets the scrolling
+     right but leaves a tall viewport (iPad portrait) with ~600px of dead space
+     under the panels. */
+  .lobby-board {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .lobby-layout { flex: 1 0 auto; height: auto; min-height: 0; }
+
+  /* The settings panel's inner scroller becomes part of the page scroll
+     instead of a nested pane the user has to discover. */
+  .prep-col,
+  .prep-col--settings,
+  .prep-col--chat { height: auto; overflow: visible; }
+
+  /* Grows into spare space so `.lobby-cta-bar` stays pinned to the panel
+     bottom, but never shrinks below its content, so nothing is cut off. */
+  .prep-scroll { flex: 1 0 auto; overflow: visible; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — DRAFT VIEW (≤900 px)
+   These live at the end of the file on purpose: the components they override
+   (`.ban-phase-right`, `.ban-side-section`, `.pick-phase-grid` …) are declared
+   after the earlier 900 px block, so rules placed there lose the cascade.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Stacked, the panels can no longer share one viewport height — squeezed
+     into a fraction of it their content spills over the section below. Let
+     the view scroll instead, the way #viewLobby already does below 1200 px,
+     and let each panel take the height its content needs. */
+  .view--draft { overflow-y: auto; }
+
+  .view--draft .draft-shell { flex: 0 0 auto; height: auto; }
+
+  .draft-center         { overflow: visible; }
+  .draft-workspace      { height: auto; }
+  .draft-workspace-main { height: auto; }
+
+  .ban-phase-right  { overflow: visible; }
+  .ban-side-section { flex: 0 0 auto; }
+  .ban-side-strip   { flex: 0 0 auto; overflow: visible; }
+
+  .pick-phase-center,
+  .pick-phase-right { flex: 0 0 auto; }
+
+  /* The pools stay scrollers so the page does not grow by hundreds of cards. */
+  .ban-phase-grid  { max-height: 62vh; }
+  .pick-phase-grid { max-height: 55vh; }
+
+  /* Without a floor the pitch is a `flex: 1` child of an auto-height column,
+     which collapses to nothing. */
+  .pick-pitch-wrap { min-height: 300px; }
+}
+
+/* Toolbar dropdowns anchor to their button: the sort panel opens left-aligned
+   and the filter panel right-aligned, so on a narrow toolbar one of them always
+   hangs off an edge (measured at 320–430 px: sort ran 2–42 px past the right,
+   filter started at x = −119). Anchor both to the toolbar instead and let them
+   span it. */
+@media (max-width: 620px) {
+  /* Stage header on two rows: leave + identity (lobby) or timer + leave (draft)
+     on row 1, the four-step bar full width on row 2. Side by side the parts need
+     ~455 px — more with a long username — and because `.view` has no horizontal
+     scroll that width becomes the layout width for every panel below it. */
+  .lobby-stage-row,
+  #viewDraft > .stage-progress-container {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .lobby-leave,
+  .stage-header-left { order: 1; }
+
+  .lobby-identity,
+  .stage-header-right { order: 2; margin-left: auto; }
+
+  .stage-progress-container--lobby,
+  #viewDraft > .stage-progress-container .stage-progress-bar {
+    order: 3;
+    flex: 1 0 100%;
+  }
+
+  .stage-progress-container--lobby { padding: 0; }
+
+  /* The 280 px floor is what the header cannot afford at this width. */
+  .stage-progress-container--lobby .stage-progress-bar,
+  .stage-progress-bar {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    padding: 0 4px;
+  }
+
+  .ban-phase-controls,
+  .pick-phase-controls { position: relative; }
+
+  .ban-phase-controls .ap-dd-wrap,
+  .pick-phase-controls .ap-dd-wrap { position: static; }
+
+  .ban-phase-controls .ap-dd-panel,
+  .pick-phase-controls .ap-dd-panel {
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHONE (≤480 px)
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .stage-dot-label { font-size: 9px; letter-spacing: 0.02em; }
+
+  /* Two columns of cards rather than one oversized one. */
+  .ban-phase-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .pick-phase-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+
+  /* Quick-load: plan cards scroll on their own row, formation button below. */
+  .pick-quickload-bar { flex-wrap: wrap; }
+  .pick-ql-cards { flex: 1 1 100%; order: 3; }
+  .pick-ql-formation-wrap { margin-left: auto; }
+
+  .ban-phase-left,
+  .pick-phase-left,
+  .pick-phase-center,
+  .pick-phase-right { padding: 8px; }
+}
+

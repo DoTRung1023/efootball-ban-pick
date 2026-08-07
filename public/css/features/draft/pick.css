@@ -1,0 +1,859 @@
+/* ============================================================
+   Pick phase: quick-load bar, squad pool, formation pitch, allowance bar and
+   the live opponent feed.
+
+   A contiguous slice of the original draft.css. The <link> order in room.html
+   reproduces that file exactly — see room/css.md before moving anything.
+   ============================================================ */
+
+/* ── Pick Phase ────────────────────────────────────────────── */
+.draft-panel--pick-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Quick-load plan bar */
+.pick-quickload-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--c-line-faint);
+  background: rgba(15, 42, 65, 0.55);
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pick-ql-info {
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.pick-ql-kicker {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.pick-ql-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pick-ql-cards {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+
+.pick-ql-cards::-webkit-scrollbar { display: none; }
+
+.pick-ql-card {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-line);
+  background: rgba(17, 47, 74, 0.6);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color var(--transition), background var(--transition);
+  white-space: nowrap;
+}
+
+.pick-ql-card:hover { border-color: var(--c-line-hover); }
+
+.pick-ql-card.is-selected {
+  border-color: var(--g-line-active);
+  background: var(--g-fill);
+}
+
+.pick-ql-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--c-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--c-fill);
+  flex-shrink: 0;
+}
+
+.pick-ql-card.is-selected .pick-ql-card-icon {
+  border-color: var(--g-line-hover);
+  color: var(--green);
+  background: var(--g-fill);
+}
+
+.pick-ql-card-body { line-height: 1.25; }
+
+.pick-ql-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pick-ql-card.is-selected .pick-ql-card-name { color: var(--green); }
+
+.pick-ql-card-formation {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pick-ql-check {
+  font-size: 11px;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+/* Formation dropdown */
+.pick-ql-formation-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pick-ql-formation-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-line);
+  background: rgba(17, 47, 74, 0.6);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.pick-ql-formation-btn:hover {
+  border-color: var(--c-line-hover);
+  background: rgba(20, 55, 86, 0.7);
+}
+
+.pick-ql-hash { color: var(--cyan); }
+
+.pick-ql-formation-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 200;
+  min-width: 120px;
+  border-radius: 10px;
+  border: 1px solid var(--c-line);
+  background: rgba(16, 44, 69, 0.97);
+  backdrop-filter: blur(12px);
+  padding: 4px 0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.pick-ql-formation-panel button {
+  display: block;
+  width: 100%;
+  padding: 7px 14px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-align: left;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background var(--transition), color var(--transition);
+}
+
+.pick-ql-formation-panel button:hover { background: var(--c-fill); color: var(--text); }
+.pick-ql-formation-panel button.is-active { color: var(--cyan); }
+
+/* Three-column layout: left | center | right */
+.pick-phase-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 252px;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* Left: squad pool */
+.pick-phase-left {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--c-line-faint);
+  background: rgba(17, 44, 68, 0.18);
+}
+
+.pick-squad-header { line-height: 1.2; }
+
+.pick-squad-kicker {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pick-squad-sub {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pick-phase-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.pick-phase-controls .team-search-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* The pool column is only ~300px, so search + sort never fit on one line —
+     nowrap left the placeholder running under the sort button. */
+  flex-wrap: wrap;
+}
+
+.pick-phase-controls .team-search-wrap { flex: 1 1 150px; min-width: 0; }
+
+.pick-phase-controls .team-search-wrap input { min-width: 0; }
+
+.pick-phase-controls .sort-group,
+.pick-phase-controls .ap-dd-wrap,
+.pick-phase-controls .sort-dir-btn { flex: 0 0 auto; }
+
+/* Position tab bar */
+.pick-pos-tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pick-pos-tab {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 7px;
+  border: 1px solid var(--c-line);
+  background: rgba(17, 47, 74, 0.5);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.pick-pos-tab:hover { border-color: var(--c-line-hover); color: var(--text); }
+
+.pick-pos-tab.is-active {
+  border-color: var(--c-line-active);
+  background: var(--c-fill);
+  color: var(--cyan);
+}
+
+/* Squad pick grid */
+.pick-phase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 7px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+  padding-right: 3px;
+}
+
+.pick-phase-grid .player-card {
+  cursor: default;
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition), filter var(--transition);
+  position: relative;
+}
+
+.pick-phase-grid .player-card.is-unavailable {
+  opacity: 0.55;
+  filter: grayscale(0.3);
+}
+
+.pick-phase-grid .player-card:not(.is-unavailable):hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 2px rgba(53, 214, 255, 0.45), 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+
+.pick-phase-grid .player-card.is-clickable { cursor: pointer; }
+
+/* PICKED overlay */
+.pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after {
+  content: "PICKED";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: rgba(40, 164, 96, 0.78);
+  border-radius: 0;
+}
+
+/* BANNED overlay */
+.pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
+  content: "BANNED";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: rgba(200, 40, 40, 0.78);
+  border-radius: 0;
+}
+
+.pick-phase-grid::-webkit-scrollbar { width: 4px; }
+.pick-phase-grid::-webkit-scrollbar-track { background: transparent; }
+.pick-phase-grid::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 4px; }
+.pick-phase-grid::-webkit-scrollbar-thumb:hover { background: rgba(53, 214, 255, 0.38); }
+
+/* Center: formation pitch */
+.pick-phase-center {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--g-line-faint);
+  background: rgba(11, 26, 39, 0.32);
+}
+
+.pick-lineup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pick-lineup-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pick-lineup-count {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.pick-lineup-formation {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--c-line-hover);
+  background: var(--c-fill);
+}
+
+.pick-lineup-avgovr {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pick-lineup-plan-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+.pick-clear-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* Pitch */
+.pick-pitch-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.pick-pitch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  justify-content: space-evenly;
+  padding: 4px 0;
+}
+
+.pick-pitch-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.pick-slot {
+  flex: 1;
+  max-width: 110px;
+  min-height: 88px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pick-slot--empty {
+  border: 1.5px dashed var(--g-line);
+  background: var(--g-fill-faint);
+  cursor: default;
+  gap: 4px;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.pick-slot-plus {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--g-text-dim);
+  line-height: 1;
+}
+
+.pick-slot-pos-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--g-text-dim);
+}
+
+.pick-slot--filled {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.pick-slot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  border-radius: 10px;
+}
+
+.pick-slot-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 5px;
+  background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-radius: 0 0 10px 10px;
+}
+
+.pick-slot-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  max-width: 70%;
+}
+
+.pick-slot-ovr {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+/* Bottom bar: allowance + confirm */
+.pick-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+
+.pick-allowance-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.pick-allowance-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pick-allowance-pill {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+
+.pick-allowance-pill.is-maxed {
+  color: var(--green);
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+.pick-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pick-confirm-btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 7px 18px;
+}
+
+.pick-more-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+/* Right: live opponent feed */
+.pick-phase-right {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--c-line-faint);
+  background: rgba(14, 39, 61, 0.28);
+}
+
+.pick-live-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pick-live-tag {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--green);
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+.pick-opp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.pick-opp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pick-opp-identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pick-opp-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.pick-opp-dot.is-online { background: var(--green); }
+
+.pick-opp-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pick-opp-count {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+
+.pick-opp-progress-wrap {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-fill-strong);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.pick-opp-progress-fill {
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+.pick-opp-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.pick-opp-feed::-webkit-scrollbar { width: 3px; }
+.pick-opp-feed::-webkit-scrollbar-track { background: transparent; }
+.pick-opp-feed::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 2px; }
+
+.pick-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--c-line-faint);
+  background: rgba(17, 47, 74, 0.5);
+  transition: background var(--transition);
+}
+
+.pick-feed-row.is-new {
+  border-color: var(--c-line-hover);
+  background: var(--c-fill);
+}
+
+.pick-feed-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.3);
+}
+
+.pick-feed-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.pick-feed-info {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.pick-feed-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pick-feed-meta {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pick-feed-badge {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--green);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--g-line-hover);
+  background: var(--g-fill);
+  flex-shrink: 0;
+}
+
+.pick-feed-waiting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  border: 1px dashed var(--c-line-faint);
+  background: rgba(17, 47, 74, 0.25);
+}
+
+.pick-feed-wait-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(53, 214, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.pick-feed-wait-text {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.pick-live-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding-top: 4px;
+  border-top: 1px solid var(--c-line-faint);
+}
+
+.pick-live-footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pick-live-footer-dot.is-online { background: var(--green); }
+
+.pick-live-status-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  flex: 1;
+  min-width: 0;
+}
+
+.pick-live-sync {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .pick-phase-layout { grid-template-columns: 260px minmax(0, 1fr) 220px; }
+}
+
+/* Single column, pitch included: `.pick-phase-center` carries the CONFIRM PICKS
+   button, so hiding it below this width left no way to finish the draft. */
+@media (max-width: 860px) {
+  .pick-phase-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .pick-phase-layout { grid-template-columns: 1fr; }
+  .pick-phase-right { max-height: 200px; }
+}
+

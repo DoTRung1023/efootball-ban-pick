@@ -1,0 +1,1716 @@
+/* ============================================================
+   Lobby: top bar, player matchup, settings panel, allowance builder, chat,
+   and the lobby's own responsive rungs.
+
+   A contiguous slice of the original draft.css. The <link> order in room.html
+   reproduces that file exactly — see room/css.md before moving anything.
+   ============================================================ */
+
+/* ============================================================
+   LOBBY
+   ============================================================ */
+
+#viewLobby {
+  justify-content: flex-start;
+  overflow-y: hidden;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+}
+
+.centered-box--lobby {
+  max-width: none;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* ── Top navigation bar ──────────────────────────────────── */
+
+.lobby-leave {
+  flex-shrink: 0;
+}
+
+.lobby-identity {
+  flex-shrink: 0;
+}
+
+.lobby-identity-btn {
+  min-width: 80px;
+  max-width: 160px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  /* Green, not cyan: this chip is *you*. Cyan means the opponent everywhere
+     else on the page, so a cyan chip for your own name misreads. */
+  border-color: var(--g-line-hover);
+  background: var(--g-fill-faint);
+  color: var(--text);
+}
+
+#lobbyLeaveBtn {
+  min-width: 80px;
+  border-color: var(--r-line);
+  background: var(--r-fill);
+  color: rgba(255, 225, 225, 0.94);
+}
+
+#lobbyLeaveBtn:hover:not(:disabled),
+#lobbyLeaveBtn:focus-visible {
+  border-color: var(--r-line-hover);
+  background: var(--r-fill-hover);
+  color: #fff;
+}
+
+/* ── Lobby board + layout ────────────────────────────────── */
+
+.lobby-board {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 14px;
+  overflow: hidden;
+}
+
+.lobby-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── Player matchup ──────────────────────────────────────── */
+
+.lobby-summary {
+  display: flex;
+  align-items: stretch;
+  border-radius: 16px;
+  border: 1px solid var(--g-line);
+  background: linear-gradient(135deg, rgba(10, 26, 39, 0.92) 0%, rgba(10, 26, 41, 0.92) 100%);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.32), inset 0 1px 0 var(--g-glow-soft);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Player slot: a centred meta stack either side of the room code. There are no
+   avatars — the site has no profile images, so an initial in a circle was
+   decoration carrying no information. */
+.ls-player {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px;
+  min-width: 0;
+  position: relative;
+}
+
+.ls-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+}
+
+.ls-role {
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ls-player--host .ls-role { color: var(--g-text-dim); }
+.ls-player--guest .ls-role { color: var(--c-text-dim); }
+
+.ls-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  line-height: 1.1;
+  text-align: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ls-player--guest:not(.is-ready) .ls-name {
+  font-style: italic;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ls-stats {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  min-height: 1.2em;
+  text-align: inherit;
+}
+
+.ls-stats .ls-dot { color: var(--text-muted); }
+
+.ls-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: inherit;
+}
+
+.ls-conn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  min-height: 1.2em;
+  text-align: inherit;
+}
+
+.ls-player--host .ls-conn { color: var(--g-text); }
+.player-slot-status--ok { color: var(--c-text) !important; }
+
+/* Center column. The hairline borders replace the old single decorative centre
+   line — with three columns the divider belongs on both sides of the code. */
+.ls-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 26px;
+  min-width: 210px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--g-line-faint);
+  border-right: 1px solid var(--g-line-faint);
+  background: var(--g-fill-faint);
+}
+
+.room-code-label {
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.room-code-big {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--green);
+  text-shadow: 0 0 20px var(--g-glow);
+  line-height: 1;
+}
+
+.ls-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.ls-btn {
+  font-size: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 13px;
+  height: 28px;
+  border-color: var(--g-line);
+  color: var(--g-text);
+  background: transparent;
+}
+
+.ls-btn:hover:not(:disabled) {
+  border-color: var(--g-line-active);
+  color: var(--green);
+  background: var(--g-fill);
+}
+
+/* Why the CTA is blocked. Lives in .lobby-cta-bar next to the button, so the
+   button itself never has to repeat the status. */
+.ls-waiting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.ls-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+  animation: lsPulse 1.6s ease-out infinite;
+}
+
+@keyframes lsPulse {
+  0%   { box-shadow: 0 0 0 0 var(--a-glow); }
+  70%  { box-shadow: 0 0 0 7px rgba(242, 193, 78, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(242, 193, 78, 0); }
+}
+
+/* Sticky action footer of the settings panel: status on the left, CTA right. */
+.lobby-cta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--g-line-faint);
+}
+
+/* margin-left keeps the CTA hard right even when #lobbyWaiting is hidden and
+   space-between has nothing left to push against. */
+.lobby-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+#startDraftBtn {
+  min-width: 190px;
+  letter-spacing: 0.12em;
+}
+
+.lobby-kick-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  padding: 3px 9px;
+  min-height: 26px;
+  font-size: 11px;
+  border-color: var(--r-line);
+  background: var(--r-fill);
+  color: rgba(255, 215, 215, 0.85);
+}
+
+.lobby-kick-btn:hover:not(:disabled) {
+  border-color: var(--r-line-hover);
+  background: var(--r-fill-hover);
+  color: #fff;
+}
+
+/* ── Bottom row: settings + chat ─────────────────────────── */
+
+.lobby-bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 0.4fr);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.lobby-left-lane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.lobby-right-lane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+/* ── Panel card ──────────────────────────────────────────── */
+
+.prep-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid var(--g-line-faint);
+  background: var(--surface-card);
+  padding: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  /* .centered-box centers text for the error/abandoned boxes; panels are
+     left-aligned so labels line up with their controls. */
+  text-align: left;
+}
+
+.prep-col::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(150deg,
+    var(--c-fill-faint) 0%,
+    transparent 45%,
+    var(--g-fill-faint) 100%);
+  border-radius: inherit;
+}
+
+.prep-col > * { position: relative; }
+
+.prep-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  letter-spacing: 0.13em;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--g-line-faint);
+  flex-shrink: 0;
+}
+
+.prep-title::before {
+  content: '';
+  width: 3px;
+  height: 15px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--green) 0%, rgba(44, 207, 117, 0.3) 100%);
+  flex-shrink: 0;
+}
+
+/* The panel itself never scrolls — .prep-scroll does, so the "BAN SETTING"
+   header and the CTA footer stay pinned. */
+.prep-col--settings {
+  overflow: hidden;
+  height: 100%;
+}
+
+.prep-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the scrollbar so it never sits on top of the controls. */
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+/* Guest read-only. Scoped to .prep-scroll, NOT the whole panel: the panel also
+   contains .lobby-cta-bar, and the guest's own READY button lives there. A
+   panel-wide rule disables it and the guest cannot ready up at all. */
+.prep-col--settings.is-readonly .prep-scroll {
+  opacity: 0.58;
+}
+
+.prep-col--settings.is-readonly .prep-scroll :is(
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  .allowance-category-dd,
+  .allowance-list,
+  .allowance-pos-dropdown,
+  .allowance-multi-dropdown,
+  .allowance-cap-wrap,
+  .allowance-pos-cap-wrap
+) {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
+.prep-col--chat {
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+/* ── Ban settings (lv-* controls) ───────────────────────── */
+
+.lv-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+/* Ban count + both durations share one row. Tracks are capped at 190px so a
+   three-digit field never stretches across a third of a wide panel; below
+   ~450px they wrap to two, then one. */
+.lv-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 190px));
+  gap: 12px;
+}
+
+.lv-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lv-field-label {
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Stretches to its grid cell so the three settings controls read as one row of
+   equal-width fields. */
+.lv-stepper {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  border: 1px solid var(--g-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-control);
+}
+
+.lv-stepper-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  color: var(--green);
+  border: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s ease;
+  line-height: 1;
+}
+
+.lv-stepper-btn:hover:not(:disabled) { background: var(--g-fill); }
+.lv-stepper-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.lv-stepper-val {
+  flex: 1;
+  min-width: 42px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  border-left: 1px solid var(--g-line);
+  border-right: 1px solid var(--g-line);
+  padding: 6px 4px;
+}
+
+/* Free-entry duration field. Mirrors .lv-stepper's framing so the ban count
+   and the two durations read as one control family. */
+.lv-duration-field {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  border: 1px solid var(--g-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-control);
+  transition: var(--transition);
+}
+
+.lv-duration-field:focus-within {
+  border-color: rgba(44, 207, 117, 0.7);
+  box-shadow: 0 0 0 3px var(--g-glow-soft);
+}
+
+.lv-duration-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  text-align: center;
+  outline: none;
+  /* Spinners are tiny and fight the dark theme; the unit label reads better. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.lv-duration-input::-webkit-outer-spin-button,
+.lv-duration-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lv-duration-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lv-duration-unit {
+  padding: 6px 10px;
+  border-left: 1px solid var(--g-line);
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.lv-field-hint {
+  font-family: ui-monospace, "Geist Mono", "Fira Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* Out-of-range typing is flagged live; the value is clamped on commit. */
+.lv-duration-input:out-of-range {
+  color: var(--red);
+}
+
+.lv-duration-field:has(.lv-duration-input:out-of-range) {
+  border-color: rgba(255, 60, 60, 0.6);
+}
+
+.lv-reveal-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.lv-reveal-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  background: var(--surface-control);
+  border: 1px solid var(--g-line-faint);
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.lv-reveal-card:hover:not(:disabled) { border-color: var(--g-line-hover); }
+.lv-reveal-card.is-selected {
+  border-color: rgba(44, 207, 117, 0.65);
+  background: var(--g-fill);
+  box-shadow: 0 0 14px var(--g-glow-soft);
+}
+.lv-reveal-card:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.lv-reveal-icon { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
+
+.lv-reveal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lv-reveal-name {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.lv-reveal-d {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.lv-reveal-card.is-selected .lv-reveal-name { color: var(--green); }
+
+/* ── Allowance section ──────────────────────────────────── */
+
+.prep-section {
+  border: 1px solid var(--g-line-faint);
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  padding: 10px;
+}
+
+/* flex-shrink 0: the parent .prep-scroll is a fixed-height scrolling flex
+   column, so a shrinkable basis-0 item collapses to zero content height and its
+   children paint outside the border box. Grow to fill spare space, never shrink. */
+.prep-section--allowance {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
+.prep-section-title {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.prep-section-sub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.prep-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.prep-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.88rem;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.prep-check input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(85, 100, 135, 0.6);
+  background: rgba(26, 55, 81, 0.9);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.prep-check input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 7px;
+  border: 2px solid #0b1e2f;
+  border-top: none;
+  border-left: none;
+  transform: translate(4px, 2px) rotate(45deg) scale(0.85);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.prep-check input[type="checkbox"]:checked {
+  border-color: rgba(44, 207, 117, 0.7);
+  background: rgba(30, 210, 113, 0.88);
+}
+
+.prep-check input[type="checkbox"]:checked::after { opacity: 1; }
+
+.allowance-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.allowance-controls.is-disabled { opacity: 0.55; pointer-events: none; }
+.allowance-controls.is-disabled .allowance-category-panel { display: none; }
+.allowance-controls.is-disabled .allowance-category-dd { pointer-events: none; }
+
+.allowance-category-dd {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100%, 230px);
+}
+
+.allowance-category-trigger {
+  width: 100%;
+  padding: 6px 32px 6px 12px;
+  border: 1px solid var(--g-line);
+  border-radius: 18px;
+  background: var(--g-fill-faint);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  position: relative;
+  text-align: left;
+}
+
+.allowance-category-trigger:hover:not(:disabled),
+.allowance-category-trigger.open {
+  color: var(--green);
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+.allowance-category-trigger:disabled { opacity: 0.38; cursor: not-allowed; }
+.allowance-category-trigger.is-placeholder { color: var(--text-dim); }
+
+.allowance-category-caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -4px;
+  border-right: 2px solid rgba(154, 222, 183, 0.75);
+  border-bottom: 2px solid rgba(154, 222, 183, 0.75);
+  transform: rotate(45deg);
+  transition: transform 0.16s ease;
+}
+
+.allowance-category-trigger.open .allowance-category-caret {
+  transform: rotate(225deg);
+  margin-top: 0;
+}
+
+.allowance-category-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 500;
+  width: 100%;
+  max-height: min(280px, 50vh);
+  overflow-y: auto;
+  background: rgba(6, 16, 24, 0.98);
+  border: 1px solid var(--g-line);
+  border-radius: 10px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.52);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(5px) scale(0.97);
+  transform-origin: top left;
+  transition: opacity 0.17s ease, transform 0.17s ease;
+}
+
+.allowance-category-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.allowance-category-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 13px;
+  border: none;
+  border-bottom: 1px solid var(--g-line-faint);
+  background: transparent;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.allowance-category-option:last-child { border-bottom: none; }
+.allowance-category-option:hover:not(:disabled) { background: var(--g-fill); color: var(--text); }
+.allowance-category-option.is-selected { color: var(--green); background: var(--g-fill); font-weight: 700; }
+.allowance-category-option:disabled { cursor: not-allowed; color: var(--text-muted); }
+.allowance-category-option.is-disabled { opacity: 0.5; }
+.allowance-category-check { opacity: 0; color: var(--green); flex-shrink: 0; font-size: 11px; }
+.allowance-category-option.is-selected .allowance-category-check { opacity: 1; }
+
+#addAllowanceBtn {
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: 18px;
+  border-color: var(--g-line);
+  background: var(--g-fill-faint);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+#addAllowanceBtn:hover:not(:disabled) {
+  color: var(--green);
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+#addAllowanceBtn:disabled { opacity: 0.38; }
+
+.allowance-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  flex: 1;
+  min-height: 80px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* The list fills whatever height the panel has left, so the empty state is a
+   deliberate placeholder rather than one line stranded in a void. */
+.allowance-list:has(.allowance-empty) { align-content: stretch; }
+
+.allowance-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px dashed var(--g-line);
+  border-radius: 12px;
+  background: var(--g-fill-faint);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.allowance-item {
+  border: 1px solid var(--g-line);
+  border-radius: 12px;
+  background: var(--surface-control);
+  padding: 8px 10px;
+  transition: border-color 0.14s ease;
+}
+
+.allowance-item.is-added { border-color: var(--g-line-hover); }
+
+.allowance-item > label {
+  display: block;
+  text-align: center;
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.allowance-item-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(100px, 150px) auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    ". cap ."
+    "main cap remove";
+  gap: 7px;
+  align-items: stretch;
+}
+
+.allowance-item-row--no-cap {
+  grid-template-columns: minmax(140px, 1fr) auto;
+  grid-template-rows: auto;
+  grid-template-areas: "main remove";
+}
+
+.allowance-item:is([data-allowance-key="club"],[data-allowance-key="league"],[data-allowance-key="nationality"]) .allowance-item-row--no-cap {
+  grid-template-columns: 1fr;
+  grid-template-areas: "main";
+}
+
+.allowance-item:is([data-allowance-key="club"],[data-allowance-key="league"],[data-allowance-key="nationality"]) .allowance-remove-btn {
+  grid-area: auto;
+  justify-self: end;
+  align-self: center;
+  width: auto;
+  max-width: none;
+}
+
+.allowance-item-main { grid-area: main; width: 100%; min-width: 120px; }
+
+.allowance-item-range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.allowance-club-builder {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 7px;
+}
+
+.allowance-club-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.allowance-club-search-wrap { position: relative; width: 100%; min-width: 0; }
+.allowance-club-search { display: block; width: 100%; }
+
+.allowance-club-suggest-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 70;
+  background: rgba(6, 16, 24, 0.98);
+  border: 1px solid var(--g-line);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+.allowance-club-suggest-panel.is-open { display: grid; grid-template-columns: 1fr; }
+
+.allowance-club-suggest-option {
+  border: none;
+  border-bottom: 1px solid var(--g-line-faint);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.13s ease;
+}
+.allowance-club-suggest-option:last-child { border-bottom: none; }
+.allowance-club-suggest-option:hover { background: var(--g-fill); color: var(--green); }
+.allowance-club-suggest-option.is-active { background: var(--g-fill); color: var(--green); }
+.allowance-club-suggest-empty { padding: 9px 12px; font-size: 0.82rem; color: var(--text-muted); }
+
+/* Input / select shared styles */
+.allowance-item-input,
+.allowance-club-search,
+.allowance-item-range {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--g-line);
+  background: var(--surface-card);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.allowance-item-input:focus,
+.allowance-club-search:focus,
+.allowance-item-range:focus {
+  border-color: var(--g-line-hover);
+  box-shadow: 0 0 0 3px var(--g-glow-soft);
+}
+
+.allowance-item-input:disabled,
+.allowance-club-search:disabled,
+.allowance-item-range:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.allowance-item-range-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.allowance-item-range-col { display: flex; flex-direction: column; }
+
+/* Foot list */
+.allowance-foot-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.allowance-foot-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--g-line-faint);
+  border-radius: 6px;
+  background: var(--surface-control);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.allowance-foot-option.is-selected {
+  border-color: rgba(44, 207, 117, 0.65);
+  background: var(--g-fill);
+  color: var(--green);
+}
+.allowance-foot-option:disabled { opacity: 0.35; cursor: not-allowed; }
+.allowance-foot-check { display: none; }
+.allowance-foot-option.is-selected .allowance-foot-check { display: inline; color: var(--green); font-size: 10px; }
+
+/* Position dropdown */
+.allowance-pos-dropdown { position: relative; }
+.allowance-pos-dropdown.is-disabled { opacity: 0.42; pointer-events: none; }
+
+.allowance-pos-trigger {
+  width: 100%;
+  padding: 7px 26px 7px 10px;
+  border: 1px solid var(--g-line);
+  border-radius: 7px;
+  background: var(--surface-card);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  position: relative;
+  font-family: var(--font-body);
+}
+.allowance-pos-trigger:hover:not(:disabled),
+.allowance-pos-dropdown.is-open .allowance-pos-trigger {
+  border-color: var(--g-line-hover);
+  color: var(--green);
+  background: var(--g-fill);
+}
+
+.allowance-pos-caret,
+.allowance-multi-caret,
+.allowance-pos-cap-caret,
+.allowance-cap-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -4px;
+  border-right: 2px solid rgba(154, 222, 183, 0.72);
+  border-bottom: 2px solid rgba(154, 222, 183, 0.72);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.allowance-pos-dropdown.is-open .allowance-pos-caret,
+.allowance-multi-dropdown.is-open .allowance-multi-caret,
+.allowance-pos-cap-wrap.is-open .allowance-pos-cap-caret,
+.allowance-cap-wrap.is-open .allowance-cap-caret {
+  transform: rotate(225deg);
+  margin-top: 0;
+}
+
+.allowance-pos-panel,
+.allowance-multi-panel,
+.allowance-pos-cap-panel,
+.allowance-cap-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 500;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(6, 16, 24, 0.98);
+  border: 1px solid var(--g-line);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+.allowance-pos-dropdown.is-open .allowance-pos-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.allowance-multi-panel { grid-template-columns: 1fr 1fr; }
+.allowance-multi-panel--single-column { grid-template-columns: 1fr; }
+.allowance-multi-dropdown.is-open .allowance-multi-panel { display: grid; }
+
+.allowance-pos-cap-wrap.is-open .allowance-pos-cap-panel,
+.allowance-cap-wrap.is-open .allowance-cap-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.allowance-pos-option,
+.allowance-multi-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid var(--g-line-faint);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.13s ease;
+  font-family: var(--font-body);
+  width: 100%;
+  text-align: left;
+}
+.allowance-pos-option:hover, .allowance-multi-option:hover {
+  background: var(--g-fill); color: var(--text);
+}
+.allowance-pos-option.is-selected, .allowance-multi-option.is-selected {
+  color: var(--green); background: var(--g-fill);
+}
+.allowance-pos-check,
+.allowance-multi-check { display: none; }
+.allowance-pos-option.is-selected .allowance-pos-check,
+.allowance-multi-option.is-selected .allowance-multi-check {
+  display: inline; color: var(--green); font-size: 10px;
+}
+.allowance-multi-empty { padding: 9px 12px; font-size: 0.82rem; color: var(--text-muted); grid-column: 1 / -1; }
+
+/* Cap labels and inputs */
+.allowance-cap-label {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.allowance-cap-input,
+.allowance-pos-cap-input,
+.allowance-club-cap-input,
+.allowance-item-cap {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--g-line-faint);
+  background: var(--surface-card);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.13s ease;
+}
+.allowance-cap-input:focus, .allowance-pos-cap-input:focus,
+.allowance-club-cap-input:focus, .allowance-item-cap:focus {
+  border-color: var(--g-line-hover);
+  box-shadow: 0 0 0 2px var(--g-glow-soft);
+}
+.allowance-cap-input:disabled, .allowance-pos-cap-input:disabled,
+.allowance-club-cap-input:disabled, .allowance-item-cap:disabled { opacity: 0.38; cursor: not-allowed; }
+
+/* Remove number spinner arrows */
+.allowance-cap-input, .allowance-pos-cap-input, .allowance-club-cap-input,
+.allowance-item-cap, .allowance-item-range {
+  -moz-appearance: textfield;
+}
+.allowance-cap-input::-webkit-outer-spin-button,
+.allowance-cap-input::-webkit-inner-spin-button,
+.allowance-pos-cap-input::-webkit-outer-spin-button,
+.allowance-pos-cap-input::-webkit-inner-spin-button,
+.allowance-club-cap-input::-webkit-outer-spin-button,
+.allowance-club-cap-input::-webkit-inner-spin-button,
+.allowance-item-cap::-webkit-outer-spin-button,
+.allowance-item-cap::-webkit-inner-spin-button,
+.allowance-item-range::-webkit-outer-spin-button,
+.allowance-item-range::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Remove button */
+.allowance-remove-btn {
+  grid-area: remove;
+  align-self: center;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--r-line);
+  background: var(--r-fill);
+  color: rgba(255, 175, 175, 0.82);
+  font-size: 11px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.allowance-remove-btn:hover:not(:disabled) {
+  border-color: rgba(255, 95, 95, 0.62);
+  background: rgba(255, 72, 72, 0.12);
+  color: #fff;
+}
+.allowance-remove-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Position cap wrap */
+.allowance-pos-cap-wrap { position: relative; }
+.allowance-pos-cap-wrap.is-disabled { opacity: 0.42; pointer-events: none; }
+
+.allowance-pos-cap-trigger,
+.allowance-cap-trigger {
+  width: 100%;
+  padding: 7px 26px 7px 10px;
+  border: 1px solid var(--g-line-faint);
+  border-radius: 7px;
+  background: var(--surface-card);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.allowance-pos-cap-trigger:hover:not(:disabled),
+.allowance-pos-cap-wrap.is-open .allowance-pos-cap-trigger,
+.allowance-cap-trigger:hover:not(:disabled),
+.allowance-cap-wrap.is-open .allowance-cap-trigger {
+  border-color: var(--g-line-hover);
+  color: var(--green);
+  background: var(--g-fill);
+}
+
+.allowance-pos-cap-row,
+.allowance-cap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--g-line-faint);
+  gap: 8px;
+}
+.allowance-pos-cap-row:last-child, .allowance-cap-row:last-child { border-bottom: none; }
+
+.allowance-pos-cap-pos { font-size: 12px; font-weight: 700; color: var(--text-dim); min-width: 32px; }
+.allowance-cap-item { font-size: 12px; font-weight: 700; color: var(--text-dim); min-width: 40px; }
+.allowance-pos-cap-empty, .allowance-cap-empty { padding: 9px 12px; font-size: 0.8rem; color: var(--text-muted); }
+
+/* Cap wrap (cardType, region, playingStyle) */
+.allowance-cap-wrap { position: relative; }
+.allowance-cap-wrap.is-disabled { opacity: 0.42; pointer-events: none; }
+
+/* Multi dropdown */
+.allowance-multi-dropdown { position: relative; }
+.allowance-multi-dropdown.is-disabled { opacity: 0.42; pointer-events: none; }
+
+.allowance-multi-trigger {
+  width: 100%;
+  padding: 7px 26px 7px 10px;
+  border: 1px solid var(--g-line);
+  border-radius: 7px;
+  background: var(--surface-card);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.allowance-multi-trigger:hover:not(:disabled),
+.allowance-multi-dropdown.is-open .allowance-multi-trigger {
+  border-color: var(--g-line-hover);
+  color: var(--green);
+  background: var(--g-fill);
+}
+
+/* Club list */
+.allowance-club-list { display: flex; flex-direction: column; gap: 5px; }
+
+.allowance-club-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 1px solid var(--g-line-faint);
+  border-radius: 7px;
+  background: var(--surface-sunken);
+}
+
+.allowance-club-name {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 600; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.allowance-club-cap-col { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.allowance-club-cap-label { font-size: 8px; letter-spacing: 0.18em; color: var(--text-muted); font-family: ui-monospace, monospace; text-transform: uppercase; }
+
+.allowance-club-row-remove {
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 65, 65, 0.28);
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 155, 155, 0.78);
+  font-size: 10px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.allowance-club-row-remove:hover:not(:disabled) {
+  border-color: rgba(255, 95, 95, 0.62);
+  background: rgba(255, 65, 65, 0.1);
+  color: #fff;
+}
+.allowance-club-row-remove:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.allowance-club-empty { font-size: 11.5px; color: var(--text-muted); padding: 5px 2px; }
+
+.allowance-club-add-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--g-line);
+  border-radius: 7px;
+  background: var(--g-fill-faint);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.allowance-club-add-btn:hover:not(:disabled) {
+  border-color: var(--g-line-hover);
+  color: var(--green);
+  background: var(--g-fill);
+}
+.allowance-club-add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.allowance-club-remove-category {
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 65, 65, 0.28);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 145, 145, 0.78);
+  font-size: 11px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.allowance-club-remove-category:hover:not(:disabled) {
+  border-color: rgba(255, 95, 95, 0.62);
+  background: rgba(255, 65, 65, 0.1);
+  color: #fff;
+}
+.allowance-club-remove-category:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Chat panel ─────────────────────────────────────────── */
+
+.chat-log {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--g-line-faint);
+  border-radius: 8px;
+}
+
+.chat-empty {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  text-align: center;
+  padding: 20px 8px;
+  font-style: italic;
+}
+
+.chat-item {
+  padding: 6px 8px 6px 11px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid transparent;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+/* The opponent gets the loud treatment — cyan accent bar, cyan fill, cyan name.
+   A new message from the other side is the thing worth noticing; your own is
+   just a record of what you already typed, so it stays quiet in green. The bar
+   is an inset shadow rather than a border so neither variant shifts layout. */
+.chat-item:not(.is-mine) {
+  background: var(--c-fill-strong);
+  border-color: var(--c-line);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.chat-item.is-mine {
+  background: var(--g-fill);
+  border-color: var(--g-line);
+  box-shadow: inset 3px 0 0 var(--g-line-active);
+}
+
+.chat-announce {
+  text-align: center;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 4px 0 7px;
+}
+
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 1px;
+}
+
+.chat-name {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.chat-item:not(.is-mine) .chat-name { color: var(--cyan); }
+.chat-item.is-mine .chat-name { color: var(--green); }
+
+.chat-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chat-msg {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-compose {
+  margin-top: 8px;
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.chat-compose input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--g-line);
+  background: var(--surface-card);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chat-compose input::placeholder { color: var(--text-muted); }
+.chat-compose input:focus {
+  border-color: var(--g-line-hover);
+  box-shadow: 0 0 0 3px var(--g-glow-soft);
+}
+.chat-compose input:disabled { opacity: 0.42; cursor: not-allowed; }
+
+/* Send is flattened out of the .btn--primary gradient: START/READY should be
+   the only gradient-filled button on screen, so the eye lands on it first. */
+.chat-compose .btn--primary {
+  background: var(--g-fill-strong);
+  color: var(--green);
+  border-color: var(--g-line-hover);
+  box-shadow: none;
+}
+
+.chat-compose .btn--primary:hover:not(:disabled) {
+  border-color: var(--g-line-active);
+  box-shadow: none;
+}
+
+/* ── Lobby scrollbars ────────────────────────────────────── */
+
+#viewLobby,
+.chat-log,
+.prep-scroll,
+.allowance-list,
+.draft-grid,
+.draft-side {
+  scrollbar-width: thin;
+  scrollbar-color: var(--g-line-hover) transparent;
+}
+
+#viewLobby::-webkit-scrollbar,
+.chat-log::-webkit-scrollbar,
+.prep-scroll::-webkit-scrollbar,
+.allowance-list::-webkit-scrollbar,
+.draft-grid::-webkit-scrollbar,
+.draft-side::-webkit-scrollbar { width: 5px; height: 5px; }
+
+#viewLobby::-webkit-scrollbar-track,
+.chat-log::-webkit-scrollbar-track,
+.prep-scroll::-webkit-scrollbar-track,
+.allowance-list::-webkit-scrollbar-track,
+.draft-grid::-webkit-scrollbar-track,
+.draft-side::-webkit-scrollbar-track { background: transparent; }
+
+#viewLobby::-webkit-scrollbar-thumb,
+.chat-log::-webkit-scrollbar-thumb,
+.prep-scroll::-webkit-scrollbar-thumb,
+.allowance-list::-webkit-scrollbar-thumb,
+.draft-grid::-webkit-scrollbar-thumb,
+.draft-side::-webkit-scrollbar-thumb {
+  background: rgba(44, 207, 117, 0.36);
+  border-radius: 999px;
+}
+
+#viewLobby::-webkit-scrollbar-thumb:hover,
+.chat-log::-webkit-scrollbar-thumb:hover,
+.prep-scroll::-webkit-scrollbar-thumb:hover,
+.allowance-list::-webkit-scrollbar-thumb:hover,
+.draft-grid::-webkit-scrollbar-thumb:hover,
+.draft-side::-webkit-scrollbar-thumb:hover { background: rgba(44, 207, 117, 0.6); }
+
+/* ── Stage progress lobby variant ───────────────────────── */
+
+.stage-progress-container--lobby {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  border-bottom: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 4px 8px 0;
+}
+
+.stage-progress-container--lobby .stage-progress-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  width: min(520px, 100%);
+  min-width: 280px;
+  max-width: 520px;
+  padding: 0 14px;
+}
+
+/* ── Lobby responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  #viewLobby {
+    overflow-y: auto;
+    height: auto;
+    max-height: none;
+  }
+  .centered-box--lobby {
+    height: auto;
+    max-height: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: visible;
+  }
+  .lobby-board { height: auto; min-height: 0; }
+  .lobby-layout { height: auto; gap: 10px; }
+}
+
+@media (max-width: 900px) {
+  .lobby-bottom-row { grid-template-columns: 1fr; }
+  .lobby-stage-row { min-height: 46px; padding: 6px 12px 5px; }
+  .ls-player { padding: 12px 10px; gap: 10px; }
+  .ls-center { min-width: 0; padding: 12px 14px; }
+  .ls-name { font-size: 17px; }
+  .prep-col--chat { min-height: 240px; }
+  .allowance-list { min-height: 60px; }
+
+  /* Stacked, the log has no column height to fill, so it collapses to ~140px —
+     four lines of chat. Give it a share of the screen instead, and keep the
+     ceiling so a long log does not stretch the (now scrolling) page. */
+  .chat-log {
+    min-height: min(38vh, 260px);
+    max-height: 45vh;
+  }
+}
+
+@media (max-width: 620px) {
+  /* Stack the matchup: host over room code over guest. */
+  .lobby-summary { flex-direction: column; }
+  .ls-center {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid var(--g-line-faint);
+    border-bottom: 1px solid var(--g-line-faint);
+  }
+  .room-code-big { font-size: 30px; letter-spacing: 0.1em; }
+  .ls-waiting { font-size: 9.5px; letter-spacing: 0.08em; }
+  .lobby-cta-bar { flex-direction: column; align-items: stretch; gap: 9px; }
+
+  /* `margin-left: auto` pins the CTA hard right on desktop; stacked it has to
+     be cleared or the button stays at content width on the right. Scoped to
+     .lobby-actions on purpose — a `.lobby-bottom-row .btn--primary` rule also
+     catches the chat Send button and squashes the message input to ~20px. */
+  .lobby-actions { margin-left: 0; width: 100%; }
+  .lobby-actions .btn { width: 100%; min-width: 0; }
+
+  /* Drop the 190px track cap. It stops a three-digit field spanning a third of
+     a wide panel, but once the row is one or two columns it just leaves a
+     ragged right edge against the full-width MODE cards below. */
+  .lv-field-row { grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); }
+
+  .allowance-controls { flex-direction: column; align-items: stretch; }
+  .allowance-category-dd { width: 100%; }
+  #addAllowanceBtn { margin-left: 0; width: 100%; }
+
+  .lv-reveal-cards { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 760px) {
+  #viewLobby {
+    overflow-y: auto;
+    height: auto;
+    max-height: none;
+  }
+  .centered-box--lobby {
+    height: auto;
+    max-height: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow: visible;
+  }
+  .lobby-board { height: auto; }
+  .ls-player { padding: 11px 14px; }
+  .room-code-big { font-size: 30px; }
+  .prep-col--chat { min-height: 220px; }
+  /* Same idea as the ≤900 floor, scaled down: a short viewport still wants a
+     readable log, but not one that adds 260px to the scroll. */
+  .chat-log { min-height: min(32vh, 200px); }
+}
+
+
