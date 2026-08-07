@@ -1,8 +1,8 @@
-import { cb } from './callbacks.js';
-import { state } from './state.js';
-import { normalizeBanSortValue } from './ban.js';
-import { normalizeMySquadPlayerForDraft } from './players.js';
-import { escapeHtml, showToast, getUser } from './utils.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { state } from '@/features/draft/state.js';
+import { normalizeBanSortValue } from '@/features/draft/ban/ban.js';
+import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
+import { escapeHtml, showToast, getUser } from '@/features/draft/utils.js';
 
 // Position groups for the tab bar
 const PICK_TAB_GROUPS = {

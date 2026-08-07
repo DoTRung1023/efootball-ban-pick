@@ -6,21 +6,21 @@
  * re-renders on every presence poll.
  */
 
-import { FIXED_PICKS_PER_SIDE, FORMATION_LAYOUTS, REVEAL_MODE_HIDDEN } from './constants.js';
-import { playerMatchesAllowanceCategory } from './allowance.js';
-import { escapeHtml } from './utils.js';
-import { state, normalizeRevealMode } from './state.js';
+import { FIXED_PICKS_PER_SIDE, FORMATION_LAYOUTS, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
+import { playerMatchesAllowanceCategory } from '@/features/draft/allowance.js';
+import { escapeHtml } from '@/features/draft/utils.js';
+import { state, normalizeRevealMode } from '@/features/draft/state.js';
 import {
   buildOrderedSlotMap,
   getFormationLayout,
   getPlayerImageSrc,
   getPlayerCardValue,
   normalizeFormation,
-} from './players.js';
-import { banPlayerCardHtml, getPickListPlayers } from './ban.js';
+} from '@/features/draft/players.js';
+import { banPlayerCardHtml, getPickListPlayers } from '@/features/draft/ban/ban.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
-import { getPickFormation, getSelectedPlan } from './gamePlans.js';
-import { pickLimit } from './draftFlow.js';
+import { getPickFormation, getSelectedPlan } from '@/features/draft/gamePlans.js';
+import { pickLimit } from '@/features/draft/engine/draftFlow.js';
 
 const LINEUP_SIZE = 11;
 const ROW_LABELS = { pitchRowFwd: "ATT", pitchRowMid: "MID", pitchRowDef: "DEF", pitchRowGk: "GK" };

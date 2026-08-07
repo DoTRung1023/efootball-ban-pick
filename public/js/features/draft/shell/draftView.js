@@ -4,13 +4,13 @@
  * DOM writes with a state key.
  */
 
-import { state } from './state.js';
-import { attachMiniCardGridHandlers, loadOpponentBanPlayers } from './ban.js';
-import { isReadyPhase, startTurnTimer, getDraftDisplayPlayers } from './draftFlow.js';
-import { submitBan, submitPick } from './draftActions.js';
-import { renderBanBoard } from './banView.js';
-import { renderPickBoard } from './pickView.js';
-import { renderReadyBoard } from './readyView.js';
+import { state } from '@/features/draft/state.js';
+import { attachMiniCardGridHandlers, loadOpponentBanPlayers } from '@/features/draft/ban/ban.js';
+import { isReadyPhase, startTurnTimer, getDraftDisplayPlayers } from '@/features/draft/engine/draftFlow.js';
+import { submitBan, submitPick } from '@/features/draft/engine/draftActions.js';
+import { renderBanBoard } from '@/features/draft/ban/banView.js';
+import { renderPickBoard } from '@/features/draft/pick/pickView.js';
+import { renderReadyBoard } from '@/features/draft/ready/readyView.js';
 import { updateStageTabs } from './stageTabs.js';
 
 export function renderDraftUi() {

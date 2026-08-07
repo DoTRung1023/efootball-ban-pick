@@ -3,7 +3,7 @@
  * ban-setting (lobby) -> ban -> pick -> start (done).
  */
 
-import { state } from './state.js';
+import { state } from '@/features/draft/state.js';
 
 const STAGE_ORDER = ["bansetting", "ban", "pick", "start"];
 const STAGE_CLASSES = STAGE_ORDER.map((_, i) => `stage-${i}`);

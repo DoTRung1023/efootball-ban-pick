@@ -8,8 +8,8 @@
  * serializing, so the strings never match and the grid rebuilds every cycle.
  */
 
-import { escapeHtml } from './utils.js';
-import { state } from './state.js';
+import { escapeHtml } from '@/features/draft/utils.js';
+import { state } from '@/features/draft/state.js';
 import {
   banPlayerCardHtml,
   bindBanPhaseUiOnce,
@@ -20,7 +20,7 @@ import {
   renderBanToolbar,
   stagedBanThumbHtml,
 } from './ban.js';
-import { banLimit } from './draftFlow.js';
+import { banLimit } from '@/features/draft/engine/draftFlow.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
 

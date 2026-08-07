@@ -1,13 +1,13 @@
 /** Event wiring for the draft view. Bound once on page load. */
 
-import { DEFAULT_FORMATION, FIXED_PICKS_PER_SIDE } from './constants.js';
-import { askConfirm } from './utils.js';
-import { state } from './state.js';
-import { normalizeFormation } from './players.js';
-import { leavePresence } from './presence.js';
-import { loadDraftGamePlanPlayers } from './gamePlans.js';
-import { beginPostDraftReadyPhase, clearTurnTimer, pickLimit } from './draftFlow.js';
-import { confirmStagedBans, setMatchReady } from './draftActions.js';
+import { DEFAULT_FORMATION, FIXED_PICKS_PER_SIDE } from '@/features/draft/constants.js';
+import { askConfirm } from '@/features/draft/utils.js';
+import { state } from '@/features/draft/state.js';
+import { normalizeFormation } from '@/features/draft/players.js';
+import { leavePresence } from '@/features/draft/engine/presence.js';
+import { loadDraftGamePlanPlayers } from '@/features/draft/gamePlans.js';
+import { beginPostDraftReadyPhase, clearTurnTimer, pickLimit } from '@/features/draft/engine/draftFlow.js';
+import { confirmStagedBans, setMatchReady } from '@/features/draft/engine/draftActions.js';
 import { renderDraftUi } from './draftView.js';
 
 const on = (id, event, handler) =>

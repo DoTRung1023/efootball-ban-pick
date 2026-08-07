@@ -3,15 +3,15 @@
  * nationality), backed by GET /api/players/distinct.
  */
 
-import { TEXT_ALLOWANCE_LIST_KEYS, ALLOWANCE_DEF_MAP } from '../constants.js';
+import { TEXT_ALLOWANCE_LIST_KEYS, ALLOWANCE_DEF_MAP } from '@/features/draft/constants.js';
 import {
   dedupeCaseInsensitive,
   normalizeTextAllowanceListValue,
   stringifyTextAllowanceCapMap,
-} from '../allowance.js';
-import { escapeHtml, showToast } from '../utils.js';
-import { state } from '../state.js';
-import { getJson } from '../api.js';
+} from '@/features/draft/allowance.js';
+import { escapeHtml, showToast } from '@/features/draft/utils.js';
+import { state } from '@/features/draft/state.js';
+import { getJson } from '@/features/draft/api.js';
 
 const DEBOUNCE_MS = 150;
 const MAX_SUGGESTIONS = 10;

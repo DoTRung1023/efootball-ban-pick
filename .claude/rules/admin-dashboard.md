@@ -3,7 +3,7 @@ paths:
   - "public/admin.html"
   - "public/js/admin.js"
   - "public/css/admin.css"
-  - "src/routes/admin.js"
+  - "src/features/admin/routes.js"
 ---
 
 # Admin dashboard (`/admin`)

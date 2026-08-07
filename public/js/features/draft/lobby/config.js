@@ -6,14 +6,14 @@
  * are debounced and sequence-numbered; stale responses are discarded.
  */
 
-import { cb } from '../callbacks.js';
-import { POSITION_OPTIONS, TEXT_ALLOWANCE_LIST_KEYS } from '../constants.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { POSITION_OPTIONS, TEXT_ALLOWANCE_LIST_KEYS } from '@/features/draft/constants.js';
 import {
   normalizeAllowanceCapValue,
   normalizeAllowanceRangeValue,
   normalizeTextAllowanceListValue,
   stringifyTextAllowanceCapMap,
-} from '../allowance.js';
+} from '@/features/draft/allowance.js';
 import {
   state,
   defaultRoomConfig,
@@ -21,8 +21,8 @@ import {
   normalizeBanDurationSec,
   normalizePickDurationSec,
   normalizeRevealMode,
-} from '../state.js';
-import { postAsMe } from '../api.js';
+} from '@/features/draft/state.js';
+import { postAsMe } from '@/features/draft/api.js';
 
 const PUSH_DEBOUNCE_MS = 300;
 

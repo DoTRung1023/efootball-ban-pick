@@ -2,14 +2,27 @@
 paths:
   - "public/room.html"
   - "public/js/room.js"
-  - "public/js/room/**/*.js"
+  - "public/js/features/draft/**/*.js"
 ---
 
 # Room page module map
 
-`room.html` + `public/js/room.js` — entry point. `room.js` is ~83 lines: it installs the
-global error handlers, wires the `cb` registry, and boots the lobby on
-`DOMContentLoaded`. All behaviour lives in `public/js/room/`.
+`room.html` + `public/js/room.js` — entry point. `room.js` installs the global error
+handlers, wires the `cb` registry, and boots the lobby on `DOMContentLoaded`. All
+behaviour lives in `public/js/features/draft/`. The whole page is **one** feature, so
+its `index.js` barrel is deliberately broad where other features' barrels are narrow.
+
+## Folder layout
+
+| Folder | Holds |
+| --- | --- |
+| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils` |
+| `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
+| `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens` |
+| `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
+
+Imports inside a folder stay relative (`./state.js`); anything crossing a folder uses
+`@/features/draft/…`.
 
 ## Cross-module wiring
 
@@ -46,7 +59,7 @@ global error handlers, wires the `cb` registry, and boots the lobby on
   `makePlayerImg` / `playerDetailSublineHtml` / `playerDetailTooltipText` from
   `public/js/shared/playerMeta.js` — see below.
 - `allowance.js` — allowance/cap logic (position caps, card-type caps, range checks).
-  The server normalises the same data independently in `src/rooms/config.js`.
+  The server normalises the same data independently in `src/features/rooms/config.js`.
 
 ## Draft flow
 

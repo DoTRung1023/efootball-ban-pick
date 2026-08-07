@@ -3,7 +3,7 @@
  * into the draft view once the server reports the room is drafting.
  */
 
-import { cb } from './callbacks.js';
+import { cb } from '@/features/draft/callbacks.js';
 import {
   FIXED_PICKS_PER_SIDE,
   LOBBY_PRESENCE_POLL_MS,
@@ -11,14 +11,14 @@ import {
   MAX_BAN_DURATION_SECONDS,
   MIN_PICK_DURATION_SECONDS,
   MAX_PICK_DURATION_SECONDS,
-} from './constants.js';
-import { showToast, showView } from './utils.js';
-import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot } from './state.js';
-import { postAsMe } from './api.js';
-import { loadOpponentBanPlayers, resetOpponentBanPlayers } from './ban.js';
-import { loadDraftPlayers } from './pick.js';
+} from '@/features/draft/constants.js';
+import { showToast, showView } from '@/features/draft/utils.js';
+import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot } from '@/features/draft/state.js';
+import { postAsMe } from '@/features/draft/api.js';
+import { loadOpponentBanPlayers, resetOpponentBanPlayers } from '@/features/draft/ban/ban.js';
+import { loadDraftPlayers } from '@/features/draft/pick/pick.js';
 import { pollPresence, stopPresencePolling } from './presence.js';
-import { loadDraftGamePlans } from './gamePlans.js';
+import { loadDraftGamePlans } from '@/features/draft/gamePlans.js';
 import {
   banLimit,
   ensureDraftTimer,
@@ -26,8 +26,8 @@ import {
   syncCurrentTurnFromIndex,
 } from './draftFlow.js';
 import { setGuestReady } from './draftActions.js';
-import { renderDraftUi, attachDraftGridHandlers } from './draftView.js';
-import { updateStageTabs } from './stageTabs.js';
+import { renderDraftUi, attachDraftGridHandlers } from '@/features/draft/shell/draftView.js';
+import { updateStageTabs } from '@/features/draft/shell/stageTabs.js';
 
 const DRAFT_STATUSES = ["drafting", "await-ready", "done"];
 

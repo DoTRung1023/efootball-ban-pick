@@ -1,6 +1,6 @@
 ---
 paths:
-  - "public/js/room/readyView.js"
+  - "public/js/features/draft/ready/readyView.js"
   - "public/js/room.js"
 ---
 

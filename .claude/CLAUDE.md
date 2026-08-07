@@ -67,8 +67,8 @@ one of its ladders.
 
 **Position order**: Throughout the codebase, positions follow the canonical order
 CF → SS → RWF → LWF → AMF → RMF → LMF → CMF → DMF → RB → LB → CB → GK (forward-first).
-This order is mirrored in `SORT_MAP` in `src/players/catalogQuery.js` and in
-`public/js/room/constants.js`.
+This order is mirrored in `SORT_MAP` in `src/features/players/catalogQuery.js` and in
+`public/js/features/draft/constants.js`.
 
 **Room state is in-memory only** and does not survive a server restart. See
 `.claude/rules/room/presence-and-reconnect.md`.
@@ -80,7 +80,7 @@ new rung without checking them. Verify with a measured harness, not by eye — s
 `responsive-testing.md`.
 
 **Duplicated logic to keep in sync**: allowance-cap normalisation exists independently in
-`src/rooms/config.js` and `public/js/room/allowance.js`.
+`src/features/rooms/config.js` and `public/js/features/draft/allowance.js`.
 
 ## Detailed rules
 

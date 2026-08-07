@@ -1,18 +1,18 @@
 ---
 paths:
-  - "public/js/room/presence.js"
-  - "public/js/room/state.js"
+  - "public/js/features/draft/engine/presence.js"
+  - "public/js/features/draft/state.js"
   - "public/js/room.js"
-  - "src/rooms/**/*.js"
-  - "src/routes/rooms.js"
+  - "src/features/rooms/**/*.js"
+  - "src/features/rooms/routes.js"
 ---
 
 # Room state, presence and reconnect
 
-**Room state is fully in-memory** (`roomPresence` Map in `src/rooms/store.js`). Room
+**Room state is fully in-memory** (`roomPresence` Map in `src/features/rooms/store.js`). Room
 data does not persist across server restarts. Presence TTL is **12 s in lobby** and
 **30 s during an active draft** (`PRESENCE_TTL_MS` / `DRAFT_PRESENCE_TTL_MS` in
-`src/rooms/config.js`) — clients must POST `/api/rooms/:code/presence` every ~5 s to
+`src/features/rooms/config.js`) — clients must POST `/api/rooms/:code/presence` every ~5 s to
 stay connected. The longer draft TTL gives enough headroom for a page reload without
 losing draft state. Real-time sync is polling-only; WebSocket integration is not yet
 implemented.

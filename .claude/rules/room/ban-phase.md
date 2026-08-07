@@ -1,7 +1,7 @@
 ---
 paths:
-  - "public/js/room/ban.js"
-  - "public/js/room/banView.js"
+  - "public/js/features/draft/ban/ban.js"
+  - "public/js/features/draft/ban/banView.js"
   - "public/js/room.js"
 ---
 

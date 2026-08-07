@@ -7,17 +7,17 @@
  * then a simultaneous pick stage (see buildTurnSchedule).
  */
 
-import { GREEN, RED, LOBBY_PRESENCE_POLL_MS } from './constants.js';
-import { getAllowanceCapViolation } from './allowance.js';
-import { cb } from './callbacks.js';
-import { showToast } from './utils.js';
+import { GREEN, RED, LOBBY_PRESENCE_POLL_MS } from '@/features/draft/constants.js';
+import { getAllowanceCapViolation } from '@/features/draft/allowance.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { showToast } from '@/features/draft/utils.js';
 import {
   state,
   defaultRoomConfig,
   normalizeBanDurationSec,
   normalizePickDurationSec,
-} from './state.js';
-import { getBanListPlayers, getPickListPlayers } from './ban.js';
+} from '@/features/draft/state.js';
+import { getBanListPlayers, getPickListPlayers } from '@/features/draft/ban/ban.js';
 import { stopPresencePolling, pollPresence } from './presence.js';
 
 const FALLBACK_TURN_SECONDS = 60;

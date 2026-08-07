@@ -1,9 +1,9 @@
 /** Lobby chat log and message sending. */
 
-import { cb } from '../callbacks.js';
-import { escapeHtml, showToast, getCurrentIdentity } from '../utils.js';
-import { state, applyPresenceSnapshot } from '../state.js';
-import { postAsMe } from '../api.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { escapeHtml, showToast, getCurrentIdentity } from '@/features/draft/utils.js';
+import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
+import { postAsMe } from '@/features/draft/api.js';
 
 const pad2 = (n) => String(n).padStart(2, "0");
 

@@ -1,7 +1,7 @@
 ---
 paths:
-  - "public/js/room/pick.js"
-  - "public/js/room/pickView.js"
+  - "public/js/features/draft/pick/pick.js"
+  - "public/js/features/draft/pick/pickView.js"
   - "public/js/room.js"
 ---
 

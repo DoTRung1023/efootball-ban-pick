@@ -2,7 +2,7 @@
 paths:
   - "public/room.html"
   - "public/js/room.js"
-  - "public/js/room/state.js"
+  - "public/js/features/draft/state.js"
   - "public/css/room.css"
 ---
 

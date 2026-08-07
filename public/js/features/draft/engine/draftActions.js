@@ -6,10 +6,10 @@
  * can change their mind. Picks post immediately after an optimistic update.
  */
 
-import { cb } from './callbacks.js';
-import { showToast } from './utils.js';
-import { state, applyPresenceSnapshot } from './state.js';
-import { postAsMe } from './api.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { showToast } from '@/features/draft/utils.js';
+import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
+import { postAsMe } from '@/features/draft/api.js';
 import { stopPresencePolling } from './presence.js';
 import {
   applyLocalAction,

@@ -19,7 +19,7 @@ import {
   REGION_OPTIONS,
   PLAYING_STYLE_OPTIONS,
   TEXT_ALLOWANCE_LIST_KEYS,
-} from '../constants.js';
+} from '@/features/draft/constants.js';
 
 import {
   normalizePositionValue,
@@ -44,10 +44,10 @@ import {
   parseTextAllowanceCapMap,
   stringifyTextAllowanceCapMap,
   parseAllowanceRangeValue,
-} from '../allowance.js';
+} from '@/features/draft/allowance.js';
 
-import { escapeHtml } from '../utils.js';
-import { state } from '../state.js';
+import { escapeHtml } from '@/features/draft/utils.js';
+import { state } from '@/features/draft/state.js';
 
 const MAX_CAP = 23;
 

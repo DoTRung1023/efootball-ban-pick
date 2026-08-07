@@ -1,20 +1,27 @@
 /**
  * Room page entry point.
  *
- * Wires the callback registry (see room/callbacks.js), installs global error
- * reporting, and boots the lobby. All behaviour lives in the room/ modules.
+ * Wires the callback registry, installs global error reporting, and boots the
+ * lobby. All behaviour lives in the draft feature — see
+ * public/js/features/draft/.
  */
 
-import { cb } from './room/callbacks.js';
-import { showToast, getRoomCodeFromUrl } from './room/utils.js';
-import { isBothMatchReady } from './room/draftFlow.js';
-import { flushAndSubmitStagedBans } from './room/draftActions.js';
-import { renderDraftUi } from './room/draftView.js';
-import { initDraftControls } from './room/draftControls.js';
-import { startDraftFromLobby, tryEnterDraftFromRoomSnapshot } from './room/draftSession.js';
-import { showDone, showOpponentLeft, showRoomClosed } from './room/exitScreens.js';
-import { updateStageTabs } from './room/stageTabs.js';
-import { initLobby } from './room/lobby.js';
+import {
+  cb,
+  showToast,
+  getRoomCodeFromUrl,
+  isBothMatchReady,
+  flushAndSubmitStagedBans,
+  renderDraftUi,
+  initDraftControls,
+  startDraftFromLobby,
+  tryEnterDraftFromRoomSnapshot,
+  showDone,
+  showOpponentLeft,
+  showRoomClosed,
+  updateStageTabs,
+  initLobby,
+} from "@/features/draft/index.js";
 
 // ── Global error surfacing ───────────────────────────────────
 

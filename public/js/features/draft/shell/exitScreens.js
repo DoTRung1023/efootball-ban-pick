@@ -1,9 +1,9 @@
 /** Terminal screens: room closed, opponent left, and the final draft summary. */
 
-import { escapeHtml, showView } from './utils.js';
-import { state } from './state.js';
-import { clearRoomPhaseCache } from './presence.js';
-import { clearTurnTimer } from './draftFlow.js';
+import { escapeHtml, showView } from '@/features/draft/utils.js';
+import { state } from '@/features/draft/state.js';
+import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
+import { clearTurnTimer } from '@/features/draft/engine/draftFlow.js';
 import { updateStageTabs } from './stageTabs.js';
 
 const EXIT_COUNTDOWN_SECONDS = 10;

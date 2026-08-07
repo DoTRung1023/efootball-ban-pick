@@ -1,6 +1,6 @@
 ---
 paths:
-  - "public/js/room/lobby.js"
+  - "public/js/features/draft/lobby/lobby.js"
   - "public/room.html"
 ---
 
@@ -117,7 +117,7 @@ noticing. The bar is an inset shadow, not a border, so neither variant shifts la
 
 The `min`/`max` attributes must match `MIN/MAX_BAN_DURATION_SECONDS` and
 `MIN/MAX_PICK_DURATION_SECONDS` in `room/constants.js`, which in turn mirror
-`src/rooms/config.js`: **ban 5–900 s, pick 5–1200 s**. The `input` handler updates
+`src/features/rooms/config.js`: **ban 5–900 s, pick 5–1200 s**. The `input` handler updates
 `state.room.config` as the user types without pushing; the `change` handler (blur or
 Enter) clamps through `normalizeBanDurationSec` / `normalizePickDurationSec`, writes the
 clamped value back into the field, and schedules the config push. `startDraftFromLobby`

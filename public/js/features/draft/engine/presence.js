@@ -1,8 +1,8 @@
-import { LOBBY_PRESENCE_POLL_MS } from './constants.js';
-import { cb } from './callbacks.js';
-import { state } from './state.js';
-import { applyPresenceSnapshot } from './state.js';
-import { getUser, getAnonId, getCurrentIdentity, showView } from './utils.js';
+import { LOBBY_PRESENCE_POLL_MS } from '@/features/draft/constants.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { state } from '@/features/draft/state.js';
+import { applyPresenceSnapshot } from '@/features/draft/state.js';
+import { getUser, getAnonId, getCurrentIdentity, showView } from '@/features/draft/utils.js';
 
 export function clearRoomPhaseCache(code) {
   try { if (code) sessionStorage.removeItem(`efb_room_${code}_phase`); } catch { /* ignore */ }

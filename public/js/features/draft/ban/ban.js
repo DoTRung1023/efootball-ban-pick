@@ -4,7 +4,7 @@ import {
   CARD_TYPE_OPTIONS,
   REGION_OPTIONS,
   PLAYING_STYLE_OPTIONS,
-} from './constants.js';
+} from '@/features/draft/constants.js';
 
 import {
   getPlayerCardValue,
@@ -14,12 +14,12 @@ import {
   normalizePlayerForFooter,
   normalizeMySquadPlayerForDraft,
   normalizeApiPlayer,
-} from './players.js';
+} from '@/features/draft/players.js';
 
-import { escapeHtml } from './utils.js';
-import { cb } from './callbacks.js';
-import { state } from './state.js';
-import { applyPresenceSnapshot } from './state.js';
+import { escapeHtml } from '@/features/draft/utils.js';
+import { cb } from '@/features/draft/callbacks.js';
+import { state } from '@/features/draft/state.js';
+import { applyPresenceSnapshot } from '@/features/draft/state.js';
 
 export let BAN_LEAGUE_OPTIONS = [];
 

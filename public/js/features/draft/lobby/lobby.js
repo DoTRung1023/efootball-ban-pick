@@ -15,7 +15,7 @@ import {
   TEXT_ALLOWANCE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
   REVEAL_MODE_HIDDEN,
-} from './constants.js';
+} from '@/features/draft/constants.js';
 
 import {
   normalizePositionValue,
@@ -41,9 +41,9 @@ import {
   stringifyTextAllowanceCapMap,
   normalizeAllowanceRangeValue,
   parseAllowanceRangeValue,
-} from './allowance.js';
+} from '@/features/draft/allowance.js';
 
-import { cb } from './callbacks.js';
+import { cb } from '@/features/draft/callbacks.js';
 import {
   state,
   defaultRoomConfig,
@@ -52,7 +52,7 @@ import {
   normalizeBanDurationSec,
   normalizePickDurationSec,
   normalizeRevealMode,
-} from './state.js';
+} from '@/features/draft/state.js';
 import {
   showToast,
   askConfirm,
@@ -61,20 +61,20 @@ import {
   parseQuery,
   getUser,
   getCurrentIdentity,
-} from './utils.js';
-import { registerAndPollPresence, stopPresencePolling, leavePresence } from './presence.js';
-import { fetchFilterOptions } from './ban.js';
-import { getJson } from './api.js';
+} from '@/features/draft/utils.js';
+import { registerAndPollPresence, stopPresencePolling, leavePresence } from '@/features/draft/engine/presence.js';
+import { fetchFilterOptions } from '@/features/draft/ban/ban.js';
+import { getJson } from '@/features/draft/api.js';
 
-import { renderAllowanceList } from './lobby/allowanceView.js';
-import { renderLobbyChat, sendLobbyChatMessage } from './lobby/chat.js';
-import { readAllowanceFieldValue, scheduleLobbyConfigPush } from './lobby/config.js';
+import { renderAllowanceList } from './allowanceView.js';
+import { renderLobbyChat, sendLobbyChatMessage } from './chat.js';
+import { readAllowanceFieldValue, scheduleLobbyConfigPush } from './config.js';
 import {
   clearClubSearchState,
   addTextAllowanceValue,
   scheduleClubSuggestions,
   renderClubSuggestionPanel,
-} from './lobby/clubSuggest.js';
+} from './clubSuggest.js';
 
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;

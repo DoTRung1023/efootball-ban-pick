@@ -1,8 +1,8 @@
 ---
 paths:
-  - "public/js/room/allowance.js"
-  - "src/rooms/config.js"
-  - "src/routes/rooms.js"
+  - "public/js/features/draft/allowance.js"
+  - "src/features/rooms/config.js"
+  - "src/features/rooms/routes.js"
 ---
 
 # Allowance system
@@ -14,5 +14,5 @@ count caps).
 The server normalizes cap values on write; the client enforces caps in
 `getAllowanceCapViolation()` during pick selection.
 
-**Both sides share the same normalization logic, duplicated between `src/rooms/config.js`
-and `public/js/room/allowance.js`.** A change to one must be mirrored in the other.
+**Both sides share the same normalization logic, duplicated between `src/features/rooms/config.js`
+and `public/js/features/draft/allowance.js`.** A change to one must be mirrored in the other.

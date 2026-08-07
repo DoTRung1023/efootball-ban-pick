@@ -6,12 +6,12 @@
  * with DEFAULT_FORMATION.
  */
 
-import { DEFAULT_FORMATION, REVEAL_MODE_HIDDEN } from './constants.js';
-import { escapeHtml } from './utils.js';
-import { normalizeRevealMode } from './state.js';
-import { buildOrderedSlotMap, getFormationLayout, getPlayerCardValue } from './players.js';
-import { banPlayerCardHtml } from './ban.js';
-import { getPickFormation } from './gamePlans.js';
+import { DEFAULT_FORMATION, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
+import { escapeHtml } from '@/features/draft/utils.js';
+import { normalizeRevealMode } from '@/features/draft/state.js';
+import { buildOrderedSlotMap, getFormationLayout, getPlayerCardValue } from '@/features/draft/players.js';
+import { banPlayerCardHtml } from '@/features/draft/ban/ban.js';
+import { getPickFormation } from '@/features/draft/gamePlans.js';
 
 const LINEUP_SIZE = 11;
 const STATIC_CARD = { banned: false, picked: false, clickable: false };
