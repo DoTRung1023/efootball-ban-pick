@@ -10,7 +10,7 @@ import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
 import { openDdPanel, closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
-import { cb } from './callbacks.js';
+import { cb } from '@/pages/home/callbacks.js';
 
 const gamePlans = {
   plans:      [],
