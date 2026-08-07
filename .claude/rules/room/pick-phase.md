@@ -2,7 +2,7 @@
 paths:
   - "public/js/features/draft/pick/pick.js"
   - "public/js/features/draft/pick/pickView.js"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
 ---
 
 # Pick phase (`pick.js` + `room.js`)

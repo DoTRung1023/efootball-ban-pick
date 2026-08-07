@@ -1,13 +1,13 @@
 ---
 paths:
   - "public/home.html"
-  - "public/js/home.js"
+  - "public/js/pages/home.js"
   - "public/js/home/**/*.js"
 ---
 
 # Home page modules (`public/js/home/`)
 
-`home.html` + `public/js/home.js` — main app entry point (`type="module"`); an ESM boot
+`home.html` + `public/js/pages/home.js` — main app entry point (`type="module"`); an ESM boot
 file that imports from `public/js/home/` sub-modules and owns `initTabs` (nav tabs ↔
 tab panels), the page's only piece of chrome.
 
@@ -49,7 +49,7 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   `playerFilterOptionsCache` / `getPlayerFilterOptions`. It replaced three ~270-line
   near-identical builders. Each call site passes an **explicit id map** (see
   `CATALOG_FILTER_IDS` / `SQUAD_FILTER_IDS` / `PP_FILTER_IDS`) because the three id
-  schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both `room.css`
+  schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both `draft.css`
   and the surrounding wiring reference them by string — never derive an id from a
   prefix. `autocomplete: false` (the plan picker) drops the club/nationality
   autocomplete wrappers. To add a filter row, edit `panelMarkup` once.
@@ -61,7 +61,7 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
 - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot
   assignment. Exports `loadGamePlans`, `initGamePlans`.
   - `STACKED_PLAN_LAYOUT` (`max-width: 900px`) must match the plan detail modal
-    breakpoint in `css/home/responsive.css`. Below it the modal's three columns stack,
+    breakpoint in `css/pages/home/responsive.css`. Below it the modal's three columns stack,
     so `scrollPlanSectionIntoView` moves the sheet to the picker when a slot is selected
     and back to the pitch/bench after a player is assigned. It is a no-op on desktop.
 - `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`,

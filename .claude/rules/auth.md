@@ -1,7 +1,7 @@
 ---
 paths:
   - "public/signin.html"
-  - "public/js/signin.js"
+  - "public/js/pages/signin.js"
   - "public/js/features/auth/**/*.js"
   - "public/js/shared/lib/session.js"
   - "src/features/auth/**/*.js"
@@ -36,7 +36,7 @@ The barrel deliberately does not re-export the sign-in page's own modules. There
 bundler, so every name a barrel re-exports is a module the browser fetches on every page
 that imports it; the home page has no use for the sign-up modal.
 
-`public/js/signin.js` is the page entry and is `type="module"`. It was a classic script
+`public/js/pages/signin.js` is the page entry and is `type="module"`. It was a classic script
 until the feature restructure — the conversion is safe because the page's only inline
 handler (`onerror` on the logo) touches `this` and never a global from the script.
 Module scripts are deferred, so the `DOMContentLoaded` listener is registered before the

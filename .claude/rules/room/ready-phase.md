@@ -1,7 +1,7 @@
 ---
 paths:
   - "public/js/features/draft/ready/readyView.js"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
 ---
 
 # Ready phase — "Start Match" (`#draftReadyPhaseBoard`)

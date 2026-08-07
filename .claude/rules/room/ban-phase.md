@@ -4,7 +4,7 @@ paths:
   - "public/js/features/draft/playerQuery.js"
   - "public/js/features/draft/playerCards.js"
   - "public/js/features/draft/filterOptions.js"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
 ---
 
 # Ban phase
@@ -107,7 +107,7 @@ the strings never match and the grid would rebuild every poll cycle.
 Related invariants:
 
 - When a new thumb is added to either ban strip, `is-new` is added to the last child via
-  JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `room.css`).
+  JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `draft.css`).
 - The `is-hovered` class is **only added to `.mini-card` elements** (JS-driven hover for
   the pick grid). `.player-card` elements in the ban grid rely purely on the CSS
   `:hover` pseudo-class — adding `is-hovered` to them would mutate the DOM and break the
@@ -137,7 +137,7 @@ Related invariants:
 `.ban-phase-right` used to carry a third `.ban-side-section` (`#banPlanSection`) showing
 a read-only preview of a saved game plan while banning. **It has been removed** — along
 with `room/planPreview.js`, its `draftControls.js` wiring, `state.banPlanPanelOpen`, and
-the `.ban-plan-*` / `.draft-plan-*` / `.formation-*` rules in `room.css` (the panel was
+the `.ban-plan-*` / `.draft-plan-*` / `.formation-*` rules in `draft.css` (the panel was
 their only consumer).
 
 The sidebar is now BANS ON ME → MY BANS → CONFIRM BANS, and the two ban strips stretch

@@ -41,6 +41,10 @@ Code is grouped **by feature, not by file type**.
   `lib/` (`session.js`). Import these **directly** — `shared/` deliberately has no barrel
   files, because with no bundler a barrel makes the browser fetch every module it
   re-exports.
+- `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
+  `features/<name>/<name>.css`, `shared/{playerCard,modals}.css`. There is no bundler, so
+  a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
+  and `responsive.css` must stay last on the home page.
 - `database/schema.sql` — MySQL schema.
 
 **Path aliases** — there is no bundler, so each alias is resolved by the platform itself:
@@ -103,4 +107,4 @@ automatically when a matching file is read:
 | `room/ban-phase.md` | staged bans, state-key diff guard, filter/sort |
 | `room/pick-phase.md` | pick board, formation pitch, allowance enforcement |
 | `room/ready-phase.md` | Start Match screen |
-| `room/css.md` | `room.css` conventions and component map |
+| `room/css.md` | `draft.css` conventions and component map |

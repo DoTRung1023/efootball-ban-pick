@@ -1,13 +1,13 @@
 ---
 paths:
   - "public/room.html"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
   - "public/js/features/draft/**/*.js"
 ---
 
 # Room page module map
 
-`room.html` + `public/js/room.js` — entry point. `room.js` installs the global error
+`room.html` + `public/js/pages/room.js` — entry point. `room.js` installs the global error
 handlers, wires the `cb` registry, and boots the lobby on `DOMContentLoaded`. All
 behaviour lives in `public/js/features/draft/`. The whole page is **one** feature, so
 its `index.js` barrel is deliberately broad where other features' barrels are narrow.
@@ -45,7 +45,7 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   room-config normalisation helpers.
 - `utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`,
   `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
-  `escapeHtml` is re-exported from `shared/playerMeta.js`; `showToast` is **not**
+  `escapeHtml` is re-exported from `shared/players/playerMeta.js`; `showToast` is **not**
   shared — the room toast is a different component from the home one (it uses a
   `toast--warn` modifier and a 2.4 s timeout, vs `toast show ${type}` at 3.5 s).
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
@@ -57,7 +57,7 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `getPlayerCardValue`, `getPlayerImageSrc`, formation/slot utilities
   (`getFormationLayout`, `buildOrderedSlotMap`). It also re-exports
   `makePlayerImg` / `playerDetailSublineHtml` / `playerDetailTooltipText` from
-  `public/js/shared/playerMeta.js` — see below.
+  `public/js/shared/players/playerMeta.js` — see below.
 - `allowance.js` — allowance/cap logic (position caps, card-type caps, range checks).
   The server normalises the same data independently in `src/features/rooms/config.js`.
 
@@ -96,10 +96,11 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   (selected plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`),
   `getSelectedPlan`.
 - `draftControls.js` — `initDraftControls()`, all draft-view event wiring.
-- `ban.js` — ban-phase data + toolbar: `getBanListPlayers`, `getPickListPlayers`,
-  `renderBanToolbar`, `bindBanPhaseUiOnce`, `attachMiniCardGridHandlers`,
-  `fetchFilterOptions`, `banPlayerCardHtml`, `imageOnlyThumbHtml`,
-  `stagedBanThumbHtml`, `opponentStagedBanThumbHtml`.
+- `ban/` — the ban phase, split across `banView.js`, `banToolbar.js`,
+  `banInteractions.js` and `opponentSquad.js`. The parts every phase uses moved to the
+  draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
+  markup) and `filterOptions.js`. `shell/cardGrid.js` holds
+  `attachMiniCardGridHandlers`, which serves both ban and pick. See `ban-phase.md`.
 - `pick.js` — pick-phase data + toolbar: `renderPickToolbar`, `renderPickPosTabs`,
   `bindPickPhaseUiOnce`, `fetchPlayers` (the user's own squad from `/api/my-players`),
   `loadDraftPlayers`. Position tabs are defined in the module-level `PICK_TAB_GROUPS`.
@@ -121,7 +122,7 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `MULTI_SELECT_KINDS` / `CAP_KINDS` descriptor tables — add a category by adding a table
   entry, not by copying a block. Position and the text-list categories
   (club/league/nationality) have their own builders. The emitted class names and
-  `data-` attributes are load-bearing: `room.css` styles them and `initLobby` delegates
+  `data-` attributes are load-bearing: `draft.css` styles them and `initLobby` delegates
   events off them.
 - `lobby/chat.js` — `renderLobbyChat`, `sendLobbyChatMessage`.
 - `lobby/config.js` — `pushLobbyConfig` / `scheduleLobbyConfigPush` /

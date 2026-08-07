@@ -1,9 +1,9 @@
 ---
 paths:
   - "public/room.html"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
   - "public/js/features/draft/state.js"
-  - "public/css/room.css"
+  - "public/css/features/draft/draft.css"
 ---
 
 # Draft view shell (`#viewDraft`)
@@ -19,7 +19,7 @@ paths:
   no horizontal scroll that width leaks down into every panel of the draft.
 - The timer ring is **56×56 px** with a **44×44 px** inner circle; JS drives the
   conic-gradient via `ring.style.background`. There is a single canonical `.timer-ring` /
-  `.timer-inner` definition in `room.css` — no context-specific overrides. There is no
+  `.timer-inner` definition in `draft.css` — no context-specific overrides. There is no
   READY button in the topbar — `#draftTopReadyBtn` has been removed from HTML (JS
   already null-guards it).
 - The draft schedule (`buildTurnSchedule`) always returns exactly two entries:

@@ -1,14 +1,14 @@
 ---
 paths:
   - "public/admin.html"
-  - "public/js/admin.js"
-  - "public/css/admin.css"
+  - "public/js/pages/admin.js"
+  - "public/css/features/admin/admin.css"
   - "src/features/admin/routes.js"
 ---
 
 # Admin dashboard (`/admin`)
 
-`admin.html` + `public/js/admin.js` + `public/css/admin.css`. No build step.
+`admin.html` + `public/js/pages/admin.js` + `public/css/features/admin/admin.css`. No build step.
 
 `admin.js` is a three-line entry; the dashboard lives in `public/js/features/admin/`:
 
@@ -63,7 +63,7 @@ All in `src/features/admin/routes.js`, all behind `requireAdminKey` (`src/lib/ht
 
 ## CSS (`admin.css`)
 
-Self-contained; reuses the same `:root` CSS variables as `home/base.css` (navy/emerald
+Self-contained; reuses the same `:root` CSS variables as `pages/home/base.css` (navy/emerald
 theme, Inter + Orbitron — see `DESIGN.md`). Key blocks: `.login-overlay` / `.login-card`,
 `.admin-nav` (sticky 56 px), `.stats-row` (4-column grid), `.panel-grid-2` (2-column
 grid), `.admin-table` (sticky thead, hover rows), phase pills

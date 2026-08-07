@@ -49,15 +49,15 @@ that declares it.**
 
 | File | Scope | Notes |
 | --- | --- | --- |
-| `public/css/home/base.css` | home page | declares `--radius: 10px`, `--topbar-h: 62px` |
-| `public/css/room.css` | room page | the richest block — hue *ladders* (§3.2); no `--radius` |
-| `public/css/admin.css` | admin | home's block + `--cyan/--red/--yellow`, `--nav-h: 56px` |
-| `public/css/signin.css` | sign-in | home's block + `--bg-field`, `--radius: 12px`, `--transition: 0.25s` |
+| `public/css/pages/home/base.css` | home page | declares `--radius: 10px`, `--topbar-h: 62px` |
+| `public/css/features/draft/draft.css` | room page | the richest block — hue *ladders* (§3.2); no `--radius` |
+| `public/css/features/admin/admin.css` | admin | home's block + `--cyan/--red/--yellow`, `--nav-h: 56px` |
+| `public/css/features/auth/auth.css` | sign-in | home's block + `--bg-field`, `--radius: 12px`, `--transition: 0.25s` |
 
 **Known divergence to respect, not "fix" blindly:** home/admin/signin use solid navy-tinted text
-(`--text: #e7f0f6`, `--text-dim: #8aa5b8`); `room.css` uses a white-alpha ladder
+(`--text: #e7f0f6`, `--text-dim: #8aa5b8`); `draft.css` uses a white-alpha ladder
 (`rgba(255,255,255,0.92 / .45 / .28)`). Both read correctly on their own backgrounds.
-`room.css` deliberately re-declares `--bg-card`, `--bg-card-hover` and `--transition` with
+`draft.css` deliberately re-declares `--bg-card`, `--bg-card-hover` and `--transition` with
 home's values so shared components (`.player-card`) match across pages.
 
 ---
@@ -91,7 +91,7 @@ Each hue carries exactly one meaning, everywhere:
 
 Never use red for emphasis, or green for a destructive action.
 
-### 3.3 Accent ladders (`room.css`)
+### 3.3 Accent ladders (`draft.css`)
 
 **Never write a raw `rgba()` for green, cyan, red, amber, a light text colour, or a dark
 panel surface — use the token.** The file once carried 26 alphas of the same green;
@@ -207,8 +207,8 @@ sets **~18% wider** (measured: 184.2 px vs 156.4 px for a 28-character name at 1
 Every existing size and tracking value was kept, so if you add a fixed-width control that
 holds text, check it at 320 px before assuming it fits.
 
-**Size scale.** Two conventions coexist: `room.css` sizes mostly in **px**, the home
-bundle and `signin.css` size in **rem**. Follow the file you are editing.
+**Size scale.** Two conventions coexist: `draft.css` sizes mostly in **px**, the home
+bundle and `auth.css` size in **rem**. Follow the file you are editing.
 
 | Role | px (room) | rem (home) |
 | --- | --- | --- |
@@ -284,7 +284,7 @@ with the `-webkit-` prefix alongside.
 
 Ambient backdrop (do not remove; it is the brand): fixed `.pitch-bg` with `.pitch-lines`,
 `.pitch-halfway`, `.pitch-center-circle` at `rgba(44,207,117,0.04)`, plus three blurred
-`.glow-orb`s (`filter: blur(120px)`) drifting on a 12–20s `orbFloat` keyframe. `room.css`
+`.glow-orb`s (`filter: blur(120px)`) drifting on a 12–20s `orbFloat` keyframe. `draft.css`
 adds four radial gradients on `body` (cyan, green, purple, pink) as ambient art.
 
 ---
@@ -381,8 +381,8 @@ These have bitten before; a "purely visual" change can break them.
   rung. Do not invent a rung. Verify with a measured headless-Chrome harness, never by
   eye: `.claude/rules/responsive-testing.md`.
 - **One canonical rule block per component.** Do not add a second rule for the same
-  selector later in the file to tweak a value — edit the existing block. `room.css` and
-  `signin.css` currently have zero duplicated top-level selectors; keep it that way.
+  selector later in the file to tweak a value — edit the existing block. `draft.css` and
+  `auth.css` currently have zero duplicated top-level selectors; keep it that way.
   Variants use modifier classes (`.is-active`, `.is-mine`), not repeated base selectors.
 - **Sticky headers need `--bg-card-solid`** — `--bg-card` is translucent and content
   scrolls through it.

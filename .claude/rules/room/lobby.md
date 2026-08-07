@@ -4,7 +4,7 @@ paths:
   - "public/room.html"
 ---
 
-# Lobby settings UI (`room.html` + `lobby.js` + `room.css`)
+# Lobby settings UI (`room.html` + `lobby.js` + `draft.css`)
 
 - `.prep-col--settings` is a three-part card: `.prep-title` → `.prep-scroll` →
   `.lobby-cta-bar`. **Only `.prep-scroll` scrolls**, so the "BAN SETTING" heading and the

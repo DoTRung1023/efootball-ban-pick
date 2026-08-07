@@ -1,10 +1,10 @@
 ---
 paths:
-  - "public/css/home/**/*.css"
+  - "public/css/{pages/home,features,shared}/**/*.css"
   - "public/home.html"
 ---
 
-# Home page CSS (`public/css/home/`)
+# Home page CSS (`public/css/`)
 
 Split into 8 focused files, loaded in order via `<link>` tags.
 
@@ -14,7 +14,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   (same vh/dvh pair, `overflow: hidden; flex-direction: column`), `.content-scroll`
   (`flex: 1; min-height: 0; overflow-y: auto` — the scrollable area that sits below the
   topbar; the scrollbar appears at the viewport right edge below the nav), topbar.
-- `player-card.css` — `.player-card`, `.pc-img-wrap`, `.pc-footer`, skeleton, empty
+- `shared/playerCard.css` — `.player-card`, `.pc-img-wrap`, `.pc-footer`, skeleton, empty
   state, load-more.
 - `squad.css` — `.main-content` (centered container, `max-width: 1400px; margin: 0 auto`
   — no `flex: 1`, that is owned by `.content-scroll` in `base.css`), tab panels, squad
@@ -32,7 +32,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     keeps it visible — without it a player can never be removed on touch.
 - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`,
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
-  visual sync with `room.css` — see the room CSS rule.
+  visual sync with `draft.css` — see the room CSS rule.
 - `modals.css` — shared modal overlay/card base, spinner, player popup, toast, confirm
   dialog, edit profile modal.
   - **Room CREATE drawer**: `#roomOverlay` is overridden to `justify-content: flex-end;

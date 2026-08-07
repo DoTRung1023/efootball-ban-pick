@@ -2,7 +2,7 @@
 paths:
   - "public/js/features/draft/engine/presence.js"
   - "public/js/features/draft/state.js"
-  - "public/js/room.js"
+  - "public/js/pages/room.js"
   - "src/features/rooms/**/*.js"
   - "src/features/rooms/routes.js"
 ---
@@ -26,7 +26,7 @@ The server rejects duplicate connections via HTTP 409:
 - A kicked guest → 403.
 
 The client maps these to three distinct error states (`is-host-lock`, `is-room-full`,
-`is-access-denied`) in `#viewError`, each with its own CSS color theme in `room.css`.
+`is-access-denied`) in `#viewError`, each with its own CSS color theme in `draft.css`.
 
 ## Reload / reconnect behaviour (`presence.js` + `room.js`)
 

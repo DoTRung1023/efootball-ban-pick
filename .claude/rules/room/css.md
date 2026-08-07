@@ -1,10 +1,10 @@
 ---
 paths:
-  - "public/css/room.css"
-  - "public/css/home/catalog.css"
+  - "public/css/features/draft/draft.css"
+  - "public/css/features/catalog/catalog.css"
 ---
 
-# `room.css` conventions and component map
+# `draft.css` conventions and component map
 
 ## Colour system (hard rule)
 
@@ -57,20 +57,20 @@ A later pass merged eight more: `#viewLobby`, `.centered-box--lobby`,
 Context-specific variants use modifier classes (e.g. `.is-active`, `.is-completed`,
 `.is-mine`) or scoped parent selectors, not repeated base selectors.
 
-`room.css` and `signin.css` currently have **zero** duplicated top-level selectors. Rules
+`draft.css` and `auth.css` currently have **zero** duplicated top-level selectors. Rules
 inside `@media` blocks are a separate scope and do not count as duplicates. When merging
 a duplicate, keep the **later** block's position — it is the one winning the cascade —
 and carry over only the properties the winning block does not already set.
 
-`room.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match
-`home/base.css` values so shared components like `.player-card` look identical across
+`draft.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match
+`pages/home/base.css` values so shared components like `.player-card` look identical across
 both pages.
 
 ## Parity with `home/catalog.css`
 
 The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`,
-`.filter-clear-btn`, `.filter-group-label` etc. These are defined in `room.css` and kept
-visually in sync with `public/css/home/catalog.css`. Key rules: `.ap-dd-btn.has-active`
+`.filter-clear-btn`, `.filter-group-label` etc. These are defined in `draft.css` and kept
+visually in sync with `public/css/features/catalog/catalog.css`. Key rules: `.ap-dd-btn.has-active`
 (green highlight when filter active), `.filter-clear-btn` (red destructive style),
 `.select-mode-btn` (`border-radius: 7px`), `.filter-group-label` (section divider:
 uppercase label, subtle green tint, top/bottom border — both files share an identical
