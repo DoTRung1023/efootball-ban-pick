@@ -8,8 +8,23 @@ paths:
 
 # Admin dashboard (`/admin`)
 
-`admin.html` + `public/js/admin.js` + `public/css/admin.css`. Single vanilla ES module;
-no build step.
+`admin.html` + `public/js/admin.js` + `public/css/admin.css`. No build step.
+
+`admin.js` is a three-line entry; the dashboard lives in `public/js/features/admin/`:
+
+| Module | Role |
+| --- | --- |
+| `adminApi.js` | the key in sessionStorage + `apiFetch` (appends `?adminKey=`) |
+| `loginGate.js` | `initLoginGate(onAuthed)` wires the form; `tryStoredKey(onAuthed)` re-auths silently |
+| `tabs.js` | `switchTab`, `getActiveTab` — each tab fetches on activation |
+| `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)` |
+| `statsPanel.js`, `scrapePanels.js`, `roomPanels.js`, `userPanels.js`, `dataQualityPanel.js`, `catalogTable.js` | one module per panel |
+| `dashboard.js` | `initDashboard()` — the OVERVIEW fetches + the 10 s refresh loop |
+| `index.js` | `initAdminApp()` |
+
+`initAdminApp` wires every panel **before** calling `tryStoredKey`, so a stored key can
+never reveal a half-wired dashboard. Panel wiring lives in `init*` functions rather than
+at module top level; keep it that way, or that ordering guarantee is lost.
 
 **Auth**: login overlay on first visit stores the key in `sessionStorage`
 (`efb_admin_key`). Every API call appends `?adminKey=<key>`. The server checks
@@ -34,7 +49,7 @@ no build step.
 
 ## Admin API routes
 
-All in `src/routes/admin.js`, all behind `requireAdminKey` (`src/lib/http.js`):
+All in `src/features/admin/routes.js`, all behind `requireAdminKey` (`src/lib/http.js`):
 
 - `GET /api/admin/stats` — catalog count, user count, new users this week,
   active/draft room counts, last scrape row.
@@ -48,8 +63,8 @@ All in `src/routes/admin.js`, all behind `requireAdminKey` (`src/lib/http.js`):
 
 ## CSS (`admin.css`)
 
-Self-contained; reuses the same `:root` CSS variables as `home/base.css` (green/black
-theme, Rajdhani + Orbitron fonts). Key blocks: `.login-overlay` / `.login-card`,
+Self-contained; reuses the same `:root` CSS variables as `home/base.css` (navy/emerald
+theme, Inter + Orbitron — see `DESIGN.md`). Key blocks: `.login-overlay` / `.login-card`,
 `.admin-nav` (sticky 56 px), `.stats-row` (4-column grid), `.panel-grid-2` (2-column
 grid), `.admin-table` (sticky thead, hover rows), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
