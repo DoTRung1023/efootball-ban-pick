@@ -1,3 +1,4 @@
+import { escapeHtml, CARD_IMG } from '@/shared/players/playerMeta.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { cb } from '@/pages/home/callbacks.js';
@@ -164,10 +165,6 @@ export function initRoomHub() {
 /* ============================================================
    Rooms stats panels
    ============================================================ */
-function escHtml(str) {
-  return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -186,7 +183,7 @@ function renderCreateVisual(players) {
   const cards = players.filter((p) => p.pesdb_id).slice(0, 4);
   visual.innerHTML = cards.map((p) => `
     <div class="rooms-create-visual-card">
-      <img src="/img/card/${p.pesdb_id}.png" alt="" loading="lazy" onerror="this.style.opacity='0'">
+      <img src="${CARD_IMG(p.pesdb_id)}" alt="" loading="lazy" onerror="this.style.opacity='0'">
     </div>
   `).join("");
 }
@@ -220,7 +217,7 @@ function renderRosterPanel(players) {
     <div class="rooms-roster-cards">
       ${preview.map((p) => `
         <div class="rooms-roster-card">
-          <img src="/img/card/${p.pesdb_id}.png" alt="${escHtml(p.name)}" loading="lazy" onerror="this.style.opacity='0'">
+          <img src="${CARD_IMG(p.pesdb_id)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.style.opacity='0'">
         </div>
       `).join("")}
     </div>
@@ -245,8 +242,8 @@ function renderTacticsPanel(plans) {
     <div class="rooms-tactics-label">MOST RECENT</div>
     ${shown.map((p) => `
       <div class="rooms-plan-item">
-        <span class="rooms-plan-formation">${escHtml(p.formation || "—")}</span>
-        <span class="rooms-plan-name">${escHtml(p.name)}</span>
+        <span class="rooms-plan-formation">${escapeHtml(p.formation || "—")}</span>
+        <span class="rooms-plan-name">${escapeHtml(p.name)}</span>
         <span class="rooms-plan-time">${timeAgo(p.created_at)}</span>
       </div>
     `).join("")}

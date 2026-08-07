@@ -3,7 +3,7 @@ import { initUserMenu, initEditProfile } from '@/features/auth/index.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/features/squad/index.js';
 import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
 import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
-import { initRoomModal, initRoomHub, loadRoomsStats } from './home/rooms.js';
+import { initRoomModal, initRoomHub, loadRoomsStats } from '@/features/rooms/index.js';
 
 /** Nav tabs ↔ tab panels. Home-page chrome, so it lives with the page entry. */
 function initTabs() {
