@@ -7,13 +7,16 @@ paths:
 
 # Home page modules (`public/js/home/`)
 
-`home.html` + `public/js/home.js` — main app entry point (`type="module"`); a 23-line
-ESM boot file that imports from `public/js/home/` sub-modules.
+`home.html` + `public/js/home.js` — main app entry point (`type="module"`); an ESM boot
+file that imports from `public/js/home/` sub-modules and owns `initTabs` (nav tabs ↔
+tab panels), the page's only piece of chrome.
 
-- `utils.js` — the home page's own chrome only: `initUserMenu`, `initTabs` and the
-  edit-profile modal (`openEditProfile`, `closeEditProfile`, `clearEpErrors`,
-  `initEditProfile`). It used to be a grab-bag; everything more than one feature needed
-  now lives under `public/js/shared/` and is imported from there directly:
+`utils.js` is **gone**. It was the grab-bag every home module imported from; the nav
+account menu and edit-profile modal moved to `@/features/auth/`, and everything more
+than one feature needed moved to `public/js/shared/`, imported from there directly:
+
+  - `@/features/auth/index.js` — `initUserMenu`, `initEditProfile` (plus
+    `openEditProfile`, `closeEditProfile`, `clearEpErrors`).
   - `@/shared/lib/session.js` — `getUser`, `requireAuth` (the room bundle shares this
     one; `room/utils.js` re-exports `getUser` so room modules keep their existing import).
   - `@/shared/ui/toast.js` — `showToast`. The room page keeps its **own** `showToast` in

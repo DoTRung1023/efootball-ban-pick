@@ -90,6 +90,7 @@ automatically when a matching file is read:
 | Rule | Scope |
 | --- | --- |
 | `backend.md` | `src/**` |
+| `auth.md` | sign-in / sign-up / profile, and the `efb_user` session |
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
 | `allowance.md` | allowance caps (client + server) |

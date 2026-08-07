@@ -1,56 +1,15 @@
 /* ============================================================
-   Home page shell — nav user menu, edit-profile modal, tabs
+   Edit Profile modal — PUT /api/profile
 
-   Everything that more than one feature needs has moved out to
-   `@/shared/{lib,ui,players}/` — import from there rather than adding to this
-   file. What is left is the home page's own chrome.
+   Changing a password is optional: an empty password field means "leave it
+   alone", which is why the confirm/length checks only run when one was typed.
+   Server-side field errors come back as `{ field, error }` and are rendered
+   next to that input; anything else falls back to a toast.
    ============================================================ */
 
 import { getUser } from "@/shared/lib/session.js";
 import { showToast } from "@/shared/ui/toast.js";
 
-/* ============================================================
-   User Menu
-   ============================================================ */
-export function initUserMenu(user) {
-  const name     = document.getElementById("userName");
-  const menu     = document.getElementById("userMenu");
-  const trigger  = document.getElementById("userTrigger");
-  const dropUser = document.getElementById("dropUsername");
-  const dropMail = document.getElementById("dropEmail");
-
-  if (name)     name.textContent     = user.username;
-  if (dropUser) dropUser.textContent = user.username;
-  if (dropMail) dropMail.textContent = user.email;
-
-  trigger?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const open = menu.classList.toggle("open");
-    trigger.setAttribute("aria-expanded", String(open));
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!menu?.contains(e.target)) {
-      menu?.classList.remove("open");
-      trigger?.setAttribute("aria-expanded", "false");
-    }
-  });
-
-  document.getElementById("signOutBtn")?.addEventListener("click", () => {
-    localStorage.removeItem("efb_user");
-    window.location.href = "/signin";
-  });
-
-  document.getElementById("editProfileBtn")?.addEventListener("click", () => {
-    menu?.classList.remove("open");
-    trigger?.setAttribute("aria-expanded", "false");
-    openEditProfile();
-  });
-}
-
-/* ============================================================
-   Edit Profile Modal
-   ============================================================ */
 export function openEditProfile() {
   const user = getUser();
   if (!user) return;
@@ -186,20 +145,5 @@ export function initEditProfile() {
       submit.disabled = false;
       submit.textContent = "SAVE CHANGES";
     }
-  });
-}
-
-/* ============================================================
-   Tabs
-   ============================================================ */
-export function initTabs() {
-  const tabs   = document.querySelectorAll(".nav-tab");
-  const panels = document.querySelectorAll(".tab-panel");
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const target = tab.dataset.tab;
-      tabs.forEach((t)   => t.classList.toggle("active", t.dataset.tab === target));
-      panels.forEach((p) => p.classList.toggle("active", p.id === target + "Panel"));
-    });
   });
 }
