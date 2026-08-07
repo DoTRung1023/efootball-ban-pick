@@ -1,7 +1,7 @@
 import { requireAuth } from '@/shared/lib/session.js';
 import { initUserMenu, initEditProfile } from '@/features/auth/index.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/features/squad/index.js';
-import { initAddPlayerModal, initPlayerPopup } from './home/catalog.js';
+import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
 import { loadGamePlans, initGamePlans } from './home/plans.js';
 import { initRoomModal, initRoomHub, loadRoomsStats } from './home/rooms.js';
 
