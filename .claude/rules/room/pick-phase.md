@@ -16,7 +16,7 @@ the top — plan chip cards (`#pickQlCards`) + formation dropdown (`#pickQlForma
 
 - **Left** (`.pick-phase-left`): "MY SQUAD POOL" header + search/sort controls +
   position tab bar (`#pickPosTabs` with ALL/GK/DEF/MID/ATT buttons) + `#pickGrid`. Cards
-  are rendered with `banPlayerCardHtml` and carry `is-pick-taken` (green "PICKED"
+  are rendered with `playerCardHtml` and carry `is-pick-taken` (green "PICKED"
   overlay) or `is-ban-taken` (red "BANNED" overlay) classes based on what you've picked
   or what the opponent has banned.
 - **Center** (`.pick-phase-center`): `#pickLineupMeta` (pick count / formation badge /

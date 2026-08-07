@@ -2,19 +2,21 @@
    Searching, filtering and sorting the draft player lists
 
    Both phases read from here: `getBanListPlayers` drives the ban grid and
-   `getPickListPlayers` the pick board, and they share one comparator.
+   `getPickListPlayers` the pick board. Those two names keep their phase
+   prefix because they really are per-phase — they read different state and
+   apply different filters. Everything else here is phase-neutral and named
+   that way.
 
-   The `Ban` in these names is historical — they lived in ban.js before the
-   split, and pick.js, pickView.js and draftFlow.js already imported them from
-   there. Renaming would touch every call site, so it is left for its own
-   change.
+   `toValidPosition` coerces a *single* value to a valid position or "". Do
+   not confuse it with `normalizePositionValue` in allowance.js, which takes a
+   comma-separated list and returns an array.
    ============================================================ */
 
 import { state } from "./state.js";
 import { POSITION_OPTIONS } from "./constants.js";
 import { getPlayerCardValue } from "./players.js";
 
-export function normalizeBanSortValue(raw) {
+export function normalizeSortValue(raw) {
   const v = String(raw || "").trim();
   const ok = new Set([
     "overall_max_desc", "overall_max_asc",
@@ -30,12 +32,13 @@ export function normalizeBanSortValue(raw) {
   return ok.has(v) ? v : "overall_max_desc";
 }
 
-export function normalizeBanPositionValue(raw) {
+export function toValidPosition(raw) {
   const v = String(raw || "").trim().toUpperCase();
   return POSITION_OPTIONS.includes(v) ? v : "";
 }
 
-export function comparePlayersByBanSort(a, b, sortKey) {
+/** Internal — the shared comparator behind both list getters. */
+function comparePlayersBySort(a, b, sortKey) {
   const sa = String(a?.name || "");
   const sb = String(b?.name || "");
   const key = String(sortKey || "overall_max_desc");
@@ -75,8 +78,8 @@ export function comparePlayersByBanSort(a, b, sortKey) {
 export function getBanListPlayers() {
   const base = Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : [];
   const q = String(state.banSearch || "").trim().toLowerCase();
-  const sortKey = normalizeBanSortValue(state.banSort);
-  const posSet = new Set((Array.isArray(state.banFilterPositions) ? state.banFilterPositions : []).map(normalizeBanPositionValue).filter(Boolean));
+  const sortKey = normalizeSortValue(state.banSort);
+  const posSet = new Set((Array.isArray(state.banFilterPositions) ? state.banFilterPositions : []).map(toValidPosition).filter(Boolean));
   const footSet = new Set(Array.isArray(state.banFilterFoot) ? state.banFilterFoot : []);
   const psSet = new Set(Array.isArray(state.banFilterPlayingStyle) ? state.banFilterPlayingStyle : []);
   const ctSet = new Set(Array.isArray(state.banFilterCardType) ? state.banFilterCardType : []);
@@ -115,16 +118,16 @@ export function getBanListPlayers() {
   if (wtMax !== null) rows = rows.filter((p) => { const v = Number(p?.weight ?? p?._raw?.weight ?? 0); return !isNaN(v) && v <= wtMax; });
   if (ageMin !== null) rows = rows.filter((p) => { const v = Number(p?.age ?? p?._raw?.age ?? 0); return !isNaN(v) && v >= ageMin; });
   if (ageMax !== null) rows = rows.filter((p) => { const v = Number(p?.age ?? p?._raw?.age ?? 0); return !isNaN(v) && v <= ageMax; });
-  return [...rows].sort((a, b) => comparePlayersByBanSort(a, b, sortKey));
+  return [...rows].sort((a, b) => comparePlayersBySort(a, b, sortKey));
 }
 
 export function getPickListPlayers() {
   const base = Array.isArray(state.players) ? state.players : [];
   const q = String(state.pickSearch || "").trim().toLowerCase();
-  const sortKey = normalizeBanSortValue(state.pickSort);
-  const posSet = new Set((Array.isArray(state.pickFilterPosition) ? state.pickFilterPosition : []).map(normalizeBanPositionValue).filter(Boolean));
+  const sortKey = normalizeSortValue(state.pickSort);
+  const posSet = new Set((Array.isArray(state.pickFilterPosition) ? state.pickFilterPosition : []).map(toValidPosition).filter(Boolean));
   let rows = base;
   if (q) rows = rows.filter((p) => String(p?.name || "").toLowerCase().includes(q));
   if (posSet.size) rows = rows.filter((p) => posSet.has(String(p?.position || p?._raw?.position || "").toUpperCase()));
-  return [...rows].sort((a, b) => comparePlayersByBanSort(a, b, sortKey));
+  return [...rows].sort((a, b) => comparePlayersBySort(a, b, sortKey));
 }

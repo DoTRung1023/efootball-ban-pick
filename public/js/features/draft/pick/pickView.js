@@ -17,7 +17,7 @@ import {
   getPlayerCardValue,
   normalizeFormation,
 } from '@/features/draft/players.js';
-import { banPlayerCardHtml } from '@/features/draft/playerCards.js';
+import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation, getSelectedPlan } from '@/features/draft/gamePlans.js';
@@ -148,7 +148,7 @@ function renderPickGrid(room, theirSide, canStillPick) {
         const id = String(p.id || "");
         const banned = opponentBanIds.has(id);
         const picked = room.pickedPlayerIds.includes(id);
-        return banPlayerCardHtml(p, { banned, picked, clickable: canStillPick && !banned && !picked });
+        return playerCardHtml(p, { banned, picked, clickable: canStillPick && !banned && !picked });
       }).join("")
     : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(
         state.loadingPlayers ? "Loading your squad..." : "No players found.",

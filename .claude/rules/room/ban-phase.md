@@ -21,14 +21,20 @@ that were not ban-specific. It is now:
 | `ban/banInteractions.js` | `bindBanPhaseUiOnce` (idempotent — the board re-renders on every poll), the grid info toggle |
 | `ban/opponentSquad.js` | `loadOpponentBanPlayers` — you ban from the *opponent's* squad |
 | `../playerQuery.js` | the list query and sort, shared with the pick phase |
-| `../playerCards.js` | `banPlayerCardHtml` + the sidebar thumbnails, shared with pick and ready |
+| `../playerCards.js` | `playerCardHtml` + the sidebar thumbnails, shared with pick and ready |
 | `../filterOptions.js` | `fetchFilterOptions`, also used by the lobby |
 
-The three modules at the draft root are there because more than one phase imports them.
-**Their names still say `Ban`** (`normalizeBanSortValue`, `banPlayerCardHtml`) even
-though `pick.js`, `pickView.js`, `readyView.js` and `draftFlow.js` all use them — that
-misleading naming is what let the leak build up. Renaming is a separate change; until
-then, do not read `Ban` in a symbol name as "ban phase only".
+The three modules at the draft root are there because more than one phase imports them,
+and their symbols are named for what they do rather than for the phase they were born
+in — `playerCardHtml`, `normalizeSortValue`, `toValidPosition`, `LEAGUE_OPTIONS`. The old
+`Ban`-prefixed names were what let the leak build up in the first place, so **keep a
+`ban` prefix for things that really are ban-only.** `getBanListPlayers` and the staged-ban
+thumbnails earn theirs; a shared helper does not.
+
+One name to be careful with: `toValidPosition` (playerQuery.js) coerces a **single**
+value to a valid position or `""`. `normalizePositionValue` (allowance.js) is a different
+function — it takes a comma-separated list and returns an **array**. They were nearly
+merged during the rename; they are not interchangeable.
 
 ## Layout
 
@@ -119,11 +125,11 @@ Related invariants:
   filter state fields cover position, foot, playing style, card type, league, region,
   overall level 1/max ranges, club, nationality, height/weight/age ranges.
 - Sort supports 9 categories: overall_max, overall, name, position, club, nationality,
-  height, weight, age. `normalizeBanSortValue()` is the validator.
-- `BAN_LEAGUE_OPTIONS` is a module-level mutable array populated by
+  height, weight, age. `normalizeSortValue()` is the validator.
+- `LEAGUE_OPTIONS` is a module-level mutable array populated by
   `fetchFilterOptions()` alongside `CARD_TYPE_OPTIONS`, `PLAYING_STYLE_OPTIONS`,
   `REGION_OPTIONS`. All are fetched from `GET /api/players/filter-options`.
-- `comparePlayersByBanSort()` reads `height/weight/age` from both `player._raw.*` and
+- `comparePlayersBySort()` reads `height/weight/age` from both `player._raw.*` and
   top-level fields — ban players from `/api/my-players` store these at the top level
   (not under `_raw`).
 - The filter dropdown panel is grouped into 4 labelled sections — **IDENTITY**

@@ -1,7 +1,7 @@
 /* ============================================================
    Card and thumbnail markup shared by the phases
 
-   `banPlayerCardHtml` renders the grid card in the ban phase, the pick board
+   `playerCardHtml` renders the grid card in the ban phase, the pick board
    and the Start Match screen. The thumbnails are the small staged/opponent
    chips down the ban sidebar; `--${size}` picks the height, which
    `banView.js` drives through the `--ban-slot-h` variable.
@@ -43,7 +43,7 @@ export function stagedBanThumbHtml(player, size = "md") {
   `;
 }
 
-export function banPlayerCardHtml(player, o) {
+export function playerCardHtml(player, o) {
   const { banned, picked, clickable } = o;
   const unavailable = banned || picked;
   const cls = [

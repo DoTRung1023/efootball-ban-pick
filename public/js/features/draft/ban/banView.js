@@ -11,12 +11,12 @@
 import { escapeHtml } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import {
-  banPlayerCardHtml,
+  playerCardHtml,
   imageOnlyThumbHtml,
   opponentStagedBanThumbHtml,
   stagedBanThumbHtml,
 } from '@/features/draft/playerCards.js';
-import { getBanListPlayers, normalizeBanSortValue } from '@/features/draft/playerQuery.js';
+import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQuery.js';
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit } from '@/features/draft/engine/draftFlow.js';
@@ -83,7 +83,7 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
 
   bindBanPhaseUiOnce();
   el.banSearch.value = state.banSearch || "";
-  el.banSort.value = normalizeBanSortValue(state.banSort);
+  el.banSort.value = normalizeSortValue(state.banSort);
   el.banPosition.value = "";
   renderBanToolbar();
 
@@ -250,7 +250,7 @@ function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPha
         const banned = myConfirmedIds.has(id) || stagedIds.has(id);
         const picked = room.pickedPlayerIds.includes(id);
         const clickable = isMyTurn && canStillBan && !banned && !picked && !readyPhase;
-        return banPlayerCardHtml(p, { banned, picked, clickable });
+        return playerCardHtml(p, { banned, picked, clickable });
       }).join("")
     : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage())}</div>`;
 }

@@ -7,7 +7,7 @@
 
 import { cb } from "@/features/draft/callbacks.js";
 import { state } from "@/features/draft/state.js";
-import { normalizeBanPositionValue, normalizeBanSortValue } from "@/features/draft/playerQuery.js";
+import { toValidPosition, normalizeSortValue } from "@/features/draft/playerQuery.js";
 import { renderBanToolbar } from "./banToolbar.js";
 
 export function bindBanPhaseUiOnce() {
@@ -30,7 +30,7 @@ export function bindBanPhaseUiOnce() {
     cb.renderDraftUi();
   });
   sort.addEventListener("change", (e) => {
-    state.banSort = normalizeBanSortValue(e.target.value);
+    state.banSort = normalizeSortValue(e.target.value);
     cb.renderDraftUi();
   });
   pos.addEventListener("change", () => {
@@ -68,10 +68,10 @@ export function bindBanPhaseUiOnce() {
 
   sortDirBtn?.addEventListener("click", (e) => {
     e.preventDefault();
-    const cur = normalizeBanSortValue(state.banSort);
+    const cur = normalizeSortValue(state.banSort);
     const baseKey = cur.replace(/_(asc|desc)$/, "");
     const next = cur.endsWith("_asc") ? `${baseKey}_desc` : `${baseKey}_asc`;
-    sort.value = normalizeBanSortValue(next);
+    sort.value = normalizeSortValue(next);
     sort.dispatchEvent(new Event("change", { bubbles: true }));
   });
 
@@ -91,10 +91,10 @@ export function bindBanPhaseUiOnce() {
     const opt = e.target instanceof Element ? e.target.closest("[data-ban-sort-cat]") : null;
     if (!opt) return;
     const cat = String(opt.getAttribute("data-ban-sort-cat") || "");
-    const cur = normalizeBanSortValue(state.banSort);
+    const cur = normalizeSortValue(state.banSort);
     const dir = cur.endsWith("_asc") ? "asc" : "desc";
     const v = `${cat}_${dir}`;
-    sort.value = normalizeBanSortValue(v);
+    sort.value = normalizeSortValue(v);
     sort.dispatchEvent(new Event("change", { bubbles: true }));
     closeAll();
   });
@@ -143,7 +143,7 @@ export function bindBanPhaseUiOnce() {
 
     // Multiselect item clicks
     const msConfigs = [
-      { attr: "ban-pos-ms",  stateKey: "banFilterPositions",   normalize: normalizeBanPositionValue },
+      { attr: "ban-pos-ms",  stateKey: "banFilterPositions",   normalize: toValidPosition },
       { attr: "ban-foot-ms", stateKey: "banFilterFoot",         normalize: (v) => v },
       { attr: "ban-ps-ms",   stateKey: "banFilterPlayingStyle", normalize: (v) => v },
       { attr: "ban-ct-ms",   stateKey: "banFilterCardType",     normalize: (v) => v },

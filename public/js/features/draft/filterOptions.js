@@ -13,7 +13,7 @@ import {
   REGION_OPTIONS,
 } from "./constants.js";
 
-export let BAN_LEAGUE_OPTIONS = [];
+export let LEAGUE_OPTIONS = [];
 
 export async function fetchFilterOptions() {
   try {
@@ -24,8 +24,8 @@ export async function fetchFilterOptions() {
       (data.card_type || []).forEach((v) => CARD_TYPE_OPTIONS.push(v));
       PLAYING_STYLE_OPTIONS.length = 0;
       (data.playing_style || []).forEach((v) => PLAYING_STYLE_OPTIONS.push(v));
-      BAN_LEAGUE_OPTIONS.length = 0;
-      (data.league || []).forEach((v) => BAN_LEAGUE_OPTIONS.push(v));
+      LEAGUE_OPTIONS.length = 0;
+      (data.league || []).forEach((v) => LEAGUE_OPTIONS.push(v));
       REGION_OPTIONS.length = 0;
       (data.region || []).forEach((v) => REGION_OPTIONS.push(v));
     }

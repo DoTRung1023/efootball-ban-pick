@@ -10,7 +10,7 @@ import { DEFAULT_FORMATION, REVEAL_MODE_HIDDEN } from '@/features/draft/constant
 import { escapeHtml } from '@/features/draft/utils.js';
 import { normalizeRevealMode } from '@/features/draft/state.js';
 import { buildOrderedSlotMap, getFormationLayout, getPlayerCardValue } from '@/features/draft/players.js';
-import { banPlayerCardHtml } from '@/features/draft/playerCards.js';
+import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 
 const LINEUP_SIZE = 11;
@@ -114,7 +114,7 @@ function squadColumnHtml(room, side, picks, formation, isMe) {
   const pitch = getFormationLayout(formation)
     .map((row) => {
       const cards = row.slots
-        .map((slot) => (slotMap[slot] ? banPlayerCardHtml(slotMap[slot], STATIC_CARD) : `<div class="sm-empty-slot"></div>`))
+        .map((slot) => (slotMap[slot] ? playerCardHtml(slotMap[slot], STATIC_CARD) : `<div class="sm-empty-slot"></div>`))
         .join("");
       return `<div class="sm-pitch-row">${cards}</div>`;
     })
@@ -144,7 +144,7 @@ function benchHtml(bench) {
         <span class="sm-bench-meta">${escapeHtml(meta)}</span>
       </div>
       <div class="sm-bench-strip">
-        ${bench.map((p) => banPlayerCardHtml(p, STATIC_CARD)).join("")}
+        ${bench.map((p) => playerCardHtml(p, STATIC_CARD)).join("")}
       </div>
     </div>`;
 }

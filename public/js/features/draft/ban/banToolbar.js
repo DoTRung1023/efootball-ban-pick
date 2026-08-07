@@ -9,10 +9,10 @@ import {
   POSITION_OPTIONS,
   REGION_OPTIONS,
 } from "@/features/draft/constants.js";
-import { BAN_LEAGUE_OPTIONS } from "@/features/draft/filterOptions.js";
+import { LEAGUE_OPTIONS } from "@/features/draft/filterOptions.js";
 import { state } from "@/features/draft/state.js";
 import { escapeHtml } from "@/features/draft/utils.js";
-import { normalizeBanPositionValue, normalizeBanSortValue } from "@/features/draft/playerQuery.js";
+import { toValidPosition, normalizeSortValue } from "@/features/draft/playerQuery.js";
 
 export function renderBanToolbar() {
   const sortSelect = document.getElementById("banSort");
@@ -24,7 +24,7 @@ export function renderBanToolbar() {
   const sortDirIcon = document.getElementById("banSortDirIcon");
   if (!sortSelect || !posSelect || !sortLabel || !sortPanel || !posPanel) return;
 
-  const sortVal = normalizeBanSortValue(state.banSort);
+  const sortVal = normalizeSortValue(state.banSort);
   const posVal = "";
   sortSelect.value = sortVal;
   posSelect.value = posVal;
@@ -71,7 +71,7 @@ export function renderBanToolbar() {
   function msLabel(arr, allText, max = 3) {
     return !arr.length ? allText : arr.length <= max ? arr.join(", ") : `${arr.slice(0, max).join(", ")} +${arr.length - max}`;
   }
-  const selPos  = (Array.isArray(state.banFilterPositions)    ? state.banFilterPositions    : []).map(normalizeBanPositionValue).filter(Boolean);
+  const selPos  = (Array.isArray(state.banFilterPositions)    ? state.banFilterPositions    : []).map(toValidPosition).filter(Boolean);
   const selFoot = Array.isArray(state.banFilterFoot)          ? state.banFilterFoot          : [];
   const selPs   = Array.isArray(state.banFilterPlayingStyle)  ? state.banFilterPlayingStyle  : [];
   const selCt   = Array.isArray(state.banFilterCardType)      ? state.banFilterCardType      : [];
@@ -152,7 +152,7 @@ export function renderBanToolbar() {
           <span id="banLgMsLabel">${escapeHtml(msLabel(selLg, "Any league"))}</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="banLgMsPanel">${msItemsHtml(BAN_LEAGUE_OPTIONS, selLg, "ban-lg-ms")}</div>
+        <div class="pos-ms-panel" id="banLgMsPanel">${msItemsHtml(LEAGUE_OPTIONS, selLg, "ban-lg-ms")}</div>
       </div>
     </div>
     <div class="filter-section">

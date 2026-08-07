@@ -1,6 +1,6 @@
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
-import { normalizeBanSortValue } from '@/features/draft/playerQuery.js';
+import { normalizeSortValue } from '@/features/draft/playerQuery.js';
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
 import { escapeHtml, showToast, getUser } from '@/features/draft/utils.js';
 
@@ -19,7 +19,7 @@ export function renderPickToolbar() {
   const sortDirIcon = document.getElementById("pickSortDirIcon");
   if (!sortLabel || !sortPanel) return;
 
-  const sortVal = normalizeBanSortValue(state.pickSort);
+  const sortVal = normalizeSortValue(state.pickSort);
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
   const labelMap = {
@@ -102,7 +102,7 @@ export function bindPickPhaseUiOnce() {
 
   sortDirBtn?.addEventListener("click", (e) => {
     e.preventDefault();
-    const cur = normalizeBanSortValue(state.pickSort);
+    const cur = normalizeSortValue(state.pickSort);
     const baseKey = cur.replace(/_(asc|desc)$/, "");
     state.pickSort = cur.endsWith("_asc") ? `${baseKey}_desc` : `${baseKey}_asc`;
     cb.renderDraftUi();
@@ -112,9 +112,9 @@ export function bindPickPhaseUiOnce() {
     const opt = e.target instanceof Element ? e.target.closest("[data-pick-sort-cat]") : null;
     if (!opt) return;
     const cat = String(opt.getAttribute("data-pick-sort-cat") || "");
-    const cur = normalizeBanSortValue(state.pickSort);
+    const cur = normalizeSortValue(state.pickSort);
     const dir = cur.endsWith("_asc") ? "asc" : "desc";
-    state.pickSort = normalizeBanSortValue(`${cat}_${dir}`);
+    state.pickSort = normalizeSortValue(`${cat}_${dir}`);
     cb.renderDraftUi();
     closeSort();
   });
