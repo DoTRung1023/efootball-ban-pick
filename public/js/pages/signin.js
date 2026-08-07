@@ -5,9 +5,9 @@
    DOMContentLoaded fires.
    ============================================================ */
 
-import { initParticles, initPlayers } from './features/auth/signInBackdrop.js';
-import { initForm, initPasswordToggle } from './features/auth/signInForm.js';
-import { initSignupModal } from './features/auth/signUpModal.js';
+import { initParticles, initPlayers } from '@/features/auth/signInBackdrop.js';
+import { initForm, initPasswordToggle } from '@/features/auth/signInForm.js';
+import { initSignupModal } from '@/features/auth/signUpModal.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   initParticles();
