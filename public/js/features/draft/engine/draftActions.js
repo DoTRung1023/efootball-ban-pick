@@ -57,7 +57,7 @@ export async function setMatchReady(ready) {
 // ── Bans ─────────────────────────────────────────────────────
 
 /** Moves staged bans into the local room copy and returns them for posting. */
-export function flushStagedBansLocally() {
+function flushStagedBansLocally() {
   if (!state.stagedBans.length) return [];
   const toSubmit = [...state.stagedBans];
   state.stagedBans = [];
@@ -68,7 +68,7 @@ export function flushStagedBansLocally() {
 }
 
 /** Posts bans one at a time so a single rejection doesn't discard the rest. */
-export async function submitBansToApi(players) {
+async function submitBansToApi(players) {
   if (!state.room || !players.length) return;
   for (const player of players) {
     const { ok, data } = await postAsMe("ban", { player: banPayload(player) });
@@ -79,7 +79,7 @@ export async function submitBansToApi(players) {
 }
 
 /** Marks this side's bans final. The server advances the draft once both agree. */
-export async function callBanConfirm() {
+async function callBanConfirm() {
   const prevTurnIndex = state.room?.turnIndex;
   const { ok, data } = await postAsMe("ban-confirm");
   if (!ok || !data.room) return;

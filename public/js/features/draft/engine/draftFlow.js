@@ -36,13 +36,13 @@ export function getDraftDisplayPlayers(room = state.room) {
   return getDraftStage(room) === "ban" ? getBanListPlayers() : getPickListPlayers();
 }
 
-export function getTurnDurationSec(turn, cfg = state.room?.config || defaultRoomConfig()) {
+function getTurnDurationSec(turn, cfg = state.room?.config || defaultRoomConfig()) {
   if (turn?.action === "ban") return normalizeBanDurationSec(cfg?.banDurationSec);
   if (turn?.action === "pick") return normalizePickDurationSec(cfg?.pickDurationSec);
   return FALLBACK_TURN_SECONDS;
 }
 
-export function getDraftStage(room = state.room) {
+function getDraftStage(room = state.room) {
   return String((room ? state.schedule[room.turnIndex] : null)?.action || "");
 }
 
@@ -57,7 +57,7 @@ export function syncCurrentTurnFromIndex(room) {
   room.currentTurn = state.schedule[room.turnIndex] || null;
 }
 
-export function advanceDraftStage(room, nextAction) {
+function advanceDraftStage(room, nextAction) {
   if (!room) return;
   const nextIdx = state.schedule.findIndex((t) => String(t?.action || "") === String(nextAction || ""));
   if (nextIdx < 0) return;
@@ -71,7 +71,7 @@ export function advanceDraftStage(room, nextAction) {
 }
 
 /** Once both sides have used every ban, move on without waiting for the timer. */
-export function maybeAutoAdvanceFromBan(room = state.room) {
+function maybeAutoAdvanceFromBan(room = state.room) {
   if (!room || getDraftStage(room) !== "ban") return;
   const target = banLimit(room.config);
   if (!target) return;

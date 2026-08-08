@@ -5,7 +5,7 @@
  * drawn from the fixed maps in this file, never from request input.
  */
 
-export const POS_GROUPS = {
+const POS_GROUPS = {
   GK: ["GK"],
   DEF: ["CB", "LB", "RB"],
   MID: ["CMF", "DMF", "AMF", "LMF", "RMF"],
@@ -20,7 +20,7 @@ const POSITION_ORDER_FIELD =
 const POSITION_ORDER_ASC =
   `CASE WHEN ${POSITION_ORDER_FIELD} = 0 THEN 999 ELSE ${POSITION_ORDER_FIELD} END ASC`;
 
-export const SORT_MAP = {
+const SORT_MAP = {
   overall_max_desc: `ISNULL(overall_max), overall_max DESC, overall DESC, ${POSITION_ORDER_ASC}, name ASC`,
   overall_max_asc:  `ISNULL(overall_max), overall_max ASC, overall ASC, ${POSITION_ORDER_ASC}, name ASC`,
   overall_desc:     `overall DESC, ${POSITION_ORDER_ASC}, name ASC`,

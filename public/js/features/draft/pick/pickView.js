@@ -61,7 +61,7 @@ export function renderPickBoard({ room, mySide, theirSide, visible }) {
 
 // ── Quick-load bar ───────────────────────────────────────────
 
-export function renderPickQuickLoad() {
+function renderPickQuickLoad() {
   const cards = document.getElementById("pickQlCards");
   if (!cards) return;
 
@@ -157,7 +157,7 @@ function renderPickGrid(room, theirSide, canStillPick) {
 
 // ── Formation pitch ──────────────────────────────────────────
 
-export function renderPickPitch(myPicks, maxPicks) {
+function renderPickPitch(myPicks, maxPicks) {
   const pitch = document.getElementById("pickPitch");
   if (!pitch) return;
 
@@ -215,7 +215,7 @@ function renderLineupMeta(lineup, maxPicks, formation) {
 
 // ── Allowance pills + confirm ────────────────────────────────
 
-export function renderPickAllowanceBar(room, myPicks, maxPicks) {
+function renderPickAllowanceBar(room, myPicks, maxPicks) {
   const bar = document.getElementById("pickAllowanceBar");
   if (!bar) return;
 
@@ -258,7 +258,7 @@ function buildAllowancePills(cfg, myPicks) {
 
 // ── Live opponent feed ───────────────────────────────────────
 
-export function renderPickLiveFeed(room, theirSide, theirPicks, maxPicks, revealMode) {
+function renderPickLiveFeed(room, theirSide, theirPicks, maxPicks, revealMode) {
   const feed = document.getElementById("pickOppFeed");
   if (!feed) return;
 

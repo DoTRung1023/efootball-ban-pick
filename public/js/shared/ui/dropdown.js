@@ -5,7 +5,7 @@
    additionally closes the sibling panel so only one is ever open.
    ============================================================ */
 
-export function openDdPanel(panelId, btnId) {
+function openDdPanel(panelId, btnId) {
   const panel = document.getElementById(panelId);
   const btn   = document.getElementById(btnId);
   panel?.classList.add("open");

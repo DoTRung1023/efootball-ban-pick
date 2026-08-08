@@ -40,7 +40,7 @@ export function resetPlayerFilterState(state) {
 
 /* ── autocomplete + shared option lists ─────────────────────────── */
 
-export function initAutocomplete(inputEl, listEl, field, onPick) {
+function initAutocomplete(inputEl, listEl, field, onPick) {
   let timer = null;
 
   inputEl.addEventListener("input", () => {
@@ -77,7 +77,7 @@ export function initAutocomplete(inputEl, listEl, field, onPick) {
   });
 }
 
-export let playerFilterOptionsCache = null;
+let playerFilterOptionsCache = null;
 
 export async function getPlayerFilterOptions() {
   if (playerFilterOptionsCache) return playerFilterOptionsCache;
@@ -94,7 +94,7 @@ export async function getPlayerFilterOptions() {
 }
 
 /** Multiselect dropdowns backed by distinct catalog values (foot, style, card type, league). */
-export function wireAttributeMultiselects(panel, optionsByKey, configs) {
+function wireAttributeMultiselects(panel, optionsByKey, configs) {
   for (const cfg of configs) {
     const values = optionsByKey[cfg.optionsKey] ?? [];
     const msPanel = panel.querySelector(cfg.panelSel);

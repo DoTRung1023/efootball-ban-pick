@@ -1,8 +1,4 @@
-import {
-  CARD_IMG,
-  ANON_PLAYER_IMG,
-  FIXED_PICKS_PER_SIDE,
-} from './constants.js';
+import { CARD_IMG, ANON_PLAYER_IMG } from './constants.js';
 
 /* Card art + the player metadata block are shared with the home bundle —
    see @/shared/players/playerMeta.js. Re-exported so room modules keep importing
@@ -90,27 +86,12 @@ export function normalizeApiPlayer(p) {
   };
 }
 
-export function mapPlayersBySlot(rows) {
-  const map = {};
-  (rows || []).forEach((row) => {
-    const slot = Number(row?.slot);
-    if (!Number.isFinite(slot) || slot < 1 || slot > FIXED_PICKS_PER_SIDE) return;
-    map[slot] = normalizeDraftPlayer(row);
-  });
-  return map;
-}
-
 export function buildOrderedSlotMap(players) {
   const map = {};
   (players || []).forEach((player, idx) => {
     map[idx + 1] = normalizeDraftPlayer(player);
   });
   return map;
-}
-
-export function slotCardsSummary(players) {
-  const count = Array.isArray(players) ? players.length : 0;
-  return `${count}/${FIXED_PICKS_PER_SIDE}`;
 }
 
 export function normalizePlayerForFooter(player) {

@@ -162,11 +162,11 @@ export function defaultRoomConfig() {
   };
 }
 
-export function defaultReadyState() {
+function defaultReadyState() {
   return { guest: false };
 }
 
-export function defaultMatchReadyState() {
+function defaultMatchReadyState() {
   return { host: false, guest: false };
 }
 

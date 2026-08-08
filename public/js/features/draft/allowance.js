@@ -311,7 +311,7 @@ export function playingStyleCapSummaryText(capMap, selectedPlayingStyles) {
   return `${active.length} capped`;
 }
 
-export function parseClubCapMap(raw, selectedClubs = []) {
+function parseClubCapMap(raw, selectedClubs = []) {
   let parsed = {};
 
   if (raw && typeof raw === "object") {
@@ -372,14 +372,14 @@ export function stringifyTextAllowanceCapMap(map, selectedValues = []) {
   return stringifyClubCapMap(map, selectedValues);
 }
 
-export function splitCsvValue(raw) {
+function splitCsvValue(raw) {
   return String(raw || "")
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
 }
 
-export function parseNumberOrNull(raw) {
+function parseNumberOrNull(raw) {
   const s = String(raw ?? "").trim();
   if (s === "") return null;
   const n = Number(s);
@@ -412,7 +412,7 @@ export function parseAllowanceRangeValue(raw) {
   };
 }
 
-export function parseAllowanceRangeNumbers(raw) {
+function parseAllowanceRangeNumbers(raw) {
   const { min, max } = parseAllowanceRangeValue(raw);
   return {
     min: parseNumberOrNull(min),
@@ -420,21 +420,21 @@ export function parseAllowanceRangeNumbers(raw) {
   };
 }
 
-export function isWithinOptionalRange(value, min, max) {
+function isWithinOptionalRange(value, min, max) {
   if (value == null) return false;
   if (min != null && value < min) return false;
   if (max != null && value > max) return false;
   return min != null || max != null;
 }
 
-export function matchesAnyIncludes(fieldValue, queryRaw) {
+function matchesAnyIncludes(fieldValue, queryRaw) {
   const hay = String(fieldValue || "").toLowerCase();
   const needles = splitCsvValue(queryRaw).map((v) => v.toLowerCase());
   if (!needles.length) return false;
   return needles.some((q) => hay.includes(q));
 }
 
-export function matchesAnyEquals(fieldValue, queryRaw) {
+function matchesAnyEquals(fieldValue, queryRaw) {
   const hay = String(fieldValue || "").toLowerCase();
   const needles = splitCsvValue(queryRaw).map((v) => v.toLowerCase());
   if (!needles.length) return false;

@@ -19,7 +19,7 @@ export function getActiveTab() {
   return activeTab;
 }
 
-export function switchTab(tab) {
+function switchTab(tab) {
   if (!TABS.includes(tab)) return;
   activeTab = tab;
   TABS.forEach((t) => {

@@ -132,7 +132,7 @@ function buildConfigPayload() {
   };
 }
 
-export async function pushLobbyConfig() {
+async function pushLobbyConfig() {
   if (state.mySide !== "host" || !state.room?.code) return;
 
   const payload = buildConfigPayload();

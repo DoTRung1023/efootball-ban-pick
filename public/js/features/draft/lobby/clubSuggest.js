@@ -59,7 +59,7 @@ export function addTextAllowanceValue(key, rawValue) {
 }
 
 /** Fetches suggestions, dropping the response if a newer request has started. */
-export async function fetchClubSuggestions(query) {
+async function fetchClubSuggestions(query) {
   const key = String(state.clubSearchKey || "club").trim();
   const q = collapseSpaces(query);
   if (!q) {

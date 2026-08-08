@@ -205,7 +205,7 @@ export function bindBanPhaseUiOnce() {
 }
 
 // Toggle showing player footer info in ban grid
-export function initBanGridInfoToggle() {
+function initBanGridInfoToggle() {
   try {
     const btn = document.getElementById("toggleInfoBtn");
     const grid = document.getElementById("banGrid");

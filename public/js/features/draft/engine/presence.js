@@ -9,7 +9,7 @@ export function clearRoomPhaseCache(code) {
   try { if (code) sessionStorage.removeItem(`efb_room_${code}_phase`); } catch { /* ignore */ }
 }
 
-export async function registerPresence() {
+async function registerPresence() {
   const code = state.room?.code;
   if (!code) return;
   const user = getUser();
@@ -58,7 +58,7 @@ export async function registerPresence() {
   return data.room || null;
 }
 
-export async function fetchRoomSnapshot() {
+async function fetchRoomSnapshot() {
   const code = state.room?.code;
   if (!code) return { changed: false };
   const res = await fetch(`/api/rooms/${encodeURIComponent(code)}`);

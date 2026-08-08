@@ -3,12 +3,15 @@
 
    `POSITION_LINE_ORDER` is the forward-first order used across the whole
    codebase (mirrored server-side in `SORT_MAP`, and in
-   `room/constants.js` for the draft board).
+   `public/js/features/draft/constants.js` for the draft board).
    ============================================================ */
 
-export const POS_DEF = ["CB", "LB", "RB"];
-export const POS_MID = ["CMF", "DMF", "RMF", "LMF", "AMF"];
-export const POS_FWD = ["RWF", "LWF", "CF", "SS"];
+/* The buckets behind `posClass`. Not exported — callers want the class name,
+   and the only consumer that wanted a position list wanted the ordered one
+   below. */
+const POS_DEF = ["CB", "LB", "RB"];
+const POS_MID = ["CMF", "DMF", "RMF", "LMF", "AMF"];
+const POS_FWD = ["RWF", "LWF", "CF", "SS"];
 
 /** Colour bucket for a position chip. */
 export function posClass(pos) {
@@ -20,7 +23,7 @@ export function posClass(pos) {
   return "pos-other";
 }
 
-export const POSITION_LINE_ORDER = ["CF", "SS", "RWF", "LWF", "AMF", "RMF", "LMF", "CMF", "DMF", "RB", "LB", "CB", "GK"];
+const POSITION_LINE_ORDER = ["CF", "SS", "RWF", "LWF", "AMF", "RMF", "LMF", "CMF", "DMF", "RB", "LB", "CB", "GK"];
 
 export function positionLineRank(pos) {
   const p = String(pos || "").toUpperCase().trim();

@@ -5,11 +5,14 @@
    all a caller needs to do before awaiting `showConfirm`.
    ============================================================ */
 
-export let _confirmResolve = null;
+/* Module-private: the pending promise's resolver. The underscore prefix these
+   two carried was standing in for "not really public" — they are now simply
+   not exported. `showConfirm` is the whole surface. */
+let confirmResolve = null;
 
 export function showConfirm(message) {
   return new Promise((resolve) => {
-    _confirmResolve = resolve;
+    confirmResolve = resolve;
     const overlay = document.getElementById("confirmOverlay");
     const msgEl   = document.getElementById("confirmMessage");
     if (msgEl) msgEl.textContent = message;
@@ -17,19 +20,19 @@ export function showConfirm(message) {
   });
 }
 
-export function _closeConfirm(result) {
+function closeConfirm(result) {
   document.getElementById("confirmOverlay")?.classList.remove("open");
-  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+  if (confirmResolve) { confirmResolve(result); confirmResolve = null; }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("confirmOk")?.addEventListener("click",     () => _closeConfirm(true));
-  document.getElementById("confirmCancel")?.addEventListener("click", () => _closeConfirm(false));
+  document.getElementById("confirmOk")?.addEventListener("click",     () => closeConfirm(true));
+  document.getElementById("confirmCancel")?.addEventListener("click", () => closeConfirm(false));
   document.getElementById("confirmOverlay")?.addEventListener("click", (e) => {
-    if (e.target === document.getElementById("confirmOverlay")) _closeConfirm(false);
+    if (e.target === document.getElementById("confirmOverlay")) closeConfirm(false);
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && document.getElementById("confirmOverlay")?.classList.contains("open"))
-      _closeConfirm(false);
+      closeConfirm(false);
   });
 });

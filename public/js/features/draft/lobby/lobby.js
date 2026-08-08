@@ -80,7 +80,7 @@ import {
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
 
-export function renderLobby() {
+function renderLobby() {
   const room = state.room;
   const isHost = state.mySide === "host";
   const cfg = room.config || defaultRoomConfig();

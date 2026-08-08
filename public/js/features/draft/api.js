@@ -7,7 +7,7 @@ import { getCurrentIdentity } from './utils.js';
  * POST to /api/rooms/:code/<action>.
  * Resolves to { ok, data } — a network failure yields { ok: false, data: {} }.
  */
-export async function postRoomAction(action, body = {}, code = state.room?.code) {
+async function postRoomAction(action, body = {}, code = state.room?.code) {
   if (!code) return { ok: false, data: {} };
   try {
     const res = await fetch(`/api/rooms/${encodeURIComponent(code)}/${action}`, {

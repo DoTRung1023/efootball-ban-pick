@@ -84,7 +84,7 @@ export function normalizeRevealMode(raw) {
 }
 
 /** Accepts an object or a JSON string; returns a JSON string of {POSITION: cap} or "". */
-export function normalizePositionCaps(raw) {
+function normalizePositionCaps(raw) {
   const obj = coerceCapObject(raw);
   if (!obj) return "";
 
@@ -102,7 +102,7 @@ export function normalizePositionCaps(raw) {
  * Accepts an object, a JSON string, or a bare number (legacy single-cap form).
  * Returns a JSON string of {name: cap}, a bare cap string, or "".
  */
-export function normalizeNamedCaps(raw) {
+function normalizeNamedCaps(raw) {
   if (raw && typeof raw === "object") {
     const normalized = {};
     for (const [k, v] of Object.entries(raw)) {

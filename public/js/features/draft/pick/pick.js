@@ -109,7 +109,7 @@ export function bindPickPhaseUiOnce() {
 }
 
 // Load the user's own squad for the pick grid (not the general catalog)
-export async function fetchPlayers() {
+async function fetchPlayers() {
   const user = getUser();
   if (!user?.id) return [];
   const res = await fetch(`/api/my-players?userId=${encodeURIComponent(user.id)}`);

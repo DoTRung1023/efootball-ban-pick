@@ -167,7 +167,7 @@ export function emptyRoomSnapshot() {
   };
 }
 
-export function isDrafting(entry) {
+function isDrafting(entry) {
   return DRAFTING_STATUSES.includes(String(entry.status || ""));
 }
 
@@ -201,7 +201,7 @@ export function listActiveRooms(now = Date.now()) {
 }
 
 /** TTL depends on status: a draft tolerates a page reload, the lobby does not. */
-export function presenceTtlFor(entry) {
+function presenceTtlFor(entry) {
   return isDrafting(entry) ? DRAFT_PRESENCE_TTL_MS : PRESENCE_TTL_MS;
 }
 
