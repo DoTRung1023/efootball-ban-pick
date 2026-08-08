@@ -67,6 +67,13 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   - `.rooms-bottom-row .rooms-info-row, .rooms-info-panel { height: 100% }` ensures both
     sides are equal height. Responsive: ≤960 px `.rooms-bottom-row` and dual cards →
     single column; ≤720 px same.
+  - `.rooms-info-panel:nth-child(1)` is what makes STRATEGY TIPS gold. It reads as a
+    positional override but there is only ever one panel — the roster and tactics
+    panels it was written for were never built, and their rules
+    (`.rooms-roster-*`, `.rooms-pos-*`, `.rooms-tactics-*`, `.rooms-plan-*`,
+    `.rooms-create-visual*`, plus the unused hero text rules) were removed with the
+    dead JS. Sheet went 813 → 545 lines; computed styles over every element and
+    `::before`/`::after` were identical at 1440 / 900 / 620 px.
 - `responsive.css` — cross-cutting media queries (`≤768px`, `≤480px`), then the plan
   detail modal's own breakpoints (`≤900px`, `≤600px`). Mobile fix:
   `.team-search-wrap { flex: 1 0 100% }` forces the search input to its own row so the

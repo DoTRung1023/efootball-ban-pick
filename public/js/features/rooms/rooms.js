@@ -1,8 +1,4 @@
-import { escapeHtml, CARD_IMG } from '@/shared/players/playerMeta.js';
 import { showToast } from '@/shared/ui/toast.js';
-import { cb } from '@/pages/home/callbacks.js';
-
-let _statsUserId = null;
 
 function normalizeRoomCode(raw) {
   const code = String(raw || "")
@@ -64,7 +60,6 @@ export function initRoomModal() {
     document.body.style.paddingRight = "";
   };
 
-  document.getElementById("openRoomBtn")?.addEventListener("click", open);
   document.getElementById("roomHubCreateBtn")?.addEventListener("click", open);
   document.getElementById("roomClose")?.addEventListener("click", close);
   document.getElementById("roomCancel")?.addEventListener("click", close);
@@ -159,110 +154,4 @@ export function initRoomHub() {
       document.querySelector(`.nav-tab[data-tab="${target}"]`)?.click();
     });
   });
-}
-
-/* ============================================================
-   Rooms stats panels
-   ============================================================ */
-function timeAgo(dateStr) {
-  if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
-}
-
-function renderCreateVisual(players) {
-  const visual = document.getElementById("roomsCreateVisual");
-  if (!visual) return;
-  const cards = players.filter((p) => p.pesdb_id).slice(0, 4);
-  visual.innerHTML = cards.map((p) => `
-    <div class="rooms-create-visual-card">
-      <img src="${CARD_IMG(p.pesdb_id)}" alt="" loading="lazy" onerror="this.style.opacity='0'">
-    </div>
-  `).join("");
-}
-
-function renderRosterPanel(players) {
-  const body = document.getElementById("rosterStatBody");
-  if (!body) return;
-
-  if (!players.length) {
-    body.innerHTML = `<div class="rooms-info-empty">No players yet — add some from the catalog.</div>`;
-    return;
-  }
-
-  const withImg = players.filter((p) => p.pesdb_id);
-  const preview = withImg.slice(0, 8);
-  const more = players.length - preview.length;
-
-  const pos = (list) => players.filter((p) => list.includes((p.position || "").toUpperCase())).length;
-  const gk  = pos(["GK"]);
-  const def = pos(["CB", "RB", "LB"]);
-  const mid = pos(["DMF", "CMF", "LMF", "RMF", "AMF"]);
-  const atk = pos(["CF", "SS", "RWF", "LWF"]);
-
-  body.innerHTML = `
-    <div class="rooms-roster-pos">
-      <span class="rooms-pos-pill rooms-pos-gk"><b>${gk}</b> GK</span>
-      <span class="rooms-pos-pill rooms-pos-def"><b>${def}</b> DEF</span>
-      <span class="rooms-pos-pill rooms-pos-mid"><b>${mid}</b> MID</span>
-      <span class="rooms-pos-pill rooms-pos-atk"><b>${atk}</b> ATK</span>
-    </div>
-    <div class="rooms-roster-cards">
-      ${preview.map((p) => `
-        <div class="rooms-roster-card">
-          <img src="${CARD_IMG(p.pesdb_id)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.style.opacity='0'">
-        </div>
-      `).join("")}
-    </div>
-    ${more > 0 ? `<div class="rooms-roster-more">+${more} more</div>` : ""}
-  `;
-}
-
-function renderTacticsPanel(plans) {
-  const body = document.getElementById("tacticsStatBody");
-  if (!body) return;
-
-  if (!plans.length) {
-    body.innerHTML = `<div class="rooms-info-empty">No game plans yet — create one in GAME PLANS.</div>`;
-    return;
-  }
-
-  const sorted = [...plans].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const shown = sorted.slice(0, 5);
-  const extra = plans.length - shown.length;
-
-  body.innerHTML = `
-    <div class="rooms-tactics-label">MOST RECENT</div>
-    ${shown.map((p) => `
-      <div class="rooms-plan-item">
-        <span class="rooms-plan-formation">${escapeHtml(p.formation || "—")}</span>
-        <span class="rooms-plan-name">${escapeHtml(p.name)}</span>
-        <span class="rooms-plan-time">${timeAgo(p.created_at)}</span>
-      </div>
-    `).join("")}
-    ${extra > 0 ? `<div class="rooms-tactics-more">+${extra} more plan${extra > 1 ? "s" : ""}</div>` : ""}
-  `;
-}
-
-export async function loadRoomsStats(userId) {
-  const uid = Number(userId);
-  if (!uid) return;
-  _statsUserId = uid;
-  cb.refreshRoomsStats = () => loadRoomsStats(_statsUserId);
-
-  const [pr, pp] = await Promise.allSettled([
-    fetch(`/api/my-players?userId=${uid}`).then((r) => r.json()),
-    fetch(`/api/game-plans?userId=${uid}`).then((r) => r.json()),
-  ]);
-
-  const players = pr.status === "fulfilled" ? (pr.value.players || []) : [];
-  renderCreateVisual(players);
-  renderRosterPanel(players);
-  renderTacticsPanel(pp.status === "fulfilled" ? (pp.value.plans || []) : []);
 }

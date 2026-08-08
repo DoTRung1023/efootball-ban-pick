@@ -529,7 +529,6 @@ async function deletePlayers(playerIds, userId) {
     renderSquad();
     updateSquadCountBadge();
     showToast(n === 1 ? "Player removed." : `${n} players removed.`, "success");
-    cb.refreshRoomsStats();
     cb.onPlayersDeleted();
   } catch {
     showToast("Network error. Please try again.", "error");

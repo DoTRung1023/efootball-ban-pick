@@ -290,7 +290,6 @@ async function addPlayerToSquad(player, btn) {
     });
     markAdded(btn, player.id);
     showToast(`${player.name} added to team!`, "success");
-    cb.refreshRoomsStats();
   } catch {
     showToast("Network error. Please try again.", "error");
     btn.disabled = false;

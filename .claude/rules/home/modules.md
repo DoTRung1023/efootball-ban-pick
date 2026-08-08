@@ -42,9 +42,9 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
 - `callbacks.js` — shared mutable callback registry (identical pattern to
   `features/draft/callbacks.js`). Squad sets `getSquadPlayers`, `addToSquadState`,
   `removeFromSquadState`, `renderSquad`; catalog sets `openPlayerPopup`,
-  `openAddPlayerModal`, `onPlayersDeleted`; rooms sets `refreshRoomsStats` (called by
-  `plans.js` after plan create/delete and by `squad.js` + `catalog.js` after player
-  add/delete so the Rooms tab stats auto-refresh without a page reload).
+  `openAddPlayerModal`, `onPlayersDeleted`. Rooms sets nothing — it used to register
+  `refreshRoomsStats`, which squad/catalog/plans called after every mutation; see
+  `rooms.js` below for why that went.
 - `squad.js` — My Players tab: player grid, search/sort/filter, select mode, single +
   bulk delete, card click → popup via `cb.openPlayerPopup`. Exports `loadSquad`,
   `initSquadSearchSortFilter`, `initSquadControls`.
@@ -79,8 +79,8 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     breakpoint in `css/pages/home/responsive.css`. Below it the modal's three columns stack,
     so `scrollPlanSectionIntoView` moves the sheet to the picker when a slot is selected
     and back to the pitch/bench after a player is assigned. It is a no-op on desktop.
-- `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`,
-  `initRoomHub`, `loadRoomsStats`.
+- `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`
+  and `initRoomHub`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;
     if `room.host` is null (room not found) it shows an error toast and stops
     navigation, preventing users from entering a non-existent room.
@@ -89,6 +89,13 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     background does not shift.
   - `initRoomHub` wires: code input normalisation, `#pasteCodeBtn` (clipboard paste,
     URL-aware), `#joinRoomLink` (invite-link input).
-  - `loadRoomsStats(userId)` stores `_statsUserId` and registers
-    `cb.refreshRoomsStats = () => loadRoomsStats(_statsUserId)` so stats auto-refresh
-    when plans or players change elsewhere.
+  - **There is no roster/tactics stats panel.** `loadRoomsStats` and three renderers
+    (`renderCreateVisual`, `renderRosterPanel`, `renderTacticsPanel`) targeted
+    `#roomsCreateVisual` / `#rosterStatBody` / `#tacticsStatBody`, which no version of
+    `home.html` ever contained — the panel was started and never built. Every renderer
+    returned on its `if (!body) return`, but `cb.refreshRoomsStats()` still fired from
+    five call sites after each player add/delete and plan create/delete, costing two
+    API round-trips (`/api/my-players` + `/api/game-plans`) each time to render nothing.
+    The whole chain is gone. The only info panel on the Rooms tab is the static
+    STRATEGY TIPS markup in `home.html`; if the stats panel is ever wanted, it starts
+    with the markup.
