@@ -6,6 +6,11 @@ paths:
 
 # Home page CSS (`public/css/`)
 
+
+Number-input spinner arrows are handled globally by
+`public/css/shared/numberInput.css` (linked right after `pages/home/base.css`) —
+do not add a per-component rule for them. See `room/css.md`.
+
 Split into 8 focused files, loaded in order via `<link>` tags.
 
 - `base.css` — `:root` variables, resets, scrollbar, body (`height: 100vh` then

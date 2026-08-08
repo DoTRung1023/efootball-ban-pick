@@ -2,6 +2,7 @@
 paths:
   - "public/css/features/draft/**/*.css"
   - "public/css/features/catalog/catalog.css"
+  - "public/css/shared/numberInput.css"
 ---
 
 # Room page CSS conventions and component map
@@ -139,42 +140,34 @@ and carry over only the properties the winning block does not already set.
 `pages/home/base.css` values so shared components like `.player-card` look identical across
 both pages.
 
-## Number inputs (one canonical shape)
+## Number inputs (one shared rule)
 
-Four blocks hide the spinner arrows on `type="number"` inputs —
-`.lv-duration-input` and the `.allowance-*` caps in `lobby.css`,
-`.filter-input[type="number"]` in `ban.css`, and the same selector in
-`catalog.css`. They had drifted apart (missing `appearance`, missing `margin`,
-a stray unprefixed `appearance: none`). All four now read:
+`public/css/shared/numberInput.css` hides the spinner arrows on **every**
+`input[type="number"]` in the app, and is linked by `home.html` and `room.html`
+right after each page's base sheet. `admin.html` and `signin.html` have no
+number inputs and do not link it.
 
-```css
-/* Number inputs: hide the spinner arrows. */
-<selector> {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
+There is nothing to do when you add a number input — it is covered. Do not
+re-add a per-component spinner rule; that is what this replaced.
 
-<selector>::-webkit-outer-spin-button,
-<selector>::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-```
+Four near-identical copies used to live in `lobby.css` (twice), `ban.css` and
+`catalog.css`, and had drifted: two were missing the standard `appearance`, two
+were missing `margin: 0`, and one carried an unprefixed `appearance: none` that
+does nothing.
 
-Both halves are deliberate, and neither is load-bearing on its own in current
-browsers:
+Both halves of the shared rule are deliberate:
 
-- `appearance: textfield` is what actually removes the spinner in Firefox (80+)
-  and Chrome. `-moz-appearance` is kept as the legacy alias; do not drop it
-  without checking older Firefox.
-- The `::-webkit-*-spin-button` rules are belt-and-braces for older WebKit.
-  Once the element carries `appearance: textfield`, Chrome does not generate a
-  spin button at all — measured, the pseudo-elements report the originating
-  element's box and zero margins either way. Keep them anyway; Safari has been
-  the laggard here.
+- `appearance: textfield` is what removes the spinner in Firefox (80+) and
+  Chrome. `-moz-appearance` is kept as the legacy alias for older Firefox.
+- The `::-webkit-*-spin-button` half is belt-and-braces for older WebKit.
+  Measured on current Chrome: once the element rule applies, no spin button is
+  generated at all, so those selectors never match — `getComputedStyle` on them
+  reports the input's own box. Keep them for Safari.
 
-If you add another number input, copy the block verbatim rather than inventing
-a fifth variant.
+One deliberate scope change came with the consolidation: `#lobbyBansInput` (the
+hidden input behind the BAN PER SIDE stepper) was not covered by any of the four
+old blocks and now is. It is `hidden` / `display: none`, so this is invisible —
+verified as the only element that changed.
 
 ## Parity with `home/catalog.css`
 

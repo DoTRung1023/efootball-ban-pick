@@ -42,7 +42,7 @@ Code is grouped **by feature, not by file type**.
   files, because with no bundler a barrel makes the browser fetch every module it
   re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
-  `features/<name>/<name>.css`, `shared/{playerCard,modals}.css`. There is no bundler, so
+  `features/<name>/<name>.css`, `shared/{playerCard,modals,numberInput}.css`. There is no bundler, so
   a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
   and `responsive.css` must stay last on the home page.
 - `database/schema.sql` — MySQL schema.

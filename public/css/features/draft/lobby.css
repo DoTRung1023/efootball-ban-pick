@@ -565,15 +565,6 @@
   font-size: 17px;
   text-align: center;
   outline: none;
-  /* Spinners are tiny and fight the dark theme; the unit label reads better. */
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.lv-duration-input::-webkit-outer-spin-button,
-.lv-duration-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
 }
 
 .lv-duration-input:disabled {
@@ -1279,27 +1270,6 @@
 
 .allowance-cap-input:disabled, .allowance-pos-cap-input:disabled,
 .allowance-club-cap-input:disabled, .allowance-item-cap:disabled { opacity: 0.38; cursor: not-allowed; }
-
-/* Number inputs: hide the spinner arrows. */
-.allowance-cap-input, .allowance-pos-cap-input, .allowance-club-cap-input,
-.allowance-item-cap, .allowance-item-range {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.allowance-cap-input::-webkit-outer-spin-button,
-.allowance-cap-input::-webkit-inner-spin-button,
-.allowance-pos-cap-input::-webkit-outer-spin-button,
-.allowance-pos-cap-input::-webkit-inner-spin-button,
-.allowance-club-cap-input::-webkit-outer-spin-button,
-.allowance-club-cap-input::-webkit-inner-spin-button,
-.allowance-item-cap::-webkit-outer-spin-button,
-.allowance-item-cap::-webkit-inner-spin-button,
-.allowance-item-range::-webkit-outer-spin-button,
-.allowance-item-range::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
 
 /* Remove button */
 

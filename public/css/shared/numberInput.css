@@ -1,0 +1,31 @@
+/* ============================================================
+   Number inputs — no spinner arrows, anywhere
+
+   Every number input in the app wants this: the lobby's duration fields, the
+   allowance caps and ranges, and the Min/Max filter pairs on both the home and
+   room pages. Spinners are tiny, they fight the dark theme, and each field
+   already carries its own affordance — a stepper, a unit label, or the Min/Max
+   pairing.
+
+   This used to be copy-pasted into four feature sheets, which drifted apart:
+   two were missing the standard `appearance`, two were missing `margin: 0`, and
+   one carried an unprefixed `appearance: none` that does nothing.
+
+   Linked by home.html and room.html. admin.html and signin.html have no number
+   inputs, so they do not link it.
+   ============================================================ */
+
+input[type="number"] {
+  /* `-moz-appearance` is the legacy alias, kept for Firefox before 80. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Belt-and-braces for older WebKit. Measured on current Chrome: once the rule
+   above applies, no spin button is generated at all, so these never match —
+   the pseudo-elements report the input's own box. Keep them for Safari. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
