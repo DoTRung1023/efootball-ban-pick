@@ -26,8 +26,8 @@
 import "dotenv/config";
 import * as cheerio from "cheerio";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { pathToFileURL } from "node:url";
 import db from "#lib/db.js";
+import { isMainModule } from "#lib/cli.js";
 
 const BASE       = "https://pesdb.net/efootball/";
 const STATE_FILE = new URL("../.scrape-state.json", import.meta.url).pathname;
@@ -724,14 +724,7 @@ export {
   backupCatalog,
 };
 
-const IS_MAIN = (() => {
-  const argv1 = process.argv[1];
-  if (!argv1) return false;
-  try { return pathToFileURL(argv1).href === import.meta.url; }
-  catch { return false; }
-})();
-
-if (IS_MAIN) {
+if (isMainModule(import.meta.url)) {
   main().catch(async (err) => {
     console.error("\nFatal:", err.message);
     console.error("Run `npm run scrape` again to resume.");

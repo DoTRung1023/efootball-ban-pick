@@ -1,5 +1,6 @@
 import "dotenv/config";
 import db from "#lib/db.js";
+import { isMainModule } from "#lib/cli.js";
 import {
   fetchHTML,
   parsePlayers,
@@ -135,8 +136,10 @@ async function main() {
   await db.end();
 }
 
-main().catch(async (err) => {
-  console.error("\nFatal:", err.message);
-  await db.end().catch(() => {});
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch(async (err) => {
+    console.error("\nFatal:", err.message);
+    await db.end().catch(() => {});
+    process.exit(1);
+  });
+}
