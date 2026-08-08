@@ -37,7 +37,8 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     keeps it visible — without it a player can never be removed on touch.
 - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`,
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
-  visual sync with `draft.css` — see the room CSS rule.
+  visual sync with the room ban toolbar (`css/features/draft/ban.css`) — see the room
+  CSS rule.
 - `modals.css` — shared modal overlay/card base, spinner, player popup, toast, confirm
   dialog, edit profile modal.
   - **Room CREATE drawer**: `#roomOverlay` is overridden to `justify-content: flex-end;

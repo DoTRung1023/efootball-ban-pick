@@ -2,10 +2,11 @@
    Shared by the home and room bundles
 
    Both pages render the same player card art and the same metadata block, so
-   these live in one place instead of being kept in sync by hand. Each bundle
-   re-exports them from its own utils module (`home/utils.js`,
-   `room/players.js`, `room/constants.js`, `room/utils.js`), so every existing
-   import site keeps working unchanged — import from your bundle as before.
+   these live in one place instead of being kept in sync by hand. The draft
+   feature re-exports them from its own modules (`features/draft/players.js`,
+   `features/draft/constants.js`, `features/draft/utils.js`) so room modules
+   keep their existing import sites; the home features import from here
+   directly.
    ============================================================ */
 
 export const CARD_IMG = (id) => `/img/card/${id}.png`;
@@ -17,7 +18,7 @@ export const ANON_PLAYER_IMG = "/img/anonymous_player.jpeg";
  * The home bundle previously used a DOM-based version (`div.textContent` read
  * back as `innerHTML`), which does not escape `"`. That is safe in text
  * position but silently allows attribute injection the moment a caller writes
- * `title="${escapeHtml(v)}"` — which the room bundle does in several places.
+ * `title="${escapeHtml(v)}"` — which the draft feature does in several places.
  * This version escapes quotes too, and keeps the home version's null handling
  * (`null`/`undefined` → empty string, not the text "null").
  */

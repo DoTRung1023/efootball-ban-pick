@@ -5,7 +5,7 @@ paths:
   - "public/js/pages/room.js"
 ---
 
-# Pick phase (`pick.js` + `room.js`)
+# Pick phase (`pick/pick.js` + `pick/pickView.js`)
 
 ## Layout
 
@@ -28,11 +28,13 @@ the top — plan chip cards (`#pickQlCards`) + formation dropdown (`#pickQlForma
   pick feed (`#pickOppFeed`) + footer with sync timestamp. Hidden-mode shows a "picks
   hidden" placeholder instead of the feed.
 
-Render functions in `room.js`: `getPickFormation()` resolves the active formation
-(selected game plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`);
-`renderPickQuickLoad()` builds the plan chip cards and formation panel;
-`renderPickPitch()` renders the pitch slots; `renderPickAllowanceBar()` renders pills and
-shows/hides CONFIRM PICKS; `renderPickLiveFeed()` updates the live opponent section.
+`renderPickBoard()` in `pick/pickView.js` is the **only** export of the pick renderer;
+everything below is private to that module and reached through it. It calls
+`getPickFormation()` (in `gamePlans.js`) to resolve the active formation — selected game
+plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION` — then
+`renderPickQuickLoad()` for the plan chip cards and formation panel,
+`renderPickPitch()` for the pitch slots, `renderPickAllowanceBar()` for the pills and the
+CONFIRM PICKS visibility, and `renderPickLiveFeed()` for the live opponent section.
 
 ## Interaction
 
@@ -45,7 +47,7 @@ shows/hides CONFIRM PICKS; `renderPickLiveFeed()` updates the live opponent sect
 - The pick grid shows `getPickListPlayers()` which filters `state.players` client-side by
   `state.pickSearch`, `state.pickFilterPosition` (set by the position tabs), and
   `state.pickSort`. `state.players` is loaded once at draft start by `loadDraftPlayers()`
-  → `fetchPlayers()` which reads from `/api/my-players` (the user's own squad), **not the
+  → the module-private `fetchPlayers()`, which reads from `/api/my-players` (the user's own squad), **not the
   catalog.**
 - Position tabs (ALL/GK/DEF/MID/ATT) set `state.pickPosTab` and
   `state.pickFilterPosition` via `PICK_TAB_GROUPS` in `pick.js`.

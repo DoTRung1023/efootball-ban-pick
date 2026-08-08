@@ -6,8 +6,9 @@
  * shape, so both are built from the descriptor tables below. Position and the
  * text-list categories (club/league/nationality) have their own markup.
  *
- * The generated class names and data- attributes are load-bearing: room.css
- * styles them and initLobby delegates events off them.
+ * The generated class names and data- attributes are load-bearing:
+ * `css/features/draft/lobby.css` styles them and initLobby delegates events
+ * off them.
  */
 
 import {

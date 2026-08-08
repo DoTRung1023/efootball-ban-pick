@@ -31,18 +31,26 @@ Code is grouped **by feature, not by file type**.
 
 - `src/` — backend. `server.js` is the composition root; `features/<name>/` each expose
   their public surface through an `index.js` barrel (`admin`, `auth`, `gamePlans`,
-  `ingestion`, `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`.
-- `public/` — three pages: `home.html` (squad / game plans / rooms), `room.html` (the
-  ban-pick draft), `admin.html`. Each has an ESM entry file in `public/js/` plus a
-  sub-module directory.
+  `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`, `cli.js`.
+  `ingestion` has **no** barrel — both its files are npm-script entry points that nothing
+  imports, so a barrel there would have no consumer. `src/pages.js` is the one router
+  outside `features/` — it maps four URLs to four static HTML files and belongs to the
+  composition root.
+- `public/` — four pages: `home.html` (squad / game plans / rooms), `room.html` (the
+  ban-pick draft), `admin.html`, `signin.html`. Each has an ESM entry file in
+  `public/js/pages/`; the behaviour lives in `public/js/features/<name>/`.
 - `public/js/shared/` — helpers **two or more features import today**; nothing goes here
-  speculatively. `players/` (`playerMeta.js`, `positions.js`, `sort.js`, `ovr.js`,
-  `constants.js`, `filterPanel.js`), `ui/` (`toast.js`, `confirm.js`, `dropdown.js`),
-  `lib/` (`session.js`). Import these **directly** — `shared/` deliberately has no barrel
-  files, because with no bundler a barrel makes the browser fetch every module it
-  re-exports.
+  speculatively — and when a module drops back to one consumer it moves out again
+  (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
+  (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js`),
+  `ui/` (`toast.js`, `confirm.js`, `dropdown.js`), `lib/` (`session.js`). `positions.js`
+  is the one module with a single *feature* consumer: `shared/players/sort.js` is the
+  other, so it cannot move down. Import these **directly** — `shared/` deliberately has
+  no barrel files, because with no bundler a barrel makes the browser fetch every module
+  it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
-  `features/<name>/<name>.css`, `shared/{playerCard,modals,numberInput}.css`. There is no bundler, so
+  `features/<name>/<name>.css`, `shared/{playerCard,modals,numberInput}.css`. There is
+  no bundler, so
   a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
   and `responsive.css` must stay last on the home page.
 - `database/schema.sql` — MySQL schema.
@@ -71,8 +79,8 @@ one of its ladders.
 
 **Position order**: Throughout the codebase, positions follow the canonical order
 CF → SS → RWF → LWF → AMF → RMF → LMF → CMF → DMF → RB → LB → CB → GK (forward-first).
-This order is mirrored in `SORT_MAP` in `src/features/players/catalogQuery.js` and in
-`public/js/features/draft/constants.js`.
+This order is mirrored in the `SORT_MAP` table in `src/features/players/catalogQuery.js`
+and in `public/js/features/draft/constants.js`.
 
 **Room state is in-memory only** and does not survive a server restart. See
 `.claude/rules/room/presence-and-reconnect.md`.
@@ -83,8 +91,18 @@ rung. The two ladders are documented in `home/css.md` and `room/css.md`; do not 
 new rung without checking them. Verify with a measured harness, not by eye — see
 `responsive-testing.md`.
 
-**Duplicated logic to keep in sync**: allowance-cap normalisation exists independently in
-`src/features/rooms/config.js` and `public/js/features/draft/allowance.js`.
+**Duplicated logic to keep in sync** — each pair straddles the client/server boundary,
+where there is no shared module to extract into:
+
+- allowance-cap normalisation — `src/features/rooms/config.js` and
+  `public/js/features/draft/allowance.js`
+- ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and
+  `public/js/features/draft/state.js`
+- `DEFAULT_FORMATION` (`"4-3-3"`) — `src/features/gamePlans/routes.js` and
+  `public/js/shared/players/formations.js`
+
+Within the client there should be **no** such pairs: the formation table, the draft sort
+categories and the club-suggestion markup each live in exactly one module.
 
 ## Detailed rules
 
@@ -107,4 +125,4 @@ automatically when a matching file is read:
 | `room/ban-phase.md` | staged bans, state-key diff guard, filter/sort |
 | `room/pick-phase.md` | pick board, formation pitch, allowance enforcement |
 | `room/ready-phase.md` | Start Match screen |
-| `room/css.md` | `draft.css` conventions and component map |
+| `room/css.md` | the seven room sheets: conventions and component map |

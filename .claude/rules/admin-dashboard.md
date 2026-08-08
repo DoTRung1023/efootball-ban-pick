@@ -16,7 +16,7 @@ paths:
 | --- | --- |
 | `adminApi.js` | the key in sessionStorage + `apiFetch` (appends `?adminKey=`) |
 | `loginGate.js` | `initLoginGate(onAuthed)` wires the form; `tryStoredKey(onAuthed)` re-auths silently |
-| `tabs.js` | `switchTab`, `getActiveTab` — each tab fetches on activation |
+| `tabs.js` | `getActiveTab` — each tab fetches on activation; `switchTab` is internal |
 | `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)` |
 | `statsPanel.js`, `scrapePanels.js`, `roomPanels.js`, `userPanels.js`, `dataQualityPanel.js`, `catalogTable.js` | one module per panel |
 | `dashboard.js` | `initDashboard()` — the OVERVIEW fetches + the 10 s refresh loop |

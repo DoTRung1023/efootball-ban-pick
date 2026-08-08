@@ -113,7 +113,7 @@ the strings never match and the grid would rebuild every poll cycle.
 Related invariants:
 
 - When a new thumb is added to either ban strip, `is-new` is added to the last child via
-  JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `draft.css`).
+  JS to play the `thumbAppear` spring animation (`@keyframes thumbAppear` in `ban.css`).
 - The `is-hovered` class is **only added to `.mini-card` elements** (JS-driven hover for
   the pick grid). `.player-card` elements in the ban grid rely purely on the CSS
   `:hover` pseudo-class — adding `is-hovered` to them would mutate the DOM and break the
@@ -125,7 +125,11 @@ Related invariants:
   filter state fields cover position, foot, playing style, card type, league, region,
   overall level 1/max ranges, club, nationality, height/weight/age ranges.
 - Sort supports 9 categories: overall_max, overall, name, position, club, nationality,
-  height, weight, age. `normalizeSortValue()` is the validator.
+  height, weight, age. They are declared once, in `DRAFT_SORT_CATEGORIES`
+  (`../sortPanel.js`); `normalizeSortValue()` derives its accepted values from that table
+  and `renderSortPanel()` builds both phases' panels from it. The ban toolbar used to
+  keep its own label map that was missing `club` and `nationality`, so picking either
+  showed "Overall Max" on the button — deriving the label from the table fixed that.
 - `LEAGUE_OPTIONS` is a module-level mutable array populated by
   `fetchFilterOptions()` alongside `CARD_TYPE_OPTIONS`, `PLAYING_STYLE_OPTIONS`,
   `REGION_OPTIONS`. All are fetched from `GET /api/players/filter-options`.
@@ -143,7 +147,7 @@ Related invariants:
 `.ban-phase-right` used to carry a third `.ban-side-section` (`#banPlanSection`) showing
 a read-only preview of a saved game plan while banning. **It has been removed** — along
 with `room/planPreview.js`, its `draftControls.js` wiring, `state.banPlanPanelOpen`, and
-the `.ban-plan-*` / `.draft-plan-*` / `.formation-*` rules in `draft.css` (the panel was
+the `.ban-plan-*` / `.draft-plan-*` / `.formation-*` rules in the room CSS (the panel was
 their only consumer).
 
 The sidebar is now BANS ON ME → MY BANS → CONFIRM BANS, and the two ban strips stretch

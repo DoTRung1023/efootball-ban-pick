@@ -16,7 +16,7 @@ its `index.js` barrel is deliberately broad where other features' barrels are na
 
 | Folder | Holds |
 | --- | --- |
-| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils` |
+| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerCards`, `filterOptions`, `sortPanel`, `errorView` |
 | `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
 | `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens` |
 | `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
@@ -33,8 +33,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `showDone`,
   `showRoomClosed`, `onOpponentLeft`, `startDraftFromLobby`, `updateStageTabs`,
   `flushAndSubmitStagedBans`.
-- `api.js` — `postRoomAction(action, body, code)` / `postAsMe(action, body)` (fills in
-  `requesterId`) / `getJson(url)`. All resolve; none throw.
+- `api.js` — `postAsMe(action, body)` (fills in `requesterId`) / `getJson(url)`. Both
+  resolve; none throw. `postRoomAction(action, body, code)` backs `postAsMe` and is
+  module-private — go through `postAsMe` so the identity is always attached.
 
 ## Shared data
 
@@ -49,9 +50,22 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   shared — the room toast is a different component from the home one (it uses a
   `toast--warn` modifier and a 2.4 s timeout, vs `toast show ${type}` at 3.5 s).
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
-  `REGION_OPTIONS`, `FORMATION_LAYOUTS`, etc. The option arrays are **mutable** and are
-  filled at runtime by `fetchFilterOptions()`; update with `.length = 0` + `push()`,
-  never reassign.
+  `REGION_OPTIONS`, etc. The option arrays are **mutable** and are filled at runtime by
+  `fetchFilterOptions()`; update with `.length = 0` + `push()`, never reassign.
+  `FORMATION_LAYOUTS` / `DEFAULT_FORMATION` are re-exported from
+  `@/shared/players/formations.js` — the home page's game-plan pitch renders the same
+  table into the same `pitchRow*` ids, so there is one copy for both.
+- `sortPanel.js` — `DRAFT_SORT_CATEGORIES` (the nine categories, in order),
+  `sortCategoryLabel(key, { short })` and `renderSortPanel(panel, activeKey, dataAttr)`.
+  Ban and pick both call it; only the `data-` attribute differs, and only the collapsed
+  button abbreviates. `normalizeSortValue` in `playerQuery.js` derives its accepted
+  values from the same table, so a category cannot be offered and then rejected.
+- `errorView.js` — `paintErrorView(...)`, the single writer for `#viewError`. It clears
+  all four state modifiers on every call and sets title/icon/button explicitly, so no
+  caller inherits the previous error's appearance. Used by `engine/presence.js`,
+  `lobby/lobby.js` and `shell/exitScreens.js`. It sits at the root rather than in
+  `shell/` because `exitScreens.js` imports `engine/presence.js`, so the other placement
+  would be a cycle.
 - `players.js` — pure player-data helpers: `normalizeApiPlayer`,
   `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`,
   `getPlayerCardValue`, `getPlayerImageSrc`, formation/slot utilities
@@ -63,22 +77,24 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 
 ## Draft flow
 
-- `draftFlow.js` — the stage machine: `getDraftStage`, `advanceDraftStage`,
-  `maybeAutoAdvanceFromBan`, `ensureDraftTimer`, `startTurnTimer` / `clearTurnTimer`,
-  `applyLocalAction` (optimistic local ban/pick, returns false when disallowed),
-  `isReadyPhase`, `banLimit` / `pickLimit`, `beginPostDraftReadyPhase`,
-  `isBothMatchReady`.
+- `draftFlow.js` — the stage machine: `ensureDraftTimer`, `startTurnTimer` /
+  `clearTurnTimer`, `applyLocalAction` (optimistic local ban/pick, returns false when
+  disallowed), `isReadyPhase`, `banLimit` / `pickLimit`, `beginPostDraftReadyPhase`,
+  `isBothMatchReady`. The stage helpers `getDraftStage`, `advanceDraftStage`,
+  `maybeAutoAdvanceFromBan` and `getTurnDurationSec` drive the timer from inside this
+  module and are private to it.
 - `draftActions.js` — user actions: `submitBan` (stages only), `confirmStagedBans`,
-  `flushStagedBansLocally`, `submitBansToApi`, `callBanConfirm`,
   `flushAndSubmitStagedBans` (timer-expiry path), `submitPick`, `setGuestReady`,
-  `setMatchReady`. `submitPick` returns early when `applyLocalAction` rejects the pick,
-  so a cap violation is never posted.
+  `setMatchReady`. `flushStagedBansLocally`, `submitBansToApi` and `callBanConfirm` are
+  the internals of `confirmStagedBans` and are module-private. `submitPick` returns
+  early when `applyLocalAction` rejects the pick, so a cap violation is never posted.
 - `draftSession.js` — `tryEnterDraftFromRoomSnapshot` (lobby → draft transition, writes
   the `sessionStorage` phase cache) and `startDraftFromLobby` (host START; for the guest
   it toggles their ready flag).
-- `presence.js` — polling: `registerPresence`, `fetchRoomSnapshot`, `leavePresence`,
-  `pollPresence`, `registerAndPollPresence`, `stopPresencePolling`,
-  `clearRoomPhaseCache`.
+- `presence.js` — polling: `leavePresence`, `pollPresence`, `registerAndPollPresence`,
+  `stopPresencePolling`, `clearRoomPhaseCache`. `registerPresence` and
+  `fetchRoomSnapshot` are the single-shot calls behind `registerAndPollPresence` and are
+  module-private.
 
 ## Rendering
 
@@ -102,13 +118,15 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
   `attachMiniCardGridHandlers`, which serves both ban and pick. See `ban-phase.md`.
 - `pick.js` — pick-phase data + toolbar: `renderPickToolbar`, `renderPickPosTabs`,
-  `bindPickPhaseUiOnce`, `fetchPlayers` (the user's own squad from `/api/my-players`),
-  `loadDraftPlayers`. Position tabs are defined in the module-level `PICK_TAB_GROUPS`.
+  `bindPickPhaseUiOnce`, `loadDraftPlayers`. The latter wraps the module-private
+  `fetchPlayers`, which reads the user's own squad from `/api/my-players` — not the
+  catalog. Position tabs are defined in the module-level `PICK_TAB_GROUPS`.
 
 ## Lobby
 
-- `lobby.js` — `renderLobby()` and `initLobby()` (view state + event wiring). Sets
-  `cb.renderLobby = renderLobby` during module init.
+- `lobby.js` — `initLobby()` (view state + event wiring) is the only export.
+  `renderLobby()` is module-private and reaches the rest of the app through
+  `cb.renderLobby = renderLobby`, set during module init.
   - `initLobby()` is an **orchestrator only**: identity/state setup, then one call per
     concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`,
     `bindAddAllowanceButton`, `bindAllowanceListClick`, `bindAllowanceListChange`,
@@ -122,13 +140,20 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `MULTI_SELECT_KINDS` / `CAP_KINDS` descriptor tables — add a category by adding a table
   entry, not by copying a block. Position and the text-list categories
   (club/league/nationality) have their own builders. The emitted class names and
-  `data-` attributes are load-bearing: `draft.css` styles them and `initLobby` delegates
+  `data-` attributes are load-bearing: `lobby.css` styles them and `initLobby` delegates
   events off them.
 - `lobby/chat.js` — `renderLobbyChat`, `sendLobbyChatMessage`.
-- `lobby/config.js` — `pushLobbyConfig` / `scheduleLobbyConfigPush` /
-  `readAllowanceFieldValue`. The payload is read from the DOM, not from
-  `state.room.config`, so in-flight typing survives a presence poll; writes are debounced
-  and sequence-numbered, and stale responses are dropped.
+- `lobby/config.js` — `scheduleLobbyConfigPush` / `readAllowanceFieldValue`.
+  `pushLobbyConfig` is the writer behind the scheduler and is module-private. The payload
+  is read from the DOM, not from `state.room.config`, so in-flight typing survives a
+  presence poll; writes are debounced and sequence-numbered, and stale responses are
+  dropped.
 - `lobby/clubSuggest.js` — autocomplete for the text-list allowance categories:
-  `scheduleClubSuggestions`, `fetchClubSuggestions`, `renderClubSuggestionPanel`,
-  `addTextAllowanceValue`, `clearClubSearchState`.
+  `scheduleClubSuggestions`, `renderClubSuggestionPanel`, `addTextAllowanceValue`,
+  `clearClubSearchState`, and `clubSuggestPanelHtml`. `fetchClubSuggestions` is the
+  fetch behind the scheduler and is module-private.
+  `clubSuggestPanelHtml` is the panel's contents for the current search state (loading /
+  results / not-found). `allowanceView.js` calls it when it rebuilds the whole allowance
+  list and this module calls it on every keystroke — the two had separate copies that had
+  already drifted in indentation, and they must agree or the panel changes shape on the
+  next re-render.

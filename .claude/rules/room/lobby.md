@@ -4,7 +4,7 @@ paths:
   - "public/room.html"
 ---
 
-# Lobby settings UI (`room.html` + `lobby.js` + `draft.css`)
+# Lobby settings UI (`room.html` + `lobby.js` + `css/features/draft/lobby.css`)
 
 - `.prep-col--settings` is a three-part card: `.prep-title` → `.prep-scroll` →
   `.lobby-cta-bar`. **Only `.prep-scroll` scrolls**, so the "BAN SETTING" heading and the
@@ -116,7 +116,7 @@ noticing. The bar is an inset shadow, not a border, so neither variant shifts la
 ## Duration input ranges
 
 The `min`/`max` attributes must match `MIN/MAX_BAN_DURATION_SECONDS` and
-`MIN/MAX_PICK_DURATION_SECONDS` in `room/constants.js`, which in turn mirror
+`MIN/MAX_PICK_DURATION_SECONDS` in `features/draft/constants.js`, which in turn mirror
 `src/features/rooms/config.js`: **ban 5–900 s, pick 5–1200 s**. The `input` handler updates
 `state.room.config` as the user types without pushing; the `change` handler (blur or
 Enter) clamps through `normalizeBanDurationSec` / `normalizePickDurationSec`, writes the

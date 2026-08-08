@@ -1,9 +1,9 @@
 ---
 paths:
   - "database/**/*.sql"
-  - "src/db.js"
-  - "src/players/**/*.js"
-  - "src/scrape*.js"
+  - "src/lib/db.js"
+  - "src/features/players/**/*.js"
+  - "src/features/ingestion/**/*.js"
 ---
 
 # Database schema (MySQL 8+)

@@ -50,9 +50,14 @@ that declares it.**
 | File | Scope | Notes |
 | --- | --- | --- |
 | `public/css/pages/home/base.css` | home page | declares `--radius: 10px`, `--topbar-h: 62px` |
-| `public/css/features/draft/draft.css` | room page | the richest block — hue *ladders* (§3.2); no `--radius` |
+| `public/css/features/draft/base.css` | room page | the richest block — hue *ladders* (§3.2); no `--radius` |
 | `public/css/features/admin/admin.css` | admin | home's block + `--cyan/--red/--yellow`, `--nav-h: 56px` |
 | `public/css/features/auth/auth.css` | sign-in | home's block + `--bg-field`, `--radius: 12px`, `--transition: 0.25s` |
+
+The room page's CSS is seven sheets, not one — `base / shell / lobby / ban / pick /
+ready / responsive` under `public/css/features/draft/`, linked in that order. Where the
+rest of this document says **`draft.css`** it means that set; `base.css` is the sheet
+that carries the `:root` block. The component map is in `.claude/rules/room/css.md`.
 
 **Known divergence to respect, not "fix" blindly:** home/admin/signin use solid navy-tinted text
 (`--text: #e7f0f6`, `--text-dim: #8aa5b8`); `draft.css` uses a white-alpha ladder

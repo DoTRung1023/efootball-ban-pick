@@ -131,12 +131,12 @@ A later pass merged eight more: `#viewLobby`, `.centered-box--lobby`,
 Context-specific variants use modifier classes (e.g. `.is-active`, `.is-completed`,
 `.is-mine`) or scoped parent selectors, not repeated base selectors.
 
-`draft.css` and `auth.css` currently have **zero** duplicated top-level selectors. Rules
+The room sheets and `auth.css` currently have **zero** duplicated top-level selectors. Rules
 inside `@media` blocks are a separate scope and do not count as duplicates. When merging
 a duplicate, keep the **later** block's position — it is the one winning the cascade —
 and carry over only the properties the winning block does not already set.
 
-`draft.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match
+`base.css` `:root` defines `--bg-card`, `--bg-card-hover`, and `--transition` to match
 `pages/home/base.css` values so shared components like `.player-card` look identical across
 both pages.
 
@@ -172,7 +172,7 @@ verified as the only element that changed.
 ## Parity with `home/catalog.css`
 
 The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`,
-`.filter-clear-btn`, `.filter-group-label` etc. These are defined in `draft.css` and kept
+`.filter-clear-btn`, `.filter-group-label` etc. These are defined in `ban.css` and kept
 visually in sync with `public/css/features/catalog/catalog.css`. Key rules: `.ap-dd-btn.has-active`
 (green highlight when filter active), `.filter-clear-btn` (red destructive style),
 `.select-mode-btn` (`border-radius: 7px`), `.filter-group-label` (section divider:

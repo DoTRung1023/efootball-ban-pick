@@ -11,7 +11,7 @@
    configurable rather than being unified away:
 
    - **element ids** — each mount point uses its own prefix scheme, and the
-     schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`). `room.css`
+     schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`). The CSS
      and the surrounding event wiring reference these by string, so every id is
      passed in explicitly instead of being derived from a prefix.
    - **state object** — `catalog`, `squad` and `ppState` each own their filter

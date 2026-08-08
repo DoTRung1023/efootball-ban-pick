@@ -26,7 +26,10 @@ The server rejects duplicate connections via HTTP 409:
 - A kicked guest → 403.
 
 The client maps these to three distinct error states (`is-host-lock`, `is-room-full`,
-`is-access-denied`) in `#viewError`, each with its own CSS color theme in `draft.css`.
+`is-access-denied`) in `#viewError`, each with its own CSS color theme in `shell.css`.
+Write them through `paintErrorView` in `features/draft/errorView.js` — it is the single
+writer for that view and clears all four modifiers before setting one, so a state cannot
+leak from a previous error. Do not set the classes directly.
 
 ## Reload / reconnect behaviour (`presence.js` + `room.js`)
 

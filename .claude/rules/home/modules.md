@@ -2,14 +2,19 @@
 paths:
   - "public/home.html"
   - "public/js/pages/home.js"
-  - "public/js/home/**/*.js"
+  - "public/js/pages/home/**/*.js"
+  - "public/js/features/squad/**/*.js"
+  - "public/js/features/catalog/**/*.js"
+  - "public/js/features/gamePlans/**/*.js"
+  - "public/js/features/rooms/**/*.js"
 ---
 
-# Home page modules (`public/js/home/`)
+# Home page modules
 
-`home.html` + `public/js/pages/home.js` — main app entry point (`type="module"`); an ESM boot
-file that imports from `public/js/home/` sub-modules and owns `initTabs` (nav tabs ↔
-tab panels), the page's only piece of chrome.
+`home.html` + `public/js/pages/home.js` — main app entry point (`type="module"`); an ESM
+boot file that imports the home features (`squad`, `catalog`, `gamePlans`, `rooms`)
+through their barrels and owns `initTabs` (nav tabs ↔ tab panels), the page's only piece
+of chrome.
 
 `utils.js` is **gone**. It was the grab-bag every home module imported from; the nav
 account menu and edit-profile modal moved to `@/features/auth/`, and everything more
@@ -18,23 +23,24 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   - `@/features/auth/index.js` — `initUserMenu`, `initEditProfile` (plus
     `openEditProfile`, `closeEditProfile`, `clearEpErrors`).
   - `@/shared/lib/session.js` — `getUser`, `requireAuth` (the room bundle shares this
-    one; `room/utils.js` re-exports `getUser` so room modules keep their existing import).
+    one; `features/draft/utils.js` re-exports `getUser` so room modules keep their existing import).
   - `@/shared/ui/toast.js` — `showToast`. The room page keeps its **own** `showToast` in
-    `room/utils.js`: different variant classes (`toast--warn`) and a different duration,
+    `features/draft/utils.js`: different variant classes (`toast--warn`) and a different duration,
     so the two are deliberately not merged.
-  - `@/shared/ui/confirm.js` — `showConfirm`, `_closeConfirm`.
-  - `@/shared/ui/dropdown.js` — `openDdPanel`, `closeDdPanel`, `toggleDdPanel`.
-  - `@/shared/players/positions.js` — `posClass`, `POSITION_LINE_ORDER`,
-    `positionLineRank`, `POS_DEF` / `POS_MID` / `POS_FWD`.
+  - `@/shared/ui/confirm.js` — `showConfirm`. Used by game plans (delete a plan) and by
+    squad (bulk delete). Its close/resolve internals are module-private.
+  - `@/shared/ui/dropdown.js` — `closeDdPanel`, `toggleDdPanel`.
+  - `@/shared/players/positions.js` — `posClass` and `positionLineRank`. The bucket
+    arrays and `POSITION_LINE_ORDER` back those two and are module-private; `sort.js`
+    (also under `shared/`) is the other consumer, which is why this module stays shared
+    even though only catalog imports it directly.
   - `@/shared/players/sort.js` — `SORT_CATEGORIES` (moved out of `catalog.js`) plus the
     comparators `tiebreakOverallDescThenName`, `ovrMaxForSort`,
     `tiebreakPositionLineThenName`, `compareByPositionLine`.
-  - `@/shared/players/ovr.js` — `hasFullOvrPair`, `ovrPairInnerHtml`.
   - `@/shared/players/playerMeta.js` — `escapeHtml`, `CARD_IMG`, `ANON_PLAYER_IMG`,
     `makePlayerImg`, `playerDetailSublineHtml`, `playerDetailTooltipText`.
-  - `@/shared/players/constants.js` — `PAGE_SIZE`.
 - `callbacks.js` — shared mutable callback registry (identical pattern to
-  `room/callbacks.js`). Squad sets `getSquadPlayers`, `addToSquadState`,
+  `features/draft/callbacks.js`). Squad sets `getSquadPlayers`, `addToSquadState`,
   `removeFromSquadState`, `renderSquad`; catalog sets `openPlayerPopup`,
   `openAddPlayerModal`, `onPlayersDeleted`; rooms sets `refreshRoomsStats` (called by
   `plans.js` after plan create/delete and by `squad.js` + `catalog.js` after player
@@ -42,14 +48,17 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
 - `squad.js` — My Players tab: player grid, search/sort/filter, select mode, single +
   bulk delete, card click → popup via `cb.openPlayerPopup`. Exports `loadSquad`,
   `initSquadSearchSortFilter`, `initSquadControls`.
+  **Bulk delete confirms, the per-card × does not** — one click on DELETE SELECTED can
+  remove any number of players and there is no undo, whereas the × removes exactly the
+  card it sits on. Neither confirmed until an audit found `showConfirm` imported here
+  and never called.
 - `@/shared/players/filterPanel.js` — **the** player filter dropdown, used by all three
   toolbars (it lives under `shared/` because squad, catalog and plans all import it).
   `buildPlayerFilterPanel({ panelId, ids, state, autocomplete, onChange, onClear })`
-  plus `resetPlayerFilterState`, `initAutocomplete`, `wireAttributeMultiselects`,
-  `playerFilterOptionsCache` / `getPlayerFilterOptions`. It replaced three ~270-line
+  plus `resetPlayerFilterState` and `getPlayerFilterOptions`. It replaced three ~270-line
   near-identical builders. Each call site passes an **explicit id map** (see
   `CATALOG_FILTER_IDS` / `SQUAD_FILTER_IDS` / `PP_FILTER_IDS`) because the three id
-  schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both `draft.css`
+  schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both the CSS
   and the surrounding wiring reference them by string — never derive an id from a
   prefix. `autocomplete: false` (the plan picker) drops the club/nationality
   autocomplete wrappers. To add a filter row, edit `panelMarkup` once.
@@ -57,7 +66,13 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   dropdowns, add/remove player. Exports `openAddPlayerModal`, `initAddPlayerModal`,
   `initPlayerPopup` — and nothing else. It used to re-export `SORT_CATEGORIES` and the
   `filterPanel.js` option helpers on behalf of `squad.js` / `plans.js`; both now import
-  those from `@/shared/players/`, so do not re-add a shim here.
+  those from `@/shared/players/`, so do not re-add a shim here. `PAGE_SIZE` is a local
+  const (rows per `/api/players` request and per "load more") — it was a one-line
+  `shared/players/constants.js` whose comment claimed squad batched by the same number,
+  which squad never did.
+- `catalog/ovr.js` — `hasFullOvrPair`, `ovrPairInnerHtml`: the "level 1 / max" rating
+  pair. Catalog-only; it sat in `shared/players/` until an audit found its second
+  consumer was a dead import.
 - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot
   assignment. Exports `loadGamePlans`, `initGamePlans`.
   - `STACKED_PLAN_LAYOUT` (`max-width: 900px`) must match the plan detail modal

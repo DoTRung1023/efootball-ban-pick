@@ -1,9 +1,9 @@
 /**
  * Room configuration: defaults, bounds, and normalization.
  *
- * The client mirrors this logic in public/js/room/allowance.js — the two must
- * stay in agreement. The server is authoritative: every value written through
- * POST /api/rooms/:code/config passes through the normalizers here.
+ * The client mirrors this logic in public/js/features/draft/allowance.js — the
+ * two must stay in agreement. The server is authoritative: every value written
+ * through POST /api/rooms/:code/config passes through the normalizers here.
  */
 
 export const PRESENCE_TTL_MS = 12000;
