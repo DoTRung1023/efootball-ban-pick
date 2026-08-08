@@ -13,6 +13,7 @@ import { LEAGUE_OPTIONS } from "@/features/draft/filterOptions.js";
 import { state } from "@/features/draft/state.js";
 import { escapeHtml } from "@/features/draft/utils.js";
 import { toValidPosition, normalizeSortValue } from "@/features/draft/playerQuery.js";
+import { renderSortPanel, sortCategoryLabel } from "@/features/draft/sortPanel.js";
 
 export function renderBanToolbar() {
   const sortSelect = document.getElementById("banSort");
@@ -32,40 +33,10 @@ export function renderBanToolbar() {
   // Home-style: sort category + direction toggle
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
-  const labelMap = {
-    overall_max: "Overall Max",
-    overall: "Overall Level 1",
-    name: "Player Name",
-    position: "Position",
-    height: "Height",
-    weight: "Weight",
-    age: "Age",
-  };
-  sortLabel.textContent = labelMap[baseKey] || "Overall Max";
+  sortLabel.textContent = sortCategoryLabel(baseKey);
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
-  const sortCats = [
-    { key: "overall_max", label: "Overall Max" },
-    { key: "overall", label: "Overall Level 1" },
-    { key: "name", label: "Player Name" },
-    { key: "position", label: "Position" },
-    { key: "club", label: "Club" },
-    { key: "nationality", label: "Nationality" },
-    { key: "height", label: "Height" },
-    { key: "weight", label: "Weight" },
-    { key: "age", label: "Age" },
-  ];
-  sortPanel.innerHTML = sortCats
-    .map((c) => {
-      const active = c.key === baseKey;
-      return `
-        <div class="sort-option ${active ? "active" : ""}" data-ban-sort-cat="${escapeHtml(c.key)}">
-          <span>${escapeHtml(c.label)}</span>
-          <span class="sort-check">✓</span>
-        </div>
-      `;
-    })
-    .join("");
+  renderSortPanel(sortPanel, baseKey, "data-ban-sort-cat");
 
   // Filter panel: matches all-players page
   function msLabel(arr, allText, max = 3) {

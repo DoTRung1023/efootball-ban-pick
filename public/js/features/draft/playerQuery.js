@@ -15,21 +15,18 @@
 import { state } from "./state.js";
 import { POSITION_OPTIONS } from "./constants.js";
 import { getPlayerCardValue } from "./players.js";
+import { DRAFT_SORT_CATEGORIES } from "./sortPanel.js";
+
+/* Every category, both directions. Derived from the one table the sort
+   dropdown is built from, so a category cannot be offered and then rejected. */
+const VALID_SORT_VALUES = new Set(
+  DRAFT_SORT_CATEGORIES.flatMap((c) => [`${c.key}_desc`, `${c.key}_asc`]),
+);
+const DEFAULT_SORT_VALUE = `${DRAFT_SORT_CATEGORIES[0].key}_desc`;
 
 export function normalizeSortValue(raw) {
   const v = String(raw || "").trim();
-  const ok = new Set([
-    "overall_max_desc", "overall_max_asc",
-    "overall_desc", "overall_asc",
-    "name_desc", "name_asc",
-    "position_desc", "position_asc",
-    "height_desc", "height_asc",
-    "weight_desc", "weight_asc",
-    "age_desc", "age_asc",
-    "club_desc", "club_asc",
-    "nationality_desc", "nationality_asc",
-  ]);
-  return ok.has(v) ? v : "overall_max_desc";
+  return VALID_SORT_VALUES.has(v) ? v : DEFAULT_SORT_VALUE;
 }
 
 export function toValidPosition(raw) {

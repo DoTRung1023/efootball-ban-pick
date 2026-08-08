@@ -1,8 +1,9 @@
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { normalizeSortValue } from '@/features/draft/playerQuery.js';
+import { renderSortPanel, sortCategoryLabel } from '@/features/draft/sortPanel.js';
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
-import { escapeHtml, showToast, getUser } from '@/features/draft/utils.js';
+import { showToast, getUser } from '@/features/draft/utils.js';
 
 // Position groups for the tab bar
 const PICK_TAB_GROUPS = {
@@ -22,35 +23,10 @@ export function renderPickToolbar() {
   const sortVal = normalizeSortValue(state.pickSort);
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
-  const labelMap = {
-    overall_max: "OVR MAX",
-    overall: "OVR Lvl 1",
-    name: "Name",
-    position: "Position",
-    height: "Height",
-    weight: "Weight",
-    age: "Age",
-    club: "Club",
-    nationality: "Nationality",
-  };
-  sortLabel.textContent = labelMap[baseKey] || "OVR MAX";
+  sortLabel.textContent = sortCategoryLabel(baseKey, { short: true });
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
-  const sortCats = [
-    { key: "overall_max", label: "Overall Max" },
-    { key: "overall", label: "Overall Level 1" },
-    { key: "name", label: "Player Name" },
-    { key: "position", label: "Position" },
-    { key: "club", label: "Club" },
-    { key: "nationality", label: "Nationality" },
-    { key: "height", label: "Height" },
-    { key: "weight", label: "Weight" },
-    { key: "age", label: "Age" },
-  ];
-  sortPanel.innerHTML = sortCats.map((c) => {
-    const active = c.key === baseKey;
-    return `<div class="sort-option ${active ? "active" : ""}" data-pick-sort-cat="${escapeHtml(c.key)}"><span>${escapeHtml(c.label)}</span><span class="sort-check">✓</span></div>`;
-  }).join("");
+  renderSortPanel(sortPanel, baseKey, "data-pick-sort-cat");
 }
 
 export function renderPickPosTabs() {
