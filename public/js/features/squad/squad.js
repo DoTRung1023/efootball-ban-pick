@@ -494,8 +494,13 @@ export function initSquadControls(userId) {
     updateSelectionUI();
   });
 
-  document.getElementById("deleteSelectedBtn")?.addEventListener("click", () => {
-    if (!squad.selected.size) return;
+  // Bulk delete confirms; the per-card × does not. One click here can remove an
+  // arbitrary number of players and there is no undo.
+  document.getElementById("deleteSelectedBtn")?.addEventListener("click", async () => {
+    const n = squad.selected.size;
+    if (!n) return;
+    const ok = await showConfirm(n === 1 ? "Remove 1 player?" : `Remove ${n} players?`);
+    if (!ok) return;
     deletePlayers([...squad.selected], userId);
   });
 
