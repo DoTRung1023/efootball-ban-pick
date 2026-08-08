@@ -8,6 +8,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "check": "node scripts/check.js",
+    "check:self": "node scripts/check.js --self-test",
     "scrape": "node src/features/ingestion/scrape.js",
     "scrape:missing": "node src/features/ingestion/scrapeMissing.js"
   },

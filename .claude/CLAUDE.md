@@ -7,11 +7,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev          # start dev server with auto-reload (node --watch)
 npm start            # start production server
+npm run check        # static gate: imports, path casing, bindings, cycles, dom ids, dead CSS
+npm run check:self   # prove those checks can still fail
 npm run scrape       # full or incremental player catalog update
 npm run scrape:missing  # repair gaps: diff site vs DB, fill missing entries
 ```
 
 No build step — frontend is vanilla HTML/CSS/JS served directly from `public/`.
+**Run `npm run check` before committing.** With no bundler and no types it is the
+only thing that will catch a bad import path — and casing errors in particular
+work on macOS and 404 in production. See `.claude/rules/checks.md`.
 
 Database setup (first time):
 ```bash
@@ -53,6 +58,9 @@ Code is grouped **by feature, not by file type**.
   no bundler, so
   a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
   and `responsive.css` must stay last on the home page.
+- `scripts/` — `check.js` (the `npm run check` runner and its self-test) and
+  `checks/`, one file per check plus a shared `lib.js`. Node-only tooling; it is
+  not served, and the checks scan `public/js` and `src` but not themselves.
 - `database/schema.sql` — MySQL schema.
 
 **Path aliases** — there is no bundler, so each alias is resolved by the platform itself:
@@ -111,6 +119,7 @@ automatically when a matching file is read:
 
 | Rule | Scope |
 | --- | --- |
+| `checks.md` | `npm run check` — what each static check covers and its limits |
 | `backend.md` | `src/**` |
 | `auth.md` | sign-in / sign-up / profile, and the `efb_user` session |
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
