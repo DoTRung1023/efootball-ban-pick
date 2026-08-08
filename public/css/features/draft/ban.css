@@ -895,15 +895,6 @@
   .ban-phase-controls {
     grid-template-columns: 1fr;
   }
-
-  .ban-phase-confirm {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .ban-phase-actions {
-    justify-content: flex-end;
-  }
 }
 
 .draft-workspace {

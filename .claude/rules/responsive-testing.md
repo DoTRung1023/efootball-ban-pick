@@ -20,11 +20,15 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 "$CHROME" --headless ... --dump-dom "file:///abs/path/page.html"   # read measurements back
 ```
 
-Two things that will waste time otherwise:
+Four things that will waste time otherwise:
 
 - **Headless Chrome clamps the window to a 500 px minimum width** (`--headless=new` too).
-  For phone widths, load the page in an `<iframe width="320">` inside a wrapper page and
-  screenshot the wrapper — the iframe gets a true 320 px CSS viewport for media queries.
+  It does not warn: `--window-size=400,900` reports `innerWidth === 500`, so the `≤480`
+  rung never applies and the run comes back clean. For phone widths, load the page in an
+  `<iframe width="320">` inside a wrapper page and read the measurements out of
+  `iframe.contentDocument` — the iframe gets a true 320 px CSS viewport for media
+  queries. **Have the probe report `innerWidth` and assert it equals the width you
+  asked for**, or you cannot tell a passing run from one aimed at the wrong viewport.
 - **`file://` URLs drop a query string** (`page.html?x=1` fails to resolve). Use `#hash`
   to parameterise a harness, and always pass the absolute `file:///…` URL when the URL
   carries a fragment.

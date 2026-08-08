@@ -646,18 +646,6 @@
   .draft-shell {
     flex-direction: column;
   }
-  .draft-side {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #263c4e;
-    max-height: 200px;
-  }
-  .draft-side--right {
-    border-left: none;
-    border-top: 1px solid #263c4e;
-    order: 3;
-    max-height: 200px;
-  }
   .draft-center {
     order: 2;
     flex: 1;

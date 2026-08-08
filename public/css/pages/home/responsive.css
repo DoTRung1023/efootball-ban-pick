@@ -6,7 +6,6 @@
   .topbar-center { gap: 2px; }
   .nav-tab { padding: 6px 12px; font-size: 0.65rem; gap: 5px; }
   .nav-tab svg { display: none; }
-  .create-room-btn { padding: 7px 12px; font-size: 0.65rem; }
   .user-name { display: none; }
   .main-content { padding: 16px 12px 32px; }
   .player-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
@@ -16,7 +15,6 @@
   .topbar-brand .brand-game { font-size: 0.85rem; }
   .topbar-brand .brand-sub { display: none; }
   .player-grid { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; }
-  .room-settings-row { grid-template-columns: 1fr; }
   .modal-inner { padding: 24px 18px 22px; }
 
   /* Topbar on two rows: brand + account, then the tabs across the full width.

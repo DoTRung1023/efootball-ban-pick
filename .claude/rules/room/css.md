@@ -7,8 +7,6 @@ paths:
 
 # Room page CSS conventions and component map
 
-## The seven sheets
-
 ## Dead rules were swept once — keep it that way
 
 Every class selector in the room sheets now appears somewhere in the markup or in a
@@ -18,16 +16,30 @@ pass: whole families left behind by features that were removed or rebuilt —
 `ban-history-*`, `ban-tracker-*`, `draft-panel--*` in `ban.css`; the pre-`.sm-*`
 `ready-phase-*` screen in `ready.css`.
 
-Six selectors survive inside `@media` blocks, which the sweep left whole rather than
-recursing into: `.ban-phase-actions`, `.ban-phase-confirm`, `.draft-side`,
-`.draft-side--right`, and two in `home/responsive.css`.
+Breakpoint overrides count too. A second pass recursing into `@media` blocks took the
+last six — `.ban-phase-confirm` / `.ban-phase-actions` (ban), `.draft-side` /
+`.draft-side--right` (shell), `.create-room-btn` / `.room-settings-row`
+(`home/responsive.css`) — each an orphan override whose base rule had already gone.
+**Zero of 994 class selectors are now unreferenced**; a new dead rule is a regression.
 
-Two traps if you repeat this. A selector list cannot be split on commas —
-`:is(input, select)` has one of its own, and splitting there emitted `select){ … }`,
-which invalidates every rule after it in the sheet. And an apostrophe in a comment
-("the input's width") opens a quote that never closes if you track quotes before
-stripping comments. Both produced silent, wide breakage; verify with a computed-style
-diff plus a control run against an emptied sheet.
+Four traps if you repeat this:
+
+- A selector list cannot be split on commas. `:is(input, select)` has one of its own,
+  and splitting there emitted `select){ … }`, which invalidates every rule after it in
+  the sheet.
+- Strip comments *before* tracking quotes. An apostrophe in prose ("the input's width")
+  opens a quote that never closes.
+- Strip comments before testing for `@` too, or a section banner sitting above
+  `@media` makes the block read as a style rule and it is never entered — that is
+  exactly why `home/responsive.css` survived the first recursive pass.
+- A class inside `:not()` is an *exclusion*, not a requirement. `.card:not(.is-dead)`
+  still styles every `.card`, so treating `is-dead` as required deletes a live rule.
+  Seven such selectors exist across the sheets.
+
+All four produce silent, wide breakage. Verify with a computed-style diff plus a
+control run — see "Verifying a change to these files" below.
+
+## The seven sheets
 
 `draft.css` was 6,009 lines. It is now seven sheets under
 `public/css/features/draft/`, grouped by concern and linked from `room.html` in
@@ -88,7 +100,7 @@ compare `getComputedStyle` for every element plus `::before`/`::after`. The
 current split passes 18 comparisons (lobby/ban/pick DOM x six widths) with zero
 differences.
 
-Four traps in that harness, each of which produced a confident false result
+Six traps in that harness, each of which produced a confident false result
 before being fixed:
 
 1. The repo path contains spaces — unencoded, the `file://` sheets silently fail
@@ -99,6 +111,15 @@ before being fixed:
    changes with no rendering effect. Sort property names before comparing.
 4. Confirm the files on disk are the build you think you are measuring — a stale
    copy produced both a false pass and a false failure here.
+5. **Widths you did not measure read as "identical".** A run at 1440/900/620 cannot
+   see a rule removed from the `≤480` rung. Measure every rung the change touches,
+   and load the page in an `<iframe>` of that width — headless Chrome will not shrink
+   its own window below 500 px and reports the wider viewport without complaint
+   (see `responsive-testing.md`).
+6. **A control probe can lose the cascade.** Proving the harness sees a change means
+   injecting one it *can* see: pick a property nothing else in that block sets. A
+   `gap` probe added to a block that sets `gap` again lower down is simply overridden,
+   and the resulting silence looks like a broken harness rather than a bad probe.
 
 ## Colour system (hard rule)
 
