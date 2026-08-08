@@ -426,7 +426,7 @@
 }
 
 /* Remove number arrows */
-.filter-input[type="number"] { -moz-appearance: textfield; }
+.filter-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .filter-input[type="number"]::-webkit-inner-spin-button,
 .filter-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 

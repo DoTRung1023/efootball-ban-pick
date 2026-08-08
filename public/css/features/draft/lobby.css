@@ -1285,6 +1285,7 @@
 .allowance-cap-input, .allowance-pos-cap-input, .allowance-club-cap-input,
 .allowance-item-cap, .allowance-item-range {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .allowance-cap-input::-webkit-outer-spin-button,
