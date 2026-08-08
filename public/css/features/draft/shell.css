@@ -686,16 +686,6 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.draft-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 31, 45, 0.6);
-  z-index: 2;
-}
-
 .draft-grid {
   height: 100%;
   overflow-y: auto;

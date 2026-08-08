@@ -125,10 +125,9 @@ async function fetchPlayers() {
 }
 
 export async function loadDraftPlayers() {
-  const loading = document.getElementById("draftLoading");
+  // The pick grid shows its own "Loading your squad..." off state.loadingPlayers;
+  // there is no separate overlay element.
   state.loadingPlayers = true;
-  state.mySquadLoading = true;
-  if (loading) loading.hidden = false;
   try {
     const players = await fetchPlayers();
     state.players = players;
@@ -139,8 +138,6 @@ export async function loadDraftPlayers() {
     showToast("Could not load your squad.");
   } finally {
     state.loadingPlayers = false;
-    state.mySquadLoading = false;
-    if (loading) loading.hidden = true;
     cb.renderDraftUi();
   }
 }

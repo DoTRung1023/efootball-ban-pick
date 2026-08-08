@@ -93,7 +93,6 @@ export const state = {
   pickManualFormation: "4-3-3",
   pickUiBound: false,
   mySquadPlayers: [],
-  mySquadLoading: false,
   draftGamePlans: [],
   draftGamePlanPlayers: [],
   draftGamePlanSelectedId: null,

@@ -40,8 +40,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 ## Shared data
 
 - `state.js` — `state` singleton (includes `stagedBans[]`, `opponentStagedBans[]`,
-  `banFilterRegion[]`, `pickPosTab`, `pickManualFormation`, `mySquadPlayers[]`,
-  `mySquadLoading`), `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`
+  `banFilterRegion[]`, `pickPosTab`, `pickManualFormation`, `mySquadPlayers[]`),
+  `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`
   and the opponent's `stagedBans` from each snapshot), `buildTurnSchedule`, and the
   room-config normalisation helpers.
 - `utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`,
@@ -117,6 +117,13 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
   `attachMiniCardGridHandlers`, which serves both ban and pick. See `ban-phase.md`.
+**Loading state is rendered inside the boards, not as an overlay.** The pick grid
+prints "Loading your squad..." off `state.loadingPlayers` and the ban grid "Loading
+opponent squad cards..." off `state.loadingOpponentBanPlayers`. There was also a
+`#draftLoading` overlay element that `room.html` stopped carrying; both loaders kept
+toggling its `hidden` behind a null guard, so it did nothing. Do not reintroduce an
+overlay — set the flag and let the board renderer show it.
+
 - `pick.js` — pick-phase data + toolbar: `renderPickToolbar`, `renderPickPosTabs`,
   `bindPickPhaseUiOnce`, `loadDraftPlayers`. The latter wraps the module-private
   `fetchPlayers`, which reads the user's own squad from `/api/my-players` — not the

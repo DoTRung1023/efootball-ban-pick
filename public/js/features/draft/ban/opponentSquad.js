@@ -20,7 +20,6 @@ export function resetOpponentBanPlayers() {
 export async function loadOpponentBanPlayers() {
   const room = state.room;
   if (!room) return;
-  const loading = document.getElementById("draftLoading");
   const mySide = state.mySide;
   const theirSide = mySide === "host" ? "guest" : "host";
   let opponentUserId = Number(room?.[theirSide]?.id);
@@ -67,7 +66,6 @@ export async function loadOpponentBanPlayers() {
   }
 
   state.loadingOpponentBanPlayers = true;
-  if (loading) loading.hidden = false;
   cb.renderDraftUi();
   try {
     const res = await fetch(`/api/my-players?userId=${encodeURIComponent(opponentUserId)}`);
@@ -111,7 +109,6 @@ export async function loadOpponentBanPlayers() {
   } finally {
     state.loadingOpponentBanPlayers = false;
     state.opponentBanPlayersLoaded = true;
-    if (loading) loading.hidden = state.loadingPlayers;
     cb.renderDraftUi();
   }
 }
