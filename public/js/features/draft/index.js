@@ -19,13 +19,13 @@
 export { cb } from "./callbacks.js";
 export { showToast, getRoomCodeFromUrl } from "./utils.js";
 
-export { isBothMatchReady } from "./engine/draftFlow.js";
-export { flushAndSubmitStagedBans } from "./engine/draftActions.js";
-export { startDraftFromLobby, tryEnterDraftFromRoomSnapshot } from "./engine/draftSession.js";
+export { isBothMatchReady } from "@/features/draft/engine/draftFlow.js";
+export { flushAndSubmitStagedBans } from "@/features/draft/engine/draftActions.js";
+export { startDraftFromLobby, tryEnterDraftFromRoomSnapshot } from "@/features/draft/engine/draftSession.js";
 
-export { renderDraftUi } from "./shell/draftView.js";
-export { initDraftControls } from "./shell/draftControls.js";
-export { updateStageTabs } from "./shell/stageTabs.js";
-export { showDone, showOpponentLeft, showRoomClosed } from "./shell/exitScreens.js";
+export { renderDraftUi } from "@/features/draft/shell/draftView.js";
+export { initDraftControls } from "@/features/draft/shell/draftControls.js";
+export { updateStageTabs } from "@/features/draft/shell/stageTabs.js";
+export { showDone, showOpponentLeft, showRoomClosed } from "@/features/draft/shell/exitScreens.js";
 
-export { initLobby } from "./lobby/lobby.js";
+export { initLobby } from "@/features/draft/lobby/lobby.js";
