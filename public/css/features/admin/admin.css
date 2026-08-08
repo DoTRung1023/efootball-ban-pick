@@ -298,7 +298,6 @@ body {
 }
 
 .stat-sub.is-pos { color: var(--green); }
-.stat-sub.is-neg { color: var(--red); }
 .stat-sub.is-warn { color: var(--yellow); }
 
 /* ── 2-column panel grid ────────────────────────────────────── */
@@ -499,8 +498,6 @@ body {
 }
 .status-pill.is-running  { background: rgba(44,207,117,0.15); color: var(--green); border: 1px solid rgba(44,207,117,0.35); }
 .status-pill.is-success  { background: rgba(44,207,117,0.08); color: #7fbb80; border: 1px solid rgba(127,187,128,0.25); }
-.status-pill.is-missing  { background: rgba(255,215,64,0.1); color: var(--yellow); border: 1px solid rgba(255,215,64,0.25); }
-.status-pill.is-failed   { background: rgba(255,82,82,0.1); color: var(--red); border: 1px solid rgba(255,82,82,0.25); }
 
 /* ── Card type badge ────────────────────────────────────────── */
 .card-type-badge {

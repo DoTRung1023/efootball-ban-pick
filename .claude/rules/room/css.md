@@ -9,6 +9,26 @@ paths:
 
 ## The seven sheets
 
+## Dead rules were swept once — keep it that way
+
+Every class selector in the room sheets now appears somewhere in the markup or in a
+module that builds markup. 1,438 lines across all sheets (12,301 -> 10,863) went in one
+pass: whole families left behind by features that were removed or rebuilt —
+`side-panel-*`, `mini-*`, `slot-*`, `draft-topbar` and `draft-loading` in `shell.css`;
+`ban-history-*`, `ban-tracker-*`, `draft-panel--*` in `ban.css`; the pre-`.sm-*`
+`ready-phase-*` screen in `ready.css`.
+
+Six selectors survive inside `@media` blocks, which the sweep left whole rather than
+recursing into: `.ban-phase-actions`, `.ban-phase-confirm`, `.draft-side`,
+`.draft-side--right`, and two in `home/responsive.css`.
+
+Two traps if you repeat this. A selector list cannot be split on commas —
+`:is(input, select)` has one of its own, and splitting there emitted `select){ … }`,
+which invalidates every rule after it in the sheet. And an apostrophe in a comment
+("the input's width") opens a quote that never closes if you track quotes before
+stripping comments. Both produced silent, wide breakage; verify with a computed-style
+diff plus a control run against an emptied sheet.
+
 `draft.css` was 6,009 lines. It is now seven sheets under
 `public/css/features/draft/`, grouped by concern and linked from `room.html` in
 this order:

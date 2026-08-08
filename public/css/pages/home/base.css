@@ -233,34 +233,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Create Room Button */
-.create-room-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #22b063 0%, #2ccf75 60%, #6ee6a4 100%);
-  border: none;
-  border-radius: 7px;
-  color: #06131c;
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
-  box-shadow: 0 3px 16px rgba(44,207,117,0.4);
-  white-space: nowrap;
-}
-
-.create-room-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(44,207,117,0.55);
-  filter: brightness(1.06);
-}
-
-.create-room-btn:active { transform: translateY(0); }
-
 /* User Menu */
 .user-menu { position: relative; }
 

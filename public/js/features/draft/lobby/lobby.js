@@ -14,7 +14,6 @@ import {
   FOOT_OPTIONS,
   TEXT_ALLOWANCE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
-  REVEAL_MODE_HIDDEN,
 } from '@/features/draft/constants.js';
 
 import {
@@ -136,10 +135,7 @@ function renderLobby() {
   const banDurationEl = document.getElementById("lobbyBanDurationInput");
   const pickDurationEl = document.getElementById("lobbyPickDurationInput");
   const revealModeEl = document.getElementById("lobbyRevealModeInput");
-  const revealModeTrigger = document.getElementById("lobbyRevealModeTrigger");
   const revealModePanel = document.getElementById("lobbyRevealModePanel");
-  const revealModeLabel = document.getElementById("lobbyRevealModeLabel");
-  if (!isHost) state.openRevealModeMenu = false;
   if (allowAllEl && !allowAllEl.dataset.touched) allowAllEl.checked = Boolean(cfg.allowAllPlayers);
   if (bansEl && !bansEl.dataset.touched) bansEl.value = String(cfg.banCountPerSide ?? 0);
   if (banDurationEl && !banDurationEl.dataset.touched) banDurationEl.value = String(normalizeBanDurationSec(cfg.banDurationSec));
@@ -153,24 +149,12 @@ function renderLobby() {
   const banCountHintEl = document.getElementById("banCountHint");
   if (banCountHintEl) banCountHintEl.textContent = `${pluralize(banCount * 2, "ban")} in total`;
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
-  if (revealModeLabel) {
-    revealModeLabel.textContent = revealModeValue === REVEAL_MODE_HIDDEN
-      ? "Hide picks, reveal squad later"
-      : "Show picks after each turn";
-  }
-  if (revealModePanel) {
-    revealModePanel.querySelectorAll("[data-lobby-reveal-mode-option]").forEach((opt) => {
-      const mode = String(opt.dataset.lobbyRevealModeOption || "").trim();
-      opt.classList.toggle("is-selected", mode === revealModeValue);
-    });
-    revealModePanel.classList.toggle("is-open", Boolean(state.openRevealModeMenu));
-  }
-  if (revealModeTrigger) {
-    revealModeTrigger.disabled = !isHost;
-    revealModeTrigger.title = isHost ? "" : "Only the host can change Mode";
-    revealModeTrigger.classList.toggle("open", Boolean(state.openRevealModeMenu));
-    revealModeTrigger.setAttribute("aria-expanded", String(Boolean(state.openRevealModeMenu)));
-  }
+  // The cards are always visible; selection is the only state they carry. Their
+  // disabled look comes from the .is-readonly rule on the settings panel.
+  revealModePanel?.querySelectorAll("[data-lobby-reveal-mode-option]").forEach((opt) => {
+    const mode = String(opt.dataset.lobbyRevealModeOption || "").trim();
+    opt.classList.toggle("is-selected", mode === revealModeValue);
+  });
 
   const startBtn = document.getElementById("startDraftBtn");
   const lobbyLeaveBtn = document.getElementById("lobbyLeaveBtn");
@@ -229,8 +213,6 @@ function renderLobby() {
   if (bansEl) bansEl.disabled = !isHost;
   if (banDurationEl) banDurationEl.disabled = !isHost;
   if (pickDurationEl) pickDurationEl.disabled = !isHost;
-  if (revealModeTrigger) revealModeTrigger.disabled = !isHost;
-  if (!isHost) state.openRevealModeMenu = false;
   renderAllowanceList({ isHost, cfg });
 
   const chatInput = document.getElementById("chatInput");
@@ -439,20 +421,11 @@ function bindDraftSettings(user) {
 function closeAllLobbyDropdowns() {
     const categoryPanel = document.getElementById("allowanceCategoryPanel");
     const categoryTrigger = document.getElementById("allowanceCategoryTrigger");
-    const modePanel = document.getElementById("lobbyRevealModePanel");
-    const modeTrigger = document.getElementById("lobbyRevealModeTrigger");
     if (categoryPanel) categoryPanel.classList.remove("is-open");
     if (categoryTrigger) {
       categoryTrigger.classList.remove("open");
       categoryTrigger.setAttribute("aria-expanded", "false");
     }
-    if (modePanel) modePanel.classList.remove("is-open");
-    if (modeTrigger) {
-      modeTrigger.classList.remove("open");
-      modeTrigger.setAttribute("aria-expanded", "false");
-    }
-
-    state.openRevealModeMenu = false;
 
     document.querySelectorAll("[data-allowance-pos-dropdown].is-open").forEach((el) => {
       el.classList.remove("is-open");
@@ -481,15 +454,6 @@ function closeAllLobbyDropdowns() {
 
 /** Ban reveal mode dropdown. */
 function bindRevealModeDropdown() {
-  document.getElementById("lobbyRevealModeTrigger")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (state.mySide !== "host" || e.currentTarget.disabled) return;
-    const willOpen = !state.openRevealModeMenu;
-    closeAllLobbyDropdowns();
-    state.openRevealModeMenu = willOpen;
-    renderLobby();
-  });
   document.getElementById("lobbyRevealModePanel")?.addEventListener("click", (e) => {
     const option = e.target.closest("[data-lobby-reveal-mode-option]");
     if (!option || state.mySide !== "host") return;
@@ -500,7 +464,6 @@ function bindRevealModeDropdown() {
       input.dataset.touched = "1";
     }
     state.room.config.revealMode = mode;
-    state.openRevealModeMenu = false;
     renderLobby();
     scheduleLobbyConfigPush();
   });
@@ -1113,7 +1076,6 @@ function bindGlobalDropdownDismiss() {
     if (e.target.closest("[data-allowance-cap-wrap]")) return;
     if (e.target.closest("[data-allowance-multi-dropdown]")) return;
     if (e.target.closest("[data-allowance-club-search-wrap]")) return;
-    if (e.target.closest("#lobbyRevealModeDd")) return;
     closeAllLobbyDropdowns();
     if (state.clubSearchOpen) {
       state.clubSearchOpen = false;

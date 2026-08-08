@@ -28,44 +28,6 @@
   background: rgba(17, 44, 68, 0.18);
 }
 
-.ban-phase-row--right {
-  flex: 1;
-  min-height: 0;
-}
-
-.ban-phase-row--right .ban-phase-strip {
-  border-radius: 14px;
-  border: 1px solid var(--g-line-faint);
-  background: rgba(17, 44, 68, 0.16);
-  padding: 10px 10px 6px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.ban-phase-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ban-phase-row-title {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-/* Row heading that contains the title and a right-aligned count */
-
-.ban-phase-row-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .ban-count {
   font-family: var(--font-display);
   font-weight: 800;
@@ -311,29 +273,6 @@
 
 .ban-phase-controls .sort-group {
   white-space: nowrap;
-}
-
-.ban-phase-control :is(input, select) {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--g-line);
-  background: var(--g-fill-faint);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 700;
-  outline: none;
-}
-
-.ban-phase-control :is(input, select)::placeholder {
-  color: var(--text-dim);
-}
-
-.ban-phase-control :is(input, select):focus {
-  border-color: var(--g-line-active);
-  box-shadow: 0 0 0 2px var(--g-glow-soft);
 }
 
 /* ── Home "My Players" toolbar + cards (ported for ban phase) ─────────────── */
@@ -595,37 +534,6 @@
   margin-bottom: 8px;
 }
 
-.filter-pos-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pos-chip {
-  padding: 6px 12px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border-radius: 999px;
-  border: 1px solid var(--g-line);
-  background: var(--g-fill);
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.16s ease;
-}
-
-.pos-chip:hover {
-  border-color: var(--g-line-active);
-  background: var(--g-fill);
-  color: var(--text);
-}
-
-.pos-chip.active {
-  color: #06131c;
-  background: var(--green);
-  border-color: var(--green);
-  box-shadow: 0 2px 10px var(--g-glow);
-}
-
 /* Position multi-select dropdown (same as home) */
 
 .pos-multiselect {
@@ -829,41 +737,6 @@
   min-width: 0;
 }
 
-.pc-footer-name {
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
-.pc-footer-ovr {
-  font-family: var(--font-display);
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-}
-
-.pc-footer-ovr .ovr-max {
-  color: var(--green);
-}
-
-.pc-footer-club {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .pc-footer-meta {
   display: flex;
   align-items: center;
@@ -1014,19 +887,6 @@
   background: linear-gradient(180deg, rgba(42, 225, 132, 1), rgba(26, 181, 108, 0.98));
 }
 
-.ban-phase-confirm {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.ban-phase-actions {
-  display: flex;
-  gap: 8px;
-  flex: none;
-}
-
 @media (max-width: 900px) {
   .ban-phase-layout {
     grid-template-columns: 1fr;
@@ -1044,13 +904,6 @@
   .ban-phase-actions {
     justify-content: flex-end;
   }
-}
-
-.draft-grid-wrap {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  min-height: 0;
 }
 
 .draft-workspace {
@@ -1072,16 +925,6 @@
   height: 100%;
 }
 
-.draft-workspace-rail {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
 .draft-panel {
   background: linear-gradient(180deg, rgba(10, 29, 45, 0.94), rgba(6, 17, 26, 0.92));
   border: 1px solid var(--g-line-faint);
@@ -1090,11 +933,7 @@
   padding: 14px;
 }
 
-.draft-panel--formation,
-.draft-panel--plans,
-.draft-panel--opponent,
-.draft-panel--ban-tracker,
-.draft-panel--ban-phase {
+.draft-panel--ban-phase{
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1112,73 +951,6 @@
   gap: 12px;
   flex: 1;
   min-height: 0;
-}
-
-/* Ban phase board styles live above */
-
-.ban-tracker-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ban-tracker-title {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.ban-tracker-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 8px;
-}
-
-.ban-history-card {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  border-radius: 12px;
-  padding: 8px;
-  border: 1px solid rgba(255, 68, 68, 0.24);
-  background: linear-gradient(180deg, rgba(38, 12, 12, 0.86), rgba(18, 8, 8, 0.9));
-}
-
-.ban-history-thumb {
-  width: 44px;
-  height: 58px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ban-history-text {
-  min-width: 0;
-}
-
-.ban-history-name {
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ban-history-meta {
-  margin-top: 2px;
-  color: rgba(255, 214, 214, 0.72);
-  font-size: 10px;
-}
-
-.ban-history-empty {
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.14);
-  color: var(--text-dim);
-  padding: 10px;
-  font-size: 12px;
-  text-align: center;
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -1317,46 +1089,6 @@
   flex-shrink: 0;
   border: 1.5px dashed rgba(255, 60, 60, 0.25);
   background: rgba(255, 60, 60, 0.02);
-}
-
-/* Bottom confirm section — fixed height, darker tint */
-
-.ban-side-confirm {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  background: var(--surface-sunken);
-  border-top: 1px solid var(--g-line-faint);
-}
-
-/* "SELECTED" micro-label */
-
-.ban-side-confirm-label {
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-/* Area that holds the pending card preview */
-
-.ban-side-confirm-preview {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 110px;
-}
-
-/* Center the contents of the pending strip */
-
-.ban-phase-strip--center {
-  justify-content: center;
-  align-items: center;
-  flex-wrap: nowrap;
 }
 
 /* Empty pending selection: dashed card-shaped placeholder */

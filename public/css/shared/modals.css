@@ -101,9 +101,6 @@
   border-color: var(--border-active);
 }
 
-/* ── Room Modal specific (legacy, kept for safety) ── */
-.room-body { display: flex; flex-direction: column; gap: 20px; }
-
 /* ── Room Drawer ─────────────────────────────────────── */
 #roomOverlay {
   justify-content: flex-end;
@@ -355,95 +352,6 @@
   box-shadow: 0 0 0 3px rgba(44,207,117,0.1);
 }
 
-.room-code-row {
-  display: flex;
-  gap: 6px;
-}
-
-.room-code-input {
-  flex: 1;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  letter-spacing: 0.2em;
-  color: var(--green);
-  cursor: default;
-}
-
-.icon-action-btn {
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  background: rgba(44,207,117,0.06);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition);
-}
-
-.icon-action-btn:hover {
-  color: var(--green);
-  background: rgba(44,207,117,0.12);
-  border-color: rgba(44,207,117,0.4);
-}
-
-.room-settings-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-/* Number Picker */
-.number-picker {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: rgba(44,207,117,0.04);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.num-btn {
-  width: 38px;
-  height: 38px;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--transition), background var(--transition);
-  flex-shrink: 0;
-}
-
-.num-btn:hover {
-  color: var(--green);
-  background: rgba(44,207,117,0.1);
-}
-
-.num-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.num-val {
-  flex: 1;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.room-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-
 .ghost-btn {
   flex: 1;
   padding: 11px;
@@ -653,18 +561,8 @@
   overflow-wrap: anywhere;
 }
 
-.player-popup-club .pp-sep {
-  color: rgba(138,165,184,0.35);
-  font-weight: 400;
-}
-
 .player-popup-stats {
   display: none;
-}
-
-.player-popup-stats .pp-sep {
-  color: rgba(138,165,184,0.35);
-  font-weight: 400;
 }
 
 .player-popup-add {
@@ -820,7 +718,6 @@
   box-shadow: 0 0 14px rgba(255, 60, 60, 0.2);
 }
 
-
 /* ============================================================
    EDIT PROFILE BUTTON
    ============================================================ */
@@ -964,11 +861,6 @@
   font-size: 0.75rem;
   color: #f87171;
   min-height: 1em;
-}
-
-.ep-form-error {
-  text-align: center;
-  font-weight: 600;
 }
 
 .ep-submit {

@@ -58,7 +58,6 @@ export const state = {
   clubSearchLoading: false,
   clubSearchActiveIndex: -1,
   clubSearchReqSeq: 0,
-  openRevealModeMenu: false,
   opponentBanPlayers: [],
   loadingOpponentBanPlayers: false,
   opponentBanPlayersLoaded: false,

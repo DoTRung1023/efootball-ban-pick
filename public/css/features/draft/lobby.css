@@ -1607,14 +1607,10 @@
   box-shadow: none;
 }
 
-/* ── Lobby scrollbars ────────────────────────────────────── */
-
 #viewLobby,
 .chat-log,
 .prep-scroll,
-.allowance-list,
-.draft-grid,
-.draft-side {
+.allowance-list{
   scrollbar-width: thin;
   scrollbar-color: var(--g-line-hover) transparent;
 }
@@ -1622,23 +1618,17 @@
 #viewLobby::-webkit-scrollbar,
 .chat-log::-webkit-scrollbar,
 .prep-scroll::-webkit-scrollbar,
-.allowance-list::-webkit-scrollbar,
-.draft-grid::-webkit-scrollbar,
-.draft-side::-webkit-scrollbar { width: 5px; height: 5px; }
+.allowance-list::-webkit-scrollbar{ width: 5px; height: 5px; }
 
 #viewLobby::-webkit-scrollbar-track,
 .chat-log::-webkit-scrollbar-track,
 .prep-scroll::-webkit-scrollbar-track,
-.allowance-list::-webkit-scrollbar-track,
-.draft-grid::-webkit-scrollbar-track,
-.draft-side::-webkit-scrollbar-track { background: transparent; }
+.allowance-list::-webkit-scrollbar-track{ background: transparent; }
 
 #viewLobby::-webkit-scrollbar-thumb,
 .chat-log::-webkit-scrollbar-thumb,
 .prep-scroll::-webkit-scrollbar-thumb,
-.allowance-list::-webkit-scrollbar-thumb,
-.draft-grid::-webkit-scrollbar-thumb,
-.draft-side::-webkit-scrollbar-thumb {
+.allowance-list::-webkit-scrollbar-thumb{
   background: rgba(44, 207, 117, 0.36);
   border-radius: 999px;
 }
@@ -1646,9 +1636,7 @@
 #viewLobby::-webkit-scrollbar-thumb:hover,
 .chat-log::-webkit-scrollbar-thumb:hover,
 .prep-scroll::-webkit-scrollbar-thumb:hover,
-.allowance-list::-webkit-scrollbar-thumb:hover,
-.draft-grid::-webkit-scrollbar-thumb:hover,
-.draft-side::-webkit-scrollbar-thumb:hover { background: rgba(44, 207, 117, 0.6); }
+.allowance-list::-webkit-scrollbar-thumb:hover{ background: rgba(44, 207, 117, 0.6); }
 
 /* ── Stage progress lobby variant ───────────────────────── */
 
