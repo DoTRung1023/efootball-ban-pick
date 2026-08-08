@@ -38,6 +38,19 @@ export function resetPlayerFilterState(state) {
   FILTER_SCALARS.forEach((k) => { state[k] = ""; });
 }
 
+/**
+ * A fresh filter block — six empty sets and twelve empty scalars — to spread into
+ * a feature's state object. Built from the same two lists the reset above walks,
+ * so a field cannot be initialised in one place and forgotten in the other.
+ * Returns new sets each call; the three call sites must not share them.
+ */
+export function createPlayerFilterState() {
+  const state = {};
+  FILTER_SETS.forEach((k) => { state[k] = new Set(); });
+  FILTER_SCALARS.forEach((k) => { state[k] = ""; });
+  return state;
+}
+
 /* ── autocomplete + shared option lists ─────────────────────────── */
 
 function initAutocomplete(inputEl, listEl, field, onPick) {

@@ -55,8 +55,16 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
 - `@/shared/players/filterPanel.js` — **the** player filter dropdown, used by all three
   toolbars (it lives under `shared/` because squad, catalog and plans all import it).
   `buildPlayerFilterPanel({ panelId, ids, state, autocomplete, onChange, onClear })`
-  plus `resetPlayerFilterState` and `getPlayerFilterOptions`. It replaced three ~270-line
-  near-identical builders. Each call site passes an **explicit id map** (see
+  plus `createPlayerFilterState`, `resetPlayerFilterState` and `getPlayerFilterOptions`.
+  It replaced three ~270-line near-identical builders.
+  **The 18 filter fields are declared once**, in `FILTER_SETS` + `FILTER_SCALARS`.
+  `createPlayerFilterState()` builds a fresh block from those lists and
+  `resetPlayerFilterState(state)` clears the same ones, so the initialiser and the
+  reset cannot drift; spread it into a feature's state object
+  (`{ query: "", ...createPlayerFilterState() }`). All three call sites did write the
+  list out by hand, and `plans.js` also hand-rolled the reset — a new filter field
+  would have been added to the panel and silently never cleared there. Each call
+  returns **new** `Set`s; never share one block between two state objects. Each call site passes an **explicit id map** (see
   `CATALOG_FILTER_IDS` / `SQUAD_FILTER_IDS` / `PP_FILTER_IDS`) because the three id
   schemes are irregular (`fcOvrMin` / `sqfOvrMin` / `ppFcOvrMin`) and both the CSS
   and the surrounding wiring reference them by string — never derive an id from a

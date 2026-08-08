@@ -2,7 +2,8 @@ import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
 import { tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
-import { buildPlayerFilterPanel, resetPlayerFilterState } from '@/shared/players/filterPanel.js';
+import { buildPlayerFilterPanel, createPlayerFilterState,
+         resetPlayerFilterState } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
@@ -23,24 +24,7 @@ const squad = {
   search:     "",
   sortKey:    "overall_max", // overall_max | overall | name | position | height | weight | age
   sortDir:    "desc",
-  filterPositions: new Set(),
-  filterFoot:          new Set(),
-  filterPlayingStyle:  new Set(),
-  filterCardType:      new Set(),
-  filterLeague:        new Set(),
-  filterRegion:        new Set(),
-  filterClub:      "",
-  filterNation:    "",
-  filterOverallMin:     "",
-  filterOverallMax:     "",
-  filterMaxOverallMin:  "",
-  filterMaxOverallMax:  "",
-  filterHeightMin: "",
-  filterHeightMax: "",
-  filterWeightMin: "",
-  filterWeightMax: "",
-  filterAgeMin:    "",
-  filterAgeMax:    "",
+  ...createPlayerFilterState(),
 };
 
 /** Forward attacking→defensive line; used for position sort (Add catalog, squad, game plan picker). */

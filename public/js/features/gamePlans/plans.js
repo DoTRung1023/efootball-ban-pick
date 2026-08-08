@@ -4,7 +4,8 @@ import { FORMATION_LAYOUTS, normalizeFormation,
          getFormationLayout } from '@/shared/players/formations.js';
 import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
-import { buildPlayerFilterPanel, getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
+import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
+         getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
@@ -99,38 +100,14 @@ const ppState = {
   query:           "",
   sortCategory:    "overall_max",
   sortDir:         "desc",
-  filterPositions: new Set(),
-  filterFoot:          new Set(),
-  filterPlayingStyle:  new Set(),
-  filterCardType:      new Set(),
-  filterLeague:        new Set(),
-  filterRegion:        new Set(),
-  filterClub:      "",
-  filterNation:    "",
-  filterOverallMin:     "", filterOverallMax:     "",
-  filterMaxOverallMin:  "", filterMaxOverallMax:  "",
-  filterHeightMin: "", filterHeightMax: "",
-  filterWeightMin: "", filterWeightMax: "",
-  filterAgeMin:    "", filterAgeMax:    "",
+  ...createPlayerFilterState(),
 };
 
 function resetPpState() {
   ppState.query         = "";
   ppState.sortCategory  = "overall_max";
   ppState.sortDir       = "desc";
-  ppState.filterPositions.clear();
-  ppState.filterFoot.clear();
-  ppState.filterPlayingStyle.clear();
-  ppState.filterCardType.clear();
-  ppState.filterLeague.clear();
-  ppState.filterRegion.clear();
-  ppState.filterClub      = "";
-  ppState.filterNation    = "";
-  ppState.filterOverallMin = ppState.filterOverallMax = "";
-  ppState.filterMaxOverallMin = ppState.filterMaxOverallMax = "";
-  ppState.filterHeightMin = ppState.filterHeightMax = "";
-  ppState.filterWeightMin = ppState.filterWeightMax = "";
-  ppState.filterAgeMin    = ppState.filterAgeMax    = "";
+  resetPlayerFilterState(ppState);
 }
 
 

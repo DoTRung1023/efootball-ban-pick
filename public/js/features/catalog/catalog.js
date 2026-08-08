@@ -3,7 +3,7 @@ import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
 import { hasFullOvrPair, ovrPairInnerHtml } from './ovr.js';
 import { posClass } from '@/shared/players/positions.js';
 import { SORT_CATEGORIES } from '@/shared/players/sort.js';
-import { buildPlayerFilterPanel, resetPlayerFilterState,
+import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
          getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
@@ -17,27 +17,10 @@ const catalog = {
   players:       [],
   offset:        0,
   query:         "",
-  filterPositions: new Set(),
-  filterFoot:          new Set(),
-  filterPlayingStyle:  new Set(),
-  filterCardType:      new Set(),
-  filterLeague:        new Set(),
-  filterRegion:        new Set(),
+  ...createPlayerFilterState(),
   sortCategory:  "overall_max",
   sortDir:       "desc",
   sortBy:        "overall_max_desc",
-  filterClub:       "",
-  filterNation:     "",
-  filterOverallMin:     "",
-  filterOverallMax:     "",
-  filterMaxOverallMin:  "",
-  filterMaxOverallMax:  "",
-  filterHeightMin:  "",
-  filterHeightMax:  "",
-  filterWeightMin:  "",
-  filterWeightMax:  "",
-  filterAgeMin:     "",
-  filterAgeMax:     "",
   hasMore:       true,
   loading:       false,
   addedPesdbIds: new Set(),
