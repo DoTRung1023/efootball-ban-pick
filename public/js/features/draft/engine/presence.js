@@ -3,6 +3,7 @@ import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { applyPresenceSnapshot } from '@/features/draft/state.js';
 import { getUser, getAnonId, getCurrentIdentity, showView } from '@/features/draft/utils.js';
+import { paintErrorView } from '@/features/draft/errorView.js';
 
 export function clearRoomPhaseCache(code) {
   try { if (code) sessionStorage.removeItem(`efb_room_${code}_phase`); } catch { /* ignore */ }
@@ -33,45 +34,19 @@ export async function registerPresence() {
       return;
     }
     if (res.status === 409 || res.status === 403) {
-      const errorView = document.getElementById("viewError");
-      const errorTitle = document.getElementById("errorTitle");
-      const errorIcon = document.getElementById("errorStateIcon");
-      const errorBtn = document.getElementById("errorLeaveBtn");
-      if (errorView) {
-        errorView.classList.remove("is-room-closed");
-        errorView.classList.remove("is-access-denied");
-        errorView.classList.remove("is-host-lock");
-        errorView.classList.remove("is-room-full");
-      }
       const isHostLock = state.mySide === "host" && res.status === 409;
-      const isKicked = res.status === 403;
       const isRoomFull = !isHostLock && res.status === 409; // guest slot already taken
-      if (errorView) {
-        errorView.classList.toggle("is-host-lock", isHostLock);
-        errorView.classList.toggle("is-room-full", isRoomFull);
-        errorView.classList.toggle("is-access-denied", isKicked);
-      }
-      if (errorTitle) {
-        errorTitle.hidden = false;
-        errorTitle.textContent = isHostLock
-          ? "Host slot taken"
+      paintErrorView({
+        modifier: isHostLock ? "is-host-lock" : isRoomFull ? "is-room-full" : "is-access-denied",
+        title: isHostLock ? "Host slot taken" : isRoomFull ? "Room is full" : "Access denied",
+        icon: false,
+        leaveText: "Back to home",
+        message: isHostLock
+          ? "This room already has an active host. Use the invite link to join as a guest."
           : isRoomFull
-            ? "Room is full"
-            : "Access denied";
-      }
-      if (errorIcon) errorIcon.hidden = true;
-      if (errorBtn) errorBtn.textContent = "Back to home";
-      const msg = document.getElementById("errorMessage");
-      if (msg) {
-        if (isHostLock) {
-          msg.textContent = "This room already has an active host. Use the invite link to join as a guest.";
-        } else if (isRoomFull) {
-          msg.textContent = "This room already has two players and cannot accept more connections.";
-        } else {
-          msg.textContent = data.error || "You were removed from this room.";
-        }
-      }
-      showView("viewError");
+            ? "This room already has two players and cannot accept more connections."
+            : data.error || "You were removed from this room.",
+      });
       stopPresencePolling();
       state.phase = "error";
       return;

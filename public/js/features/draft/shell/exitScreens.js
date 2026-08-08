@@ -2,47 +2,34 @@
 
 import { escapeHtml, showView } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
+import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
 import { clearTurnTimer } from '@/features/draft/engine/draftFlow.js';
 import { updateStageTabs } from './stageTabs.js';
 
 const EXIT_COUNTDOWN_SECONDS = 10;
-const ERROR_STATE_CLASSES = ["is-host-lock", "is-room-full", "is-access-denied"];
 
 /**
  * Shows #viewError with a countdown that returns the user to the home page.
  * `message(secs)` renders the body text for each remaining second.
+ * `icon` is a glyph, or `true` to keep whatever the markup already shows.
  */
 function showExitCountdown({ title, icon, message }) {
   clearRoomPhaseCache(state.room?.code);
 
-  const view = document.getElementById("viewError");
-  const msgEl = document.getElementById("errorMessage");
-  const titleEl = document.getElementById("errorTitle");
-  const iconEl = document.getElementById("errorStateIcon");
-  const btn = document.getElementById("errorLeaveBtn");
-
-  if (btn) btn.textContent = "Back to home";
-  if (titleEl) {
-    titleEl.textContent = title;
-    titleEl.hidden = false;
-  }
-  if (iconEl) {
-    if (icon) iconEl.textContent = icon;
-    iconEl.hidden = false;
-  }
-  if (view) {
-    view.classList.remove(...ERROR_STATE_CLASSES);
-    view.classList.add("is-room-closed");
-  }
-
   let secs = EXIT_COUNTDOWN_SECONDS;
+  const msgEl = document.getElementById("errorMessage");
   const paint = () => {
     if (msgEl) msgEl.textContent = message(secs);
   };
 
-  paint();
-  showView("viewError");
+  paintErrorView({
+    modifier: "is-room-closed",
+    title,
+    icon,
+    leaveText: "Back to home",
+    message: message(secs),
+  });
   updateStageTabs();
 
   const timer = setInterval(() => {
@@ -59,7 +46,7 @@ function showExitCountdown({ title, icon, message }) {
 export function showRoomClosed(message = "Room is closed.") {
   showExitCountdown({
     title: "Room closed",
-    icon: null,
+    icon: true, // keep the glyph the markup already carries
     message: (secs) => `${message} Returning to home in ${secs}s…`,
   });
 }

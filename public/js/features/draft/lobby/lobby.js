@@ -63,6 +63,7 @@ import {
   getCurrentIdentity,
 } from '@/features/draft/utils.js';
 import { registerAndPollPresence, stopPresencePolling, leavePresence } from '@/features/draft/engine/presence.js';
+import { paintErrorView } from '@/features/draft/errorView.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 import { getJson } from '@/features/draft/api.js';
 
@@ -272,20 +273,13 @@ export function initLobby() {
   const code = getRoomCodeFromUrl();
 
   if (!code || code.length < 4) {
-    const errorView = document.getElementById("viewError");
-    const errorTitle = document.getElementById("errorTitle");
-    const errorIcon = document.getElementById("errorStateIcon");
-    const errorBtn = document.getElementById("errorLeaveBtn");
-    if (errorView) {
-      errorView.classList.remove("is-room-closed");
-      errorView.classList.remove("is-host-lock");
-      errorView.classList.remove("is-access-denied");
-    }
-    if (errorTitle) errorTitle.hidden = true;
-    if (errorIcon) errorIcon.hidden = true;
-    if (errorBtn) errorBtn.textContent = "Leave room";
-    showView("viewError");
-    document.getElementById("errorMessage").textContent = "Invalid room code.";
+    paintErrorView({
+      modifier: null,
+      title: null,
+      icon: false,
+      leaveText: "Leave room",
+      message: "Invalid room code.",
+    });
     return;
   }
 
