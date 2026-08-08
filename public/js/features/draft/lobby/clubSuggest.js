@@ -110,6 +110,32 @@ export function scheduleClubSuggestions(key, query) {
   debounceTimer = setTimeout(() => void fetchClubSuggestions(state.clubSearchQuery), DEBOUNCE_MS);
 }
 
+/**
+ * The panel's contents for the current search state: loading, results, or the
+ * not-found line. `allowanceView.js` calls this when it rebuilds the whole
+ * allowance list and this module calls it on every keystroke — they must agree
+ * exactly, or the panel flickers to a different shape on the next re-render.
+ */
+export function clubSuggestPanelHtml(singular) {
+  if (state.clubSearchLoading) {
+    return '<div class="allowance-club-suggest-empty">Searching...</div>';
+  }
+  if (state.clubSearchOptions.length) {
+    return state.clubSearchOptions
+      .map((club, idx) => `
+        <button
+          type="button"
+          class="allowance-club-suggest-option ${idx === state.clubSearchActiveIndex ? "is-active" : ""}"
+          data-allowance-club-suggestion="${escapeHtml(club)}"
+        >${escapeHtml(club)}</button>
+      `)
+      .join("");
+  }
+  return state.clubSearchQuery.trim()
+    ? `<div class="allowance-club-suggest-empty">No ${escapeHtml(singular)} found.</div>`
+    : "";
+}
+
 export function renderClubSuggestionPanel() {
   const key = String(state.clubSearchKey || "club").trim();
   const input = document.querySelector(`.allowance-club-search[data-allowance-club-search="${key}"]`);
@@ -119,27 +145,6 @@ export function renderClubSuggestionPanel() {
   input.value = state.clubSearchQuery || "";
   panel.classList.toggle("is-open", Boolean(state.clubSearchOpen));
 
-  if (!state.clubSearchOpen) {
-    panel.innerHTML = "";
-    return;
-  }
-  if (state.clubSearchLoading) {
-    panel.innerHTML = '<div class="allowance-club-suggest-empty">Searching...</div>';
-    return;
-  }
-  if (!state.clubSearchOptions.length) {
-    const singular = String(ALLOWANCE_DEF_MAP.get(key)?.label || key).toLowerCase();
-    panel.innerHTML = state.clubSearchQuery.trim()
-      ? `<div class="allowance-club-suggest-empty">No ${escapeHtml(singular)} found.</div>`
-      : "";
-    return;
-  }
-
-  panel.innerHTML = state.clubSearchOptions.map((club, idx) => `
-    <button
-      type="button"
-      class="allowance-club-suggest-option ${idx === state.clubSearchActiveIndex ? "is-active" : ""}"
-      data-allowance-club-suggestion="${escapeHtml(club)}"
-    >${escapeHtml(club)}</button>
-  `).join("");
+  const singular = String(ALLOWANCE_DEF_MAP.get(key)?.label || key).toLowerCase();
+  panel.innerHTML = state.clubSearchOpen ? clubSuggestPanelHtml(singular) : "";
 }

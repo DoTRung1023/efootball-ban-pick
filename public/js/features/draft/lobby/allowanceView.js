@@ -48,6 +48,7 @@ import {
 
 import { escapeHtml } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
+import { clubSuggestPanelHtml } from './clubSuggest.js';
 
 const MAX_CAP = 23;
 
@@ -414,20 +415,7 @@ function textListBuilderHtml({ key, value, cfg, def, canEdit }) {
 }
 
 function suggestionPanelInnerHtml(searchActive, singular) {
-  if (!searchActive) return "";
-  if (state.clubSearchLoading) return '<div class="allowance-club-suggest-empty">Searching...</div>';
-  if (state.clubSearchOptions.length) {
-    return state.clubSearchOptions.map((club, idx) => `
-                    <button
-                      type="button"
-                      class="allowance-club-suggest-option ${idx === state.clubSearchActiveIndex ? "is-active" : ""}"
-                      data-allowance-club-suggestion="${escapeHtml(club)}"
-                    >${escapeHtml(club)}</button>
-                  `).join("");
-  }
-  return state.clubSearchQuery.trim()
-    ? `<div class="allowance-club-suggest-empty">No ${escapeHtml(singular)} found.</div>`
-    : "";
+  return searchActive ? clubSuggestPanelHtml(singular) : "";
 }
 
 function textListRowHtml(item, cap, canEdit) {
