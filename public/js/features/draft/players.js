@@ -1,8 +1,6 @@
 import {
   CARD_IMG,
   ANON_PLAYER_IMG,
-  DEFAULT_FORMATION,
-  FORMATION_LAYOUTS,
   FIXED_PICKS_PER_SIDE,
 } from './constants.js';
 
@@ -15,14 +13,9 @@ export {
   playerDetailTooltipText,
 } from "@/shared/players/playerMeta.js";
 
-export function normalizeFormation(f) {
-  const s = String(f || "").trim();
-  return FORMATION_LAYOUTS[s] ? s : DEFAULT_FORMATION;
-}
-
-export function getFormationLayout(formation) {
-  return FORMATION_LAYOUTS[normalizeFormation(formation)] || FORMATION_LAYOUTS[DEFAULT_FORMATION];
-}
+/* Same arrangement for the formation table — see
+   @/shared/players/formations.js. */
+export { normalizeFormation, getFormationLayout } from "@/shared/players/formations.js";
 
 export function getPlayerCardValue(player) {
   return player?.overall_rating ?? player?.overall_max ?? player?.overall ?? "—";

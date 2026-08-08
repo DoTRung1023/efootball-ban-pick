@@ -19,63 +19,10 @@ export const REVEAL_MODE_HIDDEN = "hidden";
 export { CARD_IMG, ANON_PLAYER_IMG } from "@/shared/players/playerMeta.js";
 
 // ── Formations ────────────────────────────────────────────────────
-export const DEFAULT_FORMATION = "4-3-3";
-export const FORMATION_LAYOUTS = {
-  "4-3-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [6, 7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "4-4-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [6, 7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "4-5-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [6, 7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-6-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-4-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-5-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-2-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-3-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-4-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-};
+// The table is shared with the home page's game-plan pitch — see
+// @/shared/players/formations.js. Re-exported so room modules keep importing
+// it from "./constants.js" as before.
+export { DEFAULT_FORMATION, FORMATION_LAYOUTS } from "@/shared/players/formations.js";
 
 // ── Allowance definitions ─────────────────────────────────────────
 export const ALLOWANCE_CATEGORY_DEFS = [

@@ -1,15 +1,14 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
-         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
-import { hasFullOvrPair, ovrPairInnerHtml } from '@/shared/players/ovr.js';
-import { posClass, POSITION_LINE_ORDER, positionLineRank } from '@/shared/players/positions.js';
+         playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
+import { FORMATION_LAYOUTS, normalizeFormation,
+         getFormationLayout } from '@/shared/players/formations.js';
 import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
-import { buildPlayerFilterPanel, playerFilterOptionsCache,
-         getPlayerFilterOptions, wireAttributeMultiselects } from '@/shared/players/filterPanel.js';
+import { buildPlayerFilterPanel, getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
-import { openDdPanel, closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
+import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
 import { cb } from '@/pages/home/callbacks.js';
 
 const gamePlans = {
@@ -23,73 +22,9 @@ const gamePlans = {
   formation:  null,
 };
 
-const DEFAULT_FORMATION = "4-3-3";
-
-// Pitch rows: top (attack) → mid → defense → GK (bottom). Slots 1–11 map to lineup positions.
-const FORMATION_LAYOUTS = {
-  "4-3-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [6, 7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "4-4-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [6, 7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "4-5-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [6, 7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-6-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-4-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "3-5-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [5, 6, 7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-2-3": [
-    { id: "pitchRowFwd", slots: [9, 10, 11] },
-    { id: "pitchRowMid", slots: [7, 8] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-3-2": [
-    { id: "pitchRowFwd", slots: [10, 11] },
-    { id: "pitchRowMid", slots: [7, 8, 9] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-  "5-4-1": [
-    { id: "pitchRowFwd", slots: [11] },
-    { id: "pitchRowMid", slots: [7, 8, 9, 10] },
-    { id: "pitchRowDef", slots: [2, 3, 4, 5, 6] },
-    { id: "pitchRowGk", slots: [1] },
-  ],
-};
-
-function normalizeFormation(f) {
-  const s = f == null ? "" : String(f);
-  return FORMATION_LAYOUTS[s] ? s : DEFAULT_FORMATION;
-}
-
+/** The rows to render for whichever formation the open plan is on. */
 function getPitchLayout() {
-  return FORMATION_LAYOUTS[normalizeFormation(gamePlans.formation)] ?? FORMATION_LAYOUTS[DEFAULT_FORMATION];
+  return getFormationLayout(gamePlans.formation);
 }
 
 function closePlanFormationPanel() {
