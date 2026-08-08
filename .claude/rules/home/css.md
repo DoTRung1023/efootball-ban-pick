@@ -35,6 +35,14 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     one line at any column width. Do not reintroduce a fixed card width.
   - `.pitch-remove-btn` is hover-revealed, with an `@media (hover: none)` block that
     keeps it visible — without it a player can never be removed on touch.
+  - `.plan-hover-card` / `.plan-hover-name` / `.plan-hover-detail` — the info panel
+    that floats beside a pitch or bench card on hover (see `home/modules.md` for the
+    JS). Three things it depends on: **`position: fixed`** on `<body>`, so neither
+    the pitch nor the bench scroller can clip it; **`pointer-events: none`**, or
+    sitting under the cursor it takes the hover that opened it and flickers; and an
+    **opaque** `--bg-card-solid`, because it hangs over the pitch and the picker
+    list. `z-index: 315` puts it above `.plan-detail-overlay` (310) and below
+    `.plan-formation-panel` (520).
 - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`,
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
   visual sync with the room ban toolbar (`css/features/draft/ban.css`) — see the room

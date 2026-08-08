@@ -87,6 +87,32 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     breakpoint in `css/pages/home/responsive.css`. Below it the modal's three columns stack,
     so `scrollPlanSectionIntoView` moves the sheet to the picker when a slot is selected
     and back to the pitch/bench after a player is assigned. It is a no-op on desktop.
+  - **Hovering a filled pitch or bench card floats the player's info** — the same
+    four metadata lines My Players prints under every card, drawn by the same
+    `playerDetailSublineHtml`, because 82px of artwork has no room for a footer.
+    One reused `.plan-hover-card` on `<body>` (`showPlanHover` / `hidePlanHover` /
+    `positionPlanHover` / `bindSlotHover`).
+    - **The slot row cannot supply the text.** `/api/game-plans/:id/players`
+      returns slot, role, name, position, overall, club and pesdb_id — no region,
+      nationality, league, foot or physicals — so rendering it directly gives one
+      line (the club) where there should be four; measured. `fullPlayerForSlot`
+      resolves it against `cb.getSquadPlayers()` on `player_id`, the squad list
+      the picker beside it is already reading. The room's `loadGamePlanIntoPicks`
+      matches the same rows against its own squad for the same reason.
+    - `hidePlanHover()` runs from `renderDetailSlots()` and `closePlanDetail()`.
+      Both renders replace their slot elements outright, so a hovered card is
+      detached without ever firing `mouseleave` and the panel would be left open
+      pointing at nothing.
+    - It is **not** wired on touch (`matchMedia("(hover: hover)")`): tapping a
+      slot means "select this slot", and a panel you then have to dismiss is in
+      the way.
+    - `positionPlanHover` tries right, then left, then under/over the card.
+      The third branch matters — clamping a too-far-left panel back to the
+      viewport edge slides it *over* the artwork it describes (measured: ideal
+      left `-4px` at a 560px viewport, clamped 12px into the card), and stacked
+      the modal is full-bleed so neither side has 236px. All four placements
+      measured at 1440/1280/1024/900/700/560/500: never covering the card,
+      always inside the viewport.
 - `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`
   and `initRoomHub`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;

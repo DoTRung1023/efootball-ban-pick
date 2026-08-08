@@ -7,8 +7,7 @@
  * then a simultaneous pick stage (see buildTurnSchedule).
  */
 
-import { GREEN, RED, LOBBY_PRESENCE_POLL_MS } from '@/features/draft/constants.js';
-import { getAllowanceCapViolation } from '@/features/draft/allowance.js';
+import { GREEN, RED } from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import {
@@ -18,7 +17,6 @@ import {
   normalizePickDurationSec,
 } from '@/features/draft/state.js';
 import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQuery.js';
-import { stopPresencePolling, pollPresence } from './presence.js';
 
 const FALLBACK_TURN_SECONDS = 60;
 const TIMER_TICK_MS = 250;
@@ -86,48 +84,37 @@ export const banLimit = (cfg) => asCount((cfg || defaultRoomConfig()).banCountPe
 export const pickLimit = (cfg) => asCount((cfg || defaultRoomConfig()).pickCountPerSide);
 
 /**
- * Applies a ban or pick to the local room copy so the UI updates immediately.
- * Returns false when the action is not allowed; the caller should not post it.
+ * Applies a ban to the local room copy so the UI updates immediately.
+ * Returns false when the ban is not allowed; the caller should not post it.
+ *
+ * **There is no pick equivalent.** A pick names its slot now, and
+ * `placePickInSlot` posts the whole lineup and takes the server's answer rather
+ * than guessing where the player will land — see `pick-phase.md`. This used to
+ * be `applyLocalAction`, with a second half that appended a pick to the first
+ * free slot and an allowance check that went with it.
  */
-export function applyLocalAction(room, player) {
+export function applyLocalBan(room, player) {
   const turn = state.schedule[room.turnIndex];
-  if (!turn) return false;
+  if (turn?.action !== "ban") return false;
 
   const mySide = state.mySide;
   if (!mySide) return false;
 
+  /* Bans are **per-side**: each player bans out of the opponent's squad, so the
+     opponent holding a ban is irrelevant to you. Only your own side can
+     conflict with itself. */
   const id = String(player.id);
-  const isBan = turn.action === "ban";
+  if ((room.bans?.[mySide] || []).some((b) => String(b.id) === id)) return false;
 
-  // A player may be banned by both sides, but picked by only one.
-  if (isBan) {
-    const myBanIds = (room.bans?.[mySide] || []).map((b) => String(b.id));
-    if (myBanIds.includes(id) || room.pickedPlayerIds.includes(id)) return false;
-  } else if (room.pickedPlayerIds.includes(id)) {
+  const maxBans = banLimit(room.config);
+  if (maxBans && (room.bans?.[mySide] || []).length >= maxBans) {
+    showToast("You already used all bans for your side.");
     return false;
   }
 
-  if (isBan) {
-    const maxBans = banLimit(room.config);
-    if (maxBans && (room.bans?.[mySide] || []).length >= maxBans) {
-      showToast("You already used all bans for your side.");
-      return false;
-    }
-    room.bans[mySide].push(player);
-    room.bannedPlayerIds.push(id);
-    maybeAutoAdvanceFromBan(room);
-    return true;
-  }
-
-  const violation = getAllowanceCapViolation(room, mySide, player);
-  if (violation) {
-    state.actionError = `${violation.label}: max ${violation.cap} card(s) allowed per side.`;
-    showToast(state.actionError);
-    return false;
-  }
-
-  room.picks[mySide].push(player);
-  room.pickedPlayerIds.push(id);
+  room.bans[mySide].push(player);
+  room.bannedPlayerIds.push(id);
+  maybeAutoAdvanceFromBan(room);
   return true;
 }
 
@@ -169,7 +156,11 @@ function handleTurnExpiry() {
     if (getDraftStage(room) === "ban") advanceDraftStage(room, "pick");
     cb.renderDraftUi();
   } else if (stage === "pick") {
-    beginPostDraftReadyPhase(room);
+    /* Time up confirms whatever you have, complete or not — the same shape as
+       the ban stage flushing what you staged. It does **not** jump to the ready
+       phase on its own any more: the server moves everyone once both sides are
+       confirmed, and both clocks run out together, so both confirmations land. */
+    void cb.confirmPicks(true);
     cb.renderDraftUi();
   }
 }
@@ -194,15 +185,19 @@ export function isBothMatchReady(room = state.room) {
   return Boolean(room?.matchReady?.host) && Boolean(room?.matchReady?.guest);
 }
 
-/** Closes the draft locally and switches polling back to the slower lobby cadence. */
-export function beginPostDraftReadyPhase(room = state.room) {
-  if (!room) return;
-  room.status = "await-ready";
-  room.turnEndsAt = null;
-  room.currentTurn = null;
-  room.matchReady = { host: false, guest: false };
+/**
+ * Switches this client into the ready phase.
+ *
+ * **The server decides when that happens** — `status: "await-ready"` arrives in
+ * a snapshot once *both* sides have confirmed their squads — so this moves local
+ * state only and leaves every room field to the snapshot that announced it. It
+ * replaces `beginPostDraftReadyPhase`, which wrote `status`, `turnEndsAt` and
+ * `matchReady` itself and so could carry one player into Start Match alone.
+ *
+ * Idempotent: `renderDraftUi` calls it on every poll while the phase holds.
+ */
+export function enterReadyPhase() {
+  if (state.phase === "ready") return;
   state.phase = "ready";
   clearTurnTimer();
-  stopPresencePolling();
-  state.presencePollId = setInterval(pollPresence, LOBBY_PRESENCE_POLL_MS);
 }

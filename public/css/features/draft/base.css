@@ -71,6 +71,11 @@
   --surface-sunken: rgba(6, 17, 26, 0.5);      /* inset blocks inside a card */
   --surface-control: rgba(10, 27, 43, 0.7);    /* inputs, steppers           */
   --surface-card: rgba(8, 21, 32, 0.84);       /* panel cards                */
+  /* Floating panels — dropdowns and popovers. The top rung, and the only one
+     that is near-opaque: every other surface sits *on* something, while this
+     one hangs over the board with the pitch showing through whatever it does
+     not cover. A translucent popover is unreadable, not layered.            */
+  --surface-popover: rgba(9, 23, 36, 0.97);
   --border: var(--g-line);
 
   --font-body: "Inter", system-ui, sans-serif;

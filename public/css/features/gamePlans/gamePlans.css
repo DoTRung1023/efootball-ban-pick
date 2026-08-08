@@ -610,6 +610,42 @@
   }
 }
 
+/* Hover info for a filled pitch or bench card: the same four metadata lines
+   My Players prints under every card, floated because 82px of artwork has no
+   room for a footer. `position: fixed` on `<body>`, so neither the pitch nor
+   the bench scroller can clip it.
+
+   Two things it must not do. **`pointer-events: none`** — sitting under the
+   cursor it would take the hover that opened it and flicker. And **opaque**
+   (`--bg-card-solid`): it hangs over the pitch and the picker list, and a
+   translucent panel over live content is the same unreadable mess the room's
+   formation dropdown was. */
+.plan-hover-card {
+  position: fixed;
+  z-index: 315;
+  width: 236px;
+  padding: 10px 12px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--green-glow-sm);
+  pointer-events: none;
+}
+
+.plan-hover-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.plan-hover-detail {
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.plan-hover-detail .pmeta-row + .pmeta-row { margin-top: 4px; }
+
 .plan-bench-list {
   flex: 1;
   overflow-y: auto;

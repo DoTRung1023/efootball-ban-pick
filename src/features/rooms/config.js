@@ -6,8 +6,14 @@
  * through POST /api/rooms/:code/config passes through the normalizers here.
  */
 
-export const PRESENCE_TTL_MS = 12000;
-export const DRAFT_PRESENCE_TTL_MS = 30000; // longer window so reload during draft doesn't expire
+/* There is no presence TTL. `PRESENCE_TTL_MS` (12s) and `DRAFT_PRESENCE_TTL_MS`
+   (30s) used to expire a participant whose heartbeat had lapsed, and expiring the
+   *host* closed the room outright — which a backgrounded browser tab was enough
+   to trigger. A seat is now only given up deliberately.
+
+   This one is unrelated: it is how long a quiet room stays on the admin
+   dashboard, and it ends nothing. */
+export const ROOM_LIST_QUIET_MS = 90000;
 
 export const DEFAULT_BAN_DURATION_SECONDS = 120;
 export const MIN_BAN_DURATION_SECONDS = 5;
@@ -17,8 +23,14 @@ export const DEFAULT_PICK_DURATION_SECONDS = 300;
 export const MIN_PICK_DURATION_SECONDS = 5;
 export const MAX_PICK_DURATION_SECONDS = 1200;
 
+/* Three rungs of concealment, in order: see everything → see the shape but not
+   who → see nothing but whether they are done. `blur` is the middle one and is
+   what `hidden` used to do on the pick board. */
 export const REVEAL_MODE_INSTANT = "instant";
+export const REVEAL_MODE_BLUR = "blur";
 export const REVEAL_MODE_HIDDEN = "hidden";
+
+const REVEAL_MODES = new Set([REVEAL_MODE_INSTANT, REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN]);
 
 /** Picks are fixed at a full squad. */
 export const PICK_COUNT_PER_SIDE = 23;
@@ -78,9 +90,8 @@ export function normalizePickDurationSec(raw) {
 }
 
 export function normalizeRevealMode(raw) {
-  return String(raw || "").trim().toLowerCase() === REVEAL_MODE_HIDDEN
-    ? REVEAL_MODE_HIDDEN
-    : REVEAL_MODE_INSTANT;
+  const mode = String(raw || "").trim().toLowerCase();
+  return REVEAL_MODES.has(mode) ? mode : REVEAL_MODE_INSTANT;
 }
 
 /** Accepts an object or a JSON string; returns a JSON string of {POSITION: cap} or "". */

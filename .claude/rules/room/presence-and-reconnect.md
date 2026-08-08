@@ -10,12 +10,39 @@ paths:
 # Room state, presence and reconnect
 
 **Room state is fully in-memory** (`roomPresence` Map in `src/features/rooms/store.js`). Room
-data does not persist across server restarts. Presence TTL is **12 s in lobby** and
-**30 s during an active draft** (`PRESENCE_TTL_MS` / `DRAFT_PRESENCE_TTL_MS` in
-`src/features/rooms/config.js`) — clients must POST `/api/rooms/:code/presence` every ~5 s to
-stay connected. The longer draft TTL gives enough headroom for a page reload without
-losing draft state. Real-time sync is polling-only; WebSocket integration is not yet
-implemented.
+data does not persist across server restarts. Real-time sync is polling-only; WebSocket
+integration is not yet implemented.
+
+## There is no presence TTL (do not add one back)
+
+Clients POST `/api/rooms/:code/presence` about twice a second, and it keeps
+`lastSeenAt` fresh for the "connected" dot — but **a lapsed heartbeat removes
+nobody**. A seat is only given up by an explicit action: Leave, Close room, or
+the host kicking the guest.
+
+It used to expire a participant after `PRESENCE_TTL_MS` (12 s, lobby) or
+`DRAFT_PRESENCE_TTL_MS` (30 s, mid-draft), and when the expired participant was
+the **host** it also set `closed = true` with reason "Host closed the room."
+Both clients then hit `showRoomClosed` and its 10 s countdown to `/`.
+
+That is a timer against a timer, and the heartbeat loses: it is a 500 ms
+`setInterval`, and **browsers throttle timers in background tabs to roughly once
+a minute.** Switching to another tab mid-pick was therefore enough to kill the
+room about 40 s later — reported as "the pick room automatically closes after
+50 s". Nothing was wrong with either client; the draft was simply deleted
+underneath them.
+
+`pruneStalePresence`, `presenceTtlFor`, `presenceFingerprint` and
+`presenceChanged` are all gone, along with the two TTL constants. What remains is
+`ROOM_LIST_QUIET_MS` (90 s) — **admin display only**. It decides how long a quiet
+room stays on the dashboard listing and ends nothing.
+
+The trade this makes: a player who closes their browser without pressing Leave
+holds their seat until the server restarts, so the other side waits instead of
+being told "opponent left". That is the right way round — the room outliving a
+player costs a manual Leave, while the old behaviour cost a draft in progress.
+The host can always kick the guest, and a room is never listed as active once it
+goes quiet.
 
 ## Room security
 
@@ -41,14 +68,35 @@ leak from a previous error. Do not set the classes directly.
   `tryEnterDraftFromRoomSnapshot` transitions directly to the draft view; otherwise the
   cache is cleared and the lobby is shown.
 - The cache is cleared on: `leavePresence()`, `showDone()`, `showRoomClosed()`,
-  `showOpponentLeft()`, and any failed reconnect.
+  `returnToLobby()`, and any failed reconnect.
 
-## Opponent departure
+## The guest leaving does not end the room
 
-`presence.js` detects opponent departure: if the guest disappears (`prevGuestId` present
-but `nextGuestId` absent) while `state.phase` is `"draft"` or `"ready"`, it sets
-`state.phase = "abandoned"`, stops polling, and calls `cb.onOpponentLeft()`. All
-cross-module render calls use `cb.*`.
+`presence.js` spots it the same way as before — `prevGuestId` present, `nextGuestId`
+absent, while `state.phase` is `"draft"` or `"ready"` — but what happens next is the
+opposite of what it used to be. **The host goes back to the lobby with the code intact**
+(`returnToLobby()`): phase back to `"lobby"`, the turn timer cleared, staged bans and
+any slot selection dropped, the phase cache cleared so a reload lands there too, a toast,
+and polling left running so a new guest appears in the matchup band the moment they join.
+
+It used to set `state.phase = "abandoned"`, stop polling and run a 10-second countdown to
+the home page — abandoning a room that still existed and still had its host in it. Both
+the ban board and the pick board come back this way; there is nothing phase-specific
+about it.
+
+The server does the matching half. `resetDraftToLobby()` in `store.js` puts the entry
+back to `status: "lobby"` and clears bans, picks, staged bans, both confirmation pairs,
+`bannedPlayerIds`, `matchReady` and `ready.guest`, so whoever joins next does not inherit
+half a draft. It runs from **both** `/leave` (guest branch) and `/kick-guest`, and returns
+whether there was a draft to cancel so the caller can say so in chat.
+
+**`showOpponentLeft` is gone**, along with `cb.onOpponentLeft` — nothing could reach
+them once this path stopped ending the session. The only exit screens left are the two
+that really are terminal: `showRoomClosed` and `showDone`.
+
+Only the *guest* slot can empty like this. A host leaving sets `closed = true`, which the
+`state.room.closed` branch earlier in `pollPresence` catches first and still sends
+everyone home. All cross-module render calls use `cb.*`.
 
 ## Leave button
 

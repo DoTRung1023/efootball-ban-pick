@@ -16,7 +16,7 @@ its `index.js` barrel is deliberately broad where other features' barrels are na
 
 | Folder | Holds |
 | --- | --- |
-| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerCards`, `filterOptions`, `sortPanel`, `errorView` |
+| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView` |
 | `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
 | `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens` |
 | `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
@@ -31,8 +31,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   import, which keeps the module graph acyclic. `room.js` installs the real
   implementations on boot; until then every entry is a no-op. Keys: `renderDraftUi`,
   `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `showDone`,
-  `showRoomClosed`, `onOpponentLeft`, `startDraftFromLobby`, `updateStageTabs`,
-  `flushAndSubmitStagedBans`.
+  `showRoomClosed`, `startDraftFromLobby`, `updateStageTabs`,
+  `flushAndSubmitStagedBans`, `confirmPicks`.
 - `api.js` — `postAsMe(action, body)` (fills in `requesterId`) / `getJson(url)`. Both
   resolve; none throw. `postRoomAction(action, body, code)` backs `postAsMe` and is
   module-private — go through `postAsMe` so the identity is always attached.
@@ -40,7 +40,7 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 ## Shared data
 
 - `state.js` — `state` singleton (includes `stagedBans[]`, `opponentStagedBans[]`,
-  `banFilterRegion[]`, `pickPosTab`, `pickManualFormation`, `mySquadPlayers[]`),
+  `banFilterRegion[]`, `pickManualFormation`, `mySquadPlayers[]`),
   `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`
   and the opponent's `stagedBans` from each snapshot), `buildTurnSchedule`, and the
   room-config normalisation helpers.
@@ -55,6 +55,14 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `FORMATION_LAYOUTS` / `DEFAULT_FORMATION` are re-exported from
   `@/shared/players/formations.js` — the home page's game-plan pitch renders the same
   table into the same `pitchRow*` ids, so there is one copy for both.
+- `playerFilters.js` — the 18-field filter panel, shared by the ban and pick
+  boards and parameterised by a `"ban"` / `"pick"` prefix: `createDraftFilterState`,
+  `applyDraftFilters`, `renderDraftFilterPanel`, `bindDraftFilterPanel`,
+  `resetDraftFilters`, `hasActiveDraftFilters`, plus `toValidPosition`. It is a
+  **leaf**: `state` is passed in rather than imported (state.js spreads
+  `createDraftFilterState()` into its own literal), and `escapeHtml` comes from
+  `shared/players/playerMeta.js` because `utils.js` imports `state`. See
+  `ban-phase.md` for the field tables.
 - `sortPanel.js` — `DRAFT_SORT_CATEGORIES` (the nine categories, in order),
   `sortCategoryLabel(key, { short })` and `renderSortPanel(panel, activeKey, dataAttr)`.
   Ban and pick both call it; only the `data-` attribute differs, and only the collapsed
@@ -66,7 +74,12 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `lobby/lobby.js` and `shell/exitScreens.js`. It sits at the root rather than in
   `shell/` because `exitScreens.js` imports `engine/presence.js`, so the other placement
   would be a cycle.
-- `players.js` — pure player-data helpers: `normalizeApiPlayer`,
+- `players.js` — pure player-data helpers, including the **slot-addressed picks**
+  set: `filledPicks`, `pickCount` and `buildOrderedSlotMap`.
+  `room.picks[side]` is indexed by pitch slot with `null` holes, so
+  `picks.length` is the highest filled slot rather than the number of picks —
+  reach for `pickCount()`. There is no `firstFreeSlot`: nothing on the client
+  appends a pick any more (see `pick-phase.md`). Also: `normalizeApiPlayer`,
   `normalizeMySquadPlayerForDraft`, `normalizeDraftPlayer`,
   `getPlayerCardValue`, `getPlayerImageSrc`, formation/slot utilities
   (`getFormationLayout`, `buildOrderedSlotMap`). It also re-exports
@@ -78,16 +91,23 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 ## Draft flow
 
 - `draftFlow.js` — the stage machine: `ensureDraftTimer`, `startTurnTimer` /
-  `clearTurnTimer`, `applyLocalAction` (optimistic local ban/pick, returns false when
-  disallowed), `isReadyPhase`, `banLimit` / `pickLimit`, `beginPostDraftReadyPhase`,
-  `isBothMatchReady`. The stage helpers `getDraftStage`, `advanceDraftStage`,
+  `clearTurnTimer`, `applyLocalBan` (optimistic local ban, returns false when
+  disallowed), `isReadyPhase`, `banLimit` / `pickLimit`, `enterReadyPhase`,
+  `isBothMatchReady`. `enterReadyPhase` replaced `beginPostDraftReadyPhase`: it
+  moves **local** state only, because the server now owns the transition — see
+  `pick-phase.md`. The stage helpers `getDraftStage`, `advanceDraftStage`,
   `maybeAutoAdvanceFromBan` and `getTurnDurationSec` drive the timer from inside this
   module and are private to it.
+  **There is no pick equivalent of `applyLocalBan`** — it was `applyLocalAction`
+  until picks stopped being optimistic; see `pick-phase.md`.
 - `draftActions.js` — user actions: `submitBan` (stages only), `confirmStagedBans`,
-  `flushAndSubmitStagedBans` (timer-expiry path), `submitPick`, `setGuestReady`,
-  `setMatchReady`. `flushStagedBansLocally`, `submitBansToApi` and `callBanConfirm` are
-  the internals of `confirmStagedBans` and are module-private. `submitPick` returns
-  early when `applyLocalAction` rejects the pick, so a cap violation is never posted.
+  `unconfirmBans`, `flushAndSubmitStagedBans` (timer-expiry path), `submitPick`,
+  `placePickInSlot`, `replaceMyPicks`, `confirmPicks`, `setGuestReady`,
+  `setMatchReady`, plus the two read-only guards `areBansLocked` /
+  `isLineupLocked`. `flushStagedBansLocally`,
+  `submitBansToApi` and `callBanConfirm` are the internals of `confirmStagedBans` and
+  are module-private. `submitPick` posts nothing on its own — it arms a card, and
+  `placePickInSlot` (called by it or by `initSlotControls`) is what writes.
 - `draftSession.js` — `tryEnterDraftFromRoomSnapshot` (lobby → draft transition, writes
   the `sessionStorage` phase cache) and `startDraftFromLobby` (host START; for the guest
   it toggles their ready flag).
@@ -105,18 +125,26 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
 - `readyView.js` — `renderReadyBoard()`: the Start Match columns and stat comparison.
-- `exitScreens.js` — `showRoomClosed`, `showOpponentLeft`, `showDone`. Both countdown
-  screens run for **10 seconds** before redirecting to `/`.
+- `exitScreens.js` — `showRoomClosed` and `showDone`, the only two terminal screens
+  left. The countdown runs for **10 seconds** before redirecting to `/`.
+  `showOpponentLeft` went when a guest leaving stopped ending the room — see
+  `presence-and-reconnect.md`.
 - `stageTabs.js` — `updateStageTabs()`: ban-setting → ban → pick → start indicator.
-- `gamePlans.js` — `loadDraftGamePlans`, `loadDraftGamePlanPlayers`, `getPickFormation`
-  (selected plan's formation → `state.pickManualFormation` → `DEFAULT_FORMATION`),
+- `gamePlans.js` — `loadDraftGamePlans` (fetches the list and selects **nothing**;
+  the pick board starts from scratch), `loadGamePlanIntoPicks` (LOAD GAME PLAN: formation + players, minus banned),
+  `getPickFormation` (now `state.pickManualFormation` alone — see `pick-phase.md`),
   `getSelectedPlan`.
 - `draftControls.js` — `initDraftControls()`, all draft-view event wiring.
 - `ban/` — the ban phase, split across `banView.js`, `banToolbar.js`,
   `banInteractions.js` and `opponentSquad.js`. The parts every phase uses moved to the
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
-  `attachMiniCardGridHandlers`, which serves both ban and pick. See `ban-phase.md`.
+  `attachMiniCardGridHandlers` **and** `bindGridInfoToggle` (SHOW INFO / HIDE
+  INFO), both of which serve ban and pick. `bindGridInfoToggle` is called from
+  each phase's `bind*PhaseUiOnce`, not on DOMContentLoaded: the pick grid does
+  not exist until its board first renders, so a load-time lookup found nothing
+  and silently did nothing. Its localStorage key is per-grid, so hiding info
+  while banning does not hide it while picking. See `ban-phase.md`.
 **Loading state is rendered inside the boards, not as an overlay.** The pick grid
 prints "Loading your squad..." off `state.loadingPlayers` and the ban grid "Loading
 opponent squad cards..." off `state.loadingOpponentBanPlayers`. There was also a

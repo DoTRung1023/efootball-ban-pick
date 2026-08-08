@@ -34,8 +34,10 @@ Style rules that define the look:
   plus a large soft black shadow on raised panels. Grey material-style elevation is off-brand.
 - **Colour carries meaning** (see §3). Green is never "just decoration" — it means *you*.
 - **Glass surfaces.** Panels are translucent dark fills over the ambient background, often
-  with `backdrop-filter: blur(20px)`. Sticky surfaces are the exception — they need the
-  opaque `--bg-card-solid`.
+  with `backdrop-filter: blur(20px)`. Two exceptions, both because there is live content
+  directly behind them rather than backdrop art: sticky surfaces need the opaque
+  `--bg-card-solid`, and floating panels — dropdowns, popovers — need
+  `--surface-popover`. A menu you can read the page through is unreadable, not layered.
 - **Wide-tracked uppercase display type** for anything label-like: nav tabs, kickers,
   buttons, stage names, badges.
 
@@ -154,6 +156,7 @@ intermediate rung is how the drift starts: pick the closest existing one.
   --surface-sunken: rgba(6, 17, 26, 0.5);      /* inset blocks inside a card */
   --surface-control: rgba(10, 27, 43, 0.7);    /* inputs, steppers           */
   --surface-card: rgba(8, 21, 32, 0.84);       /* panel cards                */
+  --surface-popover: rgba(9, 23, 36, 0.97);    /* dropdowns — near-opaque    */
   --border: var(--g-line);
 }
 ```

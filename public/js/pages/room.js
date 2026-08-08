@@ -12,12 +12,12 @@ import {
   getRoomCodeFromUrl,
   isBothMatchReady,
   flushAndSubmitStagedBans,
+  confirmPicks,
   renderDraftUi,
   initDraftControls,
   startDraftFromLobby,
   tryEnterDraftFromRoomSnapshot,
   showDone,
-  showOpponentLeft,
   showRoomClosed,
   updateStageTabs,
   initLobby,
@@ -52,10 +52,10 @@ cb.tryEnterDraftFromRoomSnapshot = tryEnterDraftFromRoomSnapshot;
 cb.isBothMatchReady = isBothMatchReady;
 cb.showDone = showDone;
 cb.showRoomClosed = showRoomClosed;
-cb.onOpponentLeft = showOpponentLeft;
 cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;
 cb.flushAndSubmitStagedBans = flushAndSubmitStagedBans;
+cb.confirmPicks = confirmPicks;
 
 // ── Boot ─────────────────────────────────────────────────────
 

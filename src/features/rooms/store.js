@@ -2,14 +2,14 @@
  * In-memory room state.
  *
  * Rooms live only in this process — nothing is persisted, so all room data is
- * lost on restart. Presence is keep-alive based: clients POST /presence every
- * ~5s and a participant is dropped once their last heartbeat exceeds the TTL
- * for the room's current status.
+ * lost on restart. Clients POST /presence roughly twice a second, which keeps
+ * `lastSeenAt` fresh for the "connected" dot, but **a lapsed heartbeat no longer
+ * removes anyone**: a seat is only ever given up by an explicit Leave, Close
+ * room, or kick. See presence-and-reconnect.md.
  */
 
 import {
-  DRAFT_PRESENCE_TTL_MS,
-  PRESENCE_TTL_MS,
+  ROOM_LIST_QUIET_MS,
   createDefaultRoomConfig,
   normalizeRoomConfig,
 } from "./config.js";
@@ -18,7 +18,6 @@ import {
 export const roomPresence = new Map();
 
 const MAX_CHAT_MESSAGES = 150;
-const DRAFTING_STATUSES = ["drafting", "await-ready"];
 
 export const ROOM_STATUS = {
   LOBBY: "lobby",
@@ -51,8 +50,8 @@ function createRoomEntry() {
     picks: { host: [], guest: [] },
     stagedBans: { host: [], guest: [] },
     bansConfirmed: { host: false, guest: false },
+    picksConfirmed: { host: false, guest: false },
     bannedPlayerIds: [],
-    pickedPlayerIds: [],
     ready: { guest: false },
     matchReady: { host: false, guest: false },
     chat: [],
@@ -83,8 +82,8 @@ export function ensureRoomEntry(code) {
   if (!entry.matchReady) entry.matchReady = { host: false, guest: false };
   if (!entry.stagedBans) entry.stagedBans = { host: [], guest: [] };
   if (!entry.bansConfirmed) entry.bansConfirmed = { host: false, guest: false };
+  if (!entry.picksConfirmed) entry.picksConfirmed = { host: false, guest: false };
   if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
-  if (!Array.isArray(entry.pickedPlayerIds)) entry.pickedPlayerIds = [];
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
   if (entry.kickedGuestId === undefined) entry.kickedGuestId = "";
@@ -134,12 +133,12 @@ export function serializeRoomEntry(entry) {
     picks: entry.picks || { host: [], guest: [] },
     stagedBans: entry.stagedBans || { host: [], guest: [] },
     bansConfirmed: entry.bansConfirmed || { host: false, guest: false },
+    picksConfirmed: entry.picksConfirmed || { host: false, guest: false },
     guest: serializeParticipant(entry.guest),
     status: String(entry.status || ROOM_STATUS.LOBBY),
     turnIndex: Number.isFinite(Number(entry.turnIndex)) ? Number(entry.turnIndex) : 0,
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
     bannedPlayerIds: Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : [],
-    pickedPlayerIds: Array.isArray(entry.pickedPlayerIds) ? entry.pickedPlayerIds : [],
     config: entry.config,
     ready: entry.ready,
     matchReady: entry.matchReady,
@@ -167,10 +166,6 @@ export function emptyRoomSnapshot() {
   };
 }
 
-function isDrafting(entry) {
-  return DRAFTING_STATUSES.includes(String(entry.status || ""));
-}
-
 /** Turn index during a draft: 0 = simultaneous bans, 1 = simultaneous picks. */
 const TURN_INDEX_PHASE = { 0: "ban", 1: "pick" };
 
@@ -192,33 +187,53 @@ export function isActiveDraft(entry) {
   return String(entry.status || "") === ROOM_STATUS.DRAFTING;
 }
 
-/** Rooms are listed until they are closed or have gone quiet for 3× the draft TTL. */
+/** Rooms are listed until they are closed or have gone quiet. Admin display only —
+    this hides a stale room from the dashboard, it does not end it. */
 export function listActiveRooms(now = Date.now()) {
-  const cutoff = DRAFT_PRESENCE_TTL_MS * 3;
   return [...roomPresence.entries()].filter(
-    ([, entry]) => !entry.closed && now - entry.updatedAt < cutoff,
+    ([, entry]) => !entry.closed && now - entry.updatedAt < ROOM_LIST_QUIET_MS,
   );
 }
 
-/** TTL depends on status: a draft tolerates a page reload, the lobby does not. */
-function presenceTtlFor(entry) {
-  return isDrafting(entry) ? DRAFT_PRESENCE_TTL_MS : PRESENCE_TTL_MS;
-}
+/* There is no `pruneStalePresence`, and no presence TTL. A participant is only
+   ever removed by an explicit action — Leave, Close room, or the host kicking
+   the guest.
 
-/** Drops participants whose heartbeat has expired. A missing host closes the room. */
-export function pruneStalePresence(entry, now = Date.now()) {
-  const ttl = presenceTtlFor(entry);
-  if (entry.host?.lastSeenAt && now - Number(entry.host.lastSeenAt) > ttl) {
-    pushSystemChat(entry, `${entry.host.username || "Host"} left the room.`);
-    entry.host = null;
-    entry.closed = true;
-    entry.closeReason = "Host closed the room.";
-  }
-  if (entry.guest?.lastSeenAt && now - Number(entry.guest.lastSeenAt) > ttl) {
-    pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
-    entry.guest = null;
-    entry.ready.guest = false;
-  }
+   It used to drop anyone whose heartbeat was older than 12s in the lobby or 30s
+   mid-draft, and when that was the *host* it also set `closed = true`, which
+   sent both clients to the "Room closed" screen and its 10s countdown. The
+   heartbeat is a 500ms `setInterval`, and browsers throttle timers in
+   background tabs to roughly once a minute — so switching to another tab during
+   a pick killed the room about 40s later, through no fault of the players. See
+   presence-and-reconnect.md. */
+
+/**
+ * Puts a room back to the pre-draft lobby, keeping its code and its host.
+ *
+ * Called when the guest goes — by leaving or by being kicked. A draft cannot
+ * continue with one player, but **the room is fine**: the host stays put and can
+ * invite somebody else, which is what the code is for. Sending the host home
+ * instead abandoned a room that still existed.
+ *
+ * Everything the departed guest touched is cleared, so whoever joins next does
+ * not inherit half a draft. Returns true if there was a draft to reset.
+ */
+export function resetDraftToLobby(entry) {
+  const wasDrafting = String(entry.status || "") !== ROOM_STATUS.LOBBY;
+
+  entry.status = ROOM_STATUS.LOBBY;
+  entry.turnIndex = 0;
+  entry.turnEndsAt = null;
+  entry.bans = { host: [], guest: [] };
+  entry.picks = { host: [], guest: [] };
+  entry.stagedBans = { host: [], guest: [] };
+  entry.bansConfirmed = { host: false, guest: false };
+  entry.picksConfirmed = { host: false, guest: false };
+  entry.bannedPlayerIds = [];
+  entry.matchReady = { host: false, guest: false };
+  entry.ready.guest = false;
+
+  return wasDrafting;
 }
 
 /** Returns "host", "guest", or null for the participant matching `requesterId`. */
@@ -230,12 +245,7 @@ export function resolveSide(entry, requesterId) {
   return null;
 }
 
-/** Captures the fields that pruning can change, so callers can detect a real transition. */
-export function presenceFingerprint(entry) {
-  return [
-    entry.host?.id ? String(entry.host.id) : "",
-    entry.guest?.id ? String(entry.guest.id) : "",
-    Number(entry.host?.lastSeenAt || 0),
-    Number(entry.guest?.lastSeenAt || 0),
-  ];
-}
+/* `presenceFingerprint` went with the pruning. It existed so a caller could tell
+   whether a prune had actually changed the seats; nothing changes the seats
+   behind a request's back any more, so every caller compared a value with
+   itself. */

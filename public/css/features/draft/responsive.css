@@ -157,13 +157,19 @@
 
   .pick-phase-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
 
-  /* Quick-load: plan cards scroll on their own row, formation button below. */
-  .pick-quickload-bar { flex-wrap: wrap; }
-  .pick-ql-cards { flex: 1 1 100%; order: 3; }
-  .pick-ql-formation-wrap { margin-left: auto; }
+  .pick-opp-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
 
   .ban-phase-left,
   .pick-phase-left,
   .pick-phase-center,
   .pick-phase-right { padding: 8px; }
+
+  /* The formation dropdown flips to opening leftward from its button. It is the
+     second control in `.pick-plan-row`, so at 320px it starts ~201px in and its
+     156px of list ran 37px off the right edge of the screen. There is no room
+     to its right at this width and plenty to its left. */
+  .pick-formation-panel {
+    left: auto;
+    right: 0;
+  }
 }

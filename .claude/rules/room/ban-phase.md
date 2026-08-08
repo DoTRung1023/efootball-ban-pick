@@ -70,6 +70,13 @@ the measurement cannot feed back into what it sets.
 - Clicking a player card in the ban grid calls `submitBan(player)` which **stages** the
   ban in `state.stagedBans[]` and calls `renderDraftUi()` — **no API call at this
   point.** Staged bans appear in the MY BANS strip alongside confirmed bans.
+- **CONFIRM BANS is a toggle, and stays enabled once confirmed.** While you wait
+  for the opponent the label reads UN-CONFIRM and `unconfirmBans()` posts
+  `ban-confirm { confirmed: false }`. The server hands that side's bans back as
+  **staged** ones — so the strip's × and counter, which put them there, can take
+  them away again, and re-confirming is the same button it always was. It used
+  to disable itself on confirm, which left a page reload as the only way back.
+  While confirmed the grid's cards are not clickable and the server 409s `/ban`.
 - `confirmStagedBans()` (CONFIRM BANS button) flushes the staged array via
   `flushStagedBansLocally()` + `submitBansToApi()` (`POST /api/rooms/:code/ban`), then
   calls `callBanConfirm()` → `POST /api/rooms/:code/ban-confirm`. The server marks
@@ -80,11 +87,15 @@ the measurement cannot feed back into what it sets.
   `!isBanPhase && !state.turnTimer` and starts it on the next render cycle.
 - **Duplicate-ban prevention** uses only the current user's own bans: the server checks
   `entry.bans[sideKey]` (not the shared `bannedPlayerIds` union); the client checks
-  `room.bans[mySide]` in both `applyLocalAction` and `submitBan`. The ban grid renderer
+  `room.bans[mySide]` in both `applyLocalBan` and `submitBan`. The ban grid renderer
   computes `myConfirmedBanIds` from `room.bans[mySide]` — a card is greyed out only if
   YOU already confirmed that ban, not if the opponent banned it. `bannedPlayerIds` (the
   union of all bans) is still maintained in `entry`/`room` for other uses but is no
   longer the authority for ban-phase duplicate detection.
+- **Picks work the same way**, and did not always: they were globally exclusive
+  through a `pickedPlayerIds` union, which has since been removed entirely. See
+  `pick-phase.md`. The ban grid no longer carries a "picked" flag at all — bans
+  are resolved before any pick exists, so it was always dead.
 - Staged bans sync to the opponent in real-time via the presence heartbeat:
   `registerPresence()` sends `state.stagedBans` as `{ id, name }` objects; the server
   stores them under `entry.stagedBans[role]` and returns them in the snapshot.
@@ -104,8 +115,12 @@ sorted/filtered order + ban/pick flags + turn state) is stored as a `data-state-
 whitespace and drop the `/` on void elements (`<img />` → `<img>`) when serializing, so
 the strings never match and the grid would rebuild every poll cycle.
 
-- The ban grid state key uses `myConfirmedBanIds` (`"b"` suffix), staged ban IDs (`"s"`
-  suffix), and picked IDs (`"p"` suffix).
+- The ban grid state key uses `myConfirmedBanIds` (`"b"` suffix) and staged ban IDs
+  (`"s"` suffix). There is no picked flag — bans are resolved before any pick exists.
+  Because the flags are *in* the key, staging a ban rebuilds the whole grid. The
+  pick grid no longer works this way: it keys on the player list alone and repaints
+  flags in place, which is what stopped its roster jumping on every pick. See
+  `pick-phase.md`; the ban grid would benefit from the same treatment.
 - The BANS ON ME strip key encodes confirmed bans (`"c"` suffix), opponent staged bans
   (`"s"` suffix), and the remaining empty-slot count — all three must agree before a
   write is skipped.
@@ -121,27 +136,48 @@ Related invariants:
 
 ## Filter & sort
 
-- `getBanListPlayers()` filters `state.opponentBanPlayers` entirely client-side — 16
-  filter state fields cover position, foot, playing style, card type, league, region,
-  overall level 1/max ranges, club, nationality, height/weight/age ranges.
-- Sort supports 9 categories: overall_max, overall, name, position, club, nationality,
-  height, weight, age. They are declared once, in `DRAFT_SORT_CATEGORIES`
-  (`../sortPanel.js`); `normalizeSortValue()` derives its accepted values from that table
-  and `renderSortPanel()` builds both phases' panels from it. The ban toolbar used to
-  keep its own label map that was missing `club` and `nationality`, so picking either
-  showed "Overall Max" on the button — deriving the label from the table fixed that.
-- `LEAGUE_OPTIONS` is a module-level mutable array populated by
-  `fetchFilterOptions()` alongside `CARD_TYPE_OPTIONS`, `PLAYING_STYLE_OPTIONS`,
-  `REGION_OPTIONS`. All are fetched from `GET /api/players/filter-options`.
-- `comparePlayersBySort()` reads `height/weight/age` from both `player._raw.*` and
-  top-level fields — ban players from `/api/my-players` store these at the top level
-  (not under `_raw`).
-- The filter dropdown panel is grouped into 4 labelled sections — **IDENTITY**
-  (Position, Card Type, Playing Style, Foot), **STATS** (Overall Level 1, Overall Max),
-  **CLUB & ORIGIN** (League, Region, Club, Nationality), **PHYSICAL** (Age, Height,
-  Weight) — using `.filter-group-label` dividers. Built in `renderBanToolbar()` and
-  event-delegated in `bindBanPhaseUiOnce()` (runs once; guarded by `state.banUiBound`).
-  Clearing all filters resets all 16 state fields.
+**The 18-field filter is shared with the pick board** — `playerFilters.js` at the
+draft root owns the field tables, the panel markup, the event wiring and the
+predicate, parameterised by a `prefix` of `"ban"` or `"pick"`. The prefix names
+both the state keys (`banFilterClub` / `pickFilterClub`) and the element ids
+(`banFcClub` / `pickFcClub`). Adding a filter means adding one row to
+`MULTI_FILTERS`, `RANGE_FILTERS` or `TEXT_FILTERS`; markup, clearing, the
+active-dot and filtering all follow from it.
+
+Two import constraints keep that module a leaf, and both matter:
+
+- **`state` is passed in, never imported.** `state.js` spreads
+  `createDraftFilterState()` into its own literal, so importing `state` there
+  would be a cycle. `shared/players/filterPanel.js` takes `state` the same way.
+- `escapeHtml` comes from `shared/players/playerMeta.js`, not the draft's own
+  `utils.js`, because `utils.js` imports `state`.
+
+`toValidPosition` lives there too, next to the table that uses it. It coerces a
+*single* value to a valid position or `""` — not to be confused with
+`normalizePositionValue` in allowance.js, which takes a comma-separated list and
+returns an array.
+
+Per-phase pieces that remain:
+
+- `getBanListPlayers()` / `getPickListPlayers()` in `playerQuery.js` are both
+  thin wrappers over one `queryPlayers(base, { search, sort, prefix })`. Only the
+  source array and the search field differ.
+- Sort supports 9 categories declared once in `DRAFT_SORT_CATEGORIES`
+  (`../sortPanel.js`); `normalizeSortValue()` derives its accepted values from
+  that table and `renderSortPanel()` builds both phases' panels from it.
+- `LEAGUE_OPTIONS` is a module-level mutable array filled at runtime by
+  `fetchFilterOptions()`, which is why `playerFilters.js` reads every option list
+  through a thunk rather than capturing it at module load.
+- `comparePlayersBySort()` reads `height/weight/age` from both `player._raw.*`
+  and top-level fields — ban players from `/api/my-players` store these at the
+  top level, not under `_raw`.
+- The panel is grouped into 4 labelled sections — **IDENTITY**, **STATS**,
+  **CLUB & ORIGIN**, **PHYSICAL** — with `.filter-group-label` dividers, matching
+  the catalog page.
+
+The ban toolbar keeps a pair of hidden `<select>`s (`#banSort`, `#banPosition`)
+as its sort source of truth; the pick toolbar drives `state.pickSort` directly.
+
 ## Removed: the "Consult this plan" reference panel
 
 `.ban-phase-right` used to carry a third `.ban-side-section` (`#banPlanSection`) showing
@@ -153,4 +189,5 @@ their only consumer).
 The sidebar is now BANS ON ME → MY BANS → CONFIRM BANS, and the two ban strips stretch
 to fill the column. The pick phase's own plan chips and live pitch are unaffected — they
 are a separate feature and still use `gamePlans.js`
-(`state.draftGamePlanSelectedId`, `loadDraftGamePlanPlayers`).
+(`state.draftGamePlanSelectedId`, `loadGamePlanIntoPicks`). `loadDraftGamePlanPlayers`
+and `state.draftGamePlanPlayers` went with the panel — they had no reader left.

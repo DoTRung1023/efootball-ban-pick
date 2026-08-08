@@ -53,6 +53,13 @@ self-test will not tell you so.
 - `bindings` only considers names that some module in the project exports, and
   its `(?<![\w$.])` lookbehind also excludes `...NAME`, so a spread-prefixed use
   is missed.
+- **`bindings` is about *imports*, not scope.** A plain undeclared local sails
+  straight through. Deleting a `const` and leaving its uses behind passed all
+  seven checks and threw `ReferenceError: picked is not defined` on the first
+  render, which left the ban board stuck on "Loading opponent squad cards..."
+  forever — the throw aborts `renderDraftUi` before the grid is written, and it
+  happens again on every 500 ms poll. **Deleting a variable is exactly the edit
+  this gate cannot see; re-read the whole function afterwards.**
 - `dead-css` treats a class as used if its token appears in **any** HTML or JS
   file, and treats any class starting with a literal prefix that precedes a `${`
   as possibly interpolated. Both are the safe direction: what it reports is a
@@ -63,6 +70,29 @@ self-test will not tell you so.
   read as dangling.
 - None of this checks behaviour. It cannot tell you the draft still works — for
   that, run one.
+
+## Catching what the static gate cannot: run the render paths
+
+A `ReferenceError` in a render function is invisible to every check above and
+obvious the moment the function actually executes. The cheap way to execute them
+is to serve the real page and call the real renderers against a stub room:
+
+1. Copy `public/room.html`, strip its `<script type="module" src=…>` entry, and
+   append a module script that imports `state.js` + the three board renderers.
+2. Write the copy to `public/__smoke.html` and load it over
+   **`http://localhost:3000`**, not `file://` — Chrome blocks ES module imports
+   from `file://`, and the page comes back blank with no error, which reads as a
+   pass.
+3. Build a stub `room` (both sides, some bans, a `picks` array **with a `null`
+   hole in it**), assign `state.room` / `mySide` / `phase` / `schedule` /
+   `opponentBanPlayers` / `players`, then call each renderer inside a try/catch
+   and print the results into a `<pre>`.
+4. Delete `public/__smoke.html` afterwards — it is inside the served directory.
+
+Assert node counts, not just absence of errors: a renderer that throws leaves the
+grid at **0** cards, so `banGrid cards: 3` is the signal that it really ran. And
+prove the harness fails: reintroduce the defect and confirm it reports `FAIL`
+before trusting a pass.
 
 ## What is deliberately not here
 

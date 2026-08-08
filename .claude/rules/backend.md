@@ -43,8 +43,10 @@ Supporting modules:
 - `features/rooms/store.js` — the in-memory `roomPresence` Map plus every helper that
   reads or mutates it (`ensureRoomEntry`, `serializeRoomEntry`, `roomPhase`,
   `listActiveRooms`, `pruneStalePresence`, `resolveSide`, …).
-- `features/rooms/config.js` — TTL and duration constants, reveal modes,
-  `PICK_COUNT_PER_SIDE`, and all room-config / allowance-cap normalisation.
+- `features/rooms/config.js` — duration constants, the three reveal modes,
+  `ROOM_LIST_QUIET_MS`, `PICK_COUNT_PER_SIDE`, and all room-config /
+  allowance-cap normalisation. **No presence TTL** — see
+  `room/presence-and-reconnect.md`.
 - `features/players/catalogQuery.js` — `CATALOG_COLUMNS`, `buildCatalogFilter`,
   `resolveSortOrder`. The `SORT_MAP` and `POS_GROUPS` tables behind them are
   module-private.

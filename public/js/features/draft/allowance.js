@@ -556,7 +556,8 @@ export function getAllowanceCapViolation(room, side, player) {
   const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
   const allowance = cfg.allowance || {};
   const caps = cfg.allowanceCaps || {};
-  const sidePicks = Array.isArray(room?.picks?.[side]) ? room.picks[side] : [];
+  // slot-addressed: skip the holes, they are empty pitch slots
+  const sidePicks = (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
 
   for (const key of enabled) {
     if (key === "position") {

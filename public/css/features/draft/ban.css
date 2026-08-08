@@ -63,25 +63,18 @@
   background: rgba(0, 0, 0, 0.12);
 }
 
+/* There is one thumb size. Keep the `96px` **fallback**: a thumb rendered
+   outside .ban-phase-right has no --ban-slot-h in scope, and without it the
+   declaration is invalid and the height is dropped entirely. */
+
 .ban-phase-thumb {
   flex: 0 0 auto;
+  height: var(--ban-slot-h, 96px);
   border-radius: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(17, 44, 68, 0.35);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
-}
-
-/* Fallback keeps the natural size for any --md thumb rendered outside
-   .ban-phase-right, where --ban-slot-h is not in scope. */
-
-.ban-phase-thumb--md {
-  height: var(--ban-slot-h, 96px);
-}
-
-.ban-phase-thumb--lg {
-  width: 94px;
-  height: 124px;
 }
 
 .ban-phase-thumb img {
@@ -201,14 +194,19 @@
   color: var(--text-muted);
 }
 
-/* Status hint line under MY BANS header */
+/* Status hint line in the panel footer, above CONFIRM BANS.
 
-/* Sits in the panel footer above CONFIRM BANS. Collapsed while empty so the
-   button sits tight under the section divider — otherwise the reserved row plus
-   the footer gap add 22px of dead space, which is the common state.
-   Collapsing cannot cause a mis-click: this is non-empty only when the user has
-   already confirmed, and CONFIRM BANS is disabled in exactly that case (see
-   renderMyBansStatus / renderConfirmButton in banView.js). */
+   **Always in flow, exactly one line tall, with or without text** — `min-height`
+   matches `font-size × line-height` (10 × 1.4). It used to carry
+   `:empty { display: none }`, which took the line out of the column entirely
+   while empty; the footer then grew by this line *plus* the column's 8px gap the
+   moment "Waiting for opponent…" appeared, and the space between the section
+   divider and the button visibly jumped on confirm.
+
+   The old collapse was deliberate — it bought 22px back in the unconfirmed
+   state, which is the common one. Reserving the row spends that 22px
+   permanently, and a stable footer is worth more than the space. Do not put
+   `:empty { display: none }` back. */
 
 .ban-status-hint {
   font-size: 10px;
@@ -218,10 +216,6 @@
   min-height: 14px;
   line-height: 1.4;
   text-align: center;
-}
-
-.ban-status-hint:empty {
-  display: none;
 }
 
 .ban-status-hint.is-confirmed {
@@ -407,7 +401,7 @@
   top: calc(100% + 6px);
   left: 0;
   z-index: 500;
-  background: rgba(9, 23, 36, 0.97);
+  background: var(--surface-popover);
   border: 1px solid var(--border);
   border-radius: 10px;
   backdrop-filter: blur(20px);
@@ -718,11 +712,27 @@
   position: relative;
 }
 
+/* `aspect-ratio` is load-bearing, and not for looks: it is what gives a card a
+   height *before* its image has one.
+
+   These images carry no width/height attributes and are `loading="lazy"`, so
+   without a declared ratio a card is only as tall as its footer until the image
+   arrives — even from cache, which is still asynchronous. Every rebuild of a
+   card grid makes brand-new `<img>` elements, so the whole grid collapses for a
+   frame, the scroller clamps `scrollTop` to the shorter content, and the list
+   jumps upward and stays there. Measured on a 40-card pick grid: card 244 →
+   111px, `.pc-img-wrap` 154 → 20px, grid 3526 → 1658px, and **scrollTop 600 →
+   334**.
+
+   240 × 339 is the intrinsic size of a pesdb card PNG — the same ratio
+   `.pick-slot` and `.ban-side-empty-slot` use. `object-fit: cover` was already
+   here, so art that ever deviates crops rather than distorts. */
+
 .pc-img-wrap img {
   width: 100%;
   height: auto;
+  aspect-ratio: 240 / 339;
   display: block;
-  /* Keep cover behavior but use natural height so rows size correctly */
   object-fit: cover;
   object-position: center;
   background: transparent;
@@ -924,12 +934,6 @@
   padding: 14px;
 }
 
-.draft-panel--ban-phase{
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 /* Outer panel for ban-phase removed — no enclosing rectangle */
 
 .draft-panel--ban-phase {
@@ -1055,31 +1059,38 @@
   background: rgba(44, 207, 117, 0.55);
 }
 
-/* Empty state: show a single dashed placeholder slot */
+/* Empty state: dashed placeholders standing in for the bans not yet made.
+
+   A placeholder must occupy *exactly* the box a real thumb will, or the strip's
+   wrapped rows stop lining up as bans land. `aspect-ratio` alone does not get
+   there: a thumb's 1px hairline sits outside the art, so its layout box is
+   `2px + ratio × (H − 2px)` wide, ~0.6px more than `ratio × H`. Mirror the
+   thumb's box model instead — same 1px inset, same 240 × 339 card ratio as
+   `--ban-slot-h` drives on `.ban-phase-thumb`.
+
+   Both selectors share one block on purpose. They are the same placeholder, and
+   when they were written out twice the pseudo-element quietly drifted 3px
+   larger: `* { box-sizing: border-box }` in base.css does not match
+   `::before`, so its dashed border fell outside the declared size. */
 
 .ban-side-strip:empty {
   align-items: flex-start;
 }
 
-.ban-side-strip:empty::before {
-  content: '';
-  display: block;
-  height: var(--ban-slot-h, 96px);
-  aspect-ratio: 68 / 96;
-  width: auto;
-  border-radius: 0;
-  border: 1.5px dashed rgba(255, 60, 60, 0.25);
-  background: rgba(255, 60, 60, 0.02);
-}
-
+.ban-side-strip:empty::before,
 .ban-side-empty-slot {
+  box-sizing: border-box;
   height: var(--ban-slot-h, 96px);
-  aspect-ratio: 68 / 96;
-  width: auto;
+  width: calc(2px + (var(--ban-slot-h, 96px) - 2px) * 240 / 339);
   border-radius: 0;
   flex-shrink: 0;
   border: 1.5px dashed rgba(255, 60, 60, 0.25);
   background: rgba(255, 60, 60, 0.02);
+}
+
+.ban-side-strip:empty::before {
+  content: '';
+  display: block;
 }
 
 /* Empty pending selection: dashed card-shaped placeholder */
@@ -1105,12 +1116,6 @@
 }
 
 /* Full-width action buttons at the bottom of the confirm section */
-
-.ban-side-actions {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
 
 .ban-side-actions .btn {
   flex: 1;

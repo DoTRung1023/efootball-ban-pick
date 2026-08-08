@@ -86,10 +86,27 @@ export function normalizeApiPlayer(p) {
   };
 }
 
+/* ── Slot-addressed picks ─────────────────────────────────────
+   `room.picks[side]` is indexed by pitch slot, and an empty slot is a `null`
+   hole — so removing a player leaves his slot empty rather than sliding
+   everyone after him along. Every count therefore has to skip holes; reaching
+   for `.length` gives the highest filled slot, not the number of picks. */
+
+/** The players actually in the lineup, holes dropped. */
+export const filledPicks = (picks) => (Array.isArray(picks) ? picks.filter(Boolean) : []);
+
+/** How many players are in the lineup. Use this, never `picks.length`. */
+export const pickCount = (picks) => filledPicks(picks).length;
+
+/* There is no `firstFreeSlot` here any more, and no "first hole, else the end"
+   rule anywhere: every pick names its slot (see pick-phase.md). The append
+   route it served went with it. */
+
+/** Slot number (1-based) → player, holes omitted so empty slots render empty. */
 export function buildOrderedSlotMap(players) {
   const map = {};
   (players || []).forEach((player, idx) => {
-    map[idx + 1] = normalizeDraftPlayer(player);
+    if (player) map[idx + 1] = normalizeDraftPlayer(player);
   });
   return map;
 }

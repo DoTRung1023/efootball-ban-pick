@@ -2,8 +2,9 @@ import { LOBBY_PRESENCE_POLL_MS } from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { applyPresenceSnapshot } from '@/features/draft/state.js';
-import { getUser, getAnonId, getCurrentIdentity, showView } from '@/features/draft/utils.js';
+import { getUser, getAnonId, getCurrentIdentity, showToast, showView } from '@/features/draft/utils.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
+import { clearTurnTimer } from './draftFlow.js';
 
 export function clearRoomPhaseCache(code) {
   try { if (code) sessionStorage.removeItem(`efb_room_${code}_phase`); } catch { /* ignore */ }
@@ -98,6 +99,27 @@ export function stopPresencePolling() {
   }
 }
 
+/**
+ * Back to the lobby with the room still ours — the draft is over, the room is
+ * not. Polling continues, so the moment a new guest joins the host sees them in
+ * the matchup band exactly as the first time.
+ *
+ * The phase cache goes too: it is what makes a reload skip the lobby, and after
+ * this the lobby is precisely where a reload should land.
+ */
+function returnToLobby() {
+  clearRoomPhaseCache(state.room?.code);
+  clearTurnTimer();
+  state.phase = "lobby";
+  state.stagedBans = [];
+  state.opponentStagedBans = [];
+  state.pickActiveSlot = null;
+  state.pickPendingPlayerId = null;
+  showToast("Your opponent left. Invite someone else to start again.");
+  showView("viewLobby");
+  cb.renderLobby();
+}
+
 export async function pollPresence() {
   if (!state.room?.code) return;
   // Allow presence polling during lobby, ready, and draft so clients stay in sync
@@ -131,11 +153,17 @@ export async function pollPresence() {
       prevChatLen !== nextChatLen;
     const configChanged = nextUpdatedAt > prevUpdatedAt;
 
-    // During draft/ready phase, detect the guest leaving (non-host player disappeared).
+    /* The guest left (or was kicked) mid-draft. The **room** did not go anywhere
+       — the host still holds the code — so drop back to the lobby and keep
+       polling for somebody new, rather than running a countdown to the home page
+       and abandoning a room that still exists. The server has already reset the
+       draft; this just follows it. Both the ban and the pick board come back
+       here the same way.
+
+       Only the guest slot can empty like this: the host leaving closes the room,
+       which the `state.room.closed` branch above catches first. */
     if ((state.phase === "draft" || state.phase === "ready") && prevGuestId && !nextGuestId && !state.room?.closed) {
-      state.phase = "abandoned";
-      stopPresencePolling();
-      cb.onOpponentLeft();
+      returnToLobby();
       return;
     }
 

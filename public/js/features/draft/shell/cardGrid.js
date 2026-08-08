@@ -1,9 +1,9 @@
 /* ============================================================
-   Click and hover handling for the card grid, whichever phase owns it
+   Click, hover and info-toggle handling for the card grid, whichever phase owns it
 
    One handler serves both phases — it reads the current turn to decide
    whether a click is a ban or a pick — which is why it sits in shell/ rather
-   than in ban/ or pick/.
+   than in ban/ or pick/. `bindGridInfoToggle` is here for the same reason.
    ============================================================ */
 
 import { state } from "@/features/draft/state.js";
@@ -48,6 +48,48 @@ export function attachMiniCardGridHandlers(grid, getDraftDisplayPlayers, submitB
     if (!isReadyPhase) {
       void submitPick(player);
       return;
+    }
+  });
+}
+
+/**
+ * SHOW INFO / HIDE INFO — toggles the footer under each card in a grid.
+ *
+ * Shared by both boards, and bound from inside `bind*PhaseUiOnce` rather than on
+ * DOMContentLoaded: the pick grid does not exist until its board first renders,
+ * so a load-time lookup would find nothing and silently do nothing.
+ *
+ * The preference is per-grid in localStorage, so hiding info while banning does
+ * not also hide it while picking.
+ */
+export function bindGridInfoToggle(btnId, gridId, storageKey) {
+  const btn = document.getElementById(btnId);
+  const grid = document.getElementById(gridId);
+  if (!btn || !grid || btn.dataset.infoBound) return;
+  btn.dataset.infoBound = "1";
+
+  const apply = (isHidden) => {
+    grid.classList.toggle("info-hidden", isHidden);
+    btn.setAttribute("aria-pressed", isHidden ? "true" : "false");
+    btn.textContent = isHidden ? "SHOW INFO" : "HIDE INFO";
+    btn.classList.toggle("is-off", isHidden);
+  };
+
+  let hidden = false;
+  try {
+    hidden = localStorage.getItem(storageKey) === "1";
+  } catch {
+    // private mode / storage disabled — fall back to showing info
+  }
+  apply(hidden);
+
+  btn.addEventListener("click", () => {
+    hidden = !hidden;
+    apply(hidden);
+    try {
+      localStorage.setItem(storageKey, hidden ? "1" : "0");
+    } catch {
+      // the toggle still works for this session
     }
   });
 }

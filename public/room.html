@@ -171,11 +171,18 @@
                               <span class="lv-reveal-d">Show picks after each turn</span>
                             </span>
                           </button>
+                          <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="blur">
+                            <span class="lv-reveal-icon">🌫️</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">BLUR</span>
+                              <span class="lv-reveal-d">Blur their cards, show progress</span>
+                            </span>
+                          </button>
                           <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="hidden">
                             <span class="lv-reveal-icon">🔒</span>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">HIDDEN</span>
-                              <span class="lv-reveal-d">Hide picks, reveal squad later</span>
+                              <span class="lv-reveal-d">Show nothing but their status</span>
                             </span>
                           </button>
                         </div>
@@ -403,23 +410,6 @@
               <!-- Pick Phase -->
               <section class="draft-panel draft-panel--pick-phase" id="draftPickPhaseBoard" hidden>
 
-                <!-- Quick-load plan bar -->
-                <div class="pick-quickload-bar">
-                  <div class="pick-ql-info">
-                    <div class="pick-ql-kicker">QUICK-LOAD</div>
-                    <div class="pick-ql-sub">Your saved plans</div>
-                  </div>
-                  <div class="pick-ql-cards" id="pickQlCards"></div>
-                  <div class="pick-ql-formation-wrap">
-                    <button class="pick-ql-formation-btn" id="pickQlFormationBtn" type="button">
-                      <span class="pick-ql-hash">#</span>
-                      <span>FORMATION:&nbsp;</span><span id="pickQlFormationLabel">4-3-3</span>
-                      <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <div class="pick-ql-formation-panel" id="pickQlFormationPanel" hidden></div>
-                  </div>
-                </div>
-
                 <div class="pick-phase-layout">
 
                   <!-- Left: My squad pool -->
@@ -455,6 +445,26 @@
                             <span id="pickSortDirIcon">↓</span>
                           </button>
                         </div>
+
+                        <div class="ap-dd-wrap" id="pickFilterWrap">
+                          <button class="ap-dd-btn" id="pickFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                            <span>FILTER</span>
+                            <span class="dd-active-dot" id="pickFilterDot" style="display:none;"></span>
+                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                          </button>
+                          <div class="ap-dd-panel filter-dd-panel" id="pickFilterPanel"></div>
+                        </div>
+
+                        <div class="ap-dd-wrap" id="pickInfoWrap">
+                          <button class="select-mode-btn toggle-info-btn" id="pickToggleInfoBtn" type="button" aria-pressed="false" title="Show/hide player info">
+                            SHOW INFO
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <!-- Position tab bar: ALL GK DEF MID ATT -->
@@ -471,17 +481,48 @@
                   <!-- Center: Formation pitch -->
                   <div class="pick-phase-center">
                     <div class="pick-lineup-head">
-                      <div class="pick-lineup-meta" id="pickLineupMeta"></div>
+                      <!-- The two lineup-level controls: load a saved plan, then
+                           adjust the formation it came with. -->
+                      <div class="pick-plan-row">
+                        <button class="btn btn--small pick-load-plan-btn" id="pickLoadPlanBtn" type="button">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"></path>
+                          </svg>
+                          <span>LOAD GAME PLAN</span>
+                        </button>
+                        <div class="pick-formation-wrap">
+                          <button class="pick-formation-btn" id="pickFormationBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                            <span class="pick-formation-hash">#</span>
+                            <span id="pickFormationLabel">4-3-3</span>
+                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                          </button>
+                          <div class="pick-formation-panel" id="pickFormationPanel" hidden></div>
+                        </div>
+                      </div>
                       <button class="btn btn--small btn--ghost pick-clear-btn" id="pickClearAllBtn" type="button">CLEAR ALL</button>
                     </div>
                     <div class="pick-pitch-wrap">
                       <div class="pick-pitch" id="pickPitch"></div>
                     </div>
+                    <!-- Substitutes: every slot past the starting XI, drawn as
+                         real slots so the remaining picks are visible rather
+                         than summarised as a count. -->
+                    <div class="pick-bench-wrap">
+                      <div class="pick-bench-head">
+                        <span class="pick-bench-title">SUBSTITUTES</span>
+                      </div>
+                      <div class="pick-bench" id="pickBench"></div>
+                    </div>
                     <div class="pick-bottom-bar">
                       <div class="pick-allowance-bar" id="pickAllowanceBar"></div>
+                      <!-- The button is never hidden: an empty footer said
+                           nothing about *why* you cannot confirm yet. It is
+                           disabled until the squad is full, and #pickConfirmHint
+                           carries the reason (and, once confirmed, who is being
+                           waited on). -->
                       <div class="pick-bottom-actions">
-                        <button class="btn btn--primary pick-confirm-btn" id="confirmPicksBtn" type="button" hidden>CONFIRM PICKS ▶</button>
-                        <span class="pick-more-label" id="pickMoreLabel"></span>
+                        <span class="pick-confirm-hint" id="pickConfirmHint"></span>
+                        <button class="btn btn--primary pick-confirm-btn" id="confirmPicksBtn" type="button">CONFIRM PICKS ▶</button>
                       </div>
                     </div>
                   </div>
@@ -499,15 +540,26 @@
                         </div>
                         <span class="pick-opp-count" id="pickOppCount">0/11</span>
                       </div>
-                      <div class="pick-opp-progress-wrap">
+                      <div class="pick-opp-progress-wrap" id="pickOppProgressWrap">
                         <div class="pick-opp-progress-fill" id="pickOppProgressFill"></div>
                       </div>
-                      <div class="pick-opp-feed" id="pickOppFeed"></div>
+                      <!-- Card grid of the opponent's picks, and the three reveal
+                           modes it answers to: "instant" shows it plainly, "blur"
+                           adds .is-concealed so the cards stay in the layout but
+                           cannot be read, and "hidden" removes the grid, the count
+                           and the progress bar and shows #pickOppLocked instead —
+                           their status and nothing else. -->
+                      <div class="pick-opp-grid" id="pickOppGrid"></div>
+                      <div class="pick-opp-locked" id="pickOppLocked" hidden>
+                        <span class="pick-opp-locked-icon" aria-hidden="true">🔒</span>
+                        <p class="pick-opp-locked-title">PICKS HIDDEN</p>
+                        <p class="pick-opp-locked-status" id="pickOppLockedStatus">Still picking</p>
+                      </div>
+                      <p class="pick-opp-conceal-note" id="pickOppConcealNote" hidden>Revealed after match</p>
                     </div>
                     <div class="pick-live-footer">
                       <span class="pick-live-footer-dot is-online" id="pickLiveStatusDot"></span>
                       <span class="pick-live-status-text" id="pickLiveStatusText">Picking...</span>
-                      <span class="pick-live-sync" id="pickLiveSync"></span>
                     </div>
                   </aside>
 
@@ -564,6 +616,20 @@
           <button type="button" class="btn btn--ghost" id="confirmCancelBtn">Cancel</button>
           <button type="button" class="btn btn--primary" id="confirmOkBtn">OK</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Load-game-plan picker. Same overlay/modal shell as the confirm dialog above. -->
+    <div class="confirm-overlay pick-plan-overlay" id="pickPlanOverlay" hidden>
+      <div class="confirm-modal pick-plan-modal">
+        <div class="pick-plan-head">
+          <div>
+            <div class="confirm-title">Load game plan</div>
+            <p class="pick-plan-sub">Replaces your current lineup. Banned players are left out.</p>
+          </div>
+          <button type="button" class="pick-plan-close" id="pickPlanCloseBtn" aria-label="Close">×</button>
+        </div>
+        <div class="pick-plan-list" id="pickPlanList"></div>
       </div>
     </div>
 

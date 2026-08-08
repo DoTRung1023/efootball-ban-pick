@@ -1,6 +1,6 @@
 /* ============================================================
-   Pick phase: quick-load bar, squad pool, formation pitch, allowance bar and
-   the live opponent feed.
+   Pick phase: squad pool, formation pitch, allowance bar, the LOAD GAME PLAN
+   row and the opponent's picks.
 
    Split out of draft.css by concern. Rule order within this file follows the
    original; see room/css.md for what the cascade depends on.
@@ -20,187 +20,148 @@
   padding: 0;
 }
 
-/* Quick-load plan bar */
+/* Lineup-level controls, top-left of the pitch column: LOAD GAME PLAN + the
+   formation dropdown. They sit together because both reshape the whole lineup,
+   as opposed to the per-player clicking that happens everywhere else. */
 
-.pick-quickload-bar {
+.pick-plan-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--c-line-faint);
-  background: rgba(15, 42, 65, 0.55);
-  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
   min-width: 0;
-  overflow: hidden;
 }
 
-.pick-ql-info {
-  flex-shrink: 0;
-  line-height: 1.2;
-}
-
-.pick-ql-kicker {
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.pick-ql-sub {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.pick-ql-cards {
-  display: flex;
+.pick-load-plan-btn {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  overflow-x: auto;
-  flex: 1;
-  min-width: 0;
-  scrollbar-width: none;
-  padding: 2px 0;
-}
-
-.pick-ql-cards::-webkit-scrollbar { display: none; }
-
-.pick-ql-card {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--c-line);
-  background: rgba(17, 47, 74, 0.6);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color var(--transition), background var(--transition);
-  white-space: nowrap;
-}
-
-.pick-ql-card:hover { border-color: var(--c-line-hover); }
-
-.pick-ql-card.is-selected {
-  border-color: var(--g-line-active);
-  background: var(--g-fill);
-}
-
-.pick-ql-card-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  border: 1px solid var(--c-line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-dim);
-  background: var(--c-fill);
-  flex-shrink: 0;
-}
-
-.pick-ql-card.is-selected .pick-ql-card-icon {
-  border-color: var(--g-line-hover);
-  color: var(--green);
-  background: var(--g-fill);
-}
-
-.pick-ql-card-body { line-height: 1.25; }
-
-.pick-ql-card-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.pick-ql-card.is-selected .pick-ql-card-name { color: var(--green); }
-
-.pick-ql-card-formation {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.pick-ql-check {
-  font-size: 11px;
-  color: var(--green);
-  flex-shrink: 0;
-}
-
-/* Formation dropdown */
-
-.pick-ql-formation-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.pick-ql-formation-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--c-line);
-  background: rgba(17, 47, 74, 0.6);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
   font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border-color: var(--c-line);
+  color: var(--c-text);
+}
+
+.pick-load-plan-btn:hover {
+  border-color: var(--c-line-hover);
+  background: var(--c-fill);
+}
+
+.pick-formation-wrap {
+  position: relative;
+}
+
+.pick-formation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-line);
+  background: var(--surface-control);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  white-space: nowrap;
   transition: border-color var(--transition), background var(--transition);
 }
 
-.pick-ql-formation-btn:hover {
+.pick-formation-btn:hover {
   border-color: var(--c-line-hover);
-  background: rgba(20, 55, 86, 0.7);
+  background: var(--c-fill);
 }
 
-.pick-ql-hash { color: var(--cyan); }
+.pick-formation-hash { color: var(--cyan); }
 
-.pick-ql-formation-panel {
+/* Opens downward: the row sits at the *top* of the pitch column now, so an
+   upward panel (which is what it had when the row was under the pitch) would
+   open off the top of the board.
+
+   **One column, not two.** Nine formations in a 2-column grid read in a zigzag
+   — 4-3-3 sits beside 4-4-2, and the eye has to cross the gap and come back for
+   4-5-1 — and the two 78px tracks left no room for a selected marker. A list is
+   the shape the choice actually has, and it is what the game-plan dropdown on
+   the home page already uses.
+
+   **`--surface-popover`, not `--surface-sunken`.** This hangs over the pitch,
+   and `sunken` is a half-transparent tint meant for a block inset into a card
+   that is already opaque behind it. Over the pitch the dashed empty slots and
+   their `+ ATT` labels showed straight through the numbers — the reported
+   symptom. Anything floating over the board wants the opaque rung. */
+
+.pick-formation-panel {
   position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 200;
-  min-width: 120px;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  min-width: 156px;
+  padding: 4px 0;
   border-radius: 10px;
   border: 1px solid var(--c-line);
-  background: rgba(16, 44, 69, 0.97);
-  backdrop-filter: blur(12px);
-  padding: 4px 0;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  background: var(--surface-popover);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--c-glow-soft);
+  max-height: min(340px, 60vh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-fill-strong) transparent;
 }
 
-.pick-ql-formation-panel button {
-  display: block;
+.pick-formation-panel button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding: 7px 14px;
-  background: none;
+  padding: 8px 14px;
   border: none;
-  color: var(--text-dim);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  font-family: var(--font-display);
+  letter-spacing: 0.1em;
   text-align: left;
   cursor: pointer;
-  letter-spacing: 0.04em;
   transition: background var(--transition), color var(--transition);
 }
 
-.pick-ql-formation-panel button:hover { background: var(--c-fill); color: var(--text); }
+/* The tick is a pseudo-element so the panel's markup never has to change:
+   `renderFormationPanel` builds the buttons once and then only toggles
+   `is-active`, and a marker in the HTML would have to be rebuilt each time. */
+.pick-formation-panel button::after {
+  content: "✓";
+  font-size: 12px;
+  line-height: 1;
+  color: var(--cyan);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
 
-.pick-ql-formation-panel button.is-active { color: var(--cyan); }
+.pick-formation-panel button:hover { background: var(--c-fill); }
+
+.pick-formation-panel button.is-active {
+  color: var(--cyan);
+  background: var(--c-fill-strong);
+}
+
+.pick-formation-panel button.is-active::after { opacity: 1; }
 
 /* Three-column layout: left | center | right */
 
+/* The left column is sized so its cards land at ~114px, against the ban grid's
+   measured 139px — close enough to read as the same component. At the old 300px
+   they were 86px and the footer detail was unreadable, which is most of what
+   SHOW INFO is for. */
+
 .pick-phase-layout {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 252px;
+  grid-template-columns: 380px minmax(0, 1fr) 252px;
   gap: 10px;
   min-height: 0;
   flex: 1;
@@ -237,6 +198,14 @@
   color: var(--text);
 }
 
+/* Two rows, and which control sits on which is fixed rather than left to flex.
+   The pool column is only ~360px, so search + sort + filter + info have never
+   fitted on one line; `flex-wrap` alone broke them wherever it happened to run
+   out of room, which put the sort group up beside the search and SHOW INFO
+   alone on a third row. `flex: 1 0 100%` gives the search the whole first row,
+   and the three controls that act on the list then share the second. It is the
+   same break `home/responsive.css` forces on its own toolbar at ≤768px. */
+
 .pick-phase-controls {
   display: flex;
   flex-direction: row;
@@ -249,18 +218,56 @@
 .pick-phase-controls .team-search-bar {
   flex: 1 1 auto;
   min-width: 0;
-  /* The pool column is only ~300px, so search + sort never fit on one line —
-     nowrap left the placeholder running under the sort button. */
   flex-wrap: wrap;
+  gap: 8px;
 }
 
-.pick-phase-controls .team-search-wrap { flex: 1 1 150px; min-width: 0; }
+.pick-phase-controls .team-search-wrap { flex: 1 0 100%; min-width: 0; }
 
 .pick-phase-controls .team-search-wrap input { min-width: 0; }
 
 .pick-phase-controls .sort-group,
-.pick-phase-controls .ap-dd-wrap,
 .pick-phase-controls .sort-dir-btn { flex: 0 0 auto; }
+
+.pick-phase-controls .ap-dd-wrap { flex: 0 0 auto; }
+
+/* The three run tighter than on the page-wide ban toolbar, because here they
+   share one row that is only ~338px wide at the ≤1100px column. At the ban
+   toolbar's own metrics the row was 396px of content in 338px of space and
+   SHOW INFO wrapped away onto a third line by itself. */
+.pick-phase-controls .ap-dd-btn {
+  padding: 6px 9px;
+  gap: 5px;
+  letter-spacing: 0.06em;
+}
+
+.pick-phase-controls .toggle-info-btn {
+  min-width: 0;
+  padding: 7px 9px;
+  letter-spacing: 0.06em;
+}
+
+/* The leading glyphs go — the sort bars and the filter funnel — and they are
+   what buys the row. Padding and tracking alone got it to 356px in 338px; two
+   icons at 18px each are the remaining 36px, and unlike a smaller font they
+   cost no legibility: OVR MAX and FILTER already say what the pictures said.
+   The chevrons stay, because those are the affordance that says "menu". */
+.pick-phase-controls .ap-dd-btn > svg:not(.dd-chevron) { display: none; }
+
+/* Each panel hangs off its own button, and opens **rightward** from it.
+   It used to span the whole toolbar (`left: 0; right: 0` resolved against
+   `.pick-phase-controls`), which drew a 356px slab for a 190px menu and
+   pointed at no button in particular. Left-anchoring is what keeps it on
+   screen: `.filter-dd-panel` is `right: 0` by default, so it extends *leftward*
+   from its button, and in a ~360px column that put its 260px of content off the
+   left edge of the page — measured `left: -123px` at a 900px viewport, which is
+   what the full-width override was working around. The ≤620px rung still spans
+   the toolbar; on a phone that is the right answer. */
+.pick-phase-controls .ap-dd-panel {
+  left: 0;
+  right: auto;
+  transform-origin: top left;
+}
 
 /* Position tab bar */
 
@@ -297,18 +304,48 @@
 
 .pick-phase-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
   gap: 7px;
   overflow-y: auto;
   flex: 1;
   align-content: start;
-  padding-right: 3px;
+  /* Load-bearing, exactly as on `.ban-phase-grid`. `.player-card` is a column
+     flexbox and `.pc-img-wrap` has no height of its own — it takes the image's
+     natural height. Without max-content rows the card is sized by the grid
+     instead of its content and the wrap shrinks to **zero**, so every card
+     renders as a footer with no player image at all. */
+  grid-auto-rows: max-content;
+  /* Each card keeps its own content height. Grid items stretch to the row by
+     default, so a card whose art is shorter than its neighbour's got a taller
+     box than its image — and the hover outline, which traces the *box*, sat
+     below the artwork instead of hugging it. */
+  align-items: start;
+  /* Breathing room for the 1.04 hover scale. `overflow-y: auto` clips at the
+     padding box, so with no vertical padding the top row was cut off by the
+     scroller's edge the moment it grew. `.ban-phase-grid` has 10px for the same
+     reason; 8px is enough here (a ~194px card grows ~3.9px per side) and costs
+     the column less width. */
+  padding: 8px 6px;
+}
+
+.pick-phase-grid .pc-img-wrap {
+  height: auto;
+}
+
+/* SHOW INFO / HIDE INFO. `bindGridInfoToggle` puts `info-hidden` on the grid;
+   without this rule the pick button toggled a class nothing styled. */
+
+.pick-phase-grid.info-hidden .pc-footer {
+  display: none !important;
 }
 
 .pick-phase-grid .player-card {
+  width: 100%;
   cursor: default;
-  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition), filter var(--transition);
   position: relative;
+  transform-origin: center;
+  will-change: transform;
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), filter var(--transition);
 }
 
 .pick-phase-grid .player-card.is-unavailable {
@@ -316,12 +353,32 @@
   filter: grayscale(0.3);
 }
 
+/* Same shape as `.ban-phase-grid`'s hover, in the pick board's cyan: lift the
+   card's own border rather than painting a hard 2px ring outside it, and raise
+   it above its neighbours. `z-index` needs the `position: relative` above.
+   The ring it replaced was also a raw `rgba(53, 214, 255, …)`, which the colour
+   rule in room/css.md forbids. */
+
 .pick-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
-  box-shadow: 0 0 0 2px rgba(53, 214, 255, 0.45), 0 8px 22px rgba(0, 0, 0, 0.4);
+  border-color: var(--c-line-active);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--c-glow);
+  background: var(--bg-card-hover);
+  z-index: 30;
 }
 
 .pick-phase-grid .player-card.is-clickable { cursor: pointer; }
+
+/* Chosen, waiting for a slot — the same loud green ring `.pick-slot.is-active`
+   uses, because it is the same half-finished action seen from the other end.
+   Green, not the grid's cyan: cyan is the opponent, and this is your choice. */
+
+.pick-phase-grid .player-card.is-pending,
+.pick-phase-grid .player-card.is-pending:hover {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green), 0 0 18px var(--g-glow);
+  z-index: 31;
+}
 
 /* PICKED overlay */
 
@@ -367,6 +424,58 @@
 
 .pick-phase-grid::-webkit-scrollbar-thumb:hover { background: rgba(53, 214, 255, 0.38); }
 
+/* Substitutes strip under the pitch. Every slot past the starting XI is drawn,
+   so the picks still to make are visible as empty rectangles rather than
+   summarised as a "23 MORE" label. */
+
+.pick-bench-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pick-bench-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pick-bench-title {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+/* There is no count beside the title. Every bench slot is drawn as a real
+   rectangle, so "1/12" restated what twelve visible boxes already say. */
+
+.pick-bench {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 5px;
+  max-height: 168px;
+  overflow-y: auto;
+  align-content: start;
+  scrollbar-width: thin;
+}
+
+/* Bench slots are smaller than pitch slots and must not stretch to fill the
+   track, or a short bench row produces one enormous card. The card ratio comes
+   from `.pick-slot` — only the width cap differs, so a sub is the same shape as
+   a starter, just smaller. */
+
+.pick-bench .pick-slot {
+  max-width: none;
+}
+
+.pick-bench .pick-slot-pos-label { font-size: 8.5px; }
+
+.pick-bench .pick-slot-plus { font-size: 15px; }
+
 /* Center: formation pitch */
 
 .pick-phase-center {
@@ -381,55 +490,18 @@
   background: rgba(11, 26, 39, 0.32);
 }
 
+/* LOAD GAME PLAN + formation on the left, CLEAR ALL on the right. `flex-wrap`
+   is the safety net: the three fit on one row at every rung measured, but a long
+   formation label or a translated button must push CLEAR ALL onto a second row
+   rather than out of the column. */
+
 .pick-lineup-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex-shrink: 0;
-}
-
-.pick-lineup-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
-  min-width: 0;
-}
-
-.pick-lineup-count {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: 0.04em;
-}
-
-.pick-lineup-formation {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--cyan);
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--c-line-hover);
-  background: var(--c-fill);
-}
-
-.pick-lineup-avgovr {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.pick-lineup-plan-badge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--green);
-  padding: 2px 7px;
-  border-radius: 5px;
-  border: 1px solid var(--g-line-hover);
-  background: var(--g-fill);
+  flex-shrink: 0;
 }
 
 .pick-clear-btn {
@@ -440,13 +512,29 @@
 
 /* Pitch */
 
+/* The pitch fits its column at 1440 × 900 and 1280 × 1024, but a short window
+   still has to scroll — so the bar gets the same treatment as every other
+   scroller on the page rather than the OS default, which lands as a wide light
+   slab over the right-hand column of slots. Green here, not cyan: this is your
+   side of the board. */
+
 .pick-pitch-wrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: var(--g-fill-strong) transparent;
 }
+
+.pick-pitch-wrap::-webkit-scrollbar { width: 4px; }
+
+.pick-pitch-wrap::-webkit-scrollbar-track { background: transparent; }
+
+.pick-pitch-wrap::-webkit-scrollbar-thumb { background: var(--g-fill-strong); border-radius: 4px; }
+
+.pick-pitch-wrap::-webkit-scrollbar-thumb:hover { background: var(--g-line-hover); }
 
 .pick-pitch {
   display: flex;
@@ -457,18 +545,38 @@
   padding: 4px 0;
 }
 
+/* `center`, not `stretch`: the slots below are sized by `aspect-ratio`, and a
+   stretched flex item takes the line's cross size instead. It is a no-op while
+   every slot in a row is the same width, which is the usual case — but a row
+   squeezed below `max-width` is not, and then stretch would letterbox the
+   narrower slots. */
+
 .pick-pitch-row {
   display: flex;
   gap: 8px;
   justify-content: center;
-  align-items: stretch;
+  align-items: center;
 }
+
+/* One box for both states. The slot is the *card's* shape — 240 × 339, the
+   intrinsic size of a pesdb card PNG, the same ratio `.ban-side-empty-slot`
+   uses — so dropping a player in changes what is in the rectangle and not
+   where it is. It used to be `min-height: 88px` with the height left to the
+   content: an empty slot came out roughly square while a filled one grew to
+   the card's full height, so every pick shoved the rows below it down the
+   pitch. No border term here, unlike the ban placeholder — `.pick-slot--empty`
+   draws its dashed border inside the box (`box-sizing: border-box` from
+   base.css) and `.pick-slot--filled` has no border at all.
+
+   `--pick-slot-w` is written on `#pickPitch` at render time by
+   `applyPitchSlotWidth()` — the largest slot at which four rows fit the column
+   without scrolling. The 82px fallback is what a fixed width used to be, and it
+   is only reached before the first measurement. */
 
 .pick-slot {
   flex: 1;
-  max-width: 110px;
-  min-height: 88px;
-  border-radius: 10px;
+  max-width: var(--pick-slot-w, 82px);
+  aspect-ratio: 240 / 339;
   overflow: hidden;
   position: relative;
   display: flex;
@@ -477,12 +585,117 @@
   justify-content: center;
 }
 
+/* Every slot is interactive, empty ones included: click one to select it, click
+   a second to exchange them, click a card in the pool to drop it into the
+   selection, or use the × to empty it. Both the pitch and the bench use these. */
+
 .pick-slot--empty {
   border: 1.5px dashed var(--g-line);
   background: var(--g-fill-faint);
-  cursor: default;
   gap: 4px;
   transition: background var(--transition), border-color var(--transition);
+}
+
+.pick-slot[data-pick-slot] { cursor: pointer; }
+
+/* ── The hover and selection rings ─────────────────────────────
+   Both are drawn **inside** the slot, as an overlay on the card art, and that
+   is the whole point. Outside — which is where a `box-shadow` ring goes — they
+   are clipped: the pitch and the bench are both `overflow: auto` scrollers
+   (`overflow-x` computes to `auto` alongside `overflow-y`, so they clip on both
+   axes), and a slot on any edge of one sits flush against the clip rect.
+   Measured on the first substitute: **0.0px of slack on its left, top and
+   bottom**, so three sides of its ring were cut off — which is exactly what
+   "not surrounding properly" looks like.
+
+   Padding on the scrollers would buy the room, but it costs height in a column
+   already tuned so the pitch fits, and it only ever mitigates the clip.
+   `inset: 0` cannot be clipped and cannot be mis-sized: it *is* the border box. */
+
+.pick-slot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  pointer-events: none;
+  transition: border-color var(--transition);
+}
+
+.pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
+
+.pick-slot--empty:hover {
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+/* A card is chosen and every slot is a live target. `pickView` puts `is-placing`
+   on the board; without it the empty rectangles look exactly as inert as they do
+   the rest of the time and the second half of the click pair has to be guessed
+   at. Solid, not dashed — the box is about to hold something. */
+
+.is-placing .pick-slot--empty {
+  border-style: solid;
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+/* The selected slot. Deliberately loud — until you click a second slot the
+   board is in a modal state, and nothing else on the page says so. The glow
+   stays a `box-shadow`: soft enough that clipping it at a container edge is
+   imperceptible, unlike a hard line missing on three sides. */
+
+.pick-slot.is-active::after { border-color: var(--green); }
+
+.pick-slot.is-active {
+  box-shadow: 0 0 18px var(--g-glow);
+  z-index: 2;
+}
+
+.pick-slot--empty.is-active {
+  border-color: var(--g-line-active);
+  background: var(--g-fill);
+}
+
+/* Solid `--red` with a white glyph and a drop shadow, matching
+   `.pitch-remove-btn` on the home game-plan pitch. It used to be `--r-fill` —
+   10% alpha — over card art, which is very nearly invisible: you had to know the
+   button was there to find it. Still hover-revealed, as on the home page, and it
+   scales in the same way. `z-index` puts it above `.pick-slot::after`, which is
+   a later sibling in paint order. */
+
+.pick-slot-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--red);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  z-index: 3;
+  transition: opacity var(--transition), transform var(--transition), filter var(--transition);
+}
+
+.pick-slot--filled:hover .pick-slot-remove,
+.pick-slot--filled:focus-within .pick-slot-remove { opacity: 1; transform: scale(1); }
+
+.pick-slot-remove:hover { filter: brightness(1.15); }
+
+/* Touch has no hover, so the button would be unreachable without this. */
+
+@media (hover: none) {
+  .pick-slot-remove { opacity: 1; }
 }
 
 .pick-slot-plus {
@@ -503,8 +716,11 @@
 .pick-slot--filled {
   border: none;
   background: transparent;
-  cursor: default;
 }
+
+/* Square corners throughout, matching `.player-card` and `.ban-phase-thumb`.
+   The slot, the card art and the name overlay were the only rounded boxes left
+   on the board. */
 
 .pick-slot-img {
   width: 100%;
@@ -512,40 +728,12 @@
   object-fit: cover;
   object-position: center top;
   display: block;
-  border-radius: 10px;
 }
 
-.pick-slot-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 4px 5px;
-  background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  border-radius: 0 0 10px 10px;
-}
-
-.pick-slot-name {
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-  max-width: 70%;
-}
-
-.pick-slot-ovr {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--green);
-  flex-shrink: 0;
-}
+/* A filled slot is the card art and nothing else. The strip that used to run
+   across the bottom (`.pick-slot-overlay` + `.pick-slot-name` +
+   `.pick-slot-ovr`) reprinted the surname and the rating in a smaller font,
+   directly over the part of the artwork that already carries both. */
 
 /* Bottom bar: allowance + confirm */
 
@@ -599,8 +787,34 @@
 .pick-bottom-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
+}
+
+/* Why you cannot confirm yet, or who is being waited on. Always in flow — the
+   same lesson as `.ban-status-hint`: a line that appears and disappears moves
+   the footer under it. `min-height` is font-size × line-height. */
+
+.pick-confirm-hint {
+  font-size: 11px;
+  line-height: 1.4;
+  min-height: 15.4px;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Amber is the "pending, waiting on someone" hue, per the colour system. */
+.pick-confirm-hint.is-waiting { color: var(--amber); }
+
+/* Confirmed: the button is now UN-CONFIRM, so it must stop reading as the
+   primary call to action. */
+
+.pick-confirm-btn.is-confirmed {
+  background: transparent;
+  border-color: var(--g-line-hover);
+  color: var(--g-text);
+  box-shadow: none;
 }
 
 .pick-confirm-btn {
@@ -609,14 +823,6 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   padding: 7px 18px;
-}
-
-.pick-more-label {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
 }
 
 /* Right: live opponent feed */
@@ -719,113 +925,106 @@
   width: 0%;
 }
 
-.pick-opp-feed {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* The opponent's picks as player cards. Narrower columns than the squad pool
+   because this column is only 252px wide and the cards are read-only. */
+
+.pick-opp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+  gap: 5px;
+  align-content: start;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  /* Same reason as `.pick-phase-grid`: without max-content rows the card is
+     sized by the grid and `.pc-img-wrap` is clipped short of the image. */
+  grid-auto-rows: max-content;
+  padding-right: 2px;
 }
 
-.pick-opp-feed::-webkit-scrollbar { width: 3px; }
+.pick-opp-grid::-webkit-scrollbar { width: 3px; }
 
-.pick-opp-feed::-webkit-scrollbar-track { background: transparent; }
+.pick-opp-grid::-webkit-scrollbar-track { background: transparent; }
 
-.pick-opp-feed::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 2px; }
+.pick-opp-grid::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 2px; }
 
-.pick-feed-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 6px;
-  border-radius: 8px;
-  border: 1px solid var(--c-line-faint);
-  background: rgba(17, 47, 74, 0.5);
-  transition: background var(--transition);
+.pick-opp-grid .player-card { cursor: default; }
+
+.pick-opp-grid .pc-img-wrap { height: auto; }
+
+/* `blur` reveal mode. The cards stay in the layout and get blurred, so the count
+   and progress bar above still tell you how far along the opponent is.
+   `user-select: none` stops the names being recoverable by dragging across the
+   blur, and pickView sets aria-hidden so a screen reader does not read them out
+   either — the blur is the only thing standing between the two.
+   `hidden` is a different mode and does not come through here: pickView drops
+   the grid, the count and the bar and shows `.pick-opp-locked` instead. */
+
+.pick-opp-grid.is-concealed {
+  filter: blur(7px) saturate(0.55);
+  opacity: 0.75;
+  pointer-events: none;
+  user-select: none;
 }
 
-.pick-feed-row.is-new {
-  border-color: var(--c-line-hover);
-  background: var(--c-fill);
-}
+/* `hidden` reveal mode: what is left when the cards, the count and the progress
+   bar have all gone — their name at the top, and whether they are done. */
 
-.pick-feed-thumb {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: rgba(0,0,0,0.3);
-}
-
-.pick-feed-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  display: block;
-}
-
-.pick-feed-info {
+.pick-opp-locked {
   flex: 1;
-  min-width: 0;
-  line-height: 1.25;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 10px;
+  text-align: center;
+  border: 1px dashed var(--c-line-faint);
+  background: var(--c-fill-faint);
 }
 
-.pick-feed-name {
+.pick-opp-locked-icon {
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.pick-opp-locked-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.pick-opp-locked-status {
+  margin: 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--cyan);
 }
 
-.pick-feed-meta {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pick-feed-badge {
+.pick-opp-conceal-note {
+  flex-shrink: 0;
+  margin: 0;
+  padding-top: 6px;
+  text-align: center;
+  font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
-  font-family: var(--font-display);
-  color: var(--green);
-  padding: 1px 5px;
-  border-radius: 4px;
-  border: 1px solid var(--g-line-hover);
-  background: var(--g-fill);
-  flex-shrink: 0;
-}
-
-.pick-feed-waiting {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 6px;
-  border-radius: 8px;
-  border: 1px dashed var(--c-line-faint);
-  background: rgba(17, 47, 74, 0.25);
-}
-
-.pick-feed-wait-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(53, 214, 255, 0.25);
-  flex-shrink: 0;
-}
-
-.pick-feed-wait-text {
-  font-size: 10px;
-  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-muted);
-  flex: 1;
+}
+
+.pick-opp-empty {
+  grid-column: 1 / -1;
+  padding: 14px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .pick-live-footer {
@@ -855,14 +1054,14 @@
   min-width: 0;
 }
 
-.pick-live-sync {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
 @media (max-width: 1100px) {
-  .pick-phase-layout { grid-template-columns: 260px minmax(0, 1fr) 220px; }
+  /* The pitch column is the one that must not starve, so the pool gives back
+     first — 320px still holds two ~150px cards per row. */
+  .pick-phase-layout { grid-template-columns: 360px minmax(0, 1fr) 220px; }
+  /* Drop the floor with the column, or `auto-fill` falls to two tracks and the
+     cards get *bigger* on the narrower screen — 114px at 1440, 144px here. */
+  .pick-phase-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .pick-opp-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
 }
 
 /* Single column, pitch included: `.pick-phase-center` carries the CONFIRM PICKS
@@ -875,4 +1074,122 @@
 @media (max-width: 620px) {
   .pick-phase-layout { grid-template-columns: 1fr; }
   .pick-phase-right { max-height: 200px; }
+}
+
+/* ── LOAD GAME PLAN dialog ──────────────────────────────────
+   Reuses `.confirm-overlay` / `.confirm-modal` from shell.css so there is one
+   modal shell on this page; only the body differs. */
+
+/* Sharing the shell means sharing its `z-index: 120`, and this overlay is later
+   in `room.html` than `#confirmOverlay` — so it won on DOM order and drew *over*
+   the "Replace lineup" confirm, which then could not be seen until the list was
+   dismissed. A confirm interrupts everything, so put this one below it rather
+   than relying on which markup comes first. 110 keeps it above the toast (100),
+   as it was. */
+
+.pick-plan-overlay { z-index: 110; }
+
+.pick-plan-modal {
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pick-plan-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pick-plan-sub {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.pick-plan-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--g-line);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.pick-plan-close:hover {
+  border-color: var(--r-line-hover);
+  color: var(--text);
+}
+
+.pick-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+.pick-plan-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--g-line-faint);
+  background: var(--g-fill-faint);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.pick-plan-item:hover {
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
+.pick-plan-item[aria-busy="true"] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.pick-plan-badge {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--g-fill);
+  color: var(--green);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.pick-plan-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-plan-empty {
+  padding: 20px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
 }

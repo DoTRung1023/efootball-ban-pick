@@ -10,9 +10,11 @@ import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
+import { getAllowanceCapViolation } from '@/features/draft/allowance.js';
+import { pickCount } from '@/features/draft/players.js';
 import { stopPresencePolling } from './presence.js';
 import {
-  applyLocalAction,
+  applyLocalBan,
   banLimit,
   isBothMatchReady,
   isReadyPhase,
@@ -20,8 +22,34 @@ import {
   startTurnTimer,
 } from './draftFlow.js';
 
-/** Only the id and name are persisted server-side; the rest is client-only display data. */
+/**
+ * A ban only ever renders as a card image, and `getPlayerImageSrc` falls back to
+ * `id` — which for draft players *is* the pesdb id — so id + name is the whole
+ * display surface. Nothing else needs to cross the wire.
+ */
 const banPayload = (player) => ({ id: String(player.id), name: player.name });
+
+/**
+ * A pick does need the rest: the opponent's picks render as full player cards on
+ * the pick board and again on the Start Match screen, and the room store is the
+ * only copy either side has of the other's players. Everything `playerCardHtml`
+ * reads has to be here or the card comes back as a nameless dash.
+ */
+const pickPayload = (player) => ({
+  id: String(player.id),
+  name: player.name,
+  position: player.position ?? "",
+  overall_rating: player.overall_rating ?? player.overall_max ?? player.overall ?? "",
+  region: player.region ?? "",
+  nationality: player.nationality ?? player.nation ?? "",
+  league: player.league ?? "",
+  club: player.club ?? "",
+  foot: player.foot ?? "",
+  playing_style: player.playing_style ?? "",
+  height: player.height ?? "",
+  weight: player.weight ?? "",
+  age: player.age ?? "",
+});
 
 // ── Ready flags ──────────────────────────────────────────────
 
@@ -62,7 +90,7 @@ function flushStagedBansLocally() {
   const toSubmit = [...state.stagedBans];
   state.stagedBans = [];
   if (state.room) {
-    for (const player of toSubmit) applyLocalAction(state.room, player);
+    for (const player of toSubmit) applyLocalBan(state.room, player);
   }
   return toSubmit;
 }
@@ -98,10 +126,64 @@ export async function confirmStagedBans() {
   await callBanConfirm();
 }
 
+/**
+ * Takes this side's bans back off the table while waiting for the opponent.
+ *
+ * They return to the **staged** strip rather than disappearing, so the × and the
+ * counter that put them there can take them away again — and re-confirming is
+ * the same button it always was. The server does the same move on its copy; the
+ * local one has to happen too, because the presence heartbeat overwrites
+ * `entry.stagedBans[side]` with whatever is in `state.stagedBans`.
+ */
+export async function unconfirmBans() {
+  const room = state.room;
+  if (!room) return;
+
+  state.stagedBans = [...(room.bans?.[state.mySide] || [])];
+  const { ok, data } = await postAsMe("ban-confirm", { confirmed: false });
+  if (!ok) {
+    showToast(data?.error || "Could not un-confirm your bans.");
+    return;
+  }
+  if (data.room) applyPresenceSnapshot(data.room);
+  cb.renderDraftUi();
+}
+
+// ── Confirming a squad ───────────────────────────────────────
+
+/**
+ * Marks this side's lineup final, or takes it back.
+ *
+ * **Confirming does not move you on.** The server advances to the ready phase
+ * only once both sides have confirmed, and until then this is reversible — which
+ * is the whole point of it being a flag rather than a transition.
+ */
+export async function confirmPicks(confirmed) {
+  if (!state.room) return;
+  const { ok, data } = await postAsMe("picks-confirm", { confirmed: Boolean(confirmed) });
+  if (!ok) {
+    showToast(data?.error || "Could not update your squad confirmation.");
+    return;
+  }
+  if (data.room) applyPresenceSnapshot(data.room);
+  cb.renderDraftUi();
+}
+
 /** Timer expiry path: submit whatever is staged without confirming the side. */
 export async function flushAndSubmitStagedBans() {
   await submitBansToApi(flushStagedBansLocally());
 }
+
+/**
+ * True while this side has confirmed and has not taken it back. Every write in
+ * that phase goes through one of the two guards below; the server refuses them
+ * as well, so a stale tab cannot slip an edit past a confirmation.
+ */
+export const areBansLocked = (room = state.room) =>
+  Boolean(room?.bansConfirmed?.[state.mySide]);
+
+export const isLineupLocked = (room = state.room) =>
+  Boolean(room?.picksConfirmed?.[state.mySide]);
 
 /** Stages a ban locally; nothing is posted until CONFIRM BANS. */
 export function submitBan(player) {
@@ -111,6 +193,10 @@ export function submitBan(player) {
   const turn = state.schedule[room.turnIndex];
   const isMyTurn = String(turn?.side || "") === "both" || turn?.side === state.mySide;
   if (turn?.action !== "ban" || isReadyPhase(room) || !isMyTurn) return;
+  if (areBansLocked(room)) {
+    showToast("Un-confirm your bans to change them.");
+    return;
+  }
 
   const id = String(player.id);
   const alreadyConfirmed = (room.bans?.[state.mySide] || []).some((b) => String(b.id) === id);
@@ -130,28 +216,104 @@ export function submitBan(player) {
 
 // ── Picks ────────────────────────────────────────────────────
 
-/** Applies the pick locally, then posts it. A rejection is corrected by the next poll. */
-export async function submitPick(player) {
+/**
+ * Puts a player into one named slot — the second click of the pair, whichever
+ * order it came in: slot then card, or card then slot. Landing on a filled slot
+ * replaces whoever was there, exactly as assigning to an occupied slot does on
+ * the game-plan pitch.
+ *
+ * It posts the whole lineup, because a slot is an address: writing to slot 7 of
+ * a three-pick lineup has to say where the holes are. The append endpoint this
+ * replaced could only ever fill the first one.
+ */
+export async function placePickInSlot(room, player, slot) {
+  const mySide = state.mySide;
+  const maxPicks = pickLimit(room.config);
+  if (maxPicks && slot >= maxPicks) return;
+
+  const picks = Array.isArray(room.picks?.[mySide]) ? [...room.picks[mySide]] : [];
+  // Pad, or a write past the end of a short lineup lands nowhere.
+  while (picks.length <= slot) picks.push(null);
+
+  /* Check the caps against the lineup this *produces*, not the current one —
+     overwriting a filled slot gives back whatever was in it, so replacing your
+     only Brazilian with another must not read as a second Brazilian. The
+     violation helper only ever looks at `config` and `picks[side]`. */
+  picks[slot] = null;
+  const violation = getAllowanceCapViolation({ config: room.config, picks: { [mySide]: picks } }, mySide, player);
+  if (violation) {
+    state.actionError = `${violation.label}: max ${violation.cap} card(s) allowed per side.`;
+    showToast(state.actionError);
+    cb.renderDraftUi();
+    return;
+  }
+
+  picks[slot] = player;
+  state.pickActiveSlot = null;
+  await replaceMyPicks(picks);
+}
+
+/**
+ * A click on a pool card. **Nothing is posted until a slot is named** — a pick
+ * always lands in a place you chose, never at the end of the list.
+ *
+ * With a slot already selected this is the second click and the player goes
+ * straight in. Otherwise it is the *first* click: the card is marked chosen and
+ * the next slot click places him. Clicking the same card again lets it go.
+ */
+export function submitPick(player) {
   const room = state.room;
   if (!room) return;
 
   const turn = state.schedule[room.turnIndex];
   if (turn?.action !== "pick" || isReadyPhase(room)) return;
-
-  const maxPicks = pickLimit(room.config);
-  if (maxPicks && (room.picks?.[state.mySide] || []).length >= maxPicks) {
-    showToast("You've reached the pick limit.");
+  if (isLineupLocked(room)) {
+    showToast("Un-confirm your squad to change it.");
     return;
   }
 
-  if (!applyLocalAction(room, player)) {
-    cb.renderDraftUi();
+  /* Read before any `await` — the document-level click handler that clears the
+     selection runs after this one on the same click. */
+  const slot = state.pickActiveSlot;
+  if (slot !== null) {
+    state.pickPendingPlayerId = null;
+    void placePickInSlot(room, player, slot);
     return;
   }
-  cb.renderDraftUi();
 
-  const { ok, data } = await postAsMe("pick", { player: banPayload(player) });
-  if (!ok) showToast(data?.error || "Could not confirm pick.");
-  else if (data.room) applyPresenceSnapshot(data.room);
+  const id = String(player.id);
+  state.pickPendingPlayerId = state.pickPendingPlayerId === id ? null : id;
   cb.renderDraftUi();
+}
+
+/**
+ * Replaces this side's whole lineup — **the one and only pick write**. Placing a
+ * player, changing one, swapping two, CLEAR ALL (`[]`) and LOAD GAME PLAN all
+ * come through here.
+ *
+ * It does **not** apply optimistically. Presence polls every 500 ms and hands
+ * the server's copy of the lineup straight back, so a local edit that has not
+ * been acknowledged survives about half a second; waiting for the authoritative
+ * response is what makes a removal stick at all. Returns the number of picks the
+ * server actually kept, so the caller can report what it dropped.
+ */
+export async function replaceMyPicks(players) {
+  const room = state.room;
+  if (!room) return null;
+  if (isLineupLocked(room)) {
+    showToast("Un-confirm your squad to change it.");
+    return null;
+  }
+
+  // `null` holes must survive the round trip — they are the empty pitch slots.
+  const { ok, data } = await postAsMe("picks", {
+    players: players.map((p) => (p ? pickPayload(p) : null)),
+  });
+  if (!ok) {
+    showToast(data?.error || "Could not update your lineup.");
+    return null;
+  }
+  if (data.room) applyPresenceSnapshot(data.room);
+  cb.renderDraftUi();
+  return pickCount(state.room?.picks?.[state.mySide]);
 }

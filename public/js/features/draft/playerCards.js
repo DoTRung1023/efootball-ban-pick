@@ -3,8 +3,8 @@
 
    `playerCardHtml` renders the grid card in the ban phase, the pick board
    and the Start Match screen. The thumbnails are the small staged/opponent
-   chips down the ban sidebar; `--${size}` picks the height, which
-   `banView.js` drives through the `--ban-slot-h` variable.
+   chips down the ban sidebar; there is one thumb size, and its height comes
+   from the `--ban-slot-h` variable that `banView.js` drives.
    ============================================================ */
 
 import { escapeHtml } from "./utils.js";
@@ -15,36 +15,45 @@ import {
   playerDetailTooltipText,
 } from "./players.js";
 
-export function imageOnlyThumbHtml(player, size = "md") {
+export function imageOnlyThumbHtml(player) {
   if (!player) return "";
   return `
-    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)}" data-player-id="${escapeHtml(player.id)}">
+    <div class="ban-phase-thumb" data-player-id="${escapeHtml(player.id)}">
       <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
     </div>
   `;
 }
 
-export function opponentStagedBanThumbHtml(player, size = "md") {
+export function opponentStagedBanThumbHtml(player) {
   if (!player) return "";
   return `
-    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)} is-opponent-staged" data-player-id="${escapeHtml(player.id)}">
+    <div class="ban-phase-thumb is-opponent-staged" data-player-id="${escapeHtml(player.id)}">
       <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
     </div>
   `;
 }
 
-export function stagedBanThumbHtml(player, size = "md") {
+export function stagedBanThumbHtml(player) {
   if (!player) return "";
   return `
-    <div class="ban-phase-thumb ban-phase-thumb--${escapeHtml(size)} is-staged" data-player-id="${escapeHtml(player.id)}">
+    <div class="ban-phase-thumb is-staged" data-player-id="${escapeHtml(player.id)}">
       <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       <button class="ban-thumb-remove" data-remove-ban="${escapeHtml(String(player.id))}" type="button" aria-label="Remove staged ban">×</button>
     </div>
   `;
 }
 
+/**
+ * `footer: false` renders the art alone. The opponent's picks use it — their
+ * lineup is context, not something you act on, and the four metadata lines are
+ * unreadable at that column width anyway.
+ *
+ * `pending: true` is the pick board's "chosen, waiting for a slot" state. Only
+ * that board passes it; the ban grid stages into a strip instead, so it has no
+ * equivalent.
+ */
 export function playerCardHtml(player, o) {
-  const { banned, picked, clickable } = o;
+  const { banned, picked, clickable, footer = true, pending = false } = o;
   const unavailable = banned || picked;
   const cls = [
     "player-card",
@@ -52,6 +61,7 @@ export function playerCardHtml(player, o) {
     unavailable ? "is-unavailable" : "",
     banned ? "is-ban-taken" : "",
     picked ? "is-pick-taken" : "",
+    pending ? "is-pending" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -63,9 +73,9 @@ export function playerCardHtml(player, o) {
       <div class="pc-img-wrap">
         <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       </div>
-      <div class="pc-footer">
+      ${footer ? `<div class="pc-footer">
         <div class="pc-footer-meta pmeta-in-card pc-footer-detail-only">${playerDetailSublineHtml(normalizePlayerForFooter(player))}</div>
-      </div>
+      </div>` : ""}
     </div>
   `;
 }

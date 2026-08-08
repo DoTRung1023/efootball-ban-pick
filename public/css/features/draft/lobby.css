@@ -600,9 +600,13 @@
   border-color: rgba(255, 60, 60, 0.6);
 }
 
+/* Three modes, and `auto-fit` rather than a fixed count: at 250px a card holds
+   its name and one line of description, and below that the row folds to two and
+   then one rather than squeezing all three. */
+
 .lv-reveal-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 8px;
 }
 

@@ -13,9 +13,8 @@ import {
   ensureRoomEntry,
   isValidRoomCode,
   normalizeRoomCodeParam,
-  presenceFingerprint,
-  pruneStalePresence,
   pushSystemChat,
+  resetDraftToLobby,
   pushUserChat,
   resolveSide,
   roomPresence,
@@ -98,7 +97,6 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
   }
 
   const entry = ensureRoomEntry(req.roomCode);
-  pruneStalePresence(entry, Date.now());
 
   if (entry.closed && role !== "host") {
     return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry) });
@@ -122,11 +120,7 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
     return res.status(result.status).json({ error: result.error });
   }
 
-  const before = presenceFingerprint(entry);
-  pruneStalePresence(entry, Date.now());
-  const after = presenceFingerprint(entry);
-
-  if (result.changed || presenceChanged(before, after)) {
+  if (result.changed) {
     entry.updatedAt = Date.now();
   }
 
@@ -181,18 +175,6 @@ function claimGuestSeat(entry, participant) {
   return { changed };
 }
 
-/** True when pruning removed a participant (id cleared, or last-seen reset to 0). */
-function presenceChanged(before, after) {
-  const [beforeHostId, beforeGuestId, beforeHostSeen, beforeGuestSeen] = before;
-  const [afterHostId, afterGuestId, afterHostSeen, afterGuestSeen] = after;
-  return (
-    beforeHostId !== afterHostId ||
-    beforeGuestId !== afterGuestId ||
-    (beforeHostSeen > 0 && afterHostSeen === 0) ||
-    (beforeGuestSeen > 0 && afterGuestSeen === 0)
-  );
-}
-
 /** Mirrors the caller's staged (not yet confirmed) bans so the opponent can see them live. */
 function syncStagedBans(entry, role, stagedBans) {
   if (!Array.isArray(stagedBans) || !entry.stagedBans) return;
@@ -208,12 +190,7 @@ router.get("/:code", (req, res) => {
   const entry = roomPresence.get(code);
   if (!entry) return sendEmptyRoom(res);
 
-  const [beforeHostId, beforeGuestId] = presenceFingerprint(entry);
-  pruneStalePresence(entry);
-  const [afterHostId, afterGuestId] = presenceFingerprint(entry);
-  if (beforeHostId !== afterHostId || beforeGuestId !== afterGuestId) {
-    entry.updatedAt = Date.now();
-  }
+  // A plain read: nothing here can change the seats, so `updatedAt` stands.
   sendRoom(res, entry);
 });
 
@@ -238,8 +215,11 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
   if (entry.guest?.id && String(entry.guest.id) === req.requesterId) {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
-    entry.ready.guest = false;
-    entry.matchReady.guest = false;
+    /* The room survives its guest: the host drops back to the lobby with the
+       code intact and can invite somebody else. */
+    if (resetDraftToLobby(entry)) {
+      pushSystemChat(entry, "Draft cancelled — waiting for a new player.");
+    }
   }
 
   entry.updatedAt = Date.now();
@@ -293,11 +273,14 @@ router.post(
   requireDrafting("Bans are only allowed during drafting."),
   (req, res) => {
     const { entry, side, player } = req;
+    if (entry.bansConfirmed?.[side]) {
+      return res.status(409).json({ error: "Un-confirm your bans before changing them." });
+    }
     const playerId = String(player.id);
     const myBans = entry.bans[side];
 
-    if (myBans.some((b) => String(b.id) === playerId) || entry.pickedPlayerIds.includes(playerId)) {
-      return res.status(409).json({ error: "Player already banned or picked." });
+    if (myBans.some((b) => String(b.id) === playerId)) {
+      return res.status(409).json({ error: "Player already banned." });
     }
 
     const maxBans = asCount(entry.config?.banCountPerSide);
@@ -324,6 +307,25 @@ router.post(
   requireDrafting("Ban confirm only during drafting."),
   (req, res) => {
     const { entry, side } = req;
+    // Absent means confirm — older clients send no body at all.
+    const confirmed = req.body?.confirmed !== false;
+
+    if (!confirmed) {
+      /* Un-confirming hands this side's bans back as *staged* ones, which is
+         what makes them editable again: the staged strip already has the × and
+         the counter, so nothing new is needed to change your mind. The client
+         mirrors the same move into `state.stagedBans`, because its heartbeat
+         overwrites `entry.stagedBans[side]` on the next poll either way. */
+      entry.bansConfirmed[side] = false;
+      entry.stagedBans[side] = (entry.bans[side] || [])
+        .map((p) => ({ id: String(p.id), name: String(p.name || "") }));
+      entry.bans[side] = [];
+      entry.bannedPlayerIds = [...entry.bans.host, ...entry.bans.guest].map((p) => String(p.id));
+      pushSystemChat(entry, `${usernameOf(entry, side)} un-confirmed their bans.`);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
     entry.bansConfirmed[side] = true;
     entry.stagedBans[side] = [];
 
@@ -340,32 +342,112 @@ router.post(
   },
 );
 
-/** POST body: { requesterId, player } — a player may be picked by one side only. */
+/**
+ * POST body: { requesterId, confirmed } — this side's lineup is final, or is not.
+ *
+ * The pick-phase twin of `/ban-confirm`, and it exists for the same reason: a
+ * side confirming must **not** move that player on alone. The draft advances to
+ * `await-ready` only once both have confirmed, and until then either can come
+ * back and change their mind — `/picks` refuses a write while your own flag is
+ * set, so "unconfirm first" is enforced here and not just in the UI.
+ */
 router.post(
-  "/:code/pick",
+  "/:code/picks-confirm",
   withRoomCode,
   requireRequesterId,
-  requirePlayer,
+  requireParticipant("confirming picks"),
+  requireDrafting("Pick confirm only during drafting."),
+  (req, res) => {
+    const { entry, side } = req;
+    const confirmed = req.body?.confirmed !== false;
+
+    entry.picksConfirmed[side] = confirmed;
+    pushSystemChat(
+      entry,
+      confirmed
+        ? `${usernameOf(entry, side)} confirmed their squad.`
+        : `${usernameOf(entry, side)} un-confirmed their squad.`,
+    );
+
+    if (entry.picksConfirmed.host && entry.picksConfirmed.guest) {
+      entry.status = ROOM_STATUS.AWAIT_READY;
+      entry.turnEndsAt = null;
+      entry.picksConfirmed = { host: false, guest: false };
+      entry.matchReady = { host: false, guest: false };
+      pushSystemChat(entry, "Both squads confirmed — on to the match!");
+    }
+
+    entry.updatedAt = Date.now();
+    sendRoom(res, entry);
+  },
+);
+
+/**
+ * POST body: { requesterId, players } — replaces this side's lineup wholesale.
+ *
+ * **This is the only way a pick is written.** There was a `/:code/pick` beside
+ * it that appended one player into the first free slot, but nothing that
+ * *removed* or *moved* a pick could persist through it — the client changed the
+ * lineup locally and the next presence poll handed the server's copy straight
+ * back. Once every pick named its slot on the client (see
+ * `.claude/rules/room/pick-phase.md`) that route had no caller at all. Picking a
+ * player, changing one, swapping two, CLEAR ALL and LOAD GAME PLAN are all the
+ * same write: send the whole lineup.
+ *
+ * **Picks are per-side and independent**, exactly like bans: each player drafts
+ * from their *own* squad, so both sides owning the same player is normal and
+ * neither blocks the other. The only conflict is a duplicate within this side's
+ * own lineup, and the later copy is dropped.
+ *
+ * `players` is **slot-addressed** — index is the pitch slot, `null` is an empty
+ * slot — and holes are preserved exactly as sent, which is what lets a removed
+ * player leave his slot empty instead of sliding everyone after him along.
+ * Trailing holes are trimmed so the array does not grow without bound.
+ */
+router.post(
+  "/:code/picks",
+  withRoomCode,
+  requireRequesterId,
   requireParticipant("picking"),
   requireDrafting("Picks are only allowed during drafting."),
   (req, res) => {
-    const { entry, side, player } = req;
-    const playerId = String(player.id);
-
-    if (entry.pickedPlayerIds.includes(playerId)) {
-      return res.status(409).json({ error: "Player already picked." });
+    const { entry, side } = req;
+    const incoming = req.body?.players;
+    if (!Array.isArray(incoming)) {
+      return res.status(400).json({ error: "players must be an array." });
+    }
+    // Confirmed means final until you say otherwise — see /picks-confirm.
+    if (entry.picksConfirmed?.[side]) {
+      return res.status(409).json({ error: "Un-confirm your squad before changing it." });
     }
 
     const maxPicks = asCount(entry.config?.pickCountPerSide);
-    const myPicks = entry.picks[side];
-    if (maxPicks && myPicks.length >= maxPicks) {
-      return res.status(409).json({ error: "No picks remaining for your side." });
+    if (maxPicks && incoming.length > maxPicks) {
+      return res.status(409).json({ error: "Too many picks for your side." });
     }
 
-    myPicks.push(player);
-    entry.pickedPlayerIds.push(playerId);
+    const slots = [];
+    const seen = new Set();
+    for (const player of incoming) {
+      const id = String(player?.id || "");
+      // anything without a usable id becomes a hole, which is also how null arrives
+      if (!id || seen.has(id)) {
+        slots.push(null);
+        continue;
+      }
+      seen.add(id);
+      slots.push(player);
+    }
+    while (slots.length && slots[slots.length - 1] === null) slots.pop();
+
+    entry.picks[side] = slots;
     entry.updatedAt = Date.now();
-    pushSystemChat(entry, `${usernameOf(entry, side)} picked ${String(player.name || player.id)}`);
+    pushSystemChat(
+      entry,
+      seen.size
+        ? `${usernameOf(entry, side)} updated their lineup (${seen.size})`
+        : `${usernameOf(entry, side)} cleared their lineup`,
+    );
 
     sendRoom(res, entry);
   },
@@ -387,8 +469,10 @@ router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) =>
   entry.kickedGuestId = String(entry.guest.id);
   pushSystemChat(entry, `${entry.guest.username || "Guest"} was removed by host.`);
   entry.guest = null;
-  entry.ready.guest = false;
-  entry.matchReady.guest = false;
+  // Same as a guest leaving — see resetDraftToLobby.
+  if (resetDraftToLobby(entry)) {
+    pushSystemChat(entry, "Draft cancelled — waiting for a new player.");
+  }
   entry.updatedAt = Date.now();
   sendRoom(res, entry);
 });

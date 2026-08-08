@@ -53,8 +53,11 @@ All in `src/features/admin/routes.js`, all behind `requireAdminKey` (`src/lib/ht
 
 - `GET /api/admin/stats` — catalog count, user count, new users this week,
   active/draft room counts, last scrape row.
-- `GET /api/admin/rooms` — iterates `roomPresence`, filters closed/stale entries
-  (TTL × 3), returns `{ code, host, guest, phase, ageSec }`.
+- `GET /api/admin/rooms` — iterates `roomPresence`, filters out closed rooms and
+  ones quiet for `ROOM_LIST_QUIET_MS` (90 s), returns
+  `{ code, host, guest, phase, ageSec }`. That cutoff is **display only** — it
+  hides a stale room from this list and does not end it. There is no presence
+  TTL; see `room/presence-and-reconnect.md`.
 - `GET /api/admin/scrape-logs?limit=N` — reads `scrape_logs` DESC.
 - `GET /api/admin/recent-users?limit=N` — users JOIN players + game_plans, most recent
   first.

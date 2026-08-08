@@ -1,11 +1,19 @@
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { normalizeSortValue } from '@/features/draft/playerQuery.js';
+import { renderDraftFilterPanel, bindDraftFilterPanel } from '@/features/draft/playerFilters.js';
+import { bindGridInfoToggle } from '@/features/draft/shell/cardGrid.js';
 import { renderSortPanel, sortCategoryLabel } from '@/features/draft/sortPanel.js';
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
 import { showToast, getUser } from '@/features/draft/utils.js';
 
-// Position groups for the tab bar
+/**
+ * Position groups for the tab bar.
+ *
+ * The tabs are a shortcut onto `state.pickFilterPositions` — the same array the
+ * FILTER panel's POSITION multi-select edits. Keeping a second position field
+ * just for the tabs meant two filters that could disagree about the same thing.
+ */
 const PICK_TAB_GROUPS = {
   all: [],
   gk:  ["GK"],
@@ -14,10 +22,23 @@ const PICK_TAB_GROUPS = {
   att: ["CF", "SS", "RWF", "LWF"],
 };
 
+const sameMembers = (a, b) =>
+  a.length === b.length && new Set([...a, ...b]).size === a.length;
+
+/** The tab whose group matches the current selection exactly, or "" for none. */
+function activePickTab() {
+  const selected = Array.isArray(state.pickFilterPositions) ? state.pickFilterPositions : [];
+  if (!selected.length) return "all";
+  const hit = Object.entries(PICK_TAB_GROUPS).find(([, group]) => group.length && sameMembers(group, selected));
+  return hit ? hit[0] : "";
+}
+
 export function renderPickToolbar() {
   const sortLabel = document.getElementById("pickSortLabel");
   const sortPanel = document.getElementById("pickSortPanel");
   const sortDirIcon = document.getElementById("pickSortDirIcon");
+  const filterPanel = document.getElementById("pickFilterPanel");
+  const filterDot = document.getElementById("pickFilterDot");
   if (!sortLabel || !sortPanel) return;
 
   const sortVal = normalizeSortValue(state.pickSort);
@@ -27,13 +48,20 @@ export function renderPickToolbar() {
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
   renderSortPanel(sortPanel, baseKey, "data-pick-sort-cat");
+  renderDraftFilterPanel(filterPanel, state, "pick", filterDot);
 }
 
+/**
+ * Highlights whichever tab matches the live position filter.
+ *
+ * Derived every render rather than stored: the FILTER panel edits the same
+ * array, so a remembered tab would go stale the moment a position was toggled
+ * there.
+ */
 export function renderPickPosTabs() {
-  const tabs = document.querySelectorAll("[data-pick-tab]");
-  tabs.forEach((tab) => {
-    const g = tab.getAttribute("data-pick-tab") || "all";
-    tab.classList.toggle("is-active", g === state.pickPosTab);
+  const active = activePickTab();
+  document.querySelectorAll("[data-pick-tab]").forEach((tab) => {
+    tab.classList.toggle("is-active", (tab.getAttribute("data-pick-tab") || "all") === active);
   });
 }
 
@@ -44,6 +72,9 @@ export function bindPickPhaseUiOnce() {
   const sortWrap = document.getElementById("pickSortWrap");
   const sortPanel = document.getElementById("pickSortPanel");
   const sortDirBtn = document.getElementById("pickSortDirBtn");
+  const filterBtn = document.getElementById("pickFilterBtn");
+  const filterWrap = document.getElementById("pickFilterWrap");
+  const filterPanel = document.getElementById("pickFilterPanel");
   if (!search) return;
   state.pickUiBound = true;
 
@@ -52,27 +83,43 @@ export function bindPickPhaseUiOnce() {
     cb.renderDraftUi();
   });
 
-  const closeSort = () => {
+  const closeAll = () => {
     sortBtn?.classList.remove("open");
+    filterBtn?.classList.remove("open");
     sortPanel?.classList.remove("open");
+    filterPanel?.classList.remove("open");
     sortBtn?.setAttribute("aria-expanded", "false");
+    filterBtn?.setAttribute("aria-expanded", "false");
   };
 
   document.addEventListener("click", (e) => {
     const t = e.target;
     const insideSort = sortWrap && t instanceof Element ? Boolean(t.closest("#pickSortWrap")) : false;
-    if (!insideSort) closeSort();
+    const insideFilter = filterWrap && t instanceof Element ? Boolean(t.closest("#pickFilterWrap")) : false;
+    if (!insideSort && !insideFilter) closeAll();
   });
 
   sortBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     const open = !Boolean(sortPanel?.classList.contains("open"));
-    closeSort();
+    closeAll();
     if (open) {
       renderPickToolbar();
       sortBtn.classList.add("open");
       sortPanel?.classList.add("open");
       sortBtn.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  filterBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const open = !Boolean(filterPanel?.classList.contains("open"));
+    closeAll();
+    if (open) {
+      renderPickToolbar();
+      filterBtn.classList.add("open");
+      filterPanel?.classList.add("open");
+      filterBtn.setAttribute("aria-expanded", "true");
     }
   });
 
@@ -92,20 +139,22 @@ export function bindPickPhaseUiOnce() {
     const dir = cur.endsWith("_asc") ? "asc" : "desc";
     state.pickSort = normalizeSortValue(`${cat}_${dir}`);
     cb.renderDraftUi();
-    closeSort();
+    closeAll();
   });
 
-  // Position tab bar
+  // Position tab bar — writes the group into the shared position filter.
   const posTabs = document.getElementById("pickPosTabs");
   posTabs?.addEventListener("click", (e) => {
     const btn = e.target instanceof Element ? e.target.closest("[data-pick-tab]") : null;
     if (!btn) return;
     const group = btn.getAttribute("data-pick-tab") || "all";
-    state.pickPosTab = group;
-    state.pickFilterPosition = PICK_TAB_GROUPS[group] || [];
+    state.pickFilterPositions = [...(PICK_TAB_GROUPS[group] || [])];
     renderPickPosTabs();
     cb.renderDraftUi();
   });
+
+  bindDraftFilterPanel(filterPanel, state, "pick", () => cb.renderDraftUi());
+  bindGridInfoToggle("pickToggleInfoBtn", "pickGrid", "pickGridInfoHidden");
 }
 
 // Load the user's own squad for the pick grid (not the general catalog)

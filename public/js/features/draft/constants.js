@@ -11,7 +11,11 @@ export const DEFAULT_PICK_DURATION_SECONDS = 300;
 export const MIN_PICK_DURATION_SECONDS = 5;
 export const MAX_PICK_DURATION_SECONDS = 1200;
 export const LOBBY_PRESENCE_POLL_MS = 500;
+/* Three rungs of concealment, in order: see everything → see the shape but not
+   who → see nothing but whether they are done. Kept in step with
+   `src/features/rooms/config.js`. */
 export const REVEAL_MODE_INSTANT = "instant";
+export const REVEAL_MODE_BLUR = "blur";
 export const REVEAL_MODE_HIDDEN = "hidden";
 
 // ── Image helpers ─────────────────────────────────────────────────

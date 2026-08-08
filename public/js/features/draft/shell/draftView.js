@@ -7,7 +7,7 @@
 import { state } from '@/features/draft/state.js';
 import { attachMiniCardGridHandlers } from './cardGrid.js';
 import { loadOpponentBanPlayers } from '@/features/draft/ban/opponentSquad.js';
-import { isReadyPhase, startTurnTimer, getDraftDisplayPlayers } from '@/features/draft/engine/draftFlow.js';
+import { enterReadyPhase, isReadyPhase, startTurnTimer, getDraftDisplayPlayers } from '@/features/draft/engine/draftFlow.js';
 import { submitBan, submitPick } from '@/features/draft/engine/draftActions.js';
 import { renderBanBoard } from '@/features/draft/ban/banView.js';
 import { renderPickBoard } from '@/features/draft/pick/pickView.js';
@@ -22,6 +22,9 @@ export function renderDraftUi() {
   const theirSide = mySide === "host" ? "guest" : "host";
   const turn = state.schedule[room.turnIndex];
   const readyPhase = isReadyPhase(room);
+  // The server flips `status` to "await-ready" once both squads are confirmed;
+  // this is where that becomes the client's phase too.
+  if (readyPhase) enterReadyPhase();
   const isBanPhase = turn?.action === "ban";
   // Both stages are simultaneous, so side "both" always means it's your turn.
   const isMyTurn = String(turn?.side || "") === "both" || turn?.side === mySide;

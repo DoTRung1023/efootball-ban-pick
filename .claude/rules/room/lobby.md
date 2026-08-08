@@ -49,11 +49,17 @@ inputs the user is actively editing).
   `renderLobby()` as `"<2×count> bans in total"`. Note `banCountPerSide: 0` does **not**
   skip the ban phase (`maybeAutoAdvanceFromBan` returns early on a falsy limit), so the
   hint must not claim it does.
-- `.lv-reveal-cards` (2-column grid) / `.lv-reveal-card` — always-visible mode option
-  cards; `is-selected` = green border + glow. Each card carries
-  `data-lobby-reveal-mode-option`. The old trigger+panel dropdown pattern is gone —
-  `renderLobby()` toggles `is-selected` on each card directly, and the existing
-  click-delegation in `initLobby()` handles selection.
+- `.lv-reveal-cards` / `.lv-reveal-card` — always-visible mode option cards;
+  `is-selected` = green border + glow. Each card carries
+  `data-lobby-reveal-mode-option`. **Three cards** — INSTANT, BLUR, HIDDEN — laid out
+  `repeat(auto-fit, minmax(200px, 1fr))` rather than a fixed column count, so the row
+  folds to two and then one instead of squeezing all three. Adding a mode is a fourth
+  card plus a `REVEAL_MODE_*` constant on **both** sides of the client/server pair; see
+  `pick-phase.md` for what each mode conceals. The old trigger+panel dropdown pattern
+  is gone — `renderLobby()` toggles `is-selected` on each card directly, and the
+  existing click-delegation in `initLobby()` handles selection.
+  - The BLUR card's icon is `🌫️` **with the U+FE0F variation selector**. U+1F32B is
+    `Emoji_Presentation=No`, so bare it renders as a monochrome text glyph.
 
 Layout:
 

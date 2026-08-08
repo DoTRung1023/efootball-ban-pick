@@ -29,10 +29,16 @@ const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
    property. A high ban cap needs more rows than fit — at 12 bans the natural
    96px card wants ~408px per strip, and the two strips share the sidebar — so
    pick the largest height at which every slot fits without scrolling. */
-const SLOT_GAP = 8;      // .ban-side-strip gap
-const SLOT_MAX_H = 96;   // natural .ban-phase-thumb--md height
-const SLOT_MIN_H = 44;   // below this the card art stops being recognisable
-const SLOT_RATIO = 68 / 96;
+const SLOT_GAP = 8;         // .ban-side-strip gap
+const SLOT_MAX_H = 96;      // natural .ban-phase-thumb height
+const SLOT_MIN_H = 44;      // below this the card art stops being recognisable
+const CARD_RATIO = 240 / 339;  // pesdb card art is 240 × 339
+const SLOT_BORDER = 2;      // the thumb's 1px hairline, which sits outside the art
+
+/* Layout width of one slot at height `h`. Keep in step with the width `calc()`
+   on `.ban-side-empty-slot` — the two must agree or the column count this picks
+   is not the one the strip actually wraps at. */
+const slotWidth = (h) => SLOT_BORDER + (h - SLOT_BORDER) * CARD_RATIO;
 
 /**
  * Publishes `--ban-slot-h` on the panel so both strips scale together.
@@ -52,7 +58,7 @@ function applyBanSlotHeight(strip, maxBans) {
   let best = SLOT_MIN_H;
   for (let h = SLOT_MAX_H; h >= SLOT_MIN_H; h -= 2) {
     // a shorter card is also narrower, so more fit per row
-    const cols = Math.max(1, Math.floor((availW + SLOT_GAP) / (h * SLOT_RATIO + SLOT_GAP)));
+    const cols = Math.max(1, Math.floor((availW + SLOT_GAP) / (slotWidth(h) + SLOT_GAP)));
     const rows = Math.ceil(maxBans / cols);
     if (rows * (h + SLOT_GAP) - SLOT_GAP <= availH) { best = h; break; }
   }
@@ -117,7 +123,7 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
     remaining: remainingSlots(maxBans, bannedOnMe.length + opponentStaged.length),
   });
 
-  renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase });
+  renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed });
 }
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);
@@ -189,11 +195,17 @@ function renderMyBansStatus(myConfirmed, theirConfirmed) {
   }
 }
 
+/**
+ * One button, two jobs. Confirmed it becomes UN-CONFIRM and stays **enabled** —
+ * waiting for the opponent is not a commitment, and until they confirm too you
+ * are free to change your mind. It used to disable itself, which left the only
+ * way back a page reload.
+ */
 function renderConfirmButton(myConfirmed) {
   const btn = document.getElementById("confirmBansBtn");
   if (!btn) return;
-  btn.disabled = myConfirmed;
-  btn.textContent = myConfirmed ? "CONFIRMED ✓" : "CONFIRM BANS";
+  btn.disabled = false;
+  btn.textContent = myConfirmed ? "UN-CONFIRM" : "CONFIRM BANS";
   btn.classList.toggle("is-confirmed", myConfirmed);
 }
 
@@ -212,8 +224,8 @@ function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining }) {
   const prevCount = strip.children.length;
   strip.dataset.bansKey = key;
   strip.innerHTML = [
-    ...confirmed.map((p) => imageOnlyThumbHtml(p, "md")),
-    ...staged.map((p) => stagedHtml(p, "md")),
+    ...confirmed.map((p) => imageOnlyThumbHtml(p)),
+    ...staged.map((p) => stagedHtml(p)),
     ...Array.from({ length: remaining }, () => EMPTY_SLOT_HTML),
   ].join("");
 
@@ -225,7 +237,7 @@ function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining }) {
   }
 }
 
-function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase }) {
+function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed }) {
   const rows = getBanListPlayers();
   const canStillBan = !maxBans || myBans.length + state.stagedBans.length < maxBans;
   const stagedIds = new Set(state.stagedBans.map((p) => String(p.id)));
@@ -233,12 +245,13 @@ function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPha
   const myConfirmedIds = new Set(myBans.map((b) => String(b.id)));
 
   const flagFor = (id) =>
-    myConfirmedIds.has(id) ? "b" : stagedIds.has(id) ? "s" : room.pickedPlayerIds.includes(id) ? "p" : "";
+    myConfirmedIds.has(id) ? "b" : stagedIds.has(id) ? "s" : "";
 
   const stateKey = [
     isMyTurn ? 1 : 0,
     canStillBan ? 1 : 0,
     readyPhase ? 1 : 0,
+    myConfirmed ? 1 : 0,
     rows.map((p) => String(p.id) + flagFor(String(p.id))).join(","),
   ].join("|");
   if (grid.dataset.stateKey === stateKey) return;
@@ -248,9 +261,10 @@ function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPha
     ? rows.map((p) => {
         const id = String(p.id);
         const banned = myConfirmedIds.has(id) || stagedIds.has(id);
-        const picked = room.pickedPlayerIds.includes(id);
-        const clickable = isMyTurn && canStillBan && !banned && !picked && !readyPhase;
-        return playerCardHtml(p, { banned, picked, clickable });
+        // A confirmed side's bans are read-only until it un-confirms.
+        const clickable = isMyTurn && canStillBan && !banned && !readyPhase && !myConfirmed;
+        // No pick exists yet during the ban phase, so a card is never "picked".
+        return playerCardHtml(p, { banned, picked: false, clickable });
       }).join("")
     : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage())}</div>`;
 }

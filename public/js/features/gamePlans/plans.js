@@ -286,6 +286,7 @@ async function openPlanDetail(userId, plan) {
 
 function closePlanDetail() {
   closePlanFormationPanel();
+  hidePlanHover();
   document.getElementById("planDetailOverlay")?.classList.remove("open");
   document.body.style.overflow = "";
   gamePlans.currentId  = null;
@@ -297,6 +298,10 @@ function closePlanDetail() {
 }
 
 function renderDetailSlots() {
+  // Both renders replace their slot elements outright, so a hovered card is
+  // detached without ever firing `mouseleave` and the panel would stay open
+  // pointing at nothing.
+  hidePlanHover();
   renderStartingXI();
   renderBench();
 }
@@ -317,6 +322,98 @@ function renderBench() {
   for (let s = 12; s <= 23; s++) {
     benchEl.appendChild(makeBenchSlotEl(s, gamePlans.slots[s] ?? null));
   }
+}
+
+/* ── Hover info for a filled slot ─────────────────────────────────────────
+   A pitch card is 82px of artwork, with no room for the metadata footer that
+   My Players carries under every card. So the same block is floated on hover
+   instead, drawn by `playerDetailSublineHtml` — the very function that draws
+   that footer, so the two cannot drift apart.
+
+   The slot row cannot supply the text. `/api/game-plans/:id/players` returns
+   slot, role, name, position, overall, club and pesdb_id and nothing else — no
+   region, nationality, league, foot or physicals — so rendering it directly
+   yields three empty lines and a club. The full player is resolved out of the
+   squad list the picker beside it is already reading. The room's LOAD GAME
+   PLAN matches the same rows against its own squad for the same reason. */
+
+let planHoverEl = null;
+
+function planHoverCard() {
+  if (planHoverEl) return planHoverEl;
+  planHoverEl = document.createElement("div");
+  planHoverEl.className = "plan-hover-card";
+  planHoverEl.hidden = true;
+  document.body.appendChild(planHoverEl);
+  return planHoverEl;
+}
+
+/** The squad row behind a slot — where the footer fields actually live. */
+function fullPlayerForSlot(slotPlayer) {
+  const id = Number(slotPlayer?.player_id);
+  const match = Number.isFinite(id)
+    ? cb.getSquadPlayers().find((p) => Number(p.id) === id)
+    : null;
+  return match ? { ...slotPlayer, ...match } : slotPlayer;
+}
+
+function hidePlanHover() {
+  if (!planHoverEl || planHoverEl.hidden) return;
+  planHoverEl.hidden = true;
+  window.removeEventListener("scroll", hidePlanHover, true);
+}
+
+function showPlanHover(anchor, slotPlayer) {
+  // Touch fires mouseenter on tap, where the tap means "select this slot" — a
+  // panel you then have to dismiss is in the way, not helpful.
+  if (!window.matchMedia("(hover: hover)").matches) return;
+  const player = fullPlayerForSlot(slotPlayer);
+  const el = planHoverCard();
+  el.innerHTML = `
+    <div class="plan-hover-name">${escapeHtml(player.name)}</div>
+    <div class="plan-hover-detail">${playerDetailSublineHtml(player)}</div>`;
+  el.hidden = false;
+  positionPlanHover(el, anchor);
+  // Stacked, the modal is one scrolling sheet; a fixed panel would stay put
+  // while its card slid away underneath it.
+  window.addEventListener("scroll", hidePlanHover, true);
+}
+
+/**
+ * Beside the card — right if there is room, otherwise left, otherwise under it.
+ *
+ * The third branch is not a nicety. Clamping a too-far-left panel back to the
+ * viewport edge instead slides it *over* the artwork it is describing: measured
+ * at a 560px viewport, the ideal left was -4px and the clamp put the panel 12px
+ * into the card. Stacked, the modal is full-bleed and neither side has 236px,
+ * so that is the common case on a phone, not the corner one.
+ */
+function positionPlanHover(el, anchor) {
+  const a = anchor.getBoundingClientRect();
+  const GAP = 10, EDGE = 8;
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const clampX = (v) => Math.max(EDGE, Math.min(v, window.innerWidth - w - EDGE));
+  const clampY = (v) => Math.max(EDGE, Math.min(v, window.innerHeight - h - EDGE));
+
+  const toRight = a.right + GAP;
+  const toLeft = a.left - GAP - w;
+
+  if (toRight + w <= window.innerWidth - EDGE) {
+    el.style.left = `${toRight}px`;
+    el.style.top = `${clampY(a.top + a.height / 2 - h / 2)}px`;
+  } else if (toLeft >= EDGE) {
+    el.style.left = `${toLeft}px`;
+    el.style.top = `${clampY(a.top + a.height / 2 - h / 2)}px`;
+  } else {
+    el.style.left = `${clampX(a.left + a.width / 2 - w / 2)}px`;
+    const below = a.bottom + GAP;
+    el.style.top = `${below + h <= window.innerHeight - EDGE ? below : clampY(a.top - GAP - h)}px`;
+  }
+}
+
+function bindSlotHover(el, player) {
+  el.addEventListener("mouseenter", () => showPlanHover(el, player));
+  el.addEventListener("mouseleave", hidePlanHover);
 }
 
 function makePitchSlotEl(slot, player) {
@@ -341,6 +438,7 @@ function makePitchSlotEl(slot, player) {
       e.stopPropagation();
       removeFromSlot(slot);
     });
+    bindSlotHover(el, player);
   } else {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">
@@ -375,6 +473,7 @@ function makeBenchSlotEl(slot, player) {
       e.stopPropagation();
       removeFromSlot(slot);
     });
+    bindSlotHover(el, player);
   } else {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">

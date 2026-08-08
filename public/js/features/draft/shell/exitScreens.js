@@ -4,7 +4,6 @@ import { escapeHtml, showView } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
-import { clearTurnTimer } from '@/features/draft/engine/draftFlow.js';
 import { updateStageTabs } from './stageTabs.js';
 
 const EXIT_COUNTDOWN_SECONDS = 10;
@@ -51,14 +50,10 @@ export function showRoomClosed(message = "Room is closed.") {
   });
 }
 
-export function showOpponentLeft() {
-  clearTurnTimer();
-  showExitCountdown({
-    title: "Opponent left",
-    icon: "🚪",
-    message: (secs) => `Your opponent has left the draft. Returning to home in ${secs}s…`,
-  });
-}
+/* There is no `showOpponentLeft`. A guest walking out no longer ends anything:
+   the host drops back to the lobby with the room intact and can invite someone
+   else — see `returnToLobby` in presence.js. The only exit screens left are the
+   two that really are terminal: the room being closed, and the match starting. */
 
 /** Final side-by-side squad summary once both players are ready. */
 export function showDone() {

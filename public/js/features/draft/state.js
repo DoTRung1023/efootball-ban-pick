@@ -5,6 +5,7 @@ import {
   DEFAULT_PICK_DURATION_SECONDS,
   MIN_PICK_DURATION_SECONDS,
   MAX_PICK_DURATION_SECONDS,
+  REVEAL_MODE_BLUR,
   REVEAL_MODE_HIDDEN,
   REVEAL_MODE_INSTANT,
   FIXED_PICKS_PER_SIDE,
@@ -24,6 +25,7 @@ import {
 } from './allowance.js';
 
 import { normalizeDraftPlayer } from './players.js';
+import { createDraftFilterState } from './playerFilters.js';
 
 /** @type {{ phase: string, room: object | null, schedule: object[], mySide: string, search: string, position: string, players: object[], loadingPlayers: boolean, turnTimer: ReturnType<typeof setInterval> | null, presencePollId: ReturnType<typeof setInterval> | null, actionError: string }} */
 export const state = {
@@ -64,40 +66,25 @@ export const state = {
   opponentBanPlayersLoadSource: "",
   banSearch: "",
   banSort: "overall_max_desc",
-  banFilterPositions: [],
-  banFilterFoot: [],
-  banFilterPlayingStyle: [],
-  banFilterCardType: [],
-  banFilterLeague: [],
-  banFilterRegion: [],
-  banFilterOverallMin: "",
-  banFilterOverallMax: "",
-  banFilterOverallMaxMin: "",
-  banFilterOverallMaxMax: "",
-  banFilterClub: "",
-  banFilterNation: "",
-  banFilterHeightMin: "",
-  banFilterHeightMax: "",
-  banFilterWeightMin: "",
-  banFilterWeightMax: "",
-  banFilterAgeMin: "",
-  banFilterAgeMax: "",
+  ...createDraftFilterState("ban"),
   stagedBans: [],
   opponentStagedBans: [],
   banUiBound: false,
   pickSearch: "",
   pickSort: "overall_max_desc",
-  pickFilterPosition: [],
-  pickPosTab: "all",
+  ...createDraftFilterState("pick"),
   pickManualFormation: "4-3-3",
+  /* The two halves of the pitch's click-pair model, same as the game-plan pitch.
+     One of them is set at a time: whichever you click first, the second click
+     completes the action. `pickActiveSlot` is a pitch/bench slot index selected
+     for a swap or a fill; `pickPendingPlayerId` is a pool card chosen and
+     waiting for a destination. */
+  pickActiveSlot: null,
+  pickPendingPlayerId: null,
   pickUiBound: false,
   mySquadPlayers: [],
   draftGamePlans: [],
-  draftGamePlanPlayers: [],
-  draftGamePlanSelectedId: null,
   draftGamePlansLoading: false,
-  draftGamePlanPlayersLoading: false,
-  /** Ban-phase "consult a plan" panel; collapsed state is per-session only. */
   actionError: "",
   presenceError: false,
 };
@@ -112,10 +99,11 @@ export function normalizePickDurationSec(raw) {
   return Math.max(MIN_PICK_DURATION_SECONDS, Math.min(MAX_PICK_DURATION_SECONDS, n));
 }
 
+const REVEAL_MODES = new Set([REVEAL_MODE_INSTANT, REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN]);
+
 export function normalizeRevealMode(raw) {
-  return String(raw || "").trim().toLowerCase() === REVEAL_MODE_HIDDEN
-    ? REVEAL_MODE_HIDDEN
-    : REVEAL_MODE_INSTANT;
+  const mode = String(raw || "").trim().toLowerCase();
+  return REVEAL_MODES.has(mode) ? mode : REVEAL_MODE_INSTANT;
 }
 
 export function defaultRoomConfig() {
@@ -242,7 +230,6 @@ export function applyPresenceSnapshot(sr) {
   if (!room.bans) room.bans = { host: [], guest: [] };
   if (!room.picks) room.picks = { host: [], guest: [] };
   if (!Array.isArray(room.bannedPlayerIds)) room.bannedPlayerIds = [];
-  if (!Array.isArray(room.pickedPlayerIds)) room.pickedPlayerIds = [];
   if (sr.host?.username) {
     room.host = { id: String(sr.host.id), username: sr.host.username };
   }
@@ -277,16 +264,19 @@ export function applyPresenceSnapshot(sr) {
   }
   if (sr.picks && typeof sr.picks === "object") {
     room.picks = {
-      host: Array.isArray(sr.picks.host) ? sr.picks.host.map(normalizeDraftPlayer) : (room.picks?.host || []),
-      guest: Array.isArray(sr.picks.guest) ? sr.picks.guest.map(normalizeDraftPlayer) : (room.picks?.guest || []),
+      // `null` is an empty pitch slot and must stay null, not become a blank player
+      host: Array.isArray(sr.picks.host) ? sr.picks.host.map((p) => (p ? normalizeDraftPlayer(p) : null)) : (room.picks?.host || []),
+      guest: Array.isArray(sr.picks.guest) ? sr.picks.guest.map((p) => (p ? normalizeDraftPlayer(p) : null)) : (room.picks?.guest || []),
     };
   }
   room.bannedPlayerIds = Array.isArray(sr.bannedPlayerIds) ? sr.bannedPlayerIds.map(String) : (room.bannedPlayerIds || []);
-  room.pickedPlayerIds = Array.isArray(sr.pickedPlayerIds) ? sr.pickedPlayerIds.map(String) : (room.pickedPlayerIds || []);
   room.closed = Boolean(sr.closed);
   room.closeReason = sr.closeReason || "";
   if (sr.bansConfirmed && typeof sr.bansConfirmed === "object") {
     room.bansConfirmed = { host: Boolean(sr.bansConfirmed.host), guest: Boolean(sr.bansConfirmed.guest) };
+  }
+  if (sr.picksConfirmed && typeof sr.picksConfirmed === "object") {
+    room.picksConfirmed = { host: Boolean(sr.picksConfirmed.host), guest: Boolean(sr.picksConfirmed.guest) };
   }
   const theirSide = state.mySide === "host" ? "guest" : "host";
   if (sr.stagedBans && typeof sr.stagedBans === "object") {
@@ -326,7 +316,6 @@ export function emptyRoom(code, host, guest) {
     matchReady: defaultMatchReadyState(),
     chat: [],
     bannedPlayerIds: [],
-    pickedPlayerIds: [],
     currentTurn: null,
   };
 }

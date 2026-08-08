@@ -20,12 +20,12 @@ export const cb = {
   showDone: () => {},
   /** Show the "room closed" countdown screen. */
   showRoomClosed: (_msg) => {},
-  /** Show the "opponent left" countdown screen. */
-  onOpponentLeft: () => {},
   /** Host START action (guest ready toggle for the guest). */
   startDraftFromLobby: () => {},
   /** Refresh the ban/pick/start stage indicator. */
   updateStageTabs: () => {},
   /** Timer expiry: post any staged bans without confirming the side. */
   flushAndSubmitStagedBans: async () => {},
+  /** Mark this side's squad final, or take it back. */
+  confirmPicks: async (_confirmed) => {},
 };

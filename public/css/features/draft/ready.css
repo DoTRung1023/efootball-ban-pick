@@ -178,6 +178,21 @@
   background: var(--c-fill);
 }
 
+/* `blur` reveal mode wraps the pitch and bench — but not the column head, whose
+   name and READY badge the mode still promises you. Same treatment as
+   `.pick-opp-grid.is-concealed` on the pick board, and for the same reason:
+   `user-select: none` so the names cannot be recovered by dragging across the
+   blur, with `aria-hidden` set in `readyView` so a screen reader cannot read
+   straight through it either. `hidden` does not come through here — that column
+   is replaced wholesale by `.sm-col--hidden`. */
+
+.sm-squad.is-concealed {
+  filter: blur(9px) saturate(0.55);
+  opacity: 0.75;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Pitch formation rows */
 
 .sm-pitch {
@@ -331,6 +346,13 @@
   background: var(--cyan);
   height: 100%;
   transition: width 0.5s ease;
+}
+
+/* Hidden reveal mode. The bar is pinned at half and reads as "unknown" rather
+   than as a real comparison — a bar sized by their value *is* their value. */
+
+.sm-stat-bar--opp.is-masked {
+  background: var(--c-fill-strong);
 }
 
 .sm-stat-vals {
