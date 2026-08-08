@@ -1,5 +1,4 @@
 import { escapeHtml, CARD_IMG } from '@/shared/players/playerMeta.js';
-import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { cb } from '@/pages/home/callbacks.js';
 

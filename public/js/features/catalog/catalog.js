@@ -1,15 +1,17 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
-         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
-import { PAGE_SIZE } from '@/shared/players/constants.js';
-import { hasFullOvrPair, ovrPairInnerHtml } from '@/shared/players/ovr.js';
+         playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
+import { hasFullOvrPair, ovrPairInnerHtml } from './ovr.js';
 import { posClass } from '@/shared/players/positions.js';
 import { SORT_CATEGORIES } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, resetPlayerFilterState,
          getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
-import { openDdPanel, closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
+import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
 import { cb } from '@/pages/home/callbacks.js';
+
+/** Rows per `/api/players` request, and per "load more". */
+const PAGE_SIZE = 50;
 
 const catalog = {
   players:       [],

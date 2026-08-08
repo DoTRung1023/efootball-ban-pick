@@ -1,8 +1,12 @@
 /* ============================================================
    Overall rating display — the "level 1 / max" pair
+
+   Catalog-only. It lived in `shared/players/` until an audit found its second
+   consumer was a dead import in `gamePlans/plans.js`; move it back up if a
+   second feature genuinely needs it.
    ============================================================ */
 
-import { escapeHtml } from "./playerMeta.js";
+import { escapeHtml } from "@/shared/players/playerMeta.js";
 
 /** Both ratings known — show level 1 and max side by side (compact layout in catalog rows). */
 export function hasFullOvrPair(p) {

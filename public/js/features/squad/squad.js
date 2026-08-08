@@ -1,11 +1,8 @@
 import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
-import { PAGE_SIZE } from '@/shared/players/constants.js';
-import { posClass, POSITION_LINE_ORDER, positionLineRank } from '@/shared/players/positions.js';
 import { tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
-import { buildPlayerFilterPanel, resetPlayerFilterState, playerFilterOptionsCache,
-         getPlayerFilterOptions, initAutocomplete, wireAttributeMultiselects } from '@/shared/players/filterPanel.js';
+import { buildPlayerFilterPanel, resetPlayerFilterState } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
