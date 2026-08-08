@@ -139,6 +139,43 @@ and carry over only the properties the winning block does not already set.
 `pages/home/base.css` values so shared components like `.player-card` look identical across
 both pages.
 
+## Number inputs (one canonical shape)
+
+Four blocks hide the spinner arrows on `type="number"` inputs —
+`.lv-duration-input` and the `.allowance-*` caps in `lobby.css`,
+`.filter-input[type="number"]` in `ban.css`, and the same selector in
+`catalog.css`. They had drifted apart (missing `appearance`, missing `margin`,
+a stray unprefixed `appearance: none`). All four now read:
+
+```css
+/* Number inputs: hide the spinner arrows. */
+<selector> {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+<selector>::-webkit-outer-spin-button,
+<selector>::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+```
+
+Both halves are deliberate, and neither is load-bearing on its own in current
+browsers:
+
+- `appearance: textfield` is what actually removes the spinner in Firefox (80+)
+  and Chrome. `-moz-appearance` is kept as the legacy alias; do not drop it
+  without checking older Firefox.
+- The `::-webkit-*-spin-button` rules are belt-and-braces for older WebKit.
+  Once the element carries `appearance: textfield`, Chrome does not generate a
+  spin button at all — measured, the pseudo-elements report the originating
+  element's box and zero margins either way. Keep them anyway; Safari has been
+  the laggard here.
+
+If you add another number input, copy the block verbatim rather than inventing
+a fifth variant.
+
 ## Parity with `home/catalog.css`
 
 The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`,

@@ -566,10 +566,17 @@
 
 .filter-input:focus { border-color: var(--g-line-active); box-shadow: 0 0 0 2px var(--g-glow-soft); }
 
-.filter-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+/* Number inputs: hide the spinner arrows. */
+.filter-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 
-.filter-input[type="number"]::-webkit-inner-spin-button,
-.filter-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
+.filter-input[type="number"]::-webkit-outer-spin-button,
+.filter-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 .range-pair { display: flex; align-items: center; gap: 6px; }
 
