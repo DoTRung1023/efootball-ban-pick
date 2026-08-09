@@ -55,6 +55,11 @@ this order:
 | `ready.css` | the Start Match screen |
 | `responsive.css` | cross-cutting responsive rules |
 
+`room.html` also links `css/shared/playerHoverCard.css` — the floating
+player-info panel, shared with the home page. It is documented in `home/css.md`;
+the only room-side constraint is that it may use no room-only token, which is why
+`--surface-popover` is declared on both pages.
+
 There is no bundler, so the `<link>` order **is** the cascade. `base.css` must stay
 first (everything reads its custom properties) and `responsive.css` last (it
 overrides the phase sheets). Reordering the links silently re-renders the page —
@@ -369,6 +374,22 @@ Key blocks:
   whose five rules are gone.
 - `.pick-plan-row` — `.pick-load-plan-btn` (LOAD GAME PLAN) and
   `.pick-formation-wrap` / `.pick-formation-btn` / `.pick-formation-panel`.
+  **This control is mirrored on the home page** as
+  `.plan-formation-trigger` / `.plan-formation-panel` / `.plan-formation-option`
+  in `gamePlans.css` — same metrics, green instead of cyan. Change one, change
+  the other; a computed-style diff over 50 properties plus the rendered panel
+  width is what holds them together.
+  - The panel is **`min-width: 0`** — shrink-to-fit. Nine `N-N-N` labels and a
+    tick is all it holds, so a floor only ever made it wider than its content
+    (it was 156px; it measures 100.6px).
+  - `padding: 4px` on **all four sides**, with `border-radius: 6px` on the
+    options — 10px panel radius minus the 4px padding, so the highlight is an
+    inset pill concentric with the panel. Full-bleed rows put square corners
+    against the panel's rounded ones, which showed on the first row whenever it
+    was the active one.
+  - The options are `white-space: nowrap`. `4-3-3` has two hyphens, which are
+    break opportunities, so without it the panel's shrink-to-fit width depended
+    on how wide its trigger happened to be.
   **The panel opens downward** (`top: calc(100% + 6px)`) because the row sits at
   the *top* of the column; it opened upward when the row was under the pitch, and
   leaving that would open it off the top of the board. Measured at
@@ -456,6 +477,13 @@ Key blocks:
   - The `.is-active` glow stays a `box-shadow` (`0 0 18px var(--g-glow)`) — soft
     enough that clipping it at a container edge is imperceptible, unlike a hard
     line missing on three sides.
+  - **The `::after` ring is for `--filled` slots only.** A filled slot is bare
+    artwork, so the ring *is* its outline. An empty one already draws a dashed
+    border, and the ring landed just outside it: a solid green rectangle around a
+    dashed rectangle, two outlines deep. `.pick-slot--empty.is-active` turns its
+    own border `--green` and keeps the glow — the same thing the game-plan pitch
+    does. Measured: `border-style: dashed`, `border-color: rgb(44,207,117)`,
+    ring `rgba(0,0,0,0)`, and the filled slot's ring still green.
   - **One box for both states: `aspect-ratio: 240 / 339`.** That is the intrinsic
     size of a pesdb card PNG — the ratio `.ban-side-empty-slot` uses, without the
     border term, because an empty slot draws its dashed border *inside* the box

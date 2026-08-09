@@ -2,7 +2,7 @@ import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { normalizeSortValue } from '@/features/draft/playerQuery.js';
 import { renderDraftFilterPanel, bindDraftFilterPanel } from '@/features/draft/playerFilters.js';
-import { bindGridInfoToggle } from '@/features/draft/shell/cardGrid.js';
+import { bindCardGridHover, bindGridInfoToggle } from '@/features/draft/shell/cardGrid.js';
 import { renderSortPanel, sortCategoryLabel } from '@/features/draft/sortPanel.js';
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
 import { showToast, getUser } from '@/features/draft/utils.js';
@@ -155,6 +155,22 @@ export function bindPickPhaseUiOnce() {
 
   bindDraftFilterPanel(filterPanel, state, "pick", () => cb.renderDraftUi());
   bindGridInfoToggle("pickToggleInfoBtn", "pickGrid", "pickGridInfoHidden");
+
+  // The pool is your own squad.
+  bindCardGridHover("pickGrid", ".player-card", (el) => {
+    const id = el.getAttribute("data-player-id");
+    return (state.players || []).find((p) => String(p.id) === id) || null;
+  });
+
+  /* The lineup needs it most: a pitch or bench slot is artwork and an ×, with
+     no footer to turn on. `data-pick-slot` is the index into `picks`, holes
+     and all — see pick-phase.md. */
+  const slotPlayer = (el) => {
+    const picks = state.room?.picks?.[state.mySide];
+    return Array.isArray(picks) ? picks[Number(el.getAttribute("data-pick-slot"))] || null : null;
+  };
+  bindCardGridHover("pickPitch", ".pick-slot--filled", slotPlayer);
+  bindCardGridHover("pickBench", ".pick-slot--filled", slotPlayer);
 }
 
 // Load the user's own squad for the pick grid (not the general catalog)

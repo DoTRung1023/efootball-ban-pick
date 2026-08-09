@@ -12,7 +12,7 @@ import { cb } from "@/features/draft/callbacks.js";
 import { state } from "@/features/draft/state.js";
 import { normalizeSortValue } from "@/features/draft/playerQuery.js";
 import { bindDraftFilterPanel } from "@/features/draft/playerFilters.js";
-import { bindGridInfoToggle } from "@/features/draft/shell/cardGrid.js";
+import { bindCardGridHover, bindGridInfoToggle } from "@/features/draft/shell/cardGrid.js";
 import { renderBanToolbar } from "./banToolbar.js";
 
 export function bindBanPhaseUiOnce() {
@@ -101,4 +101,9 @@ export function bindBanPhaseUiOnce() {
 
   bindDraftFilterPanel(posPanel, state, "ban", () => cb.renderDraftUi());
   bindGridInfoToggle("toggleInfoBtn", "banGrid", "banGridInfoHidden");
+  // The grid shows the opponent's squad — that is what you ban from.
+  bindCardGridHover("banGrid", ".player-card", (el) => {
+    const id = el.getAttribute("data-player-id");
+    return (state.opponentBanPlayers || []).find((p) => String(p.id) === id) || null;
+  });
 }

@@ -1,0 +1,42 @@
+/* ============================================================
+   The floating player-info panel (`shared/ui/playerHoverCard.js`).
+
+   Linked by home.html and room.html, so it may only use tokens both pages
+   declare: --surface-popover, --border, --text, --text-dim. It styles the
+   `.pmeta-*` rows itself rather than inheriting them, because the two pages
+   define those at different scopes.
+   ============================================================ */
+
+.player-hover-card {
+  position: fixed;      /* on <body>: no grid, pitch or bench scroller can clip it */
+  z-index: 315;         /* over the plan modal (310), under its dropdown (520)     */
+  width: 236px;
+  padding: 10px 12px;
+  background: var(--surface-popover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  /* Under the cursor it would take the hover that opened it, and flicker. */
+  pointer-events: none;
+}
+
+.player-hover-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.player-hover-detail {
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.player-hover-card .pmeta-stack { display: block; overflow-wrap: anywhere; }
+
+.player-hover-card .pmeta-row { display: block; }
+
+.player-hover-card .pmeta-row + .pmeta-row { margin-top: 4px; }

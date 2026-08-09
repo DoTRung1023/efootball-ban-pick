@@ -39,6 +39,19 @@ Four things that will waste time otherwise:
   `html.replace(/(href|src)="\/(?!\/)/g, '$1="file:///abs/path/public/')`. Assert the
   styles actually applied (e.g. `document.body.scrollWidth === viewport`, or a known
   token resolving) before trusting a run.
+- **CSS transitions do not reliably advance under `--virtual-time-budget`.** A
+  rect read while one is mid-flight is the *animating* value, and it looks like a
+  real difference. `.modal-card` opens with `translateY(24px) scale(0.97)` ->
+  `scale(1)` over 0.35s, so every measurement inside the plan detail modal came
+  back at exactly 0.97x — which read as the dropdown inside it being 3px narrower
+  than its twin on the other page. Waiting longer does not help; the transition is
+  not running. Inject
+  `*,*::before,*::after{transition:none !important;animation:none !important}`
+  after boot and re-read. The tell is a **uniform ratio** across unrelated
+  measurements in one subtree (label, tick, option and wrapper were all 0.97x).
+  The same applies to colour: a `getComputedStyle` colour read 60ms after a class
+  flips can be a midpoint. Non-animatable properties (`border-style`) flip
+  instantly and are the safe thing to assert on.
 - **Webfonts must be local.** Chrome's headless sandbox has no network, so a Google Fonts
   `<link>` silently falls back and every text measurement is wrong. `curl` the CSS with a
   browser UA, download the woff2 files, and rewrite `src:` to absolute `file://` URLs.

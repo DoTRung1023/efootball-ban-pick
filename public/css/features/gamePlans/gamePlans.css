@@ -329,7 +329,12 @@
   justify-content: flex-start;
 }
 
-/* Formation custom dropdown (replaces native select) */
+/* Formation dropdown — the same control as the pick board's
+   (`css/features/draft/pick.css`), in green instead of cyan. Keep the two in
+   sync: same trigger metrics, same panel radius and padding, same inset-pill
+   highlight, same `::after` tick. The only structural difference is the
+   open/close transition, which the pick panel does not have. */
+
 .plan-formation-dd {
   position: relative;
 }
@@ -337,49 +342,37 @@
 .plan-formation-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 100px;
-  padding: 7px 12px 7px 14px;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(10, 27, 43, 0.7);
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--green);
-  background: linear-gradient(180deg, rgba(20,55,85,0.95) 0%, rgba(10,29,45,0.98) 100%);
-  border: 1px solid rgba(44,207,117,0.4);
-  border-radius: 10px;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: border-color var(--transition), background var(--transition);
 }
 
-.plan-formation-trigger:hover {
-  border-color: rgba(44,207,117,0.65);
-  box-shadow: 0 0 16px rgba(44,207,117,0.18), 0 2px 12px rgba(0,0,0,0.35);
-}
-
+.plan-formation-trigger:hover,
 .plan-formation-trigger.open {
-  border-color: rgba(44,207,117,0.75);
-  box-shadow: 0 0 20px rgba(44,207,117,0.22), inset 0 0 12px rgba(44,207,117,0.06);
+  border-color: rgba(44, 207, 117, 0.34);
+  background: rgba(44, 207, 117, 0.07);
 }
 
-.plan-formation-trigger:focus {
-  outline: none;
-}
+.plan-formation-trigger:focus { outline: none; }
 
 .plan-formation-trigger:focus-visible {
-  outline: 2px solid rgba(44,207,117,0.45);
+  outline: 2px solid rgba(44, 207, 117, 0.45);
   outline-offset: 2px;
 }
 
-.plan-formation-value {
-  text-shadow: 0 0 12px rgba(44,207,117,0.35);
-}
+.plan-formation-hash { color: var(--green); }
 
 .plan-formation-dd-chevron {
   flex-shrink: 0;
-  color: rgba(44,207,117,0.85);
   transition: transform var(--transition);
   transform: rotate(0deg);
 }
@@ -390,27 +383,26 @@
 
 .plan-formation-panel {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  left: auto;
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
   z-index: 520;
-  min-width: 148px;
-  max-height: min(320px, 55vh);
+  min-width: 0;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-popover);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(44, 207, 117, 0.1);
+  max-height: min(340px, 60vh);
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 6px 0;
-  background: rgba(9, 23, 36, 0.98);
-  border: 1px solid rgba(44,207,117,0.28);
-  border-radius: 12px;
-  backdrop-filter: blur(16px);
-  box-shadow:
-    0 12px 40px rgba(0,0,0,0.55),
-    0 0 0 1px rgba(44,207,117,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.03);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(44, 207, 117, 0.22) transparent;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px) scale(0.98);
-  transform-origin: top right;
+  transform-origin: top left;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -426,48 +418,47 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 10px 14px 10px 16px;
   margin: 0;
+  padding: 8px 10px;
   border: none;
+  /* 10px panel radius minus its 4px padding: concentric with the panel edge. */
+  border-radius: 6px;
   background: transparent;
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: rgba(204, 210, 216, 0.88);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-align: left;
+  /* `4-3-3` has two hyphens, which are break opportunities: without this the
+     panel's shrink-to-fit width depends on how wide its trigger happens to be,
+     and the two pages' panels came out 2.7px apart for no visible reason. */
+  white-space: nowrap;
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
-  border-bottom: 1px solid rgba(44,207,117,0.06);
 }
 
-.plan-formation-option:last-child {
-  border-bottom: none;
+.plan-formation-option::after {
+  content: "✓";
+  font-size: 12px;
+  line-height: 1;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity var(--transition);
 }
 
 .plan-formation-option:hover,
 .plan-formation-option:focus {
-  background: rgba(44,207,117,0.1);
-  color: var(--text);
+  background: rgba(44, 207, 117, 0.07);
   outline: none;
 }
 
 .plan-formation-option.active {
   color: var(--green);
-  background: rgba(44,207,117,0.09);
-  font-weight: 700;
+  background: rgba(44, 207, 117, 0.14);
 }
 
-.plan-formation-check {
-  flex-shrink: 0;
-  opacity: 0;
-  color: var(--green);
-  filter: drop-shadow(0 0 6px rgba(44,207,117,0.45));
-}
-
-.plan-formation-option.active .plan-formation-check {
-  opacity: 1;
-}
+.plan-formation-option.active::after { opacity: 1; }
 
 /* ── Starting XI pitch ── */
 .plan-xi-section {
@@ -502,8 +493,13 @@
   flex: 1;
 }
 
-/* Individual pitch slot — width is fluid (basis 0, capped at 110px) so a row
-   of five defenders shrinks to fit instead of wrapping on a narrow column. */
+/* Individual pitch slot — width is fluid (basis 0) so a row of five defenders
+   shrinks to fit instead of wrapping on a narrow column.
+
+   The cap follows the measured card width plus this slot's own horizontal
+   padding. It was a flat 110px, which quietly became the real limit once the
+   card stopped being 82px: the slot capped at 110 holds a 98px card, so
+   `--plan-slot-w` above 98 had no effect at all. */
 .pitch-slot {
   display: flex;
   flex-direction: column;
@@ -515,7 +511,7 @@
   border: 1.5px solid transparent;
   transition: all var(--transition);
   min-width: 0;
-  max-width: 110px;
+  max-width: calc(var(--plan-slot-w, 82px) + 12px);
   flex: 1;
   position: relative;
   user-select: none;
@@ -536,13 +532,19 @@
   box-shadow: 0 0 14px rgba(44,207,117,0.3);
 }
 
-/* Shared card size — used by both placeholder and filled card.
-   Fills its slot up to 82px, so pitch and bench cards scale down together
-   once the column gets narrower than the desktop layout. */
+/* Shared card size — used by both placeholder and filled card, so an empty box
+   and a filled one are always the same shape.
+
+   The cap is **measured, not fixed**: `applyPlanSlotWidth()` in `plans.js`
+   writes `--plan-slot-w` on `#planPitch` each render. It was a flat 82px, which
+   is right at exactly one window size — on a wide screen the pitch grew and the
+   boxes did not. The 82px fallback only applies before the first measurement,
+   and on the bench, which has no measurement of its own: its column is a fixed
+   200px, so 2 x 82 + gap is already as wide as it goes. */
 .pitch-slot-placeholder,
 .pitch-card-wrap {
   width: 100%;
-  max-width: 82px;
+  max-width: var(--plan-slot-w, 82px);
   aspect-ratio: 72 / 100;
   border-radius: 0;
   flex-shrink: 0;
@@ -552,11 +554,49 @@
 .pitch-slot-placeholder {
   border: 2px dashed rgba(44,207,117,0.22);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   color: rgba(44,207,117,0.22);
   transition: all var(--transition);
   background: transparent;
+}
+
+/* An empty box says which row it is, as the pick board's does — a bare `+`
+   leaves a blank pitch with nothing to read. */
+.pitch-slot-plus {
+  font-size: 20px;
+  font-weight: 300;
+  color: rgba(44,207,117,0.35);
+  line-height: 1;
+}
+
+.pitch-slot-pos-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(44,207,117,0.35);
+}
+
+/* The bench prints a smaller label: its boxes are the 82px fallback while the
+   pitch's have grown, and at that size the pitch metrics crowd the box. */
+.bench-slot .pitch-slot-plus { font-size: 15px; }
+.bench-slot .pitch-slot-pos-label { font-size: 8.5px; }
+
+/* A player is chosen in the picker and every empty box is a target. Solid, not
+   dashed — the box is about to hold something. Mirrors `.is-placing
+   .pick-slot--empty` on the pick board. */
+.plan-detail-cols.is-placing .pitch-slot-placeholder {
+  border-style: solid;
+  border-color: rgba(44,207,117,0.45);
+  background: rgba(44,207,117,0.06);
+}
+
+.plan-detail-cols.is-placing .pitch-slot-plus,
+.plan-detail-cols.is-placing .pitch-slot-pos-label {
+  color: rgba(44,207,117,0.7);
 }
 
 /* Full player card */
@@ -609,42 +649,6 @@
     height: 22px;
   }
 }
-
-/* Hover info for a filled pitch or bench card: the same four metadata lines
-   My Players prints under every card, floated because 82px of artwork has no
-   room for a footer. `position: fixed` on `<body>`, so neither the pitch nor
-   the bench scroller can clip it.
-
-   Two things it must not do. **`pointer-events: none`** — sitting under the
-   cursor it would take the hover that opened it and flicker. And **opaque**
-   (`--bg-card-solid`): it hangs over the pitch and the picker list, and a
-   translucent panel over live content is the same unreadable mess the room's
-   formation dropdown was. */
-.plan-hover-card {
-  position: fixed;
-  z-index: 315;
-  width: 236px;
-  padding: 10px 12px;
-  background: var(--bg-card-solid);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--green-glow-sm);
-  pointer-events: none;
-}
-
-.plan-hover-name {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.plan-hover-detail {
-  font-size: 0.76rem;
-  line-height: 1.45;
-}
-
-.plan-hover-detail .pmeta-row + .pmeta-row { margin-top: 4px; }
 
 .plan-bench-list {
   flex: 1;

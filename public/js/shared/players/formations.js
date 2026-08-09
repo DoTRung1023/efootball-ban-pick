@@ -13,6 +13,21 @@
 
 export const DEFAULT_FORMATION = "4-3-3";
 
+/**
+ * What an empty slot in each row calls itself. Here rather than in either
+ * consumer because it is keyed by the row ids declared below, and both pitches
+ * print it — the pick board and the game-plan modal.
+ */
+export const PITCH_ROW_LABELS = {
+  pitchRowFwd: "ATT",
+  pitchRowMid: "MID",
+  pitchRowDef: "DEF",
+  pitchRowGk: "GK",
+};
+
+/** Slots 12-23 are substitutes on both pitches. */
+export const BENCH_ROW_LABEL = "SUB";
+
 export const FORMATION_LAYOUTS = {
   "4-3-3": [
     { id: "pitchRowFwd", slots: [9, 10, 11] },

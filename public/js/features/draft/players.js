@@ -6,12 +6,12 @@ import { CARD_IMG, ANON_PLAYER_IMG } from './constants.js';
 export {
   makePlayerImg,
   playerDetailSublineHtml,
-  playerDetailTooltipText,
 } from "@/shared/players/playerMeta.js";
 
 /* Same arrangement for the formation table — see
    @/shared/players/formations.js. */
-export { normalizeFormation, getFormationLayout } from "@/shared/players/formations.js";
+export { normalizeFormation, getFormationLayout, PITCH_ROW_LABELS,
+         BENCH_ROW_LABEL } from "@/shared/players/formations.js";
 
 export function getPlayerCardValue(player) {
   return player?.overall_rating ?? player?.overall_max ?? player?.overall ?? "—";

@@ -29,20 +29,51 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `.plan-mid-col` (bench) `flex: 0 0 200px` — a **fixed** width, not a percentage,
     because the bench grid is 2 × 82 px and a percentage column clips the second card
     below ~1220 px; `.plan-right-col` (picker) takes the rest with `min-width: 260px`.
-  - **Card sizing**: `.pitch-slot` is `flex: 1` with `min-width: 0`, and
-    `.pitch-slot-placeholder` / `.pitch-card-wrap` are `width: 100%; max-width: 82px`.
-    Cards therefore shrink to fit their row instead of wrapping — a back five stays on
-    one line at any column width. Do not reintroduce a fixed card width.
+  - **Card sizing is measured, not fixed.** `.pitch-slot` is `flex: 1` with
+    `min-width: 0`, and `.pitch-slot-placeholder` / `.pitch-card-wrap` are
+    `width: 100%; max-width: var(--plan-slot-w, 82px)` — `applyPlanSlotWidth()`
+    in `plans.js` writes that property on `#planPitch` each render. Cards shrink
+    to fit their row instead of wrapping (a back five stays on one line at any
+    column width) **and** grow into a wide pitch. Do not reintroduce a fixed
+    card width: 82 px was right at exactly one window size, and above it the
+    pitch grew while the boxes sat marooned in the middle of it. Measured:
+    **40 px at 940 px wide → 50 at 1024 → 76 at 1280 → 93 at 1440 → 116** (the
+    cap) from 1920 up; nothing overflows at any of them. The control, pinned back
+    to 82 px, measures 82.0 at 1440 and 79.5 at 2560 — the bug.
+  - `.pitch-slot`'s own cap is `calc(var(--plan-slot-w, 82px) + 12px)`, its
+    horizontal padding. It was a flat 110 px, which silently *became* the limit
+    once the card could exceed 98 px — `--plan-slot-w` above that had no effect
+    at all. If you change `.pitch-slot`'s padding, change the `+ 12px` and
+    `SLOT_PAD_X` in `plans.js` with it.
+  - The 82 px fallback still applies on the **bench**, which has no measurement:
+    `.plan-mid-col` is a fixed 200 px, so 2 × 82 + gap is already as wide as it
+    goes.
+  - **An empty box names its row** — `.pitch-slot-plus` + `.pitch-slot-pos-label`
+    inside `.pitch-slot-placeholder` (ATT / MID / DEF / GK, and SUB on the
+    bench), the same as the pick board. The label text comes from
+    `PITCH_ROW_LABELS` in `shared/players/formations.js`, keyed by the row ids
+    declared there; the bench prints a smaller size because its boxes stay at
+    the 82 px fallback.
+  - **`.plan-detail-cols.is-placing`** turns every empty box solid green while a
+    squad player is chosen in the picker — the mirror of `.is-placing
+    .pick-slot--empty` on the pick board, and for the same reason: without it the
+    second half of the click pair has to be guessed at. It sits on
+    `.plan-detail-cols` because the pitch and the bench are separate columns
+    under it and both are targets.
   - `.pitch-remove-btn` is hover-revealed, with an `@media (hover: none)` block that
     keeps it visible — without it a player can never be removed on touch.
-  - `.plan-hover-card` / `.plan-hover-name` / `.plan-hover-detail` — the info panel
-    that floats beside a pitch or bench card on hover (see `home/modules.md` for the
-    JS). Three things it depends on: **`position: fixed`** on `<body>`, so neither
-    the pitch nor the bench scroller can clip it; **`pointer-events: none`**, or
-    sitting under the cursor it takes the hover that opened it and flickers; and an
-    **opaque** `--bg-card-solid`, because it hangs over the pitch and the picker
-    list. `z-index: 315` puts it above `.plan-detail-overlay` (310) and below
-    `.plan-formation-panel` (520).
+  - The hover info panel is **not** in this sheet — it is
+    `css/shared/playerHoverCard.css`, shared with the room page. See "The player
+    hover panel" below.
+  - **The formation dropdown is the pick board's control in green.**
+    `.plan-formation-trigger` / `.plan-formation-panel` / `.plan-formation-option`
+    are kept identical to `.pick-formation-btn` / `-panel` / its buttons in
+    `css/features/draft/pick.css` — same padding, radius, font, the same
+    `content: "✓"` tick on `::after`, the same `#` prefix in the trigger. Only
+    the accent hue differs (green here, cyan there) and this one keeps an
+    open/close transition the pick panel does not have. Verified by diffing 50
+    computed properties plus the rendered panel width across the two pages: zero
+    differences. If you change one, change the other.
 - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`,
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
   visual sync with the room ban toolbar (`css/features/draft/ban.css`) — see the room
@@ -119,3 +150,29 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     and the rows scroll through underneath it. Reach for it for any sticky header.
   - **≤600 px**: the modal goes full-bleed (`100vw` / `100dvh`, overlay padding 0) and
     pitch cards cap at 72 px.
+
+## The player hover panel (`shared/playerHoverCard.css`)
+
+`.player-hover-card` / `.player-hover-name` / `.player-hover-detail` — the info
+panel that floats beside a player card on hover, on **both** pages (My Players,
+the game-plan pitch and bench, the ban grid, the pick pool and the pick lineup).
+`home.html` and `room.html` both link it; `shared/ui/playerHoverCard.js` owns the
+behaviour.
+
+Because it is shared it may only use tokens **both** pages declare —
+`--surface-popover`, `--border`, `--text`, `--text-dim` — and it styles the
+`.pmeta-*` rows itself rather than inheriting them, since the two pages define
+those at different scopes. `--surface-popover` was added to `home/base.css` for
+this; it sits beside `--bg-card-solid` and means something different: sticky
+surfaces scroll with their content, this one hangs over it.
+
+Three properties are load-bearing:
+
+- **`position: fixed`** on `<body>` — no grid, pitch or bench scroller can clip it.
+- **`pointer-events: none`** — under the cursor it would take the hover that
+  opened it, and flicker.
+- **opaque** `--surface-popover` — it covers live content, and a translucent
+  panel over a pitch is the same unreadable mess the room's formation dropdown was.
+
+`z-index: 315` puts it over `.plan-detail-overlay` (310) and under
+`.plan-formation-panel` (520).

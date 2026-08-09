@@ -12,7 +12,6 @@ import {
   getPlayerImageSrc,
   normalizePlayerForFooter,
   playerDetailSublineHtml,
-  playerDetailTooltipText,
 } from "./players.js";
 
 export function imageOnlyThumbHtml(player) {
@@ -66,10 +65,13 @@ export function playerCardHtml(player, o) {
     .filter(Boolean)
     .join(" ");
 
-  const tooltipText = playerDetailTooltipText(normalizePlayerForFooter(player));
-
+  /* No `title`. The styled hover panel replaced it (see
+     `shared/ui/playerHoverCard.js`), and the grids that should offer one bind
+     it themselves — which is the point: a `title` here was unconditional, so
+     the opponent's cards carried one under the `blur` reveal mode and printed
+     in full the names the blur and the `aria-hidden` exist to withhold. */
   return `
-    <div class="${cls}" data-player-id="${escapeHtml(player.id)}" tabindex="${clickable ? 0 : -1}" title="${escapeHtml(tooltipText)}">
+    <div class="${cls}" data-player-id="${escapeHtml(player.id)}" tabindex="${clickable ? 0 : -1}">
       <div class="pc-img-wrap">
         <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
       </div>

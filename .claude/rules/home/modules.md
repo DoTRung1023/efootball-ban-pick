@@ -30,6 +30,22 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   - `@/shared/ui/confirm.js` — `showConfirm`. Used by game plans (delete a plan) and by
     squad (bulk delete). Its close/resolve internals are module-private.
   - `@/shared/ui/dropdown.js` — `closeDdPanel`, `toggleDdPanel`.
+  - `@/shared/ui/playerHoverCard.js` — the floating player-info panel:
+    `showPlayerHoverCard`, `hidePlayerHoverCard`, `bindPlayerHoverCard` (an
+    element you hold) and `bindPlayerHoverCardGrid` (a container written with
+    `innerHTML` — **bind once**, the listener is delegated). One panel element
+    per page, created on first use. Both bundles use it; the room side goes
+    through `bindCardGridHover` in `features/draft/shell/cardGrid.js`.
+    - It **replaced the native `title`** on every player card. Beyond the ~1s
+      delay and the unstyleable OS chrome, a `title` is unconditional: the pick
+      board's `blur` reveal mode blurs the opponent's cards and sets
+      `aria-hidden`, and the tooltip still printed their names in full — the
+      exact thing the setting withholds. Grids now opt in, and the opponent's
+      does not. `playerDetailTooltipText` went with it; nothing called it.
+    - Hiding is driven by a **`mousemove` guard**, not `mouseleave`. Both
+      bundles rebuild grids under the cursor (the ban grid on every staged ban,
+      the room boards on a presence poll) and an element replaced while hovered
+      never fires `mouseleave`. The listener is only attached while a panel is up.
   - `@/shared/players/positions.js` — `posClass` and `positionLineRank`. The bucket
     arrays and `POSITION_LINE_ORDER` back those two and are module-private; `sort.js`
     (also under `shared/`) is the other consumer, which is why this module stays shared
@@ -38,7 +54,9 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     comparators `tiebreakOverallDescThenName`, `ovrMaxForSort`,
     `tiebreakPositionLineThenName`, `compareByPositionLine`.
   - `@/shared/players/playerMeta.js` — `escapeHtml`, `CARD_IMG`, `ANON_PLAYER_IMG`,
-    `makePlayerImg`, `playerDetailSublineHtml`, `playerDetailTooltipText`.
+    `makePlayerImg`, `playerDetailSublineHtml`. There is no plain-text variant:
+    `playerDetailTooltipText` existed for card `title` tooltips and every one of
+    those is now the styled panel, which renders the same rows as markup.
 - `callbacks.js` — shared mutable callback registry (identical pattern to
   `features/draft/callbacks.js`). Squad sets `getSquadPlayers`, `addToSquadState`,
   `removeFromSquadState`, `renderSquad`; catalog sets `openPlayerPopup`,
@@ -48,6 +66,9 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
 - `squad.js` — My Players tab: player grid, search/sort/filter, select mode, single +
   bulk delete, card click → popup via `cb.openPlayerPopup`. Exports `loadSquad`,
   `initSquadSearchSortFilter`, `initSquadControls`.
+  Cards carry **no `title`**: hovering one floats the shared panel
+  (`@/shared/ui/playerHoverCard.js`) with the same four metadata lines the
+  footer prints, so they are readable with SHOW INFO off.
   **Bulk delete confirms, the per-card × does not** — one click on DELETE SELECTED can
   remove any number of players and there is no undo, whereas the × removes exactly the
   card it sits on. Neither confirmed until an audit found `showConfirm` imported here
@@ -83,36 +104,40 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   consumer was a dead import.
 - `plans.js` — Game Plans tab: plan list, pitch formation view, plan picker, slot
   assignment. Exports `loadGamePlans`, `initGamePlans`.
+  - `initFormationDropdown` emits each option as a **bare label** — no
+    `.plan-formation-opt-text` span and no check SVG. The tick is `::after` on
+    `.active`, as on the pick board, so the two controls share one shape.
+  - `applyPlanSlotWidth()` sizes the pitch: it measures `#planPitch` and writes
+    `--plan-slot-w`, the largest card at which four rows fit without overflowing,
+    capped 116 px and floored 40 px. Same measure-then-verify shape as
+    `applyPitchSlotWidth()` on the pick board, and the verify half matters more
+    here — `.plan-pitch` is `overflow: hidden`, so an overflowing row is cropped
+    silently rather than scrolled. It runs from `renderDetailSlots()`, again
+    right after the overlay opens (the first render measures a closed overlay,
+    which has no box), and on `resize` while the modal is open. Nothing else
+    re-renders the modal on its own, unlike the room's 500 ms poll.
+  - `applyPlacingState()` toggles `is-placing` on `.plan-detail-cols` from
+    `gamePlans.pickerPendingPlayerId`. Called from `renderDetailSlots()` **and**
+    from the picker row's click handler, which changes that flag without
+    re-rendering the slots.
   - `STACKED_PLAN_LAYOUT` (`max-width: 900px`) must match the plan detail modal
     breakpoint in `css/pages/home/responsive.css`. Below it the modal's three columns stack,
     so `scrollPlanSectionIntoView` moves the sheet to the picker when a slot is selected
     and back to the pitch/bench after a player is assigned. It is a no-op on desktop.
-  - **Hovering a filled pitch or bench card floats the player's info** — the same
-    four metadata lines My Players prints under every card, drawn by the same
-    `playerDetailSublineHtml`, because 82px of artwork has no room for a footer.
-    One reused `.plan-hover-card` on `<body>` (`showPlanHover` / `hidePlanHover` /
-    `positionPlanHover` / `bindSlotHover`).
-    - **The slot row cannot supply the text.** `/api/game-plans/:id/players`
-      returns slot, role, name, position, overall, club and pesdb_id — no region,
-      nationality, league, foot or physicals — so rendering it directly gives one
-      line (the club) where there should be four; measured. `fullPlayerForSlot`
-      resolves it against `cb.getSquadPlayers()` on `player_id`, the squad list
-      the picker beside it is already reading. The room's `loadGamePlanIntoPicks`
-      matches the same rows against its own squad for the same reason.
-    - `hidePlanHover()` runs from `renderDetailSlots()` and `closePlanDetail()`.
-      Both renders replace their slot elements outright, so a hovered card is
-      detached without ever firing `mouseleave` and the panel would be left open
-      pointing at nothing.
-    - It is **not** wired on touch (`matchMedia("(hover: hover)")`): tapping a
-      slot means "select this slot", and a panel you then have to dismiss is in
-      the way.
-    - `positionPlanHover` tries right, then left, then under/over the card.
-      The third branch matters — clamping a too-far-left panel back to the
-      viewport edge slides it *over* the artwork it describes (measured: ideal
-      left `-4px` at a 560px viewport, clamped 12px into the card), and stacked
-      the modal is full-bleed so neither side has 236px. All four placements
-      measured at 1440/1280/1024/900/700/560/500: never covering the card,
-      always inside the viewport.
+  - **Hovering a filled pitch or bench card floats the player's info** — the
+    shared panel in `@/shared/ui/playerHoverCard.js`; `bindSlotHover` is the
+    two-line adapter. **The slot row cannot supply the text.**
+    `/api/game-plans/:id/players` returns slot, role, name, position, overall,
+    club and pesdb_id — no region, nationality, league, foot or physicals — so
+    rendering it directly gives one line (the club) where there should be four;
+    measured. `fullPlayerForSlot` resolves it against `cb.getSquadPlayers()` on
+    `player_id`, the squad list the picker beside it is already reading. The
+    room's `loadGamePlanIntoPicks` matches the same rows against its own squad
+    for the same reason.
+  - `hidePlayerHoverCard()` runs from `renderDetailSlots()` and
+    `closePlanDetail()`. Both renders replace their slot elements outright, so a
+    hovered card is detached without ever firing `mouseleave`.
+
 - `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`
   and `initRoomHub`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;

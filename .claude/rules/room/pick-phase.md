@@ -48,7 +48,10 @@ capped 116 px, floored 40 px. Same approach as `applyBanSlotHeight()` in
 window size. Four things it depends on:
 
 - **Every formation has four rows.** `FORMATION_LAYOUTS` guarantees it; the row
-  count is a constant here, not derived per render.
+  count is a constant here, not derived per render. The empty-slot labels come
+  from `PITCH_ROW_LABELS` / `BENCH_ROW_LABEL` in
+  `shared/players/formations.js` — `pickView.js` had its own `ROW_LABELS` copy
+  until the game-plan pitch needed the same four strings.
 - **The widest row is the horizontal constraint** (6 slots in 3-6-1, 3 in
   4-3-3), so the width bound is computed from `getFormationLayout(formation)`
   rather than assumed.
@@ -296,6 +299,13 @@ does not, because a count *is* the shape of their squad, one number at a time.
 Do not "simplify" `hidden` back to a blur, or `blur` to a `display: none` — they
 are two settings now and each is somebody's answer.
 
+**`playerCardHtml` emits no `title`.** It used to, and `blur` leaked through it:
+the cards are blurred and `aria-hidden`, and the native tooltip still printed the
+opponent's names in full on hover. Card tooltips are now the styled panel in
+`@/shared/ui/playerHoverCard.js`, which grids **opt into** — `#pickGrid`,
+`#pickPitch`, `#pickBench` and the ban grid do; `#pickOppGrid` does not. Do not
+add a `title` back to a card, in this file or `playerCards.js`.
+
 ## Interaction
 
 - Clicking a card calls `submitPick(player)`. With a slot selected it routes to
@@ -308,7 +318,12 @@ are two settings now and each is somebody's answer.
   *derived* from that array each render (`activePickTab`), not stored — a
   remembered tab would go stale the moment a position was toggled in the panel.
   There is no separate `pickFilterPosition` and no `pickPosTab` state.
-- CLEAR ALL confirms, then posts an empty array.
+- CLEAR ALL confirms, then posts an empty array. **`renderClearAll` disables it
+  when it has nothing to do** — an empty lineup, or a confirmed one, where
+  `replaceMyPicks` refuses the write and the server answers 409 anyway. Both used
+  to open a confirm dialog that then changed nothing. The emptiness test is
+  `pickCount(myPicks) === 0`, **not** `myPicks.length`: the array is slot-addressed
+  with `null` holes, so a single pick in slot 3 has length 3.
 - The opponent's cards render with `playerCardHtml(p, { footer: false })` — their
   lineup is context, not something you act on, and the four metadata lines are
   unreadable in a 252px column.
@@ -324,4 +339,10 @@ are two settings now and each is somebody's answer.
   **The ban grid still rebuilds** on every staged ban. `aspect-ratio` on
   `.pc-img-wrap img` means it no longer jumps, but it does re-request the lazy
   images below the fold; the same `rowsKey` treatment would fix that.
+- **Hovering a pitch or bench slot floats the player's info.** The lineup needs
+  it more than the pool does: a slot is artwork and an ×, with no footer to turn
+  on, so it is the only place the four metadata lines are otherwise unreachable.
+  Wired in `bindPickPhaseUiOnce` via `bindCardGridHover`; `data-pick-slot` is the
+  index into `picks`, holes and all, so an empty slot resolves to null and shows
+  nothing. See `room/modules.md`.
 - CONFIRM PICKS is covered in its own section below.

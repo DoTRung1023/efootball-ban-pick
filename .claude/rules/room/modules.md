@@ -130,6 +130,21 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `showOpponentLeft` went when a guest leaving stopped ending the room — see
   `presence-and-reconnect.md`.
 - `stageTabs.js` — `updateStageTabs()`: ban-setting → ban → pick → start indicator.
+- **Hovering a card floats the player's info** — `bindCardGridHover(containerId,
+  selector, findPlayer)` in `shell/cardGrid.js`, over the shared
+  `@/shared/ui/playerHoverCard.js`. It applies `normalizePlayerForFooter` so no
+  caller has to remember that some rows carry `nation` rather than `nationality`,
+  and `findPlayer` returning null shows nothing. Called from each phase's
+  `bind*PhaseUiOnce` — **once**, because the listener is delegated and survives
+  every rebuild; binding per render would stack one listener per render. Four
+  containers are wired: `#banGrid` (the opponent's squad, from
+  `state.opponentBanPlayers`), `#pickGrid` (your own, from `state.players`), and
+  `#pickPitch` / `#pickBench` (from `state.room.picks[mySide]`, indexed by
+  `data-pick-slot`).
+  - **`#pickOppGrid` is deliberately not wired.** `playerCardHtml` no longer
+    emits a `title`, and that is the point: a `title` was unconditional, so under
+    the `blur` reveal mode the opponent's blurred, `aria-hidden` cards still
+    printed their names in full on hover. Grids opt in now; that one does not.
 - `gamePlans.js` — `loadDraftGamePlans` (fetches the list and selects **nothing**;
   the pick board starts from scratch), `loadGamePlanIntoPicks` (LOAD GAME PLAN: formation + players, minus banned),
   `getPickFormation` (now `state.pickManualFormation` alone — see `pick-phase.md`),
@@ -139,8 +154,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `banInteractions.js` and `opponentSquad.js`. The parts every phase uses moved to the
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
-  `attachMiniCardGridHandlers` **and** `bindGridInfoToggle` (SHOW INFO / HIDE
-  INFO), both of which serve ban and pick. `bindGridInfoToggle` is called from
+  `attachMiniCardGridHandlers`, `bindGridInfoToggle` (SHOW INFO / HIDE INFO)
+  **and** `bindCardGridHover`, all three of which serve ban and pick. `bindGridInfoToggle` is called from
   each phase's `bind*PhaseUiOnce`, not on DOMContentLoaded: the pick grid does
   not exist until its board first renders, so a load-time lookup found nothing
   and silently did nothing. Its localStorage key is per-grid, so hiding info

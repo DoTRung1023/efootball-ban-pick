@@ -16,6 +16,11 @@
   /* Opaque stand-in for --bg-card, for surfaces that overlap their own content
      (sticky headers) where a translucent panel would let it show through. */
   --bg-card-solid: #0a1a27;
+  /* Floating panels — dropdowns, popovers, the player hover card. Same reason
+     as above and a separate name because the reason is separate: this one hangs
+     over live content rather than scrolling with it. Declared on both pages, so
+     `css/shared/` sheets can rely on it. */
+  --surface-popover: #0a1a27;
   --border: rgba(44, 207, 117, 0.18);
   --border-active: rgba(44, 207, 117, 0.7);
   --text: #e7f0f6;

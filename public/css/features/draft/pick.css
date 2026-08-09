@@ -98,8 +98,13 @@
   left: 0;
   top: calc(100% + 6px);
   z-index: 30;
-  min-width: 156px;
-  padding: 4px 0;
+  /* Shrink-to-fit: nine identical `N-N-N` labels plus a tick is all it holds, so
+     a floor only ever made it wider than its content. */
+  min-width: 0;
+  /* Padding on all four sides, so the highlighted row is an inset pill rather
+     than a full-bleed band with square corners butting into the panel's rounded
+     ones — which is what the first row looked like when it was the active one. */
+  padding: 4px;
   border-radius: 10px;
   border: 1px solid var(--c-line);
   background: var(--surface-popover);
@@ -118,8 +123,10 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 8px 14px;
+  padding: 8px 10px;
   border: none;
+  /* 10px panel radius minus its 4px padding: concentric with the panel edge. */
+  border-radius: 6px;
   background: transparent;
   color: var(--text);
   font-family: var(--font-display);
@@ -127,6 +134,10 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-align: left;
+  /* `4-3-3` has two hyphens, which are break opportunities: without this the
+     panel's shrink-to-fit width depends on how wide its trigger happens to be,
+     and the two pages' panels came out 2.7px apart for no visible reason. */
+  white-space: nowrap;
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
@@ -642,9 +653,15 @@
 /* The selected slot. Deliberately loud — until you click a second slot the
    board is in a modal state, and nothing else on the page says so. The glow
    stays a `box-shadow`: soft enough that clipping it at a container edge is
-   imperceptible, unlike a hard line missing on three sides. */
+   imperceptible, unlike a hard line missing on three sides.
 
-.pick-slot.is-active::after { border-color: var(--green); }
+   **The ring is for filled slots only.** A filled slot is bare artwork, so the
+   `::after` ring *is* its outline. An empty one already draws a dashed border of
+   its own, and the ring landed just outside it — a solid green rectangle around
+   a dashed rectangle, two outlines deep. An empty slot turns its own border
+   green and glows instead, which is what the game-plan pitch does. */
+
+.pick-slot--filled.is-active::after { border-color: var(--green); }
 
 .pick-slot.is-active {
   box-shadow: 0 0 18px var(--g-glow);
@@ -652,7 +669,7 @@
 }
 
 .pick-slot--empty.is-active {
-  border-color: var(--g-line-active);
+  border-color: var(--green);
   background: var(--g-fill);
 }
 

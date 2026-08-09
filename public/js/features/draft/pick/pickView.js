@@ -27,6 +27,8 @@ import {
   normalizeDraftPlayer,
   normalizeFormation,
   pickCount,
+  BENCH_ROW_LABEL,
+  PITCH_ROW_LABELS,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
@@ -35,7 +37,6 @@ import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
 
 const LINEUP_SIZE = 11;
-const ROW_LABELS = { pitchRowFwd: "ATT", pitchRowMid: "MID", pitchRowDef: "DEF", pitchRowGk: "GK" };
 
 /* ── Pitch slot sizing ─────────────────────────────────────────
    The pitch is always four rows of card-shaped slots inside a column whose
@@ -123,6 +124,7 @@ export function renderPickBoard({ room, mySide, theirSide, visible }) {
   board.classList.toggle("is-placing", state.pickPendingPlayerId !== null);
 
   renderFormationPanel(getPickFormation());
+  renderClearAll(room, myPicks);
   renderPickPlanList();
   renderPickGrid(room, mySide, theirSide);
   renderPickPitch(myPicks, maxPicks);
@@ -292,7 +294,7 @@ function renderPickPitch(myPicks, maxPicks) {
     pitch.dataset.pitchKey = key;
     pitch.innerHTML = getFormationLayout(formation)
       .map((row) => `<div class="pick-pitch-row" data-row="${escapeHtml(row.id)}">
-        ${row.slots.map((slot) => pickSlotHtml(slotMap[slot], slot - 1, ROW_LABELS[row.id] || "", active)).join("")}
+        ${row.slots.map((slot) => pickSlotHtml(slotMap[slot], slot - 1, PITCH_ROW_LABELS[row.id] || "", active)).join("")}
       </div>`)
       .join("");
   }
@@ -313,7 +315,7 @@ function renderPickBench(myPicks, maxPicks, active) {
   bench.dataset.benchKey = key;
 
   bench.innerHTML = players
-    .map((p, i) => pickSlotHtml(p ? normalizeDraftPlayer(p) : null, LINEUP_SIZE + i, "SUB", active))
+    .map((p, i) => pickSlotHtml(p ? normalizeDraftPlayer(p) : null, LINEUP_SIZE + i, BENCH_ROW_LABEL, active))
     .join("");
 }
 
@@ -354,6 +356,20 @@ function renderPickAllowanceBar(room, myPicks, maxPicks) {
   }
 
   renderConfirmPicks(room, myPicks, maxPicks);
+}
+
+/**
+ * CLEAR ALL is only live when it has something to do.
+ *
+ * Two states disable it, and both used to leave a button that opened a confirm
+ * dialog and then changed nothing: an empty lineup, and a confirmed one — where
+ * `replaceMyPicks` refuses the write and the server answers 409 anyway. A
+ * control that cannot act should say so before it is pressed, not after.
+ */
+function renderClearAll(room, myPicks) {
+  const btn = document.getElementById("pickClearAllBtn");
+  if (!btn) return;
+  btn.disabled = pickCount(myPicks) === 0 || Boolean(room.picksConfirmed?.[state.mySide]);
 }
 
 /**

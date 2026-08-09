@@ -7,6 +7,32 @@
    ============================================================ */
 
 import { state } from "@/features/draft/state.js";
+import { normalizePlayerForFooter } from "@/features/draft/players.js";
+import { bindPlayerHoverCardGrid } from "@/shared/ui/playerHoverCard.js";
+
+/**
+ * Hovering a card floats the player's info. Here for the same reason as
+ * `bindGridInfoToggle`: the ban grid, the pick pool and the pick lineup all
+ * want it, and each supplies its own lookup.
+ *
+ * `selector` is what counts as a card in this container and `findPlayer(el)`
+ * returns the player it stands for, or null to show nothing — which is how a
+ * grid opts a card out. **Bind once**, from a phase's `bind*PhaseUiOnce`: the
+ * listener is delegated, so it survives every rebuild of the grid, and binding
+ * per render would stack a listener each time.
+ *
+ * `normalizePlayerForFooter` is applied here so no caller has to remember it:
+ * `nation` is `nationality` in some of these rows, and the panel prints the
+ * same four lines the card footer does.
+ */
+export function bindCardGridHover(containerId, selector, findPlayer) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  bindPlayerHoverCardGrid(container, selector, (el) => {
+    const p = findPlayer(el);
+    return p ? { ...normalizePlayerForFooter(p), name: p.name } : null;
+  });
+}
 
 export function attachMiniCardGridHandlers(grid, getDraftDisplayPlayers, submitBan, submitPick) {
   if (!grid || grid._bound) return;

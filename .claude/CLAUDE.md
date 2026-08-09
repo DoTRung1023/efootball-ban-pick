@@ -48,13 +48,15 @@ Code is grouped **by feature, not by file type**.
   speculatively — and when a module drops back to one consumer it moves out again
   (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
   (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js`),
-  `ui/` (`toast.js`, `confirm.js`, `dropdown.js`), `lib/` (`session.js`). `positions.js`
+  `ui/` (`toast.js`, `confirm.js`, `dropdown.js`, `playerHoverCard.js`), `lib/`
+  (`session.js`). `positions.js`
   is the one module with a single *feature* consumer: `shared/players/sort.js` is the
   other, so it cannot move down. Import these **directly** — `shared/` deliberately has
   no barrel files, because with no bundler a barrel makes the browser fetch every module
   it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
-  `features/<name>/<name>.css`, `shared/{playerCard,modals,numberInput}.css`. There is
+  `features/<name>/<name>.css`,
+  `shared/{playerCard,modals,numberInput,playerHoverCard}.css`. There is
   no bundler, so
   a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
   and `responsive.css` must stay last on the home page.
@@ -111,6 +113,9 @@ where there is no shared module to extract into:
 
 Within the client there should be **no** such pairs: the formation table, the draft sort
 categories and the club-suggestion markup each live in exactly one module.
+`shared/players/formations.js` carries the row **labels** too (`PITCH_ROW_LABELS`,
+`BENCH_ROW_LABEL`) — both pitches print them into empty slots, and they are keyed by
+the row ids that file declares, so they belong beside them rather than copied per page.
 
 ## Detailed rules
 

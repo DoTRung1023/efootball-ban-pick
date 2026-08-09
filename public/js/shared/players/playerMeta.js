@@ -81,9 +81,6 @@ export function playerDetailSublineHtml(player) {
   return `<div class="pmeta-stack">${rows.map((line) => `<div class="pmeta-row">${line}</div>`).join("")}</div>`;
 }
 
-/** Same four lines as plain text, for card `title` tooltips. */
-export function playerDetailTooltipText(player) {
-  if (!player) return "";
-  const rows = detailRows(player, (bits) => bits.join(" · "));
-  return rows.length ? rows.join("\n") : "—";
-}
+/* There is no plain-text variant any more. It existed for card `title`
+   tooltips, and every one of those is now the styled panel in
+   `shared/ui/playerHoverCard.js`, which renders the same rows as markup. */

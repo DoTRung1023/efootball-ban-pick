@@ -1,5 +1,6 @@
 import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
-         playerDetailSublineHtml, playerDetailTooltipText } from '@/shared/players/playerMeta.js';
+         playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
+import { bindPlayerHoverCard } from '@/shared/ui/playerHoverCard.js';
 import { tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState,
@@ -198,7 +199,6 @@ function makeSquadCard(player) {
   const card = document.createElement("div");
   card.className = "player-card";
   card.dataset.id = player.id;
-  card.title = playerDetailTooltipText(player);
   if (squad.selected.has(player.id)) card.classList.add("selected");
 
   const imgWrap = document.createElement("div");
@@ -229,6 +229,12 @@ function makeSquadCard(player) {
   imgWrap.appendChild(checkboxEl);
 
   card.appendChild(imgWrap);
+
+  /* The four metadata lines also float on hover, so they are readable while
+     SHOW INFO is off and while the card is a thumbnail in a tight grid. This
+     replaced a native `title` carrying the same text — see
+     `shared/ui/playerHoverCard.js`. */
+  bindPlayerHoverCard(card, player);
 
   // Info footer (name + OVR on card art only; text = region/country / league/club / …)
   const footer = document.createElement("div");

@@ -9,6 +9,7 @@ paths:
 
 # Ban phase
 
+
 ## Where the code lives
 
 `ban.js` was a 791-line module that seven other modules reached into, mostly for things
@@ -191,3 +192,13 @@ to fill the column. The pick phase's own plan chips and live pitch are unaffecte
 are a separate feature and still use `gamePlans.js`
 (`state.draftGamePlanSelectedId`, `loadGamePlanIntoPicks`). `loadDraftGamePlanPlayers`
 and `state.draftGamePlanPlayers` went with the panel — they had no reader left.
+
+## Card hover
+
+Hovering a card in `#banGrid` floats the player's four metadata lines — the same
+block the footer prints, so it reads the same with SHOW INFO off. It replaced the
+native `title` these cards carried; the panel lives in
+`@/shared/ui/playerHoverCard.js` and is wired once from `bindBanPhaseUiOnce`
+through `bindCardGridHover`, resolving ids against `state.opponentBanPlayers` —
+the grid shows the **opponent's** squad, which is what you ban from. See
+`room/modules.md`.

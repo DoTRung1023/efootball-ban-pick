@@ -1,7 +1,7 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
-import { FORMATION_LAYOUTS, normalizeFormation,
-         getFormationLayout } from '@/shared/players/formations.js';
+import { FORMATION_LAYOUTS, normalizeFormation, getFormationLayout,
+         PITCH_ROW_LABELS, BENCH_ROW_LABEL } from '@/shared/players/formations.js';
 import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
@@ -10,6 +10,7 @@ import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
 import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
+import { bindPlayerHoverCard, hidePlayerHoverCard } from '@/shared/ui/playerHoverCard.js';
 import { cb } from '@/pages/home/callbacks.js';
 
 const gamePlans = {
@@ -63,10 +64,8 @@ function initFormationDropdown(userId) {
   const keys = Object.keys(FORMATION_LAYOUTS);
   panel.innerHTML = keys
     .map(
-      (k) => `<button type="button" class="plan-formation-option" data-formation="${k}" role="option">
-      <span class="plan-formation-opt-text">${k}</span>
-      <svg class="plan-formation-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-    </button>`,
+      // Bare label; the tick is `::after` on `.active`, as on the pick board.
+      (k) => `<button type="button" class="plan-formation-option" data-formation="${k}" role="option">${k}</button>`,
     )
     .join("");
 
@@ -270,6 +269,9 @@ async function openPlanDetail(userId, plan) {
   renderDetailSlots();
   renderPlanPicker();
   overlay.classList.add("open");
+  // Only now does the pitch have a box to measure — the first
+  // `renderDetailSlots()` above ran against a closed overlay.
+  applyPlanSlotWidth();
   document.body.style.overflow = "hidden";
 
   try {
@@ -286,7 +288,7 @@ async function openPlanDetail(userId, plan) {
 
 function closePlanDetail() {
   closePlanFormationPanel();
-  hidePlanHover();
+  hidePlayerHoverCard();
   document.getElementById("planDetailOverlay")?.classList.remove("open");
   document.body.style.overflow = "";
   gamePlans.currentId  = null;
@@ -297,13 +299,80 @@ function closePlanDetail() {
   closeDdPanel("ppFilterPanel", "ppFilterBtn");
 }
 
+/* ── Pitch slot sizing ────────────────────────────────────────
+   The boxes were a flat `max-width: 82px`, which is right at exactly one window
+   size: on a wide screen the pitch grew and the cards did not, leaving a large
+   empty field with small boxes stranded in it — the reported symptom. This is
+   the same measure-then-verify routine `applyPitchSlotWidth` runs on the pick
+   board, and the numbers below are the paddings and gaps `.plan-pitch`,
+   `.pitch-row` and `.pitch-slot` actually declare.
+
+   Every formation is four rows (`FORMATION_LAYOUTS` guarantees it) and the
+   widest row is the horizontal bound, so both constraints are computed and the
+   smaller wins. */
+
+const PITCH_ROWS = 4;
+const PITCH_ROW_GAP = 8;    // .plan-pitch  gap
+const PITCH_COL_GAP = 8;    // .pitch-row   gap
+const PITCH_PAD_Y = 20;     // .plan-pitch  padding 10px top + bottom
+const PITCH_PAD_X = 16;     // .plan-pitch  padding 8px  left + right
+const SLOT_PAD_X = 12;      // .pitch-slot  padding 6px  left + right
+const SLOT_PAD_Y = 12;      // .pitch-slot  padding 7px top + 5px bottom
+const CARD_RATIO = 72 / 100;
+const SLOT_MAX_W = 116;
+const SLOT_MIN_W = 40;
+
+function setPlanSlotWidth(pitch, w) {
+  pitch.style.setProperty("--plan-slot-w", `${w}px`);
+}
+
+function applyPlanSlotWidth() {
+  const pitch = document.getElementById("planPitch");
+  if (!pitch) return;
+  const boxW = pitch.clientWidth, boxH = pitch.clientHeight;
+  if (!boxW || !boxH) return;
+
+  const widest = Math.max(...getPitchLayout().map((row) => row.slots.length), 1);
+  const rowH = (boxH - PITCH_PAD_Y - (PITCH_ROWS - 1) * PITCH_ROW_GAP) / PITCH_ROWS;
+  const byHeight = (rowH - SLOT_PAD_Y) * CARD_RATIO;
+  const byWidth = (boxW - PITCH_PAD_X - (widest - 1) * PITCH_COL_GAP) / widest - SLOT_PAD_X;
+
+  let width = Math.max(SLOT_MIN_W, Math.min(SLOT_MAX_W, Math.floor(Math.min(byHeight, byWidth))));
+  setPlanSlotWidth(pitch, width);
+
+  /* Then check, because the arithmetic only knows the gaps this module knows
+     about. `.plan-pitch` is `overflow: hidden`, so an overflowing row is
+     silently cropped rather than scrolled — nothing would look wrong until a
+     card was half missing. */
+  for (let i = 0; i < 8 && width > SLOT_MIN_W && pitch.scrollHeight > pitch.clientHeight + 1; i += 1) {
+    width -= 1;
+    setPlanSlotWidth(pitch, width);
+  }
+}
+
+/**
+ * A squad player is chosen and every empty box is a live target. Same signal the
+ * pick board gives (`is-placing` on its board element) and for the same reason:
+ * without it the second half of the click pair has to be guessed at, because the
+ * boxes look exactly as inert as they do the rest of the time.
+ *
+ * It goes on `.plan-detail-cols` because the pitch and the bench are separate
+ * columns under it, and both are targets.
+ */
+function applyPlacingState() {
+  document.querySelector(".plan-detail-cols")
+    ?.classList.toggle("is-placing", gamePlans.pickerPendingPlayerId != null);
+}
+
 function renderDetailSlots() {
   // Both renders replace their slot elements outright, so a hovered card is
   // detached without ever firing `mouseleave` and the panel would stay open
   // pointing at nothing.
-  hidePlanHover();
+  hidePlayerHoverCard();
   renderStartingXI();
   renderBench();
+  applyPlacingState();
+  applyPlanSlotWidth();
 }
 
 function renderStartingXI() {
@@ -311,7 +380,8 @@ function renderStartingXI() {
     const row = document.getElementById(id);
     if (!row) return;
     row.innerHTML = "";
-    slots.forEach((slot) => row.appendChild(makePitchSlotEl(slot, gamePlans.slots[slot] ?? null)));
+    const label = PITCH_ROW_LABELS[id] || "";
+    slots.forEach((slot) => row.appendChild(makePitchSlotEl(slot, gamePlans.slots[slot] ?? null, label)));
   });
 }
 
@@ -320,35 +390,18 @@ function renderBench() {
   if (!benchEl) return;
   benchEl.innerHTML = "";
   for (let s = 12; s <= 23; s++) {
-    benchEl.appendChild(makeBenchSlotEl(s, gamePlans.slots[s] ?? null));
+    benchEl.appendChild(makeBenchSlotEl(s, gamePlans.slots[s] ?? null, BENCH_ROW_LABEL));
   }
 }
 
-/* ── Hover info for a filled slot ─────────────────────────────────────────
-   A pitch card is 82px of artwork, with no room for the metadata footer that
-   My Players carries under every card. So the same block is floated on hover
-   instead, drawn by `playerDetailSublineHtml` — the very function that draws
-   that footer, so the two cannot drift apart.
+/* Hovering a filled slot floats the player's info — see
+   `shared/ui/playerHoverCard.js`. The slot row cannot supply the text:
+   `/api/game-plans/:id/players` returns slot, role, name, position, overall,
+   club and pesdb_id and nothing else, so rendering it directly gives one line
+   (the club) where there should be four. The full player is resolved out of the
+   squad list the picker beside it is already reading. The room's LOAD GAME PLAN
+   matches the same rows against its own squad for the same reason. */
 
-   The slot row cannot supply the text. `/api/game-plans/:id/players` returns
-   slot, role, name, position, overall, club and pesdb_id and nothing else — no
-   region, nationality, league, foot or physicals — so rendering it directly
-   yields three empty lines and a club. The full player is resolved out of the
-   squad list the picker beside it is already reading. The room's LOAD GAME
-   PLAN matches the same rows against its own squad for the same reason. */
-
-let planHoverEl = null;
-
-function planHoverCard() {
-  if (planHoverEl) return planHoverEl;
-  planHoverEl = document.createElement("div");
-  planHoverEl.className = "plan-hover-card";
-  planHoverEl.hidden = true;
-  document.body.appendChild(planHoverEl);
-  return planHoverEl;
-}
-
-/** The squad row behind a slot — where the footer fields actually live. */
 function fullPlayerForSlot(slotPlayer) {
   const id = Number(slotPlayer?.player_id);
   const match = Number.isFinite(id)
@@ -357,66 +410,11 @@ function fullPlayerForSlot(slotPlayer) {
   return match ? { ...slotPlayer, ...match } : slotPlayer;
 }
 
-function hidePlanHover() {
-  if (!planHoverEl || planHoverEl.hidden) return;
-  planHoverEl.hidden = true;
-  window.removeEventListener("scroll", hidePlanHover, true);
-}
-
-function showPlanHover(anchor, slotPlayer) {
-  // Touch fires mouseenter on tap, where the tap means "select this slot" — a
-  // panel you then have to dismiss is in the way, not helpful.
-  if (!window.matchMedia("(hover: hover)").matches) return;
-  const player = fullPlayerForSlot(slotPlayer);
-  const el = planHoverCard();
-  el.innerHTML = `
-    <div class="plan-hover-name">${escapeHtml(player.name)}</div>
-    <div class="plan-hover-detail">${playerDetailSublineHtml(player)}</div>`;
-  el.hidden = false;
-  positionPlanHover(el, anchor);
-  // Stacked, the modal is one scrolling sheet; a fixed panel would stay put
-  // while its card slid away underneath it.
-  window.addEventListener("scroll", hidePlanHover, true);
-}
-
-/**
- * Beside the card — right if there is room, otherwise left, otherwise under it.
- *
- * The third branch is not a nicety. Clamping a too-far-left panel back to the
- * viewport edge instead slides it *over* the artwork it is describing: measured
- * at a 560px viewport, the ideal left was -4px and the clamp put the panel 12px
- * into the card. Stacked, the modal is full-bleed and neither side has 236px,
- * so that is the common case on a phone, not the corner one.
- */
-function positionPlanHover(el, anchor) {
-  const a = anchor.getBoundingClientRect();
-  const GAP = 10, EDGE = 8;
-  const w = el.offsetWidth, h = el.offsetHeight;
-  const clampX = (v) => Math.max(EDGE, Math.min(v, window.innerWidth - w - EDGE));
-  const clampY = (v) => Math.max(EDGE, Math.min(v, window.innerHeight - h - EDGE));
-
-  const toRight = a.right + GAP;
-  const toLeft = a.left - GAP - w;
-
-  if (toRight + w <= window.innerWidth - EDGE) {
-    el.style.left = `${toRight}px`;
-    el.style.top = `${clampY(a.top + a.height / 2 - h / 2)}px`;
-  } else if (toLeft >= EDGE) {
-    el.style.left = `${toLeft}px`;
-    el.style.top = `${clampY(a.top + a.height / 2 - h / 2)}px`;
-  } else {
-    el.style.left = `${clampX(a.left + a.width / 2 - w / 2)}px`;
-    const below = a.bottom + GAP;
-    el.style.top = `${below + h <= window.innerHeight - EDGE ? below : clampY(a.top - GAP - h)}px`;
-  }
-}
-
 function bindSlotHover(el, player) {
-  el.addEventListener("mouseenter", () => showPlanHover(el, player));
-  el.addEventListener("mouseleave", hidePlanHover);
+  bindPlayerHoverCard(el, fullPlayerForSlot(player));
 }
 
-function makePitchSlotEl(slot, player) {
+function makePitchSlotEl(slot, player, rowLabel) {
   const el = document.createElement("div");
   const isActive = gamePlans.activeSlot === slot;
   el.className  = `pitch-slot ${player ? "filled" : "empty"}${isActive ? " active" : ""}`;
@@ -442,16 +440,15 @@ function makePitchSlotEl(slot, player) {
   } else {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
+        <div class="pitch-slot-plus">+</div>
+        <div class="pitch-slot-pos-label">${escapeHtml(rowLabel)}</div>
       </div>`;
   }
   el.addEventListener("click", () => selectPlanSlot(slot));
   return el;
 }
 
-function makeBenchSlotEl(slot, player) {
+function makeBenchSlotEl(slot, player, rowLabel) {
   const el = document.createElement("div");
   const isActive = gamePlans.activeSlot === slot;
   el.className  = `bench-slot ${player ? "filled" : "empty"}${isActive ? " active" : ""}`;
@@ -477,9 +474,8 @@ function makeBenchSlotEl(slot, player) {
   } else {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
+        <div class="pitch-slot-plus">+</div>
+        <div class="pitch-slot-pos-label">${escapeHtml(rowLabel)}</div>
       </div>`;
   }
   el.addEventListener("click", () => selectPlanSlot(slot));
@@ -824,6 +820,7 @@ function renderPlanPicker() {
       }
       gamePlans.pickerPendingPlayerId = isPending ? null : p.id;
       renderPlanPicker();
+      applyPlacingState();
     });
     listEl.appendChild(row);
   });
@@ -985,6 +982,15 @@ async function deleteSelectedPlans(userId) {
 }
 
 export function initGamePlans(userId) {
+  /* The pitch is sized against its own box, so a resize invalidates it. Nothing
+     else re-renders the modal on its own — unlike the room, which recomputes on
+     every presence poll. */
+  window.addEventListener("resize", () => {
+    if (document.getElementById("planDetailOverlay")?.classList.contains("open")) {
+      applyPlanSlotWidth();
+    }
+  });
+
   document.getElementById("createPlanBtn")?.addEventListener("click",      () => createPlan(userId));
   document.getElementById("planSelectModeBtn")?.addEventListener("click",   enterPlanSelectMode);
   document.getElementById("planCancelSelectBtn")?.addEventListener("click", exitPlanSelectMode);
