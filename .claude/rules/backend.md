@@ -42,14 +42,22 @@ Supporting modules:
   script and an importable module.
 - `features/rooms/store.js` — the in-memory `roomPresence` Map plus every helper that
   reads or mutates it (`ensureRoomEntry`, `serializeRoomEntry`, `roomPhase`,
-  `listActiveRooms`, `pruneStalePresence`, `resolveSide`, …).
-- **A kick is permanent** (`features/rooms/routes.js`). `/kick-guest` appends to
-  `entry.kickedGuestIds` and **nothing ever removes an id from it** — not a
-  different guest taking the seat, not `reopenRoom`. Read the list through
-  `isKickedFromRoom(entry, userId)` in `store.js`, and note the check sits in the
-  `/presence` handler **above the seat claim**, so it gates the host seat too: a
-  closed room reopens for whoever posts `role: "host"`, so a guest-seat-only
-  check let a kicked player take the room over.
+  `listActiveRooms`, `resolveSide`, …). `/leave` is the **only** thing that
+  deletes an entry, and only when no seat is left and the room is not closed —
+  see `room/presence-and-reconnect.md`.
+- Two guards in `features/rooms/routes.js` worth not undoing:
+  - **`/match-ready` requires `await-ready` or `done`.** It used to promote a
+    *drafting* room on the first call, so either player could post it mid-ban or
+    mid-pick and skip the rest of the draft for both. The legitimate route into
+    `await-ready` is both sides confirming in `/picks-confirm`.
+  - **A kick is permanent.** `/kick-guest` appends to `entry.kickedGuestIds` and
+    **nothing ever removes an id from it** — not a different guest taking the
+    seat, not host promotion, not `reopenRoom`. There is no `/unkick`; it existed
+    briefly and was reversed on purpose. Read the list through
+    `isKickedFromRoom(entry, userId)` in `store.js`, and note the check sits in
+    the `/presence` handler **above the seat claim**, so it gates the host seat
+    too: a closed room reopens for whoever posts `role: "host"`, so a
+    guest-seat-only check let a kicked player take the room over.
 - `features/rooms/config.js` — duration constants, the three reveal modes,
   `ROOM_LIST_QUIET_MS`, `PICK_COUNT_PER_SIDE`, and all room-config /
   allowance-cap normalisation. **No presence TTL** — see

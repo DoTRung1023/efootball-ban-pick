@@ -191,24 +191,65 @@ router.get("/:code", (req, res) => {
   sendRoom(res, entry);
 });
 
-/** POST body: { requesterId } */
+/**
+ * POST body: { requesterId, reason? }
+ *
+ * `reason: "disconnect"` marks a departure the user did **not** choose — the
+ * `pagehide` beacon, sent only from the lobby. It is the difference between
+ * closing a room and falling out of one, and the two deserve opposite answers:
+ *
+ * - **Deliberate** (the Leave button, which has already asked "close room for
+ *   everyone?"): a host closing takes the room down, exactly as before.
+ * - **Disconnect**: the host's seat passes to the guest. Nobody chose to end
+ *   anything, and ending a room because a tab crashed is the harsher reading.
+ *
+ * Either way, **a room nobody is left in is deleted**. Nothing else in this
+ * process ever removed an entry, so every code ever visited stayed in memory
+ * until a restart.
+ */
 router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
   const entry = roomPresence.get(req.roomCode);
   if (!entry) return sendEmptyRoom(res);
 
-  if (entry.host?.id && String(entry.host.id) === req.requesterId) {
+  const disconnected = String(req.body?.reason || "") === "disconnect";
+  const side = resolveSide(entry, req.requesterId);
+  if (!side) return sendRoom(res, entry);
+
+  if (side === "host") {
+    const heir = entry.guest;
     pushSystemChat(entry, `${entry.host.username || "Host"} left the room.`);
     entry.host = null;
-    entry.closed = true;
-    entry.closeReason = "Host closed the room.";
-    entry.status = ROOM_STATUS.LOBBY;
-    entry.turnIndex = 0;
-    entry.turnEndsAt = null;
-    entry.guest = null;
-    entry.ready.guest = false;
-    entry.matchReady = { host: false, guest: false };
-  }
-  if (entry.guest?.id && String(entry.guest.id) === req.requesterId) {
+
+    if (disconnected && heir?.id) {
+      /* Promotion. The guest's client discovers this from the next snapshot —
+         see `adoptSeat` in presence.js; without that it would keep claiming the
+         guest seat and end up sitting in both. */
+      entry.host = heir;
+      entry.guest = null;
+      entry.ready.guest = false;
+      if (resetDraftToLobby(entry)) {
+        pushSystemChat(entry, "Draft cancelled — the host disconnected.");
+      }
+      pushSystemChat(entry, `${heir.username || "Guest"} is the host now.`);
+    } else if (heir?.id) {
+      /* Deliberate close, with somebody to tell. The entry has to outlive both
+         seats here — `closed` + `closeReason` is the only thing that puts the
+         guest on the "Room closed" screen, and deleting it would hand them an
+         empty snapshot instead. It is also what `reopenRoom` comes back to. */
+      entry.closed = true;
+      entry.closeReason = "Host closed the room.";
+      entry.status = ROOM_STATUS.LOBBY;
+      entry.turnIndex = 0;
+      entry.turnEndsAt = null;
+      entry.guest = null;
+      entry.ready.guest = false;
+      entry.matchReady = { host: false, guest: false };
+    }
+    /* A lone host leaving deliberately sets no `closed` flag at all: there is
+       nobody to show it to, so the room is simply deleted below. Reopening the
+       same code makes a fresh lobby, which is what `reopenRoom` would have
+       produced anyway. */
+  } else {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
     /* The room survives its guest: the host drops back to the lobby with the
@@ -216,6 +257,15 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
     if (resetDraftToLobby(entry)) {
       pushSystemChat(entry, "Draft cancelled — waiting for a new player.");
     }
+  }
+
+  /* The last player out takes the room with them. Safe precisely because it is
+     the last: `ensureRoomEntry` would recreate the entry on the next heartbeat,
+     and there is nobody left to send one. A **closed** room is the exception —
+     it has no seats by definition and still has a message to deliver. */
+  if (!entry.host?.id && !entry.guest?.id && !entry.closed) {
+    roomPresence.delete(req.roomCode);
+    return sendEmptyRoom(res);
   }
 
   entry.updatedAt = Date.now();
@@ -484,14 +534,15 @@ router.post(
     const { entry, side } = req;
     const ready = Boolean(req.body?.ready);
 
-    if (entry.status === ROOM_STATUS.LOBBY) {
-      return res.status(409).json({ error: "Match ready is only available after drafting." });
-    }
-    // First match-ready call closes the draft and opens the ready phase.
-    if (entry.status === ROOM_STATUS.DRAFTING) {
-      entry.status = ROOM_STATUS.AWAIT_READY;
-      entry.turnEndsAt = null;
-      entry.matchReady = { host: false, guest: false };
+    /* Only from the ready screen onward. This used to promote a **drafting**
+       room to `await-ready` on the first call, which meant either player could
+       post match-ready mid-ban or mid-pick and skip the rest of the draft for
+       both of them. Nothing in the UI does that — `initReadyControls` returns
+       unless `state.phase === "ready"` — but the endpoint was the only thing
+       standing between a stale tab and a cancelled pick phase. The legitimate
+       route into `await-ready` is both sides confirming in `/picks-confirm`. */
+    if (entry.status !== ROOM_STATUS.AWAIT_READY && entry.status !== ROOM_STATUS.DONE) {
+      return res.status(409).json({ error: "Match ready is only available after both squads are confirmed." });
     }
 
     entry.matchReady[side] = ready;

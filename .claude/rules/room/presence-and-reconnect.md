@@ -37,9 +37,10 @@ underneath them.
 `ROOM_LIST_QUIET_MS` (90 s) — **admin display only**. It decides how long a quiet
 room stays on the dashboard listing and ends nothing.
 
-The trade this makes: a player who closes their browser without pressing Leave
-holds their seat until the server restarts, so the other side waits instead of
-being told "opponent left". That is the right way round — the room outliving a
+The trade this makes **mid-draft**: a player who closes their browser without
+pressing Leave holds their seat until the server restarts, so the other side
+waits instead of being told "opponent left". (In the **lobby** this no longer
+applies — see "Leaving, and what happens to the room" below.) That is the right way round — the room outliving a
 player costs a manual Leave, while the old behaviour cost a draft in progress.
 The host can always kick the guest, and a room is never listed as active once it
 goes quiet.
@@ -121,6 +122,45 @@ and again on every poll. Two things depend on it, and neither works without it:
 
 A room with no entry, or one where neither seat is ours, leaves the guess
 standing — that is the *arriving* case rather than the returning one.
+
+## Leaving, and what happens to the room
+
+`/leave` takes an optional `reason`. `"disconnect"` means the user did not
+choose it — the `pagehide` beacon — and the two readings are deliberately
+opposite:
+
+| Who leaves | How | Result |
+| --- | --- | --- |
+| Host, guest present | Leave button | Room closes for everyone (unchanged) |
+| Host, guest present | tab closed | **Guest is promoted**, draft resets to lobby |
+| Host, alone | either | **Room is deleted** |
+| Guest | either | Seat empties, draft resets to lobby, room survives |
+
+**A room nobody is left in is deleted** — the first time anything in this
+process removed an entry. `ensureRoomEntry` mints one for *any* code that gets
+polled, so every code ever visited used to live until a restart.
+
+Two exceptions, both load-bearing:
+
+- **A closed room is kept.** `closed` + `closeReason` is the only thing that
+  puts the remaining player on the "Room closed" screen; deleting it hands them
+  an empty snapshot instead. Found by testing — the first version deleted it and
+  the flag never reached the guest.
+- **A lone host leaving deliberately sets no `closed` flag at all.** There is
+  nobody to show it to, so the room is simply deleted. Reopening the code makes
+  a fresh lobby, which is what `reopenRoom` would have produced anyway.
+
+### The beacon is lobby-only
+
+`initDisconnectBeacon` in `leaveGuard.js` posts `reason: "disconnect"` on
+`pagehide` — **only while `state.phase === "lobby"`**. Mid-draft the same beacon
+would let a crashed tab, a locked phone or a mis-swipe reset both squads, and a
+draft is expensive to lose where a lobby seat is not. Past the lobby the seat is
+held exactly as before and the opponent's badge carries the news.
+
+`sendBeacon` with a `Blob` typed `application/json`: the request has to outlive
+the document (a `fetch` is cancelled on unload) and a bare string is sent as
+`text/plain`, which `express.json()` leaves as an empty body.
 
 ## Room security
 
