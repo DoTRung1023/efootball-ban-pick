@@ -20,6 +20,7 @@ export function renderDraftUi() {
 
   const mySide = state.mySide;
   const theirSide = mySide === "host" ? "guest" : "host";
+  renderLeaveLabel(mySide);
   const turn = state.schedule[room.turnIndex];
   const readyPhase = isReadyPhase(room);
   // The server flips `status` to "await-ready" once both squads are confirmed;
@@ -48,6 +49,23 @@ export function renderDraftUi() {
   renderReadyBoard({ room, mySide, theirSide, visible: readyPhase });
 
   updateStageTabs();
+}
+
+/**
+ * The host's exit closes the room for both players, so it says so on every
+ * board — the lobby already relabels its own button this way, and the confirm
+ * dialog in `draftControls.js` already splits on the same test. This is the
+ * label catching up with what the button has always done.
+ *
+ * Rendered rather than set once at draft entry because `mySide` is the
+ * server's answer now, not the URL's, and `adoptSeat` can change it mid-session.
+ */
+function renderLeaveLabel(mySide) {
+  const btn = document.getElementById("draftLeaveBtn");
+  if (!btn) return;
+  const label = mySide === "host" ? "Close room" : "Leave";
+  // Runs ~2x/second; rewriting an unchanged text node would drop a selection.
+  if (btn.textContent !== label) btn.textContent = label;
 }
 
 function renderActionError() {
