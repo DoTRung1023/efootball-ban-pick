@@ -8,6 +8,7 @@
 
 import {
   cb,
+  announce,
   showToast,
   getRoomCodeFromUrl,
   isBothMatchReady,
@@ -29,7 +30,10 @@ import {
 function reportError(label, error, message) {
   try {
     console.error(label, error);
-    showToast(String(message || "An unexpected error occurred"), "warn");
+    /* Unprompted by definition — nobody clicks their way into an
+       unhandled rejection, and this toast is the only sign anything
+       broke at all. */
+    announce(String(message || "An unexpected error occurred"), "warn");
   } catch (err) {
     console.error(`Error in ${label} handler:`, err);
   }

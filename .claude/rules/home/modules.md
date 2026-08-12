@@ -25,8 +25,10 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   - `@/shared/lib/session.js` — `getUser`, `requireAuth` (the room bundle shares this
     one; `features/draft/utils.js` re-exports `getUser` so room modules keep their existing import).
   - `@/shared/ui/toast.js` — `showToast`. The room page keeps its **own** `showToast` in
-    `features/draft/utils.js`: different variant classes (`toast--warn`) and a different duration,
-    so the two are deliberately not merged.
+    `features/draft/utils.js`: different variant classes (`toast--warn`) and different
+    durations (2.4 s, or 6 s via its `announce`), so the two are deliberately not merged.
+    The home page has no `announce` because it has no unprompted messages — every toast
+    here answers something the user just clicked.
   - `@/shared/ui/confirm.js` — `showConfirm`. Used by game plans (delete a plan) and by
     squad (bulk delete). Its close/resolve internals are module-private.
   - `@/shared/ui/dropdown.js` — `closeDdPanel`, `toggleDdPanel`.

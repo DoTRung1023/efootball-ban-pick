@@ -7,7 +7,16 @@ import { state } from './state.js';
 export { escapeHtml } from "@/shared/players/playerMeta.js";
 export { getUser } from "@/shared/lib/session.js";
 
-export function showToast(message, variant = "default") {
+/* Two lifetimes, because there are two kinds of message here.
+   `TOAST_MS` answers something the user just did — they are already looking at
+   the thing they clicked, and a reply that outstays its welcome is noise.
+   `ANNOUNCE_MS` reports something that happened *to* them: the room changed
+   under their hands, they did not ask for it, and the message is the only
+   explanation of why the screen they were working in is gone. */
+const TOAST_MS = 2400;
+const ANNOUNCE_MS = 6000;
+
+export function showToast(message, variant = "default", ms = TOAST_MS) {
   const el = document.getElementById("toast");
   if (!el) return;
   el.textContent = message;
@@ -18,7 +27,20 @@ export function showToast(message, variant = "default") {
   showToast._t = setTimeout(() => {
     el.classList.remove("show");
     el.classList.remove("toast--warn");
-  }, 2400);
+  }, ms);
+}
+
+/**
+ * An unprompted report of a room-state change — the opponent leaving, a draft
+ * cancelled mid-turn, an error nobody asked for.
+ *
+ * Held two and a half times as long as an ordinary toast. These arrive while
+ * the user is mid-action and looking somewhere else entirely, often alongside a
+ * whole view being swapped out from under them, so the reading clock does not
+ * start until they have noticed the screen changed at all.
+ */
+export function announce(message, variant = "default") {
+  showToast(message, variant, ANNOUNCE_MS);
 }
 
 export function askConfirm({ title = "Confirm", message = "Are you sure?", okText = "OK", cancelText = "Cancel" }) {

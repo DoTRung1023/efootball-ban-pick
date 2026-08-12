@@ -272,8 +272,10 @@ leak from a previous error. Do not set the classes directly.
 absent, while `state.phase` is `"draft"` or `"ready"` — but what happens next is the
 opposite of what it used to be. **The host goes back to the lobby with the code intact**
 (`returnToLobby()`): phase back to `"lobby"`, the turn timer cleared, staged bans and
-any slot selection dropped, the phase cache cleared so a reload lands there too, a toast,
-and polling left running so a new guest appears in the matchup band the moment they join.
+any slot selection dropped, the phase cache cleared so a reload lands there too, an
+`announce` (the 6 s toast — this one lands while the host is mid-pick and the board is
+vanishing under them, which is exactly what the short one is wrong for), and polling left
+running so a new guest appears in the matchup band the moment they join.
 
 It used to set `state.phase = "abandoned"`, stop polling and run a 10-second countdown to
 the home page — abandoning a room that still existed and still had its host in it. Both

@@ -6,7 +6,7 @@ import {
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { applyPresenceSnapshot } from '@/features/draft/state.js';
-import { getUser, getAnonId, getCurrentIdentity, showToast, showView } from '@/features/draft/utils.js';
+import { getUser, getAnonId, getCurrentIdentity, announce, showView } from '@/features/draft/utils.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearTurnTimer } from './draftFlow.js';
 
@@ -237,7 +237,7 @@ function returnToLobby() {
   state.opponentStagedBans = [];
   state.pickActiveSlot = null;
   state.pickPendingPlayerId = null;
-  showToast("Your opponent left. Invite someone else to start again.");
+  announce("Your opponent left. Invite someone else to start again.");
   showView("viewLobby");
   cb.renderLobby();
 }

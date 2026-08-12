@@ -44,11 +44,19 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`
   and the opponent's `stagedBans` from each snapshot), `buildTurnSchedule`, and the
   room-config normalisation helpers.
-- `utils.js` — `escapeHtml`, `showToast`, `askConfirm`, `showView`,
+- `utils.js` — `escapeHtml`, `showToast`, `announce`, `askConfirm`, `showView`,
   `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
   `escapeHtml` is re-exported from `shared/players/playerMeta.js`; `showToast` is **not**
   shared — the room toast is a different component from the home one (it uses a
   `toast--warn` modifier and a 2.4 s timeout, vs `toast show ${type}` at 3.5 s).
+  **`announce` is the same toast held for 6 s**, and the choice between the two is
+  about who caused the message, not how important it is. `showToast` answers
+  something the user just did, and they are already looking at it. `announce`
+  reports something that happened *to* them — the opponent leaving, an unhandled
+  rejection — which arrives unbidden, often while a whole view is being swapped
+  out underneath, so the reading clock does not start until they notice the
+  screen changed. A reply that lingers is noise; an announcement that flashes is
+  simply missed.
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
   `REGION_OPTIONS`, etc. The option arrays are **mutable** and are filled at runtime by
   `fetchFilterOptions()`; update with `.length = 0` + `push()`, never reassign.

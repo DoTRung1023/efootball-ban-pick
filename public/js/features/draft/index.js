@@ -17,7 +17,7 @@
    ============================================================ */
 
 export { cb } from "./callbacks.js";
-export { showToast, getRoomCodeFromUrl } from "./utils.js";
+export { showToast, announce, getRoomCodeFromUrl } from "./utils.js";
 
 export { isBothMatchReady } from "@/features/draft/engine/draftFlow.js";
 export { confirmPicks, flushAndSubmitStagedBans } from "@/features/draft/engine/draftActions.js";
