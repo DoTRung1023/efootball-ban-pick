@@ -63,6 +63,19 @@ async function adoptSeatFromServer() {
   }
 }
 
+/**
+ * Did the last heartbeat land us on `#viewError` for good?
+ *
+ * The 403/409/410 branches of `registerPresence` paint that screen and then
+ * return `undefined` — the same value a plain network failure returns. Both
+ * callers used to read that as "reconnect failed" and answer it by showing the
+ * lobby, which painted straight over the error they had just been given: a
+ * kicked player saw a working lobby (stale, with their own squad stats under
+ * the host) instead of "Access denied", and a guest opening a closed room never
+ * saw "Room closed" either. The phase is the only thing that separates the two.
+ */
+const wentTerminal = () => state.phase === "error";
+
 async function registerPresence() {
   const code = state.room?.code;
   if (!code) return;
@@ -242,6 +255,11 @@ export async function pollPresence() {
     const prevChatLen = Array.isArray(state.room?.chat) ? state.room.chat.length : 0;
 
     await registerPresence(); // heartbeat
+    /* Kicked mid-session. Nothing below paints over `#viewError` today —
+       `renderDraftUi` bails on the phase and the lobby branch tests for it —
+       but everything below reads and re-applies the state of a room we have
+       just been thrown out of, and it does it after `stopPresencePolling`. */
+    if (wentTerminal()) return;
     const snap = await fetchRoomSnapshot();
     if (state.room?.closed) {
       stopPresencePolling();
@@ -300,6 +318,7 @@ export async function registerAndPollPresence() {
   await adoptSeatFromServer();
   try {
     const room = await registerPresence();
+    if (wentTerminal()) return;
     if (!room) {
       // Reconnect failed — clear cached phase and fall back to lobby
       clearRoomPhaseCache(state.room?.code);

@@ -239,6 +239,15 @@ The server rejects duplicate connections via HTTP 409:
   runs before the seat claim, so a kicked player cannot come back as host either.
   The list is never cleared; see `backend.md`.
 
+**A terminal response must not be answered with a re-render.** The 403/409/410 branches
+of `registerPresence` paint `#viewError`, stop the polling and set `state.phase = "error"`,
+then return `undefined` — which is also what a plain network failure returns. Both callers
+used to read that as "reconnect failed" and answer it by calling `showView("viewLobby")`,
+painting straight over the screen they had just been handed: a kicked player saw a working
+lobby with themselves still in the guest seat, and a guest opening a closed room never saw
+"Room closed". `wentTerminal()` is the test that separates the two cases; keep it ahead of
+every fallback render.
+
 The client maps these to three distinct error states (`is-host-lock`, `is-room-full`,
 `is-access-denied`) in `#viewError`, each with its own CSS color theme in `shell.css`.
 Write them through `paintErrorView` in `features/draft/errorView.js` — it is the single
