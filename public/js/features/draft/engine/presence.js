@@ -10,6 +10,55 @@ export function clearRoomPhaseCache(code) {
   try { if (code) sessionStorage.removeItem(`efb_room_${code}_phase`); } catch { /* ignore */ }
 }
 
+/**
+ * Which seat is actually mine, according to the server.
+ *
+ * `initLobby` guesses from the URL — `?mode=join` means guest, anything else
+ * means host — and that guess is wrong every time somebody returns to a room by
+ * a route that does not carry the query string: browser history, a retyped
+ * address, the rejoin redirect. The guest then posts `role: "host"`,
+ * `claimHostSeat` sees a different id in the seat and answers **409 "Room
+ * already has an active host"**, and they are locked out of a room they are
+ * still sitting in.
+ *
+ * It is also what makes host promotion possible at all. Promote the guest
+ * server-side and their client keeps posting `role: "guest"`; the guest seat is
+ * empty by then, so `claimGuestSeat` hands it back and one person ends up
+ * seated as both. The seat has to come from the server, and it has to be able
+ * to change mid-session.
+ */
+function adoptSeat(room) {
+  if (!room) return;
+  const me = String(getCurrentIdentity().id || "");
+  if (!me) return;
+  const side = String(room.host?.id || "") === me
+    ? "host"
+    : String(room.guest?.id || "") === me
+      ? "guest"
+      : null;
+  if (side && side !== state.mySide) state.mySide = side;
+}
+
+/**
+ * The same, before the first heartbeat goes out.
+ *
+ * Order matters: the 409 above is raised by the *claim*, so asking afterwards
+ * is too late. A room with no entry yet, or one where neither seat is ours,
+ * leaves the URL's guess standing — which is right, because that is exactly the
+ * case where we are arriving rather than returning.
+ */
+async function adoptSeatFromServer() {
+  const code = state.room?.code;
+  if (!code) return;
+  try {
+    const res = await fetch(`/api/rooms/${encodeURIComponent(code)}`);
+    if (!res.ok) return;
+    adoptSeat((await res.json())?.room);
+  } catch {
+    /* offline — the guess stands, and the claim will fail loudly if it is wrong */
+  }
+}
+
 async function registerPresence() {
   const code = state.room?.code;
   if (!code) return;
@@ -54,7 +103,10 @@ async function registerPresence() {
     }
     return;
   }
-  if (data.room) applyPresenceSnapshot(data.room);
+  if (data.room) {
+    adoptSeat(data.room);
+    applyPresenceSnapshot(data.room);
+  }
   state.presenceError = false;
   return data.room || null;
 }
@@ -69,6 +121,9 @@ async function fetchRoomSnapshot() {
   if (!room) return { changed: false };
   const nextUpdatedAt = Number(room.updatedAt || 0);
   const changed = nextUpdatedAt > Number(state.lastRoomUpdatedAt || 0);
+  /* Outside the `changed` guard on purpose: a promotion moves *us* between
+     seats, and the snapshot that carries it must not be skipped. */
+  adoptSeat(room);
   if (changed || !state.room?.host || !state.room?.guest) {
     applyPresenceSnapshot(room);
   }
@@ -187,6 +242,7 @@ export async function pollPresence() {
 }
 
 export async function registerAndPollPresence() {
+  await adoptSeatFromServer();
   try {
     const room = await registerPresence();
     if (!room) {

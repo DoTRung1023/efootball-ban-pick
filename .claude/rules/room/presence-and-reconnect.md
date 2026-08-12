@@ -44,6 +44,26 @@ player costs a manual Leave, while the old behaviour cost a draft in progress.
 The host can always kick the guest, and a room is never listed as active once it
 goes quiet.
 
+## Your seat comes from the server, not the URL
+
+`initLobby` guesses the side from `?mode=join`, and that guess is the only thing
+`state.mySide` was ever set from. `adoptSeat` in `presence.js` corrects it
+against the snapshot — **before the first heartbeat** (`adoptSeatFromServer`)
+and again on every poll. Two things depend on it, and neither works without it:
+
+- **Returning by any route that drops the query string** — history, a retyped
+  address, the rejoin redirect. The guest's client claimed `role: "host"`,
+  `claimHostSeat` saw a different id and answered 409, and they were shown "Host
+  slot taken" for a room they were still sitting in. Asking after the claim is
+  too late, which is why the pre-flight GET exists.
+- **Host promotion.** Promote the guest server-side and their client keeps
+  claiming the guest seat, which is now empty — so `claimGuestSeat` hands it back
+  and one person is seated as both host and guest. Measured after the fix:
+  `host=Bob guest=—`, seated twice? no.
+
+A room with no entry, or one where neither seat is ours, leaves the guess
+standing — that is the *arriving* case rather than the returning one.
+
 ## Room security
 
 The server rejects duplicate connections via HTTP 409:
