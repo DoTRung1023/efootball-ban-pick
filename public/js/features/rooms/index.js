@@ -9,4 +9,4 @@
    first and refuses to navigate into a room that does not exist.
    ============================================================ */
 
-export { initRoomModal, initRoomHub } from "./rooms.js";
+export { initRoomModal, initRoomHub, redirectToActiveRoom } from "./rooms.js";

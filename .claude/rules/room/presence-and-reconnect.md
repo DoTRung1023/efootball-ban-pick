@@ -162,6 +162,26 @@ held exactly as before and the opponent's badge carries the news.
 the document (a `fetch` is cancelled on unload) and a bare string is sent as
 `text/plain`, which `express.json()` leaves as an empty body.
 
+## Coming back: `GET /api/rooms/mine`
+
+Closing a tab does not give up a seat, so the app has to be able to ask "where
+was I?" on the way back in. The client cannot answer it: the phase cache is
+per-tab `sessionStorage`, and the home page does not know the code anyway.
+
+`GET /api/rooms/mine?userId=` scans for a non-closed room with that id in either
+seat and returns `{ code, side, phase }`. `home.js` awaits it before booting
+anything else and `location.replace`s into the room. `replace`, not `href`, so
+Back does not land on a page that immediately redirects here again.
+
+There is no trap: Leave frees the seat, so the next visit stays home. Declare
+the route **before `/:code`** — Express matches in order and `mine` is a valid
+room code as far as that route is concerned.
+
+**Signed-out players get this too**, because `getAnonId` now writes to
+`localStorage`. It was `sessionStorage`, so a signed-out player who closed the
+tab came back as a new person and their old id sat in the seat forever — with no
+TTL, that made the room permanently unusable.
+
 ## Room security
 
 The server rejects duplicate connections via HTTP 409:

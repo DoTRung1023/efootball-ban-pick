@@ -36,6 +36,35 @@ async function goToRoom({ code, mode, btn: btnEl }) {
   window.location.href = url.pathname + url.search;
 }
 
+/**
+ * Sends a returning player straight back to the room they are still seated in.
+ *
+ * Closing a tab does not give up a seat, so without this the app forgets a
+ * draft in progress the moment the tab goes: the phase cache is per-tab
+ * `sessionStorage`, and the home page does not know the code in any case. The
+ * server does — it is the one holding the seat.
+ *
+ * `location.replace`, not `href`: the home page is a place the user passed
+ * through, and leaving it in the history means Back lands on a page that
+ * immediately redirects here again.
+ *
+ * There is no trap. Leave in the room posts `/leave`, which frees the seat, so
+ * the next visit here stays put.
+ */
+export async function redirectToActiveRoom(userId) {
+  if (!userId) return false;
+  try {
+    const res = await fetch(`/api/rooms/mine?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return false;
+    const room = (await res.json())?.room;
+    if (!room?.code) return false;
+    window.location.replace(`/room/${encodeURIComponent(room.code)}`);
+    return true;
+  } catch {
+    return false; // offline: the home page is a fine place to land
+  }
+}
+
 function genCode(len = 6) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");

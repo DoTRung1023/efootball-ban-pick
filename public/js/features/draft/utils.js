@@ -97,14 +97,25 @@ export function parseQuery() {
   };
 }
 
-/** Stable id for signed-out users so server presence does not churn every request */
+/**
+ * Stable id for signed-out users, so presence does not churn every request.
+ *
+ * **`localStorage`, not `sessionStorage`** — and the difference is a seat. A
+ * signed-out player who closes the tab used to come back as a brand-new person:
+ * the room has no presence TTL, so their old id sat in the seat forever and the
+ * room was unusable from then on. `efb_user` is already localStorage for signed-in
+ * players; this is the same promise for everyone else.
+ *
+ * The old sessionStorage value is adopted if it is still there, so a tab open
+ * across this change keeps its seat instead of losing it on the next reload.
+ */
 export function getAnonId() {
   try {
-    let id = sessionStorage.getItem("efb_room_anon_id");
+    let id = localStorage.getItem("efb_room_anon_id") || sessionStorage.getItem("efb_room_anon_id");
     if (!id) {
       id = `anon-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
-      sessionStorage.setItem("efb_room_anon_id", id);
     }
+    localStorage.setItem("efb_room_anon_id", id);
     return id;
   } catch {
     return `anon-${Date.now()}`;

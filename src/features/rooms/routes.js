@@ -18,6 +18,7 @@ import {
   resetDraftToLobby,
   pushUserChat,
   resolveSide,
+  roomPhase,
   roomPresence,
   serializeRoomEntry,
 } from "./store.js";
@@ -181,6 +182,29 @@ function syncStagedBans(entry, role, stagedBans) {
     .map((p) => ({ id: String(p.id || ""), name: String(p.name || "") }))
     .filter((p) => p.id);
 }
+
+/**
+ * GET ?userId= — the room this user is still seated in, if any.
+ *
+ * Closing a tab does not give up a seat, so on the way back in the app has to
+ * be able to ask "where was I?". The client cannot answer that itself: the
+ * phase cache is per-tab `sessionStorage`, which dies with the tab, and it is
+ * keyed by a code the home page does not know.
+ *
+ * Declared **before** `/:code` — Express matches in order, and "mine" is a
+ * valid room code as far as that route is concerned.
+ */
+router.get("/mine", (req, res) => {
+  const userId = String(req.query?.userId || "");
+  if (!userId) return res.json({ room: null });
+
+  for (const [code, entry] of roomPresence.entries()) {
+    if (entry.closed) continue;
+    const side = resolveSide(entry, userId);
+    if (side) return res.json({ room: { code, side, phase: roomPhase(entry) } });
+  }
+  return res.json({ room: null });
+});
 
 router.get("/:code", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);

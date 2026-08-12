@@ -3,7 +3,7 @@ import { initUserMenu, initEditProfile } from '@/features/auth/index.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/features/squad/index.js';
 import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
 import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
-import { initRoomModal, initRoomHub } from '@/features/rooms/index.js';
+import { initRoomModal, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
 
 /** Nav tabs ↔ tab panels. Home-page chrome, so it lives with the page entry. */
 function initTabs() {
@@ -21,6 +21,12 @@ function initTabs() {
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireAuth();
   if (!user) return;
+
+  /* Still seated in a room? Go there instead. Awaited before anything else
+     boots, so a redirect does not first pay for the squad and game-plan
+     fetches. */
+  if (await redirectToActiveRoom(user.id)) return;
+
   initUserMenu(user);
   initEditProfile();
   initTabs();
