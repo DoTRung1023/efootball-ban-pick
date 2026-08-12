@@ -128,7 +128,9 @@ The server rejects duplicate connections via HTTP 409:
 
 - A second host attempt (different userId) → 409 "Room already has an active host."
 - A second guest attempt (different userId) → 409 "Room already has an active guest."
-- A kicked guest → 403.
+- Anyone on the room's `kickedGuestIds` list → 403, **for either role** — the check
+  runs before the seat claim, so a kicked player cannot come back as host either.
+  The list is never cleared; see `backend.md`.
 
 The client maps these to three distinct error states (`is-host-lock`, `is-room-full`,
 `is-access-denied`) in `#viewError`, each with its own CSS color theme in `shell.css`.

@@ -1123,7 +1123,7 @@ function bindLobbyChatAndExit() {
     if (state.mySide !== "host" || !state.room?.guest) return;
     const yes = await askConfirm({
       title: "Kick guest",
-      message: `Remove ${state.room.guest.username || "guest"} from this room?`,
+      message: `Remove ${state.room.guest.username || "guest"} from this room? They will not be able to rejoin it.`,
       okText: "Kick",
       cancelText: "Cancel",
     });
@@ -1144,7 +1144,7 @@ function bindLobbyChatAndExit() {
         applyPresenceSnapshot(data.room);
         renderLobby();
       }
-      showToast("Guest removed.");
+      showToast("Guest removed — they cannot rejoin this room.");
     } catch {
       showToast("Could not kick guest.");
     }

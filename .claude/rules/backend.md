@@ -43,6 +43,13 @@ Supporting modules:
 - `features/rooms/store.js` — the in-memory `roomPresence` Map plus every helper that
   reads or mutates it (`ensureRoomEntry`, `serializeRoomEntry`, `roomPhase`,
   `listActiveRooms`, `pruneStalePresence`, `resolveSide`, …).
+- **A kick is permanent** (`features/rooms/routes.js`). `/kick-guest` appends to
+  `entry.kickedGuestIds` and **nothing ever removes an id from it** — not a
+  different guest taking the seat, not `reopenRoom`. Read the list through
+  `isKickedFromRoom(entry, userId)` in `store.js`, and note the check sits in the
+  `/presence` handler **above the seat claim**, so it gates the host seat too: a
+  closed room reopens for whoever posts `role: "host"`, so a guest-seat-only
+  check let a kicked player take the room over.
 - `features/rooms/config.js` — duration constants, the three reveal modes,
   `ROOM_LIST_QUIET_MS`, `PICK_COUNT_PER_SIDE`, and all room-config /
   allowance-cap normalisation. **No presence TTL** — see

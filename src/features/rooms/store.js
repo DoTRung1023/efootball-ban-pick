@@ -57,7 +57,7 @@ function createRoomEntry() {
     chat: [],
     closed: false,
     closeReason: "",
-    kickedGuestId: "",
+    kickedGuestIds: [],
     updatedAt: Date.now(),
   };
 }
@@ -86,7 +86,7 @@ export function ensureRoomEntry(code) {
   if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
-  if (entry.kickedGuestId === undefined) entry.kickedGuestId = "";
+  if (!Array.isArray(entry.kickedGuestIds)) entry.kickedGuestIds = [];
   if (!Array.isArray(entry.chat)) entry.chat = [];
 
   return entry;
@@ -101,6 +101,16 @@ function appendChat(entry, message) {
   if (entry.chat.length > MAX_CHAT_MESSAGES) {
     entry.chat.splice(0, entry.chat.length - MAX_CHAT_MESSAGES);
   }
+}
+
+/**
+ * A kick is permanent for the life of the room entry: nothing clears this list,
+ * so a removed player cannot rejoin under any route back in — invite link,
+ * room code, or a later reopen of the same code.
+ */
+export function isKickedFromRoom(entry, userId) {
+  const id = String(userId || "");
+  return Boolean(id) && (entry.kickedGuestIds || []).includes(id);
 }
 
 export function pushSystemChat(entry, message) {

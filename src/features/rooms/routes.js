@@ -11,6 +11,7 @@ import {
   ROOM_STATUS,
   emptyRoomSnapshot,
   ensureRoomEntry,
+  isKickedFromRoom,
   isValidRoomCode,
   normalizeRoomCodeParam,
   pushSystemChat,
@@ -98,6 +99,10 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
 
   const entry = ensureRoomEntry(req.roomCode);
 
+  if (isKickedFromRoom(entry, userId)) {
+    return res.status(403).json({ error: "You were removed from this room by host." });
+  }
+
   if (entry.closed && role !== "host") {
     return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry) });
   }
@@ -133,7 +138,6 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
 function reopenRoom(entry) {
   entry.closed = false;
   entry.closeReason = "";
-  entry.kickedGuestId = "";
   entry.status = ROOM_STATUS.LOBBY;
   entry.turnIndex = 0;
   entry.turnEndsAt = null;
@@ -157,19 +161,12 @@ function claimGuestSeat(entry, participant) {
   if (activeGuestId && activeGuestId !== participant.id) {
     return { status: 409, error: "Room already has an active guest." };
   }
-  if (entry.kickedGuestId && entry.kickedGuestId === participant.id) {
-    return { status: 403, error: "You were removed from this room by host." };
-  }
 
   const changed = activeGuestId !== participant.id;
   if (changed) {
     pushSystemChat(entry, `${participant.username} joined the room.`);
     entry.ready.guest = false;
     entry.matchReady.guest = false;
-  }
-  // A different guest taking the seat clears the previous kick ban.
-  if (entry.kickedGuestId && entry.kickedGuestId !== participant.id) {
-    entry.kickedGuestId = "";
   }
   entry.guest = participant;
   return { changed };
@@ -210,7 +207,6 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
     entry.guest = null;
     entry.ready.guest = false;
     entry.matchReady = { host: false, guest: false };
-    entry.kickedGuestId = "";
   }
   if (entry.guest?.id && String(entry.guest.id) === req.requesterId) {
     pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
@@ -466,7 +462,8 @@ router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) =>
     return res.status(409).json({ error: "No guest to kick." });
   }
 
-  entry.kickedGuestId = String(entry.guest.id);
+  const kickedId = String(entry.guest.id);
+  if (!isKickedFromRoom(entry, kickedId)) entry.kickedGuestIds.push(kickedId);
   pushSystemChat(entry, `${entry.guest.username || "Guest"} was removed by host.`);
   entry.guest = null;
   // Same as a guest leaving — see resetDraftToLobby.

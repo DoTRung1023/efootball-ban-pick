@@ -88,8 +88,10 @@ dead `#userAvatar` reference on home were all removed): there is no profile-imag
 feature, so an initial in a circle carried no information. Do not reintroduce one.
 
 `.ls-center` carries the hairline side borders (the old single `.lobby-summary::after`
-centre line does not work with three columns). `.lobby-kick-btn` is absolutely positioned
-in the guest slot's top-right corner. Under 620 px the band stacks vertically.
+centre line does not work with three columns). `.lobby-kick-btn` positions `#kickGuestBtn`
+absolutely in the guest slot's top-right corner; it is shown only while a guest is in the
+seat. There is **no** counterpart button — a kick is permanent by design, so nothing in
+the UI lifts one. Under 620 px the band stacks vertically.
 
 `is-ready` on `.ls-player` tracks **slot occupancy**, not readiness — it only drives
 `.ls-player--guest:not(.is-ready) .ls-name` (the italic "Waiting…" placeholder). Actual
