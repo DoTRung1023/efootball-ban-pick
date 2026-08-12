@@ -1,7 +1,7 @@
 import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
 import { bindPlayerHoverCard } from '@/shared/ui/playerHoverCard.js';
-import { tiebreakOverallDescThenName, ovrMaxForSort,
+import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState,
          resetPlayerFilterState } from '@/shared/players/filterPanel.js';
@@ -303,19 +303,15 @@ function exitSelectMode() {
     .forEach((c) => c.classList.remove("selected"));
 }
 
-const SQUAD_SORT_CATEGORIES = [
-  { key: "overall_max", label: "Overall Max",      bidir: true  },
-  { key: "overall",     label: "Overall Level 1", bidir: true  },
-  { key: "name",     label: "Player Name",    bidir: true  },
-  { key: "position", label: "Position",       bidir: true  },
-  { key: "height",   label: "Height",         bidir: true  },
-  { key: "weight",   label: "Weight",         bidir: true  },
-  { key: "age",      label: "Age",            bidir: true  },
-];
+/* My Players had its own copy of this list. It matched `SORT_CATEGORIES` item
+   for item, which is exactly how the room's copy started out before the two
+   drifted into different orders — so there is one table now, and every sort
+   dropdown in the app is built from it. `SQUAD_SORT_MAP` below is keyed by the
+   same `key` values. */
 const SQUAD_POSITIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 
 function updateSquadSortUI() {
-  const cat     = SQUAD_SORT_CATEGORIES.find(c => c.key === squad.sortKey);
+  const cat     = SORT_CATEGORIES.find(c => c.key === squad.sortKey);
   const labelEl = document.getElementById("teamSortLabel");
   const btn     = document.getElementById("teamSortBtn");
   const dirBtn  = document.getElementById("teamSortDirBtn");
@@ -350,7 +346,7 @@ function buildSquadSortPanel() {
   const panel = document.createElement("div");
   panel.className = "ap-dd-panel sort-dd-panel";
   panel.id = "squadSortPanel";
-  SQUAD_SORT_CATEGORIES.forEach(cat => {
+  SORT_CATEGORIES.forEach(cat => {
     const item = document.createElement("div");
     item.className  = `sort-option squad-sort-option${cat.key === squad.sortKey ? " active" : ""}`;
     item.dataset.sort = cat.key;

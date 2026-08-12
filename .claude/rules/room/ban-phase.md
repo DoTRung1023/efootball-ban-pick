@@ -163,9 +163,13 @@ Per-phase pieces that remain:
 - `getBanListPlayers()` / `getPickListPlayers()` in `playerQuery.js` are both
   thin wrappers over one `queryPlayers(base, { search, sort, prefix })`. Only the
   source array and the search field differ.
-- Sort supports 9 categories declared once in `DRAFT_SORT_CATEGORIES`
-  (`../sortPanel.js`); `normalizeSortValue()` derives its accepted values from
-  that table and `renderSortPanel()` builds both phases' panels from it.
+- Sort supports the 7 categories in `SORT_CATEGORIES`
+  (`@/shared/players/sort.js`) — **the whole app's one sort table**, shared with
+  My Players, Game Plans and Add Player, all five identical.
+  `normalizeSortValue()` derives its accepted values from it and
+  `renderSortPanel()` builds both phases' panels from it. Order is load-bearing:
+  `[0]` is the default sort. Club and Nationality were dropped from the UI on
+  purpose; `SORT_MAP` on the server still maps them, so restoring is two rows.
 - `LEAGUE_OPTIONS` is a module-level mutable array filled at runtime by
   `fetchFilterOptions()`, which is why `playerFilters.js` reads every option list
   through a thunk rather than capturing it at module load.

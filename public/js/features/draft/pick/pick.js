@@ -44,7 +44,7 @@ export function renderPickToolbar() {
   const sortVal = normalizeSortValue(state.pickSort);
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
-  sortLabel.textContent = sortCategoryLabel(baseKey, { short: true });
+  sortLabel.textContent = sortCategoryLabel(baseKey);
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
   renderSortPanel(sortPanel, baseKey, "data-pick-sort-cat");

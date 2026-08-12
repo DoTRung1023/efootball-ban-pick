@@ -13,15 +13,15 @@
 
 import { state } from "./state.js";
 import { getPlayerCardValue } from "./players.js";
-import { DRAFT_SORT_CATEGORIES } from "./sortPanel.js";
+import { SORT_CATEGORIES } from "@/shared/players/sort.js";
 import { applyDraftFilters } from "./playerFilters.js";
 
 /* Every category, both directions. Derived from the one table the sort
    dropdown is built from, so a category cannot be offered and then rejected. */
 const VALID_SORT_VALUES = new Set(
-  DRAFT_SORT_CATEGORIES.flatMap((c) => [`${c.key}_desc`, `${c.key}_asc`]),
+  SORT_CATEGORIES.flatMap((c) => [`${c.key}_desc`, `${c.key}_asc`]),
 );
-const DEFAULT_SORT_VALUE = `${DRAFT_SORT_CATEGORIES[0].key}_desc`;
+const DEFAULT_SORT_VALUE = `${SORT_CATEGORIES[0].key}_desc`;
 
 export function normalizeSortValue(raw) {
   const v = String(raw || "").trim();
@@ -47,10 +47,6 @@ function comparePlayersBySort(a, b, sortKey) {
   const weightB = Number(b?._raw?.weight ?? b?.weight ?? 0) || 0;
   const ageA = Number(a?._raw?.age ?? a?.age ?? 0) || 0;
   const ageB = Number(b?._raw?.age ?? b?.age ?? 0) || 0;
-  const clubA = String(a?._raw?.club ?? a?.club ?? "");
-  const clubB = String(b?._raw?.club ?? b?.club ?? "");
-  const nationA = String(a?._raw?.nationality ?? a?.nationality ?? a?.nation ?? "");
-  const nationB = String(b?._raw?.nationality ?? b?.nationality ?? b?.nation ?? "");
 
   let cmp = 0;
   if (baseKey === "overall") cmp = overallA - overallB || sa.localeCompare(sb);
@@ -59,8 +55,6 @@ function comparePlayersBySort(a, b, sortKey) {
   else if (baseKey === "height") cmp = heightA - heightB || overallMaxB - overallMaxA;
   else if (baseKey === "weight") cmp = weightA - weightB || overallMaxB - overallMaxA;
   else if (baseKey === "age") cmp = ageA - ageB || overallMaxB - overallMaxA;
-  else if (baseKey === "club") cmp = clubA.localeCompare(clubB) || overallMaxB - overallMaxA;
-  else if (baseKey === "nationality") cmp = nationA.localeCompare(nationB) || overallMaxB - overallMaxA;
   else cmp = overallMaxA - overallMaxB || sa.localeCompare(sb);
 
   return dir === "asc" ? cmp : -cmp;

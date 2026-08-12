@@ -70,7 +70,10 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     even though only catalog imports it directly.
   - `@/shared/players/sort.js` — `SORT_CATEGORIES` (moved out of `catalog.js`) plus the
     comparators `tiebreakOverallDescThenName`, `ovrMaxForSort`,
-    `tiebreakPositionLineThenName`, `compareByPositionLine`.
+    `tiebreakPositionLineThenName`, `compareByPositionLine`. **The room imports
+    `SORT_CATEGORIES` too** (`features/draft/sortPanel.js`), so this one table is what
+    every sort dropdown in the app is built from — My Players, Add Player, the plan
+    picker, ban and pick, all seven categories in one order. Changing it changes all five.
   - `@/shared/players/playerMeta.js` — `escapeHtml`, `CARD_IMG`, `ANON_PLAYER_IMG`,
     `makePlayerImg`, `playerDetailSublineHtml`. There is no plain-text variant:
     `playerDetailTooltipText` existed for card `title` tooltips and every one of

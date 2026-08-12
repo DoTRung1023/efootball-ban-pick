@@ -71,11 +71,16 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `createDraftFilterState()` into its own literal), and `escapeHtml` comes from
   `shared/players/playerMeta.js` because `utils.js` imports `state`. See
   `ban-phase.md` for the field tables.
-- `sortPanel.js` — `DRAFT_SORT_CATEGORIES` (the nine categories, in order),
-  `sortCategoryLabel(key, { short })` and `renderSortPanel(panel, activeKey, dataAttr)`.
-  Ban and pick both call it; only the `data-` attribute differs, and only the collapsed
-  button abbreviates. `normalizeSortValue` in `playerQuery.js` derives its accepted
-  values from the same table, so a category cannot be offered and then rejected.
+- `sortPanel.js` — `sortCategoryLabel(key)` and `renderSortPanel(panel, activeKey,
+  dataAttr)`. Ban and pick both call it; only the `data-` attribute differs. The
+  categories come from **`@/shared/players/sort.js`**, the same `SORT_CATEGORIES` behind
+  My Players, the Game Plans picker and Add Player — the room kept its own copy until the
+  copies drifted into two different orders (the room had Club and Nationality fourth and
+  fifth, everywhere else they came last; both have since been dropped from the UI).
+  `normalizeSortValue` in `playerQuery.js` derives
+  its accepted values from that table too, so a category cannot be offered and then
+  rejected. Labels are spelled out in full on both boards; the pick button used to
+  abbreviate them for width it turns out to have.
 - `errorView.js` — `paintErrorView(...)`, the single writer for `#viewError`. It clears
   all four state modifiers on every call and sets title/icon/button explicitly, so no
   caller inherits the previous error's appearance. Used by `engine/presence.js`,

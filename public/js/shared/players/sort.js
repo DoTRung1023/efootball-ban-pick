@@ -1,9 +1,14 @@
 /* ============================================================
    Player sorting — the toolbar categories and the comparators
 
-   `SORT_CATEGORIES` drives the sort dropdown in both the catalog toolbar and
-   the plan picker; `descVal` / `ascVal` are the `sortBy` values the API
-   accepts (see `SORT_MAP` in `src/features/players/catalogQuery.js`).
+   `SORT_CATEGORIES` drives **every** sort dropdown in the app — My Players, the
+   catalog toolbar, the plan picker, and the room's ban and pick boards, which
+   read it through `features/draft/sortPanel.js`. One table, so the five cannot
+   drift into different orders again.
+
+   `descVal` / `ascVal` are the `sortBy` values the API accepts (see `SORT_MAP`
+   in `src/features/players/catalogQuery.js`). The server still maps
+   `club_*` / `nationality_*`; the seven below are simply what the UI offers.
    ============================================================ */
 
 import { positionLineRank } from "./positions.js";
@@ -16,8 +21,6 @@ export const SORT_CATEGORIES = [
   { key: "height",      label: "Height",         descVal: "height_desc",     ascVal: "height_asc",      bidir: true,  descTip: "Tallest first",          ascTip: "Shortest first"        },
   { key: "weight",      label: "Weight",         descVal: "weight_desc",     ascVal: "weight_asc",      bidir: true,  descTip: "Heaviest first",         ascTip: "Lightest first"        },
   { key: "age",         label: "Age",            descVal: "age_desc",        ascVal: "age_asc",         bidir: true,  descTip: "Oldest first",           ascTip: "Youngest first"        },
-  { key: "club",        label: "Club",           descVal: "club_asc",        ascVal: "club_desc",       bidir: true,  descTip: "A → Z (club)",          ascTip: "Z → A (club)"          },
-  { key: "nationality", label: "Nationality",    descVal: "nationality_asc", ascVal: "nationality_desc", bidir: true, descTip: "A → Z (nationality)", ascTip: "Z → A (nationality)" },
 ];
 
 /** When the primary sort key ties, order by overall (highest first), then name. */
