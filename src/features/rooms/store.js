@@ -134,7 +134,7 @@ export function pushUserChat(entry, { senderId, username, message }) {
 }
 
 const serializeParticipant = (p) =>
-  p ? { id: p.id, username: p.username, lastSeenAt: p.lastSeenAt } : null;
+  p ? { id: p.id, username: p.username, lastSeenAt: p.lastSeenAt, hidden: Boolean(p.hidden) } : null;
 
 export function serializeRoomEntry(entry) {
   return {

@@ -11,6 +11,19 @@ export const DEFAULT_PICK_DURATION_SECONDS = 300;
 export const MIN_PICK_DURATION_SECONDS = 5;
 export const MAX_PICK_DURATION_SECONDS = 1200;
 export const LOBBY_PRESENCE_POLL_MS = 500;
+/* How stale the opponent's heartbeat may get before their badge stops saying
+   "connected". These drive `opponentLiveness` in `engine/presence.js` and
+   **expire nobody** — the server has no TTL and must not grow one, see
+   `room/presence-and-reconnect.md`.
+
+   `GONE_MS` is the number the deleted server TTL got wrong. Browsers throttle a
+   background tab's timers to roughly once a minute, so anything near the old
+   12–30 s reads a tabbed-away player as departed; 120 s clears that floor with
+   margin. The `hidden` flag on the heartbeat covers the same ground from the
+   other side — a stale beat that announced itself as backgrounded is "away",
+   not "reconnecting". */
+export const OPPONENT_CONNECTED_MS = 15000;
+export const OPPONENT_GONE_MS = 120000;
 /* Three rungs of concealment, in order: see everything → see the shape but not
    who → see nothing but whether they are done. Kept in step with
    `src/features/rooms/config.js`. */

@@ -1,4 +1,8 @@
-import { LOBBY_PRESENCE_POLL_MS } from '@/features/draft/constants.js';
+import {
+  LOBBY_PRESENCE_POLL_MS,
+  OPPONENT_CONNECTED_MS,
+  OPPONENT_GONE_MS,
+} from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { applyPresenceSnapshot } from '@/features/draft/state.js';
@@ -72,6 +76,10 @@ async function registerPresence() {
     body: JSON.stringify({
       role, userId, username,
       stagedBans: state.stagedBans.map((p) => ({ id: String(p.id), name: p.name || "" })),
+      /* Lets the other side tell a backgrounded tab from a departing one. A
+         hidden tab's heartbeat is throttled to about once a minute, so without
+         this its `lastSeenAt` is indistinguishable from a browser that closed. */
+      hidden: Boolean(document.hidden),
     }),
   });
   const data = await res.json().catch(() => ({}));
@@ -152,6 +160,52 @@ export function stopPresencePolling() {
     clearInterval(state.presencePollId);
     state.presencePollId = null;
   }
+}
+
+/**
+ * How alive the other player looks, from their last heartbeat.
+ *
+ * The one place this is decided; every badge reads it rather than testing
+ * `lastSeenAt` itself, because the thresholds are easy to get wrong and getting
+ * them wrong is what deleted the server TTL (see
+ * `room/presence-and-reconnect.md`).
+ *
+ * **Display only.** Nothing here frees a seat — that stays with Leave, the
+ * host's Kick, and the turn timer's forfeit.
+ *
+ *   `connected`    — beating
+ *   `away`         — stale, but the last beat said the tab was backgrounded.
+ *                    Not a problem: a hidden tab is throttled to ~1/min.
+ *   `reconnecting` — stale from a foreground tab. Refresh, tunnel, dropped wifi.
+ *   `gone`         — stale past `OPPONENT_GONE_MS`. They are not coming back on
+ *                    their own.
+ *
+ * An absent participant is `gone`: the seat is empty, which is the one case the
+ * old `Boolean(theirInfo?.id)` test actually got right.
+ */
+export function opponentLiveness(participant) {
+  if (!participant?.id) return "gone";
+  const age = Date.now() - Number(participant.lastSeenAt || 0);
+  if (age <= OPPONENT_CONNECTED_MS) return "connected";
+  if (age >= OPPONENT_GONE_MS) return "gone";
+  return participant.hidden ? "away" : "reconnecting";
+}
+
+/**
+ * Coming back to the tab polls at once instead of waiting out the interval.
+ *
+ * While hidden, our own heartbeat is throttled to roughly once a minute, so on
+ * return `lastSeenAt` can be nearly that stale — and the opponent is looking at
+ * it. One immediate beat clears their badge instead of leaving us reading
+ * "away" for another throttled tick.
+ */
+let visibilityBound = false;
+function bindVisibilityHeartbeat() {
+  if (visibilityBound) return;
+  visibilityBound = true;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.presencePollId) void pollPresence();
+  });
 }
 
 /**
@@ -242,6 +296,7 @@ export async function pollPresence() {
 }
 
 export async function registerAndPollPresence() {
+  bindVisibilityHeartbeat();
   await adoptSeatFromServer();
   try {
     const room = await registerPresence();

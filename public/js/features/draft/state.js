@@ -222,6 +222,13 @@ export function normalizeRoomConfig(raw) {
   };
 }
 
+const participantFromSnapshot = (p) => ({
+  id: String(p.id),
+  username: p.username,
+  lastSeenAt: Number(p.lastSeenAt) || 0,
+  hidden: Boolean(p.hidden),
+});
+
 /** Merge server-reported host/guest/config/chat into local room. */
 export function applyPresenceSnapshot(sr) {
   if (!state.room || !sr) return;
@@ -230,14 +237,14 @@ export function applyPresenceSnapshot(sr) {
   if (!room.bans) room.bans = { host: [], guest: [] };
   if (!room.picks) room.picks = { host: [], guest: [] };
   if (!Array.isArray(room.bannedPlayerIds)) room.bannedPlayerIds = [];
+  /* `lastSeenAt` and `hidden` are what the opponent badge reads to tell
+     connected from reconnecting from gone. Both come down on every snapshot and
+     used to be dropped here, which is why an opponent who closed their browser
+     read as "· is choosing…" forever. See `opponentLiveness` in presence.js. */
   if (sr.host?.username) {
-    room.host = { id: String(sr.host.id), username: sr.host.username };
+    room.host = participantFromSnapshot(sr.host);
   }
-  if (sr.guest?.username) {
-    room.guest = { id: String(sr.guest.id), username: sr.guest.username };
-  } else {
-    room.guest = null;
-  }
+  room.guest = sr.guest?.username ? participantFromSnapshot(sr.guest) : null;
   const incomingConfig = normalizeRoomConfig(sr.config);
   // While host is actively editing, do not let polling snapshots override local draft values.
   if (!(state.mySide === "host" && state.phase === "lobby" && state.lobbyConfigDirty)) {

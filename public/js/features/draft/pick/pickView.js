@@ -35,6 +35,7 @@ import { getPickListPlayers } from '@/features/draft/playerQuery.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
+import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
 const LINEUP_SIZE = 11;
 
@@ -534,7 +535,14 @@ function renderOpponentHeader(theirInfo, isOnline, count, maxPicks, concealed) {
   const statusDot = document.getElementById("pickLiveStatusDot");
   const statusText = document.getElementById("pickLiveStatusText");
 
-  if (dot) dot.classList.toggle("is-online", isOnline);
+  /* Two different facts, and they used to be the same one. `state.presenceError`
+     is **my** connection failing; `opponentLiveness` is theirs. Reading the
+     first for both meant a healthy client never reported the opponent as
+     anything but "Picking...", however long ago they closed the tab. */
+  const liveness = opponentLiveness(theirInfo);
+  const theirHere = isOnline && (liveness === "connected" || liveness === "away");
+
+  if (dot) dot.classList.toggle("is-online", theirHere);
   if (name) name.textContent = theirInfo?.username || "Opponent";
   /* The count and the bar are the progress `blur` deliberately keeps — so under
      `hidden` they have to go, or the setting leaks exactly what it withholds one
@@ -545,11 +553,19 @@ function renderOpponentHeader(theirInfo, isOnline, count, maxPicks, concealed) {
   }
   if (progress) progress.hidden = concealed;
   if (fill) fill.style.width = maxPicks > 0 ? `${Math.min(100, (count / maxPicks) * 100)}%` : "0%";
-  if (statusDot) statusDot.classList.toggle("is-online", isOnline && !state.presenceError);
+  if (statusDot) statusDot.classList.toggle("is-online", theirHere && !state.presenceError);
   if (statusText) {
     statusText.textContent = !isOnline
       ? "Left the room"
-      : state.presenceError ? "Reconnecting..." : "Picking...";
+      : state.presenceError
+        ? "Reconnecting..."            // mine
+        : liveness === "gone"
+          ? "Connection lost"          // theirs, past the point of return
+          : liveness === "reconnecting"
+            ? "Opponent reconnecting..."
+            : liveness === "away"
+              ? "Tabbed away"
+              : "Picking...";
   }
 }
 

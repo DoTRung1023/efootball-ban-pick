@@ -45,6 +45,53 @@ player costs a manual Leave, while the old behaviour cost a draft in progress.
 The host can always kick the guest, and a room is never listed as active once it
 goes quiet.
 
+## Opponent liveness (display only — still no TTL)
+
+The seat is not reclaimed by a timer and must not be, but the *other player* can
+at least be told. `opponentLiveness(participant)` in `engine/presence.js` is the
+single place that decides, and every badge reads it:
+
+| State | Rule | Shown as |
+| --- | --- | --- |
+| `connected` | last beat within `OPPONENT_CONNECTED_MS` (15 s) | `· is choosing…`, dot lit |
+| `away` | stale, but that beat said `hidden` | `· tabbed away`, **dot still lit** |
+| `reconnecting` | stale from a foreground tab | `· reconnecting…`, amber |
+| `gone` | stale past `OPPONENT_GONE_MS` (120 s), or seat empty | `· connection lost` / `· left the room`, muted |
+
+**Nothing here frees a seat.** `lastSeenAt` is written and serialised on the
+server and never compared there — grep it and keep that true. Reclaim remains
+Leave, the host's Kick, and the turn timer's forfeit.
+
+Three things this depends on:
+
+- **The client keeps the fields.** `applyPresenceSnapshot` used to rebuild
+  participants as `{ id, username }`, dropping `lastSeenAt` — which is why an
+  opponent who closed their browser read as "· is choosing…" forever. The data
+  was already on the wire; only the consumer was missing.
+- **`hidden` is why the thresholds can be this tight.** The heartbeat sends
+  `document.hidden`; the server stores and serialises it. Without it a
+  backgrounded tab — throttled to roughly once a minute — is indistinguishable
+  from a departing one, and that is the ground the deleted 12–30 s TTL died on.
+  `visibilitychange` also polls immediately on return, so coming back to the tab
+  clears your badge instead of waiting out a throttled tick.
+- **`away` keeps the dot lit.** A backgrounded tab is connected; it is the
+  heartbeat that is slow, not the player.
+
+Measured through the real render path, ban badge and pick footer together:
+
+| age of last beat | liveness | badge |
+| --- | --- | --- |
+| 0 s / 12 s | `connected` | `· is choosing…` ● |
+| 30 s visible | `reconnecting` | `· reconnecting…` ○ (amber) |
+| 30 s hidden | `away` | `· tabbed away` ● |
+| 119 s visible | `reconnecting` | `· reconnecting…` ○ |
+| 121 s | `gone` | `· connection lost` ○ (muted) |
+| seat empty | `gone` | `· left the room` |
+
+`state.presenceError` is a **different fact** — it is *my* connection failing.
+The pick footer reads both and reports them separately; conflating them is what
+made a healthy client describe the opponent as "Picking..." indefinitely.
+
 ## The exit guard (`shell/leaveGuard.js`)
 
 Because of that trade, the cheapest fix is to make the abandonment less likely:

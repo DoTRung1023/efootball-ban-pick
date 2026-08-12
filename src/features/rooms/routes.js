@@ -91,9 +91,9 @@ const usernameOf = (entry, side) => entry[side]?.username || "User";
 
 // ── Presence ─────────────────────────────────────────────────
 
-/** POST body: { role: "host"|"guest", userId?, username?, stagedBans? } */
+/** POST body: { role: "host"|"guest", userId?, username?, stagedBans?, hidden? } */
 router.post("/:code/presence", withRoomCode, (req, res) => {
-  const { role, userId, username, stagedBans } = req.body || {};
+  const { role, userId, username, stagedBans, hidden } = req.body || {};
   if (!["host", "guest"].includes(role)) {
     return res.status(400).json({ error: "role must be host or guest." });
   }
@@ -118,6 +118,11 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
       : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     username: String(username || fallbackName).trim().slice(0, 50) || fallbackName,
     lastSeenAt: Date.now(),
+    /* Whether that heartbeat came from a backgrounded tab. It expires nobody —
+       it is what lets the opponent's badge say "tabbed away" instead of
+       "reconnecting", because a hidden tab's 500ms interval is throttled to
+       roughly once a minute and its `lastSeenAt` is legitimately stale. */
+    hidden: Boolean(hidden),
   };
 
   const seat = role === "host" ? claimHostSeat : claimGuestSeat;

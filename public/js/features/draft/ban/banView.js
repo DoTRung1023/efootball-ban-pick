@@ -20,6 +20,7 @@ import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQu
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit } from '@/features/draft/engine/draftFlow.js';
+import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
 
@@ -157,16 +158,51 @@ function paintBadge({ dotId, nameId, statusId }, { online, name, status, statusC
 const STATUS_BASE = "ban-opponent-status-text";
 const STATUS_OFFLINE = `${STATUS_BASE} is-offline`;
 const STATUS_CONFIRMED = `${STATUS_BASE} is-confirmed`;
+const STATUS_WAITING = `${STATUS_BASE} is-waiting`;
 
+/**
+ * The opponent badge, off their heartbeat rather than off whether the seat is
+ * filled.
+ *
+ * It used to read `Boolean(theirInfo?.id)`, which only ever went false when
+ * somebody pressed Leave — so a player who closed their browser sat at
+ * "· is choosing…" indefinitely, and this badge is the only place the other
+ * side is described. `opponentLiveness` owns the thresholds; see
+ * `presence-and-reconnect.md`.
+ *
+ * `away` keeps the dot lit. A backgrounded tab is still connected — it is the
+ * *heartbeat* that is throttled, not the player.
+ */
 function renderOpponentBadge(theirInfo, theirConfirmed) {
-  const online = Boolean(theirInfo?.id);
+  const seated = Boolean(theirInfo?.id);
+  const liveness = opponentLiveness(theirInfo);
+  const here = liveness === "connected" || liveness === "away";
+
+  const status = !seated
+    ? "· left the room"
+    : liveness === "gone"
+      ? "· connection lost"
+      : liveness === "reconnecting"
+        ? "· reconnecting..."
+        : theirConfirmed
+          ? "· confirmed ✓"
+          : liveness === "away"
+            ? "· tabbed away"
+            : "· is choosing...";
+
   paintBadge(
     { dotId: "draftBanOpponentDot", nameId: "draftBanOpponentName", statusId: "draftBanOpponentStatus" },
     {
-      online,
+      online: here,
       name: theirInfo?.username,
-      status: !online ? "· left the room" : theirConfirmed ? "· confirmed ✓" : "· is choosing...",
-      statusClass: !online ? STATUS_OFFLINE : theirConfirmed ? STATUS_CONFIRMED : STATUS_BASE,
+      status,
+      statusClass: !seated || liveness === "gone"
+        ? STATUS_OFFLINE
+        : liveness === "reconnecting"
+          ? STATUS_WAITING
+          : theirConfirmed
+            ? STATUS_CONFIRMED
+            : STATUS_BASE,
     },
   );
 }

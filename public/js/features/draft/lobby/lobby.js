@@ -61,7 +61,12 @@ import {
   getUser,
   getCurrentIdentity,
 } from '@/features/draft/utils.js';
-import { registerAndPollPresence, stopPresencePolling, leavePresence } from '@/features/draft/engine/presence.js';
+import {
+  registerAndPollPresence,
+  stopPresencePolling,
+  leavePresence,
+  opponentLiveness,
+} from '@/features/draft/engine/presence.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
@@ -106,12 +111,22 @@ function renderLobby() {
   const guestSub = document.getElementById("lobbyGuestSub");
   if (guestSub) guestSub.hidden = !!room.guest;
 
+  /* Occupancy is not liveness — a guest who closed their browser keeps the seat
+     (there is no TTL), so this reads their heartbeat. `away` is left as
+     "connected" on purpose: in the lobby, waiting on the host, a backgrounded
+     tab is the normal state and does not need reporting. */
   const guestStatusEl = document.getElementById("lobbyGuestStatus");
   if (guestStatusEl) {
-    guestStatusEl.textContent = room.guest
-      ? (room.ready?.guest ? "● ready" : "● connected")
-      : "";
-    guestStatusEl.classList.toggle("player-slot-status--ok", !!room.guest);
+    const guestLive = opponentLiveness(room.guest);
+    const guestHere = guestLive === "connected" || guestLive === "away";
+    guestStatusEl.textContent = !room.guest
+      ? ""
+      : guestLive === "gone"
+        ? "● connection lost"
+        : guestLive === "reconnecting"
+          ? "● reconnecting…"
+          : room.ready?.guest ? "● ready" : "● connected";
+    guestStatusEl.classList.toggle("player-slot-status--ok", Boolean(room.guest) && guestHere);
   }
 
   // Waiting pill in center

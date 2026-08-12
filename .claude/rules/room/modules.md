@@ -112,9 +112,12 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   the `sessionStorage` phase cache) and `startDraftFromLobby` (host START; for the guest
   it toggles their ready flag).
 - `presence.js` — polling: `leavePresence`, `pollPresence`, `registerAndPollPresence`,
-  `stopPresencePolling`, `clearRoomPhaseCache`. `registerPresence` and
-  `fetchRoomSnapshot` are the single-shot calls behind `registerAndPollPresence` and are
-  module-private.
+  `stopPresencePolling`, `clearRoomPhaseCache`, `opponentLiveness`. `registerPresence`
+  and `fetchRoomSnapshot` are the single-shot calls behind `registerAndPollPresence` and
+  are module-private, as is the `visibilitychange` binding that polls on return to the
+  tab. `opponentLiveness` is the one place the connected / away / reconnecting / gone
+  thresholds live — every badge reads it rather than testing `lastSeenAt` itself. See
+  `presence-and-reconnect.md`.
 
 ## Rendering
 

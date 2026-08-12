@@ -194,6 +194,14 @@
   color: var(--text-muted);
 }
 
+/* Amber is "pending, waiting on someone", and a heartbeat that has gone quiet
+   is exactly that — they may be back. `is-offline`'s muted grey is for the
+   states that are settled: the seat empty, or stale past the point of return. */
+
+.ban-opponent-status-text.is-waiting {
+  color: var(--amber);
+}
+
 /* Status hint line in the panel footer, above CONFIRM BANS.
 
    **Always in flow, exactly one line tall, with or without text** — `min-height`
