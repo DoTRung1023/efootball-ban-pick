@@ -63,6 +63,7 @@ import {
 } from '@/features/draft/utils.js';
 import { registerAndPollPresence, stopPresencePolling, leavePresence } from '@/features/draft/engine/presence.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
+import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 import { getJson } from '@/features/draft/api.js';
 
@@ -1113,6 +1114,7 @@ function bindLobbyChatAndExit() {
       });
       if (!ok) return;
     }
+    allowLeave();
     stopPresencePolling();
     await leavePresence();
     window.location.href = "/";

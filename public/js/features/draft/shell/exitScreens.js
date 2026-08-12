@@ -5,6 +5,7 @@ import { state } from '@/features/draft/state.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
 import { updateStageTabs } from './stageTabs.js';
+import { allowLeave } from './leaveGuard.js';
 
 const EXIT_COUNTDOWN_SECONDS = 10;
 
@@ -14,6 +15,10 @@ const EXIT_COUNTDOWN_SECONDS = 10;
  * `icon` is a glyph, or `true` to keep whatever the markup already shows.
  */
 function showExitCountdown({ title, icon, message }) {
+  /* The room is over and the countdown is already walking the user out — both
+     it and "Back to home" would otherwise trip the unload guard, which still
+     sees the phase the room was in when it ended. */
+  allowLeave();
   clearRoomPhaseCache(state.room?.code);
 
   let secs = EXIT_COUNTDOWN_SECONDS;
@@ -57,6 +62,7 @@ export function showRoomClosed(message = "Room is closed.") {
 
 /** Final side-by-side squad summary once both players are ready. */
 export function showDone() {
+  allowLeave();
   clearRoomPhaseCache(state.room?.code);
   showView("viewDone");
   updateStageTabs();

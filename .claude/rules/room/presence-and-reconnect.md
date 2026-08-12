@@ -44,6 +44,64 @@ player costs a manual Leave, while the old behaviour cost a draft in progress.
 The host can always kick the guest, and a room is never listed as active once it
 goes quiet.
 
+## The exit guard (`shell/leaveGuard.js`)
+
+Because of that trade, the cheapest fix is to make the abandonment less likely:
+`initLeaveGuard()` asks first when the browser is about to take the user out of
+a live room. Installed from `initDraftControls()`, in **two halves**, because no
+single hook does the job:
+
+- **`beforeunload`** catches every exit — tab close, reload, back, address bar —
+  but can only ever raise the browser's own dialog.
+- **A History-API trap** catches *back* alone and shows `askConfirm` instead. It
+  pushes a spare entry (same URL, nothing visible) once a guarded phase is
+  reached; a `popstate` cannot be cancelled, so the handler re-pushes the entry
+  to undo the pop and then asks. Confirm runs the normal leave path.
+
+  Two costs, both accepted: back takes two presses, and each cancel adds another
+  history entry. A `dialogOpen` flag stops a second press stacking a second
+  dialog. The arming interval is **bounded** (2 min) — a 409 lands on
+  `#viewError`, which is never guarded, and an unbounded 2 Hz interval would run
+  there for the life of the tab.
+
+Measured by driving `history.back()` against the real init path: the entry is
+pushed, back opens the dialog with the host/guest wording and the page does not
+navigate, cancel keeps you in the room, a second back re-arms, and after
+`allowLeave()` back passes through silently.
+
+It asks only when there is a seat to abandon — `state.room` set **and**
+`state.phase` in `lobby` / `draft` / `ready`. Verified through the real init
+path by dispatching the event and reading `defaultPrevented`:
+
+| phase | in a room | asks |
+| --- | --- | --- |
+| `loading` | no | no |
+| `lobby` / `draft` / `ready` | yes | **yes** |
+| `done` | yes | no — the draft is over |
+| `error` | yes | no — you have already been ejected |
+| `draft` | no | no |
+
+`allowLeave()` stands it down permanently, and every app-driven exit calls it:
+both Leave buttons (they have already asked), `showExitCountdown` and
+`showDone`. The terminal screens matter more than they look — **they do not
+change `state.phase`**, so a room closed mid-draft still reads as `draft`, and
+without the call the 10 s countdown and its "Back to home" would both trip the
+guard.
+
+Three limits, all of them the browser's and none of them fixable here:
+
+- **The wording is the browser's.** `preventDefault()` requests the dialog but
+  cannot fill it in, and a returned string is ignored by every current engine.
+  `askConfirm` is unusable — it is asynchronous and unload does not wait.
+- **It needs sticky activation.** A page the user has never clicked in unloads
+  silently, so a guest who opens an invite link and immediately closes the tab
+  is not asked.
+- **A reload is indistinguishable from a close.** Which is why the guard only
+  asks and must never post the leave itself: doing that on `pagehide` would
+  evict a player for pressing F5, and reconnecting to your own room is what the
+  rest of this file is built around. `leavePresence()` already sets
+  `keepalive: true`, so it is tempting; do not.
+
 ## Your seat comes from the server, not the URL
 
 `initLobby` guesses the side from `?mode=join`, and that guess is the only thing
@@ -120,7 +178,12 @@ everyone home. All cross-module render calls use `cb.*`.
 
 ## Leave button
 
-There is **no `beforeunload` guard**. The dialog was removed because the
-`sessionStorage` phase cache makes reloading safe — the draft is fully restored on
-reconnect. Both `#lobbyLeaveBtn` and `#draftLeaveBtn` call `leavePresence()` then set
-`window.location.href = "/"` directly.
+`#lobbyLeaveBtn` and `#draftLeaveBtn` both `askConfirm`, then `allowLeave()`,
+`leavePresence()` and `window.location.href = "/"`. The `allowLeave()` call is
+what stops the exit guard asking a second question about a decision the user has
+just made.
+
+(This section used to say there was no `beforeunload` guard, on the grounds that
+the `sessionStorage` phase cache makes reloading safe. Reloading *is* safe — that
+is why the guard never posts the leave. What is not safe is closing the tab,
+which the cache does nothing for.)

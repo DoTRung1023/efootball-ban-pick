@@ -18,7 +18,7 @@ its `index.js` barrel is deliberately broad where other features' barrels are na
 | --- | --- |
 | (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView` |
 | `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
-| `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens` |
+| `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens`, `leaveGuard` |
 | `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
 
 Imports inside a folder stay relative (`./state.js`); anything crossing a folder uses
@@ -149,7 +149,13 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   the pick board starts from scratch), `loadGamePlanIntoPicks` (LOAD GAME PLAN: formation + players, minus banned),
   `getPickFormation` (now `state.pickManualFormation` alone — see `pick-phase.md`),
   `getSelectedPlan`.
-- `draftControls.js` — `initDraftControls()`, all draft-view event wiring.
+- `draftControls.js` — `initDraftControls()`, all draft-view event wiring. It
+  also installs `leaveGuard`.
+- `leaveGuard.js` — `initLeaveGuard()` + `allowLeave()`: two guards for an exit
+  that never touched a Leave button — `beforeunload` (browser dialog, every
+  exit) and a History-API trap on **back** (styled `askConfirm`). Detailed in
+  `presence-and-reconnect.md`, because what makes them worth having is that
+  nothing else reclaims the seat.
 - `ban/` — the ban phase, split across `banView.js`, `banToolbar.js`,
   `banInteractions.js` and `opponentSquad.js`. The parts every phase uses moved to the
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb

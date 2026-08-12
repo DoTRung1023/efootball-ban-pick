@@ -17,6 +17,7 @@ import {
   unconfirmBans,
 } from '@/features/draft/engine/draftActions.js';
 import { renderDraftUi } from './draftView.js';
+import { allowLeave, initLeaveGuard } from './leaveGuard.js';
 
 const on = (id, event, handler) =>
   document.getElementById(id)?.addEventListener(event, handler);
@@ -48,6 +49,7 @@ export function initDraftControls() {
   initPlanPicker();
   initFormationDropdown();
   initLeaveControl();
+  initLeaveGuard();
 }
 
 function initReadyControls() {
@@ -313,6 +315,8 @@ function initLeaveControl() {
     );
     if (!ok) return;
 
+    // Asked and answered — `beforeunload` must not ask again on the way out.
+    allowLeave();
     clearTurnTimer();
     await leavePresence();
     window.location.href = "/";
