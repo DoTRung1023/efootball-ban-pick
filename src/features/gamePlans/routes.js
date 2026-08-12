@@ -9,8 +9,17 @@ const LINEUP_SLOTS = 11;
 const MAX_SLOT = 23;
 const DEFAULT_FORMATION = "4-3-3";
 
+/* eFootball's own preset list, in its own order — the client half of this pair
+   is `FORMATION_ROWS` in `public/js/shared/players/formations.js`, which also
+   carries the row shapes. Keep the two in step.
+
+   Plans saved under one of the shapes this replaced (4-5-1, 3-6-1, 3-5-2, 5-2-3,
+   5-4-1) still read back fine: the client's `normalizeFormation` falls back to
+   `DEFAULT_FORMATION`, and only a *write* of the old value is refused. */
 const ALLOWED_FORMATIONS = new Set([
-  "4-3-3", "4-4-2", "4-5-1", "3-6-1", "3-4-3", "3-5-2", "5-2-3", "5-3-2", "5-4-1",
+  "4-4-2", "4-3-3", "4-3-2-1", "4-3-1-2", "4-2-3-1", "4-2-1-3", "4-1-4-1",
+  "4-1-2-3", "3-4-3", "3-2-4-1", "3-2-3-2", "3-1-4-2", "5-3-2", "5-2-2-1",
+  "5-2-1-2",
 ]);
 
 /** Slots 1–11 are the starting lineup; 12–23 are substitutes. */

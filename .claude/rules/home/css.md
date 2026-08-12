@@ -21,6 +21,11 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   topbar; the scrollbar appears at the viewport right edge below the nav), topbar.
 - `shared/playerCard.css` — `.player-card`, `.pc-img-wrap`, `.pc-footer`, skeleton, empty
   state, load-more.
+- `shared/pitchField.css` — the football field both squad pitches stand on
+  (`.pitch-field`, `.pitch-field-marks`, `.pf-*`), shared with the room's pick
+  pitch. Like every `shared/` sheet it may only use tokens **both** pages declare
+  — here `--green`, `--border`, and `--radius` behind a fallback; the room's
+  `--g-*` ladder is not available to it.
 - `squad.css` — `.main-content` (centered container, `max-width: 1400px; margin: 0 auto`
   — no `flex: 1`, that is owned by `.content-scroll` in `base.css`), tab panels, squad
   toolbar (search bar, sort/filter, select mode, empty state).
@@ -29,6 +34,17 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `.plan-mid-col` (bench) `flex: 0 0 200px` — a **fixed** width, not a percentage,
     because the bench grid is 2 × 82 px and a percentage column clips the second card
     below ~1220 px; `.plan-right-col` (picker) takes the rest with `min-width: 260px`.
+  - **The pitch is a drawn football field** — turf, mow stripes, touchlines,
+    penalty and goal areas, halfway line and centre circle — from
+    `css/shared/pitchField.css`, which the room's pick pitch shares. `.plan-pitch`
+    is the panel and declares no background of its own; `.pitch-field-marks` and
+    its `.pf-*` children are **static markup in `home.html`**, a sibling of
+    `#planPitchRows` rather than inside it, because `renderStartingXI()` replaces
+    that container's contents outright. `.pitch-rows` carries `z-index: 1`: the
+    marks are positioned and the rows are not, so without it the field paints
+    over the cards. The turf mixes `--green` into **black rather than `--bg`** —
+    `--bg`'s blue is a floor no ratio can get under, and against it the pitch
+    comes out teal at every mix worth trying.
   - **Card sizing is measured, not fixed.** `.pitch-slot` is `flex: 1` with
     `min-width: 0`, and `.pitch-slot-placeholder` / `.pitch-card-wrap` are
     `width: 100%; max-width: var(--plan-slot-w, 82px)` — `applyPlanSlotWidth()`
@@ -48,12 +64,13 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   - The 82 px fallback still applies on the **bench**, which has no measurement:
     `.plan-mid-col` is a fixed 200 px, so 2 × 82 + gap is already as wide as it
     goes.
-  - **An empty box names its row** — `.pitch-slot-plus` + `.pitch-slot-pos-label`
-    inside `.pitch-slot-placeholder` (ATT / MID / DEF / GK, and SUB on the
-    bench), the same as the pick board. The label text comes from
-    `PITCH_ROW_LABELS` in `shared/players/formations.js`, keyed by the row ids
-    declared there; the bench prints a smaller size because its boxes stay at
-    the 82 px fallback.
+  - **An empty box names the position it is waiting for** — `.pitch-slot-plus` +
+    `.pitch-slot-pos-label` inside `.pitch-slot-placeholder` (CB, DMF, LWF …, and
+    SUB on the bench), the same as the pick board. The text comes from the slot
+    itself: `getFormationLayout` in `shared/players/formations.js` carries a
+    `pos` per slot, which replaced the four `PITCH_ROW_LABELS` strings when
+    formations stopped being four generic lines. The bench prints a smaller size
+    because its boxes stay at the 82 px fallback.
   - **`.plan-detail-cols.is-placing`** turns every empty box solid green while a
     squad player is chosen in the picker — the mirror of `.is-placing
     .pick-slot--empty` on the pick board, and for the same reason: without it the
@@ -78,11 +95,21 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `.plan-formation-trigger` / `.plan-formation-panel` / `.plan-formation-option`
     are kept identical to `.pick-formation-btn` / `-panel` / its buttons in
     `css/features/draft/pick.css` — same padding, radius, font, the same
-    `content: "✓"` tick on `::after`, the same `#` prefix in the trigger. Only
-    the accent hue differs (green here, cyan there) and this one keeps an
-    open/close transition the pick panel does not have. Verified by diffing 50
-    computed properties plus the rendered panel width across the two pages: zero
-    differences. If you change one, change the other.
+    `content: "✓"` tick on `::after`, the same `#` prefix in the trigger. Verified
+    by diffing 50 computed properties plus the rendered panel width across the two
+    pages. If you change one, change the other — with **three** exceptions, each
+    for a reason local to its page:
+    - the accent hue (green here, cyan there);
+    - this one keeps an open/close transition the pick panel does not have;
+    - **this one anchors `right: 0`, the pick panel `left: 0`.** The trigger sits
+      at the right end of the STARTING XI header, inside two `overflow: hidden`
+      ancestors (`.plan-xi-section`, `.plan-left-col`) — a clip no `z-index` wins
+      against. Left-anchored, the shrink-to-fit panel hung 9 px past that edge and
+      lost its right side, which reads on screen as the bench column covering it.
+      Three-digit formation names fitted; `4-2-3-1` and its siblings are ~20 px
+      wider and did not. Right-anchored it clears the edge by 14 px at 1440 /
+      1280 / 1024 px. The pick board's trigger is at the *left* of a wide column
+      with 365 px of slack, so it stays as it is.
 - `catalog.css` — add player modal + shared sort/filter dropdown UI (`.ap-dd-btn`,
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
   visual sync with the room ban toolbar (`css/features/draft/ban.css`) — see the room
@@ -157,6 +184,14 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `position: sticky; top: 0` below 900 px, on `--bg-card-solid`. That variable exists
     because sticky surfaces need an **opaque** background — `--bg-card` is translucent
     and the rows scroll through underneath it. Reach for it for any sticky header.
+  - **Stacked, `.plan-pitch` declares `aspect-ratio: 3 / 4`** — without it the
+    pitch measured itself. The column is auto-height below 900 px, so the panel
+    took its height from the rows and `applyPlanSlotWidth()` then divided that
+    height by the row count to size those rows. Four rows settled at 74 px cards;
+    five re-entered the loop and settled at **38**, on a pitch with 200 px of
+    unused width beside it. A declared shape gives the measurement a fixed box,
+    and 3:4 is roughly a pitch: five-row formations now measure 104 px at 900 px
+    wide, 89 at 620, 68 at 480, 51 at 390 and 38 at 320, none of them cropped.
   - **≤600 px**: the modal goes full-bleed (`100vw` / `100dvh`, overlay padding 0) and
     pitch cards cap at 72 px.
 

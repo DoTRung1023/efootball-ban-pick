@@ -381,11 +381,19 @@
   transform: rotate(180deg);
 }
 
+/* Anchored to the trigger's **right** edge, unlike the room's otherwise
+   identical panel, which anchors left. The trigger sits at the right end of the
+   STARTING XI header, and `.plan-xi-section` / `.plan-left-col` are both
+   `overflow: hidden` — a clip no `z-index` can win against. Left-anchored, the
+   shrink-to-fit panel hung 9px past that edge and had its right side sliced off,
+   which reads on screen as the bench column covering it. Three-digit names fit;
+   `4-2-3-1` and its siblings are ~20px wider and did not. Growing leftward puts
+   the extra width over the pitch, which has room to spare. */
 .plan-formation-panel {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
-  right: auto;
+  left: auto;
+  right: 0;
   z-index: 520;
   min-width: 0;
   padding: 4px;
@@ -469,17 +477,32 @@
   overflow: hidden;
 }
 
+/* The panel is the field — turf, touchlines, boxes and centre circle all come
+   from `shared/pitchField.css`, which the room's pick pitch shares. What used to
+   be here was a navy gradient with the rows sitting straight on it.
+
+   `overflow: hidden` stays: a row that does not fit is cropped rather than
+   scrolled, which is what `applyPlanSlotWidth()`'s verify pass exists to
+   prevent (`scrollHeight` still reports the overflow, hidden or not). */
 .plan-pitch {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 8px;
-  background: linear-gradient(180deg, rgba(20,55,86,0.45) 0%, rgba(17,47,74,0.55) 100%);
-  border: 1px solid rgba(25,172,76,0.15);
-  border-radius: 10px;
+  border: 1px solid var(--border);
   padding: 10px 8px;
-  position: relative;
   overflow: hidden;
+}
+
+/* The rows, above the markings. They have to be positioned to get there: the
+   field is absolutely positioned and would otherwise paint over them. */
+.pitch-rows {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
 }
 
 .pitch-row {

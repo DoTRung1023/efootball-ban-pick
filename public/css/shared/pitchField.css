@@ -1,0 +1,137 @@
+/* ============================================================
+   Pitch field — the markings both squad pitches stand on
+
+   Two consumers, which is why it is here and not in either feature: the
+   game-plan pitch (`.plan-pitch`, home) and the pick pitch (`.pick-pitch`,
+   room). Both were a flat panel with a gradient on it; a lineup laid out on a
+   flat panel reads as a list in four rows rather than as a shape on a field,
+   and the shape is the whole point of a formation.
+
+   ── How it is put together ───────────────────────────────────
+   `.pitch-field` is the panel, `.pitch-field-marks` an inset, absolutely
+   positioned sibling of the rows carrying every line. The rows sit above it on
+   `z-index: 1`, because the marks are positioned and the rows are not — without
+   it the field paints *over* the cards.
+
+   The marks are **static markup in `home.html` / `room.html`**, not something
+   either renderer emits. Both pitches rebuild their rows from a diff guard on
+   every render, so anything the renderer wrote into the same element would be
+   thrown away and rebuilt several times a second. Keeping the field out of the
+   rows container means the renderers never touch it.
+
+   ── Proportions ──────────────────────────────────────────────
+   Percentages of the panel, taken from the real thing (105 × 68 m) per axis:
+   penalty area 40.3 m wide × 16.5 m deep → 58% × 15%; goal area 18.3 × 5.5 →
+   26% × 5.5%; centre circle 18.3 m across → 18% of the panel's height, held
+   round by `aspect-ratio`. The panel is nowhere near 105:68, so scaling each
+   axis independently is deliberate — the field fills the column it is given.
+   ============================================================ */
+
+.pitch-field {
+  position: relative;
+  border-radius: var(--radius, 10px);
+
+  /* Background art, not UI — the same standing the pages' ambient gradients
+     have, and the reason these are not rungs on the green ladder. Every one is
+     mixed from `--green` rather than written as three more `rgba()` greens, so
+     the turf still follows the accent.
+
+     The turf mixes into **black, not `--bg`**: `--bg` is #0b1b29, and its blue
+     is a floor no amount of green can get under — mixed against it the pitch
+     came out teal at every ratio worth trying. Against black the same accent
+     reads as grass, which is what a pitch has to look like.
+
+     `--green` and `--border` are tokens *both* pages declare; the room's `--g-*`
+     ladder is not, and that is what a sheet shared by both pages has to work
+     from. */
+  --pf-turf: color-mix(in srgb, var(--green) 12%, #000);
+  --pf-mow: color-mix(in srgb, var(--green) 4%, transparent);
+  --pf-line: var(--border);
+
+  background: var(--pf-turf);
+}
+
+/* Ten mown bands down the pitch, every other one a shade lighter. */
+.pitch-field-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--pf-mow) 0 10%,
+    transparent 10% 20%
+  );
+}
+
+/* Touchlines, inset so their corners do not sit on the panel's radius. */
+.pitch-field-marks::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--pf-line);
+}
+
+.pf-halfway {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 50%;
+  height: 1px;
+  background: var(--pf-line);
+}
+
+.pf-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 18%;
+  aspect-ratio: 1;
+  border: 1px solid var(--pf-line);
+  border-radius: 50%;
+}
+
+/* Centre spot. Sized in px, not a percentage — a percentage of a box that is
+   itself a percentage of the panel disappears on a short column. */
+.pf-circle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--pf-line);
+}
+
+/* Penalty area. No border on the goal-line edge — that edge *is* the touchline
+   drawn above, and doubling it leaves a visibly heavier line at both ends. */
+.pf-box {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58%;
+  height: 15%;
+  border: 1px solid var(--pf-line);
+}
+
+.pf-box--top    { top: 5px;    border-top: 0; }
+.pf-box--bottom { bottom: 5px; border-bottom: 0; }
+
+/* Goal area, as a share of the penalty area it sits inside: 26/58 across,
+   5.5/15 deep. Same treatment of the goal-line edge, for the same reason. */
+.pf-box::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 45%;
+  height: 37%;
+  border: 1px solid var(--pf-line);
+}
+
+.pf-box--top::before    { top: -1px;    border-top: 0; }
+.pf-box--bottom::before { bottom: -1px; border-bottom: 0; }

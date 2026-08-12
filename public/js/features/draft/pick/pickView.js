@@ -28,7 +28,6 @@ import {
   normalizeFormation,
   pickCount,
   BENCH_ROW_LABEL,
-  PITCH_ROW_LABELS,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
@@ -40,25 +39,33 @@ import { opponentLiveness } from '@/features/draft/engine/presence.js';
 const LINEUP_SIZE = 11;
 
 /* ── Pitch slot sizing ─────────────────────────────────────────
-   The pitch is always four rows of card-shaped slots inside a column whose
-   height is set by the layout, so a *fixed* slot width is wrong at every size
-   but one: it scrolls on a short window and wastes space on a tall one. Measure
-   the box and pick the largest slot that fits, exactly as `applyBanSlotHeight`
-   does for the ban strip.
+   The pitch is rows of card-shaped slots inside a column whose height is set by
+   the layout, so a *fixed* slot width is wrong at every size but one: it scrolls
+   on a short window and wastes space on a tall one. Measure the box and pick the
+   largest slot that fits, exactly as `applyBanSlotHeight` does for the ban strip.
+
+   **The row count is read from the formation, not assumed.** It was a `PITCH_ROWS
+   = 4` constant back when every layout was four rows; eFootball's list runs to
+   five (4-2-1-3, 3-2-4-1 …), and a five-row pitch measured as four overflows its
+   column by a whole row.
 
    `.pick-pitch-wrap` takes its height from flex, not from its contents, so
    resizing the slots cannot feed back into the measurement. */
-const PITCH_ROWS = 4;          // every formation in FORMATION_LAYOUTS has four
-const PITCH_ROW_GAP = 10;      // .pick-pitch row gap
+const PITCH_ROW_GAP = 10;      // .pick-pitch-rows row gap
 const PITCH_COL_GAP = 8;       // .pick-pitch-row gap
-const PITCH_PAD_Y = 8;         // .pick-pitch padding: 4px 0
+/* What `.pick-pitch` costs inside the measured wrap, both axes: its 6px/8px
+   padding plus its 1px field border. The horizontal term is new — the pitch was
+   `padding: 4px 0` and flush to the wrap before it became a drawn field. */
+const PITCH_INSET_Y = 14;      // 6 + 6 padding + 1 + 1 border
+const PITCH_INSET_X = 18;      // 8 + 8 padding + 1 + 1 border
 const CARD_RATIO = 240 / 339;  // pesdb card art is 240 × 339
 const SLOT_MAX_W = 116;        // past this the pitch reads as a poster, not a squad
 /* The floor is where shrinking stops and the column is allowed to scroll again.
-   40px still fits a four-row pitch into the 276px the wrap gets at 1024 × 768,
+   34px still fits a five-row pitch into the 276px the wrap gets at 1024 × 768,
    which is the smallest desktop window the three-column layout survives; below
-   860px the layout stacks and the whole view scrolls instead. */
-const SLOT_MIN_W = 40;
+   860px the layout stacks and the whole view scrolls instead. It was 40px, which
+   is the same number one row taller. */
+const SLOT_MIN_W = 34;
 
 /** Only writes on change; this runs on every presence poll. */
 function setPitchSlotWidth(pitch, width) {
@@ -77,10 +84,12 @@ function applyPitchSlotWidth(formation) {
   // not laid out yet (board hidden) — leave whatever is already set
   if (availH < 1 || availW < 1) return;
 
-  const rowH = (availH - PITCH_ROW_GAP * (PITCH_ROWS - 1) - PITCH_PAD_Y) / PITCH_ROWS;
+  const layout = getFormationLayout(formation);
+  const rows = layout.length;
+  const rowH = (availH - PITCH_ROW_GAP * (rows - 1) - PITCH_INSET_Y) / rows;
   // the widest row is what the column has to hold side by side
-  const perRow = Math.max(...getFormationLayout(formation).map((row) => row.slots.length));
-  const byWidth = (availW - PITCH_COL_GAP * (perRow - 1)) / perRow;
+  const perRow = Math.max(...layout.map((row) => row.length));
+  const byWidth = (availW - PITCH_INSET_X - PITCH_COL_GAP * (perRow - 1)) / perRow;
 
   let width = Math.max(
     SLOT_MIN_W,
@@ -299,8 +308,8 @@ function renderPickPitch(myPicks, maxPicks) {
   if (pitch.dataset.pitchKey !== key) {
     pitch.dataset.pitchKey = key;
     pitch.innerHTML = getFormationLayout(formation)
-      .map((row) => `<div class="pick-pitch-row" data-row="${escapeHtml(row.id)}">
-        ${row.slots.map((slot) => pickSlotHtml(slotMap[slot], slot - 1, PITCH_ROW_LABELS[row.id] || "")).join("")}
+      .map((row) => `<div class="pick-pitch-row">
+        ${row.map(({ slot, pos }) => pickSlotHtml(slotMap[slot], slot - 1, pos)).join("")}
       </div>`)
       .join("");
   }
@@ -350,13 +359,13 @@ function paintActiveSlot(active) {
   }
 }
 
-function pickSlotHtml(player, slot, rowLabel) {
+function pickSlotHtml(player, slot, posLabel) {
   const attrs = `data-pick-slot="${slot}"`;
 
   if (!player) {
     return `<div class="pick-slot pick-slot--empty" ${attrs}>
       <div class="pick-slot-plus">+</div>
-      <div class="pick-slot-pos-label">${escapeHtml(rowLabel)}</div>
+      <div class="pick-slot-pos-label">${escapeHtml(posLabel)}</div>
     </div>`;
   }
   /* Art only. The card already prints the name, the position and both ratings —

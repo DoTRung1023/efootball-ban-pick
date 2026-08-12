@@ -56,7 +56,7 @@ Code is grouped **by feature, not by file type**.
   it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
   `features/<name>/<name>.css`,
-  `shared/{playerCard,modals,numberInput,playerHoverCard}.css`. There is
+  `shared/{playerCard,modals,numberInput,playerHoverCard,pitchField}.css`. There is
   no bundler, so
   a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
   and `responsive.css` must stay last on the home page.
@@ -108,14 +108,24 @@ where there is no shared module to extract into:
   `public/js/features/draft/allowance.js`
 - ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and
   `public/js/features/draft/state.js`
-- `DEFAULT_FORMATION` (`"4-3-3"`) — `src/features/gamePlans/routes.js` and
+- `DEFAULT_FORMATION` (`"4-3-3"`) **and the formation whitelist** — `ALLOWED_FORMATIONS`
+  in `src/features/gamePlans/routes.js` against `FORMATION_ROWS` in
   `public/js/shared/players/formations.js`
 
 Within the client there should be **no** such pairs: the formation table, the draft sort
 categories and the club-suggestion markup each live in exactly one module.
-`shared/players/formations.js` carries the row **labels** too (`PITCH_ROW_LABELS`,
-`BENCH_ROW_LABEL`) — both pitches print them into empty slots, and they are keyed by
-the row ids that file declares, so they belong beside them rather than copied per page.
+
+**Formations are eFootball's own fifteen presets**, and each digit in the name is a row
+on the pitch — so a formation is **four or five rows**, not always four, and each slot
+carries the game's own position name (GK · CB · LB · RB · DMF · CMF · LMF · RMF · AMF ·
+LWF · RWF · CF) rather than a generic ATT/MID/DEF label. `shared/players/formations.js`
+declares the table and derives the slot numbers from it; `BENCH_ROW_LABEL` (`"SUB"`)
+lives beside it because both pitches print it into empty bench slots.
+
+**Both pitches are drawn as a football field** — turf, mow stripes, touchlines, penalty
+and goal areas, halfway line and centre circle — by `public/css/shared/pitchField.css`.
+The markings are static markup in `home.html` / `room.html`; the renderers only ever
+write the rows container beside them.
 
 ## Detailed rules
 

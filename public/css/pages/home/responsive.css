@@ -114,12 +114,19 @@
   /* ── Starting XI ── */
   .plan-xi-section { overflow: visible; padding: 12px 12px 10px; }
   .pitch-row       { flex: 0 0 auto; }
+  .pitch-rows      { gap: 6px; }
 
+  /* `aspect-ratio` is what stops the pitch measuring itself. Stacked, the column
+     is auto-height, so `.plan-pitch` took its height from the rows — and
+     `applyPlanSlotWidth()` then divided that height by the row count to size the
+     rows. Four rows settled at 74px cards; five re-entered the loop and settled
+     at 38, on a pitch with 200px of unused width beside it. A declared shape
+     gives the measurement a fixed box to divide, and 3:4 is roughly a pitch. */
   .plan-pitch {
     flex: 0 0 auto;
-    gap: 6px;
     width: 100%;
     max-width: 640px;
+    aspect-ratio: 3 / 4;
     margin: 0 auto;
   }
 

@@ -62,7 +62,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `fetchFilterOptions()`; update with `.length = 0` + `push()`, never reassign.
   `FORMATION_LAYOUTS` / `DEFAULT_FORMATION` are re-exported from
   `@/shared/players/formations.js` — the home page's game-plan pitch renders the same
-  table into the same `pitchRow*` ids, so there is one copy for both.
+  table, so there is one copy for both. A layout is `Row[]`, a row `[{ slot, pos }]`
+  front to back; four or five rows depending on the formation.
 - `playerFilters.js` — the 18-field filter panel, shared by the ban and pick
   boards and parameterised by a `"ban"` / `"pick"` prefix: `createDraftFilterState`,
   `applyDraftFilters`, `renderDraftFilterPanel`, `bindDraftFilterPanel`,

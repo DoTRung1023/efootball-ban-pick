@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/css/shared/numberInput.css" />
     <link rel="stylesheet" href="/css/shared/playerCard.css" />
     <link rel="stylesheet" href="/css/shared/playerHoverCard.css" />
+    <link rel="stylesheet" href="/css/shared/pitchField.css" />
     <link rel="stylesheet" href="/css/features/squad/squad.css" />
     <link rel="stylesheet" href="/css/features/gamePlans/gamePlans.css" />
     <link rel="stylesheet" href="/css/features/catalog/catalog.css" />
@@ -656,11 +657,15 @@
                     </div>
                   </div>
                 </div>
-                <div class="plan-pitch" id="planPitch">
-                  <div class="pitch-row" id="pitchRowFwd"></div>
-                  <div class="pitch-row" id="pitchRowMid"></div>
-                  <div class="pitch-row" id="pitchRowDef"></div>
-                  <div class="pitch-row" id="pitchRowGk"></div>
+                <div class="plan-pitch pitch-field" id="planPitch">
+                  <div class="pitch-field-marks" aria-hidden="true">
+                    <span class="pf-box pf-box--top"></span>
+                    <span class="pf-box pf-box--bottom"></span>
+                    <span class="pf-halfway"></span>
+                    <span class="pf-circle"></span>
+                  </div>
+                  <!-- Rows are built from the formation — up to five of them. -->
+                  <div class="pitch-rows" id="planPitchRows"></div>
                 </div>
               </div>
 

@@ -10,7 +10,7 @@ export {
 
 /* Same arrangement for the formation table — see
    @/shared/players/formations.js. */
-export { normalizeFormation, getFormationLayout, PITCH_ROW_LABELS,
+export { normalizeFormation, getFormationLayout,
          BENCH_ROW_LABEL } from "@/shared/players/formations.js";
 
 export function getPlayerCardValue(player) {

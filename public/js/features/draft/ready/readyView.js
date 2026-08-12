@@ -122,8 +122,8 @@ function squadColumnHtml(room, side, picks, formation, isMe, blurred = false) {
 
   const pitch = getFormationLayout(formation)
     .map((row) => {
-      const cards = row.slots
-        .map((slot) => (slotMap[slot] ? playerCardHtml(slotMap[slot], STATIC_CARD) : `<div class="sm-empty-slot"></div>`))
+      const cards = row
+        .map(({ slot }) => (slotMap[slot] ? playerCardHtml(slotMap[slot], STATIC_CARD) : `<div class="sm-empty-slot"></div>`))
         .join("");
       return `<div class="sm-pitch-row">${cards}</div>`;
     })

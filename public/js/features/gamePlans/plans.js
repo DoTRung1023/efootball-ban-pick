@@ -1,7 +1,7 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
 import { FORMATION_LAYOUTS, normalizeFormation, getFormationLayout,
-         PITCH_ROW_LABELS, BENCH_ROW_LABEL } from '@/shared/players/formations.js';
+         BENCH_ROW_LABEL } from '@/shared/players/formations.js';
 import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
@@ -305,14 +305,15 @@ function closePlanDetail() {
    empty field with small boxes stranded in it — the reported symptom. This is
    the same measure-then-verify routine `applyPitchSlotWidth` runs on the pick
    board, and the numbers below are the paddings and gaps `.plan-pitch`,
-   `.pitch-row` and `.pitch-slot` actually declare.
+   `.pitch-rows` and `.pitch-slot` actually declare.
 
-   Every formation is four rows (`FORMATION_LAYOUTS` guarantees it) and the
-   widest row is the horizontal bound, so both constraints are computed and the
-   smaller wins. */
+   **Both bounds are read from the formation**: the tallest it can be is its row
+   count, the widest its widest row, and the smaller of the two constraints wins.
+   The row count used to be a `PITCH_ROWS = 4` constant, which was true while
+   every layout was four rows and cropped the goalkeeper off the bottom of an
+   `overflow: hidden` pitch the moment a five-row one arrived. */
 
-const PITCH_ROWS = 4;
-const PITCH_ROW_GAP = 8;    // .plan-pitch  gap
+const PITCH_ROW_GAP = 8;    // .pitch-rows  gap
 const PITCH_COL_GAP = 8;    // .pitch-row   gap
 const PITCH_PAD_Y = 20;     // .plan-pitch  padding 10px top + bottom
 const PITCH_PAD_X = 16;     // .plan-pitch  padding 8px  left + right
@@ -332,8 +333,10 @@ function applyPlanSlotWidth() {
   const boxW = pitch.clientWidth, boxH = pitch.clientHeight;
   if (!boxW || !boxH) return;
 
-  const widest = Math.max(...getPitchLayout().map((row) => row.slots.length), 1);
-  const rowH = (boxH - PITCH_PAD_Y - (PITCH_ROWS - 1) * PITCH_ROW_GAP) / PITCH_ROWS;
+  const layout = getPitchLayout();
+  const rows = Math.max(layout.length, 1);
+  const widest = Math.max(...layout.map((row) => row.length), 1);
+  const rowH = (boxH - PITCH_PAD_Y - (rows - 1) * PITCH_ROW_GAP) / rows;
   const byHeight = (rowH - SLOT_PAD_Y) * CARD_RATIO;
   const byWidth = (boxW - PITCH_PAD_X - (widest - 1) * PITCH_COL_GAP) / widest - SLOT_PAD_X;
 
@@ -375,13 +378,24 @@ function renderDetailSlots() {
   applyPlanSlotWidth();
 }
 
+/**
+ * The pitch rows, built from the formation rather than filled into fixed ones.
+ *
+ * `#planPitchRows` used to be four `<div class="pitch-row" id="pitchRow…">`
+ * elements in `home.html` — one per line, because every formation had exactly
+ * four. eFootball's list runs to five lines and the shapes differ per formation,
+ * so the rows are markup now and the container is the only id.
+ */
 function renderStartingXI() {
-  getPitchLayout().forEach(({ id, slots }) => {
-    const row = document.getElementById(id);
-    if (!row) return;
-    row.innerHTML = "";
-    const label = PITCH_ROW_LABELS[id] || "";
-    slots.forEach((slot) => row.appendChild(makePitchSlotEl(slot, gamePlans.slots[slot] ?? null, label)));
+  const rows = document.getElementById("planPitchRows");
+  if (!rows) return;
+  rows.innerHTML = "";
+  getPitchLayout().forEach((row) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "pitch-row";
+    row.forEach(({ slot, pos }) =>
+      rowEl.appendChild(makePitchSlotEl(slot, gamePlans.slots[slot] ?? null, pos)));
+    rows.appendChild(rowEl);
   });
 }
 
@@ -414,7 +428,7 @@ function bindSlotHover(el, player) {
   bindPlayerHoverCard(el, fullPlayerForSlot(player));
 }
 
-function makePitchSlotEl(slot, player, rowLabel) {
+function makePitchSlotEl(slot, player, posLabel) {
   const el = document.createElement("div");
   const isActive = gamePlans.activeSlot === slot;
   el.className  = `pitch-slot ${player ? "filled" : "empty"}${isActive ? " active" : ""}`;
@@ -441,14 +455,14 @@ function makePitchSlotEl(slot, player, rowLabel) {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">
         <div class="pitch-slot-plus">+</div>
-        <div class="pitch-slot-pos-label">${escapeHtml(rowLabel)}</div>
+        <div class="pitch-slot-pos-label">${escapeHtml(posLabel)}</div>
       </div>`;
   }
   el.addEventListener("click", () => selectPlanSlot(slot));
   return el;
 }
 
-function makeBenchSlotEl(slot, player, rowLabel) {
+function makeBenchSlotEl(slot, player, posLabel) {
   const el = document.createElement("div");
   const isActive = gamePlans.activeSlot === slot;
   el.className  = `bench-slot ${player ? "filled" : "empty"}${isActive ? " active" : ""}`;
@@ -475,7 +489,7 @@ function makeBenchSlotEl(slot, player, rowLabel) {
     el.innerHTML = `
       <div class="pitch-slot-placeholder">
         <div class="pitch-slot-plus">+</div>
-        <div class="pitch-slot-pos-label">${escapeHtml(rowLabel)}</div>
+        <div class="pitch-slot-pos-label">${escapeHtml(posLabel)}</div>
       </div>`;
   }
   el.addEventListener("click", () => selectPlanSlot(slot));

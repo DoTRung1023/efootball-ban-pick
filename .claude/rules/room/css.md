@@ -55,7 +55,9 @@ this order:
 | `ready.css` | the Start Match screen |
 | `responsive.css` | cross-cutting responsive rules |
 
-`room.html` also links `css/shared/playerHoverCard.css` — the floating
+`room.html` also links `css/shared/pitchField.css` (the football field under
+`.pick-pitch`, shared with the home page's game-plan pitch — see the entry on
+`.pick-pitch` below) and `css/shared/playerHoverCard.css` — the floating
 player-info panel, shared with the home page. It is documented in `home/css.md`;
 the only room-side constraint is that it may use no room-only token, which is why
 `--surface-popover` is declared on both pages.
@@ -401,10 +403,13 @@ Key blocks:
     labels read straight through the formation numbers. That was the reported
     symptom — "hard to see the numbers" — and it is why the ladder gained an
     opaque top rung. Anything floating over the board wants it.
-  - **One column of nine, not a 2 × 5 grid.** Two columns made the list read in a
-    zigzag (4-3-3 beside 4-4-2, then back across for 4-5-1) and the 78 px tracks
+  - **One column of fifteen, not a 2 × 8 grid.** Two columns made the list read in a
+    zigzag (4-3-3 beside 4-4-2, then back across for 4-3-2-1) and the 78 px tracks
     left no room for a selected marker. It is the shape the game-plan dropdown on
-    the home page already uses.
+    the home page already uses. This panel anchors `left: 0` — its trigger is at
+    the left of a wide column, measured 365 px clear of the nearest clip at
+    1024 px. Its green twin on the home page anchors `right: 0` instead, for a
+    reason that is entirely local to that layout; see `home/css.md`.
   - The tick is `button::after { content: "✓" }` toggled by `opacity`, **not**
     markup: `renderFormationPanel` builds the buttons once and thereafter only
     flips `is-active`, so a marker in the HTML would have to be rebuilt each
@@ -464,8 +469,19 @@ Key blocks:
   hold. It costs nothing when the image *has* loaded — ban, pick, opponent and
   ready cards measure pixel-identical with and without it, because 240 × 339 is
   the art's real size.
-- `.pick-pitch` / `.pick-pitch-row` / `.pick-slot` — formation pitch; empty slots
-  use `.pick-slot--empty` (dashed green border + `+` icon + row label), filled
+- **`.pick-pitch` is a drawn football field**, from `css/shared/pitchField.css` —
+  the same sheet the home page's game-plan pitch uses. `.pitch-field-marks` and
+  its `.pf-*` children are **static markup in `room.html`**, a sibling of
+  `#pickPitch` rather than inside it: `renderPickPitch` rebuilds its container's
+  `innerHTML` behind a diff guard, so anything the field put there would be
+  discarded several times a second. `.pick-pitch-rows` carries `z-index: 1` for
+  the same structural reason — the marks are positioned and the rows are not, so
+  without it the field paints over the cards. `.pick-pitch` deliberately sets no
+  `overflow`: clipping there would hide the rows from `.pick-pitch-wrap`'s
+  `scrollHeight`, which is the reading `applyPitchSlotWidth()` shrinks against.
+- `.pick-pitch` / `.pick-pitch-rows` / `.pick-pitch-row` / `.pick-slot` — formation
+  pitch; empty slots
+  use `.pick-slot--empty` (dashed green border + `+` icon + the slot's position), filled
   slots `.pick-slot--filled`. Slots are **interactive**: `.is-active` is the
   loud green ring on a slot selected for a swap or a fill, `.pick-slot--empty`
   has its own hover, and `.pick-slot-remove` is the hover-revealed ×. That ×
@@ -479,7 +495,9 @@ Key blocks:
     **0.0px of slack on its left, top and bottom**, so a ring drawn outside the
     border box lost three of its four sides. Padding on `.pick-bench` /
     `.pick-pitch` buys the room but costs height in a column already tuned so the
-    pitch fits, and it only mitigates the clip. `inset: 0` cannot be clipped and
+    pitch fits (`.pick-pitch`'s own `6px 8px` is the field's inset, and
+    `PITCH_INSET_Y` / `PITCH_INSET_X` in `pickView.js` are that plus its border —
+    change one and change the other), and it only mitigates the clip. `inset: 0` cannot be clipped and
     cannot be mis-sized: it *is* the border box. The idle `::after` is
     `border: 2px solid transparent`, so only the colour transitions.
   - The `.is-active` glow stays a `box-shadow` (`0 0 18px var(--g-glow)`) — soft
@@ -506,13 +524,13 @@ Key blocks:
     case, but not for a row squeezed below `max-width`.
   - **`max-width: var(--pick-slot-w, 82px)` — the width is measured, not fixed.**
     `applyPitchSlotWidth()` in `pickView.js` writes the property on `#pickPitch`
-    each render: the largest slot at which four rows fit `.pick-pitch-wrap`
-    without scrolling, capped at 116 px and floored at 40 px. A fixed width is
-    wrong at every size but one — 82 px fitted 1440 × 900 exactly and scrolled
-    at 1280 × 1024. Measured across eleven window sizes from 1024 × 768 to
-    2560 × 1440, and every formation's widest row: **nothing scrolls**, slots
-    run 42 px → 116 px. The 82 px fallback only applies before the first
-    measurement. See `pick-phase.md` for the algorithm.
+    each render: the largest slot at which **the formation's own row count** fits
+    `.pick-pitch-wrap` without scrolling, capped at 116 px and floored at 34 px.
+    A fixed width is wrong at every size but one — 82 px fitted 1440 × 900
+    exactly and scrolled at 1280 × 1024. Measured over all fifteen formations at
+    1440 × 900, 1366 × 768, 1280 × 800 and 1024 × 768, and at 860 / 620 / 390 /
+    320 px wide: **nothing scrolls**, slots run 43 px → 97 px. The 82 px fallback
+    only applies before the first measurement. See `pick-phase.md`.
   - Rows with more slots get narrower cards when the column is tight (a 4-slot
     DEF row measured 78 px against the GK row's 82 px in a 250 px column). That
     is flex doing its job — within a row, empty and filled always match.

@@ -42,19 +42,23 @@ into `pickManualFormation`, so the dropdown stays authoritative afterwards.
 ### The pitch sizes itself
 
 `applyPitchSlotWidth()` measures `.pick-pitch-wrap` and writes `--pick-slot-w`
-on `#pickPitch`: the largest slot at which four rows fit without scrolling,
-capped 116 px, floored 40 px. Same approach as `applyBanSlotHeight()` in
-`banView.js`, and for the same reason — a fixed width is right at exactly one
+on `#pickPitch`: the largest slot at which the formation's rows fit without
+scrolling, capped 116 px, floored 34 px. Same approach as `applyBanSlotHeight()`
+in `banView.js`, and for the same reason — a fixed width is right at exactly one
 window size. Four things it depends on:
 
-- **Every formation has four rows.** `FORMATION_LAYOUTS` guarantees it; the row
-  count is a constant here, not derived per render. The empty-slot labels come
-  from `PITCH_ROW_LABELS` / `BENCH_ROW_LABEL` in
-  `shared/players/formations.js` — `pickView.js` had its own `ROW_LABELS` copy
-  until the game-plan pitch needed the same four strings.
-- **The widest row is the horizontal constraint** (6 slots in 3-6-1, 3 in
+- **The row count is read per render, never assumed.** It was a `PITCH_ROWS = 4`
+  constant while every layout was four rows; eFootball's list runs to five
+  (4-2-1-3, 3-2-4-1 …) and a five-row pitch measured as four overflows its column
+  by a whole row. The floor moved 40 → 34 px for the same reason: 34 is what
+  keeps five rows inside the 276 px the wrap gets at 1024 × 768. The empty-slot
+  label is now the slot's **position** — `getFormationLayout` carries it per slot
+  — with `BENCH_ROW_LABEL` from `shared/players/formations.js` for substitutes.
+- **The widest row is the horizontal constraint** (5 slots in a back five, 3 in
   4-3-3), so the width bound is computed from `getFormationLayout(formation)`
-  rather than assumed.
+  rather than assumed. `PITCH_INSET_X` / `PITCH_INSET_Y` cover what `.pick-pitch`
+  itself costs inside the measured wrap now that it is a drawn field with padding
+  and a border — keep them in step with `pick.css`.
 - **It runs last in `renderPickBoard`.** Everything else in that function can
   change the column's height — the bench wrapping to a second row, the allowance
   pills, CONFIRM PICKS appearing — so measuring earlier sizes the slots against a

@@ -78,8 +78,10 @@
   .pick-phase-grid { max-height: 55vh; }
 
   /* Without a floor the pitch is a `flex: 1` child of an auto-height column,
-     which collapses to nothing. */
-  .pick-pitch-wrap { min-height: 300px; }
+     which collapses to nothing. 300px was the floor while every formation was
+     four rows; five rows share it out as 49px slots, close enough to the 34px
+     hard floor that the pitch reads as a thumbnail. */
+  .pick-pitch-wrap { min-height: 360px; }
 }
 
 /* Toolbar dropdowns anchor to their button: the sort panel opens left-aligned

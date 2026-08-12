@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/css/features/draft/base.css" />
     <link rel="stylesheet" href="/css/shared/numberInput.css" />
     <link rel="stylesheet" href="/css/shared/playerHoverCard.css" />
+    <link rel="stylesheet" href="/css/shared/pitchField.css" />
     <link rel="stylesheet" href="/css/features/draft/shell.css" />
     <link rel="stylesheet" href="/css/features/draft/lobby.css" />
     <link rel="stylesheet" href="/css/features/draft/ban.css" />
@@ -513,7 +514,16 @@
                       <button class="btn btn--small btn--ghost pick-clear-btn" id="pickClearAllBtn" type="button">CLEAR ALL</button>
                     </div>
                     <div class="pick-pitch-wrap">
-                      <div class="pick-pitch" id="pickPitch"></div>
+                      <div class="pick-pitch pitch-field">
+                        <div class="pitch-field-marks" aria-hidden="true">
+                          <span class="pf-box pf-box--top"></span>
+                          <span class="pf-box pf-box--bottom"></span>
+                          <span class="pf-halfway"></span>
+                          <span class="pf-circle"></span>
+                        </div>
+                        <!-- Rows are built from the formation — up to five of them. -->
+                        <div class="pick-pitch-rows" id="pickPitch"></div>
+                      </div>
                     </div>
                     <!-- Substitutes: every slot past the starting XI, drawn as
                          real slots so the remaining picks are visible rather

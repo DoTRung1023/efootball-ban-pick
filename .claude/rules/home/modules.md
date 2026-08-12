@@ -128,9 +128,14 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
   - `initFormationDropdown` emits each option as a **bare label** — no
     `.plan-formation-opt-text` span and no check SVG. The tick is `::after` on
     `.active`, as on the pick board, so the two controls share one shape.
+  - `renderStartingXI()` **builds the rows**. They used to be four
+    `<div class="pitch-row" id="pitchRow…">` elements in `home.html`, one per
+    line, because every formation had exactly four; eFootball's shapes run to
+    five lines and differ per formation, so `#planPitchRows` is the only id now.
   - `applyPlanSlotWidth()` sizes the pitch: it measures `#planPitch` and writes
-    `--plan-slot-w`, the largest card at which four rows fit without overflowing,
-    capped 116 px and floored 40 px. Same measure-then-verify shape as
+    `--plan-slot-w`, the largest card at which **the formation's own rows** fit
+    without overflowing, capped 116 px and floored 40 px. Same measure-then-verify
+    shape as
     `applyPitchSlotWidth()` on the pick board, and the verify half matters more
     here — `.plan-pitch` is `overflow: hidden`, so an overflowing row is cropped
     silently rather than scrolled. It runs from `renderDetailSlots()`, again
