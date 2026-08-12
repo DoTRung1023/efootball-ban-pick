@@ -293,44 +293,67 @@ function renderPickPitch(myPicks, maxPicks) {
   const formation = getPickFormation();
   const lineup = myPicks.slice(0, LINEUP_SIZE);
   const slotMap = buildOrderedSlotMap(lineup);
-  const active = state.pickActiveSlot;
 
-  const key = `${formation}|${active ?? ""}|${lineup.map((p) => (p ? p.id : "-")).join(",")}`;
+  const key = `${formation}|${lineup.map((p) => (p ? p.id : "-")).join(",")}`;
   if (pitch.dataset.pitchKey !== key) {
     pitch.dataset.pitchKey = key;
     pitch.innerHTML = getFormationLayout(formation)
       .map((row) => `<div class="pick-pitch-row" data-row="${escapeHtml(row.id)}">
-        ${row.slots.map((slot) => pickSlotHtml(slotMap[slot], slot - 1, PITCH_ROW_LABELS[row.id] || "", active)).join("")}
+        ${row.slots.map((slot) => pickSlotHtml(slotMap[slot], slot - 1, PITCH_ROW_LABELS[row.id] || "")).join("")}
       </div>`)
       .join("");
   }
 
-  renderPickBench(myPicks, maxPicks, active);
+  renderPickBench(myPicks, maxPicks);
+  paintActiveSlot(state.pickActiveSlot);
 }
 
 /** Substitutes: every slot past the starting XI, drawn as real slots. */
-function renderPickBench(myPicks, maxPicks, active) {
+function renderPickBench(myPicks, maxPicks) {
   const bench = document.getElementById("pickBench");
   if (!bench) return;
 
   const size = Math.max(0, maxPicks - LINEUP_SIZE);
   const players = Array.from({ length: size }, (_, i) => myPicks[LINEUP_SIZE + i] || null);
 
-  const key = `${active ?? ""}|${players.map((p) => (p ? p.id : "-")).join(",")}`;
+  const key = players.map((p) => (p ? p.id : "-")).join(",");
   if (bench.dataset.benchKey === key) return;
   bench.dataset.benchKey = key;
 
   bench.innerHTML = players
-    .map((p, i) => pickSlotHtml(p ? normalizeDraftPlayer(p) : null, LINEUP_SIZE + i, BENCH_ROW_LABEL, active))
+    .map((p, i) => pickSlotHtml(p ? normalizeDraftPlayer(p) : null, LINEUP_SIZE + i, BENCH_ROW_LABEL))
     .join("");
 }
 
-function pickSlotHtml(player, slot, rowLabel, active) {
-  const isActive = active === slot;
-  const attrs = `data-pick-slot="${slot}"${isActive ? ' aria-pressed="true"' : ""}`;
+/**
+ * The selected slot, painted **in place** — which is why `is-active` appears in
+ * neither key above and not in `pickSlotHtml` either.
+ *
+ * Rebuilding for a selection is what made clicking an empty slot flash: the new
+ * element is not under the pointer as far as the engine is concerned until
+ * hover is re-resolved, so it painted its selected look for a frame and then
+ * dropped into its hovered one. The game-plan pitch has never had that — its
+ * `selectPlanSlot` toggles the class over the elements already on screen, and
+ * the slot under the cursor simply stays hovered throughout. Same shape here,
+ * and the same reason `paintPickCardFlags` repaints the pool instead of
+ * rebuilding it.
+ */
+function paintActiveSlot(active) {
+  for (const el of document.querySelectorAll("#pickPitch [data-pick-slot], #pickBench [data-pick-slot]")) {
+    // `active` is null for "nothing selected"; Number(null) is 0, which would
+    // otherwise light up the first slot on the pitch.
+    const isActive = active !== null && Number(el.getAttribute("data-pick-slot")) === active;
+    el.classList.toggle("is-active", isActive);
+    if (isActive) el.setAttribute("aria-pressed", "true");
+    else el.removeAttribute("aria-pressed");
+  }
+}
+
+function pickSlotHtml(player, slot, rowLabel) {
+  const attrs = `data-pick-slot="${slot}"`;
 
   if (!player) {
-    return `<div class="pick-slot pick-slot--empty ${isActive ? "is-active" : ""}" ${attrs}>
+    return `<div class="pick-slot pick-slot--empty" ${attrs}>
       <div class="pick-slot-plus">+</div>
       <div class="pick-slot-pos-label">${escapeHtml(rowLabel)}</div>
     </div>`;
@@ -338,7 +361,7 @@ function pickSlotHtml(player, slot, rowLabel, active) {
   /* Art only. The card already prints the name, the position and both ratings —
      the strip that used to sit across the bottom repeated two of them in a
      smaller font, over the part of the artwork that carries them. */
-  return `<div class="pick-slot pick-slot--filled ${isActive ? "is-active" : ""}" ${attrs}>
+  return `<div class="pick-slot pick-slot--filled" ${attrs}>
     <img class="pick-slot-img" src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy">
     <button class="pick-slot-remove" type="button" data-pick-slot-remove="${slot}" aria-label="Remove ${escapeHtml(player.name || "player")}">×</button>
   </div>`;

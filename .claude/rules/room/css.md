@@ -414,7 +414,15 @@ Key blocks:
   accent on the active tab.
 - `.pick-phase-grid` — same `player-card` component as `.ban-phase-grid`, and
   the hover now matches it: `scale(1.04)` (no `translateY`, same anti-jitter
-  reason) plus `border-color` + glow + `z-index: 30`, in cyan instead of green.
+  reason) plus `border-color` + glow + `z-index: 30`, and in the **same green**.
+  It was cyan, which split one gesture across two hues: you hovered a card in
+  cyan and it turned green the instant you clicked it. Rest → hover → chosen is
+  now one ladder — `--g-line` `.18` → `--g-line-active` `.55` → full `--green`
+  plus the ring — and it agrees with the hue table, since the pool is *your*
+  squad and cyan means the opponent. The cyan still on this column
+  (`.pick-phase-left`'s border, `.pick-pos-tab.is-active`) is chrome, not part
+  of the gesture; `.pick-opp-grid` keeps cyan because that one really is the
+  opponent.
   It used to paint a hard `box-shadow: 0 0 0 2px` ring and had no `z-index`.
   Three things that rule needs, all of which were missing and each of which was
   visible:
@@ -524,6 +532,16 @@ Key blocks:
     which is the same loud green ring `.pick-slot.is-active` uses, seen from the
     other end. **Green, not the pick board's cyan**: cyan means the opponent, and
     this is your choice.
+    - **The ring is 2 px total, and it is drawn twice.** The card's own 1 px
+      border turns `--green` *and* a `box-shadow` spread sits outside it; the
+      two are the same colour and touch, so they render as one band. The spread
+      is therefore **1 px**, not 2 — at 2 px the band came to 3 px, half again
+      as thick as the `.pick-slot::after` ring that means the same thing one
+      column over, which is what "is that a double rectangle, or too thick?"
+      looks like. It is not two rectangles: rendered at 8× it is a single
+      continuous stroke, and the second edge inside it belongs to the pesdb
+      artwork. Screenshot the card magnified before changing this — the
+      arithmetic is easy to get wrong and impossible to see at 1×.
   - **`.pick-pitch-wrap` styles its own scrollbar** (4 px, `--g-fill-strong`
     thumb, `scrollbar-width: thin`) like every other scroller on the page. Left
     to the OS default it lands as a wide light slab over the right-hand column of
@@ -658,7 +676,7 @@ Once a side confirms, its board goes read-only until UN-CONFIRM. `banView` and
 kinds of rule hang off it.
 
 **Hover is gated at the source, never reset afterwards.** Every hover rule that
-promises an interaction is prefixed `.draft-panel:not(.is-locked)`:
+promises an interaction is prefixed `:where(.draft-panel:not(.is-locked))`:
 
 | Sheet | Rule |
 | --- | --- |
@@ -671,6 +689,28 @@ A `.is-locked … :hover { transform: none; … }` override would work too and i
 the wrong shape: it has to restate the resting value of every property the hover
 touches, so the two blocks drift the first time one of them is tuned. Gating
 cannot drift — the rule either matches or it does not.
+
+**`:where()` is what makes the gate safe, and it was learned the hard way.**
+A bare `.draft-panel:not(.is-locked)` prefix adds *two* class-weights, and each
+of these hover rules is one a state rule below it has to beat:
+
+| State rule | Weight | Beats its hover rule by |
+| --- | --- | --- |
+| `.pick-slot--filled.is-active::after` | (0,2,0) | position — it comes later |
+| `.pick-phase-grid .player-card.is-pending:hover` | (0,3,0) | position |
+
+(`.pick-slot--empty.is-active` was the third. It now sits *above* its hover
+rule deliberately — see "The selected empty slot" below — so hover wins that
+one, which is the game-plan behaviour. It was still broken by the ungated
+prefix, just in the other direction.)
+
+Prefixed, the hover rules jumped to (0,4,0) / (0,5,0) and started winning. The
+symptom, reported from the pick board: click an empty slot and it flashed its
+full-green selected border for a frame, then dropped back to `--g-line-hover`
+as soon as the pointer registered on the rebuilt element — a two-step where the
+game-plan pitch changes once. The chosen pool card lost its green ring to the
+grid's cyan the same way. `:where()` contributes zero specificity, so the
+cascade is bit-identical to what it was before the gate existed.
 
 **The locked look** is `cursor: not-allowed` plus `opacity: 0.72;
 filter: grayscale(0.5)` on the pool cards, scoped `:not(.is-unavailable)` in
@@ -715,6 +755,22 @@ Measured, at 1440 × 900 unless stated:
 - Banner height **30 px from 1440 down to 360**, wrapping to 44 px at 320. No
   overflow and no column scroll at any rung (1440 / 1200 / 1100 / 900 / 620 /
   480 / 400 / 360 / 320).
+- **Hover over a state rule**, three ways, on the border colour: pre-gate
+  baseline, the ungated gate, and `:where()`.
+
+  | Hovered element | baseline | ungated | `:where()` |
+  | --- | --- | --- | --- |
+  | active empty slot | `rgb(44,207,117)` | `rgba(44,207,117,.34)` | `rgb(44,207,117)` |
+  | active filled slot `::after` | `rgb(44,207,117)` | `rgba(44,207,117,.34)` | `rgb(44,207,117)` |
+  | pending pool card | `rgb(44,207,117)` | `rgba(53,214,255,.55)` | `rgb(44,207,117)` |
+
+  Do this measurement whenever you touch a selector these rules share.
+
+**Driving `:hover` from a probe.** You cannot set it, and CDP is overkill:
+walk the CSSOM and rewrite every `selectorText` containing `:hover` to
+`.__hover`, then put that class on the element. A class and a pseudo-class weigh
+the same and the rule keeps its position, so the cascade under test is the real
+one — which is how the table above was measured (50 rules rewritten).
 
 **Disable transitions before measuring this.** `.pick-phase-grid .player-card`
 transitions `opacity` and `filter`, and transitions never advance under
@@ -722,3 +778,45 @@ transitions `opacity` and `filter`, and transitions never advance under
 filter: grayscale(0)` — its *start* values, indistinguishable from a rule that
 failed to apply — while the ban card, which transitions neither, read correctly.
 Inject `*,*::before,*::after{transition:none !important;animation:none !important}`.
+
+## The selected empty slot, and what the game-plan pitch does
+
+The two pitches are the same control and must behave the same. Measured
+side by side, every state of an empty box, on both:
+
+| | `.pitch-slot.empty` (home) | `.pick-slot--empty` (room) |
+| --- | --- | --- |
+| rest | dashed, `.22` border, no fill | dashed, `--g-line`, `--g-fill-faint` |
+| hover | dashed, `.45`, `.05` fill | dashed, `--g-line-hover`, `--g-fill` |
+| chosen | dashed **full green** + glow | dashed **full green** + glow |
+| chosen + hover | dashed `.45`, **glow stays** | dashed `--g-line-hover`, **glow stays** |
+| placing | **solid** `.45`, glyphs `.7` | **solid** `--g-line-hover`, glyphs `--g-text` |
+
+Only the rungs differ, and they have to: the home sheet writes raw alphas, the
+room sheet may only use the ladder. The **transitions** are identical, and those
+are what you see.
+
+Three things hold that up, all of which were once wrong on the room side:
+
+- **The empty slot's hover rule sits below the selection rules**, so it wins the
+  tie and a selected slot still answers the pointer. The home pitch gets this
+  from specificity rather than order — its hover rule is
+  `.pitch-slot.empty:hover .pitch-slot-placeholder`, (0,4,0), against
+  `.pitch-slot.active …`'s (0,3,0) — because there the box is a *child* of the
+  slot. Here the slot is the box, so order does it. Above the selection rules
+  instead, hovering a chosen slot did nothing at all.
+- **The glow is a `box-shadow` neither hover rule sets**, so it survives hover
+  on both pitches. Keep it that way; put the selected colour in `border-color`
+  and the selected glow in `box-shadow`, never both in one shorthand.
+- **`is-placing` brightens the glyphs, not just the border.** The home pitch
+  lifts `+` and the row label to `.7`; the room board did only the border, so
+  the same state read dimmer there.
+
+**The selection is painted in place — the pitch is not rebuilt for it.** That is
+a JS constraint holding up a CSS behaviour, so it is written down in both
+places: see `pick-phase.md`. Rebuilding replaces the element under the cursor,
+which is not hovered until the engine re-resolves hover, so the slot painted its
+selected look for one frame and then fell into its hovered one — the reported
+"bright box with a green rectangle, then the glow" two-step. `selectPlanSlot`
+on the home page has never had it, because it toggles the class over the
+elements already on screen.

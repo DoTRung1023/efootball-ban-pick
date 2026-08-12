@@ -813,9 +813,16 @@
    confirmed the grid is read-only until UN-CONFIRM, and a card that still
    lifts and glows under the pointer is promising a click it will refuse.
    `:not(.is-locked)` on the ancestor turns the whole effect off at the source,
-   so the resting values cannot drift away from a hand-written reset. */
+   so the resting values cannot drift away from a hand-written reset.
 
-.draft-panel:not(.is-locked) .ban-phase-grid .player-card:not(.is-unavailable):hover {
+   **The gate is wrapped in `:where()`, and that is not cosmetic.** A bare
+   `.draft-panel:not(.is-locked)` prefix adds two class-weights to a selector
+   that has to keep *losing* to the state rules below it — `.is-active`,
+   `.is-pending` — which all sit at the specificity these hover rules used to
+   have and win only by coming later in the file. `:where()` contributes zero,
+   so the cascade is exactly what it was before the gate existed. */
+
+:where(.draft-panel:not(.is-locked)) .ban-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
   border-color: var(--g-line-active);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--g-glow);

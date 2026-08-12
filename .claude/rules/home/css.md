@@ -60,6 +60,15 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     second half of the click pair has to be guessed at. It sits on
     `.plan-detail-cols` because the pitch and the bench are separate columns
     under it and both are targets.
+  - **The empty box's four states are mirrored on the room's pick board**, and
+    a table of both is in `room/css.md`. The one to preserve here is
+    **chosen + hover**: `.pitch-slot.empty:hover .pitch-slot-placeholder` is
+    (0,4,0) against `.pitch-slot.active …`'s (0,3,0), so hover takes the border
+    while the `box-shadow` glow — which the hover rule does not set — stays on.
+    That is the behaviour the pick board was matched to. `selectPlanSlot`
+    toggling `active` **in place** rather than re-rendering the slots is the
+    other half of it: the box under the cursor never stops being hovered, so
+    the change is one step.
   - `.pitch-remove-btn` is hover-revealed, with an `@media (hover: none)` block that
     keeps it visible — without it a player can never be removed on touch.
   - The hover info panel is **not** in this sheet — it is

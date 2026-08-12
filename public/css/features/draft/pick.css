@@ -364,22 +364,34 @@
   filter: grayscale(0.3);
 }
 
-/* Same shape as `.ban-phase-grid`'s hover, in the pick board's cyan: lift the
-   card's own border rather than painting a hard 2px ring outside it, and raise
-   it above its neighbours. `z-index` needs the `position: relative` above.
-   The ring it replaced was also a raw `rgba(53, 214, 255, …)`, which the colour
-   rule in room/css.md forbids. */
+/* Same shape as `.ban-phase-grid`'s hover — lift the card's own border rather
+   than painting a hard 2px ring outside it, and raise it above its neighbours.
+   `z-index` needs the `position: relative` above. The ring it replaced was also
+   a raw `rgba(53, 214, 255, …)`, which the colour rule in room/css.md forbids.
+
+   **Green, and it was cyan.** Hovering a card and choosing one are two halves
+   of a single gesture, and they were painting it in two different hues: cyan on
+   the way in, then `.is-pending` green the moment you clicked. Green is also
+   what the hue table gives this — the pool is *your* squad, cyan means the
+   opponent — and it is what the pitch, the empty slots, `.is-placing` and the
+   pending ring all already used. The cyan left on this column is chrome (its
+   border, the position tabs), not part of the gesture. */
 
 /* Gated on the board exactly as the ban grid's hover is: a confirmed squad is
    read-only until UN-CONFIRM, and a card that lifts and glows is promising a
    click `submitPick` will refuse. Turning the effect off at the source beats
    resetting it afterwards — a reset has to restate the resting values, and
-   those then have two places to drift apart. */
+   those then have two places to drift apart.
 
-.draft-panel:not(.is-locked) .pick-phase-grid .player-card:not(.is-unavailable):hover {
+   `:where()` keeps the gate weightless — see the note in `ban.css`. Three rules
+   on this board depend on it: `.player-card.is-pending:hover`,
+   `.pick-slot--filled.is-active::after` and `.pick-slot--empty.is-active` all
+   beat their hover rule by position alone. */
+
+:where(.draft-panel:not(.is-locked)) .pick-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
-  border-color: var(--c-line-active);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--c-glow);
+  border-color: var(--g-line-active);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--g-glow);
   background: var(--bg-card-hover);
   z-index: 30;
 }
@@ -404,7 +416,11 @@
 .pick-phase-grid .player-card.is-pending,
 .pick-phase-grid .player-card.is-pending:hover {
   border-color: var(--green);
-  box-shadow: 0 0 0 2px var(--green), 0 0 18px var(--g-glow);
+  /* 1px, not 2 — the card's own 1px border is already green here, and the two
+     stack into one continuous band. At 2px that band came to **3px**, half
+     again as thick as the 2px `.pick-slot::after` ring that means the same
+     thing one column over. Measured at 8x: one stroke, no second rectangle. */
+  box-shadow: 0 0 0 1px var(--green), 0 0 18px var(--g-glow);
   z-index: 31;
 }
 
@@ -649,12 +665,7 @@
   transition: border-color var(--transition);
 }
 
-.draft-panel:not(.is-locked) .pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
-
-.draft-panel:not(.is-locked) .pick-slot--empty:hover {
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
-}
+:where(.draft-panel:not(.is-locked)) .pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
 
 /* A card is chosen and every slot is a live target. `pickView` puts `is-placing`
    on the board; without it the empty rectangles look exactly as inert as they do
@@ -690,6 +701,23 @@
   background: var(--g-fill);
 }
 
+/* **The empty slot's hover sits below the selection rules on purpose**, so it
+   wins the tie and a selected slot still answers the pointer. That is what the
+   game-plan pitch does — `.pitch-slot.empty:hover .pitch-slot-placeholder` is
+   (0,4,0) against `.pitch-slot.active …`'s (0,3,0), so hover takes the border
+   there too, and the `box-shadow` glow, which hover does not set, stays put.
+   Measured on both pitches: selected reads full `--green` + glow, and under the
+   pointer softens to `--g-line-hover` with the glow still on.
+
+   Above the selection rules instead, hovering a selected slot did nothing at
+   all — the state that prompted "did you remove the effect of hovering while
+   being chosen?". */
+
+:where(.draft-panel:not(.is-locked)) .pick-slot--empty:hover {
+  border-color: var(--g-line-hover);
+  background: var(--g-fill);
+}
+
 /* Solid `--red` with a white glyph and a drop shadow, matching
    `.pitch-remove-btn` on the home game-plan pitch. It used to be `--r-fill` —
    10% alpha — over card art, which is very nearly invisible: you had to know the
@@ -721,8 +749,8 @@
   transition: opacity var(--transition), transform var(--transition), filter var(--transition);
 }
 
-.draft-panel:not(.is-locked) .pick-slot--filled:hover .pick-slot-remove,
-.draft-panel:not(.is-locked) .pick-slot--filled:focus-within .pick-slot-remove { opacity: 1; transform: scale(1); }
+:where(.draft-panel:not(.is-locked)) .pick-slot--filled:hover .pick-slot-remove,
+:where(.draft-panel:not(.is-locked)) .pick-slot--filled:focus-within .pick-slot-remove { opacity: 1; transform: scale(1); }
 
 /* `display: none`, not `opacity: 0` — the touch block below keeps the × visible
    with no hover to hide it, and an invisible button is still clickable and still
@@ -754,6 +782,16 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--g-text-dim);
+}
+
+/* While a card is chosen the empty boxes brighten their `+` and row label as
+   well as their border — `.plan-detail-cols.is-placing` does both on the
+   game-plan pitch and this board only did the border, so its boxes read as a
+   dimmer version of the same state. */
+
+.is-placing .pick-slot--empty .pick-slot-plus,
+.is-placing .pick-slot--empty .pick-slot-pos-label {
+  color: var(--g-text);
 }
 
 .pick-slot--filled {

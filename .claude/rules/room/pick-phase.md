@@ -349,6 +349,20 @@ add a `title` back to a card, in this file or `playerCards.js`.
   **The ban grid still rebuilds** on every staged ban. `aspect-ratio` on
   `.pc-img-wrap img` means it no longer jumps, but it does re-request the lazy
   images below the fold; the same `rowsKey` treatment would fix that.
+- **The pitch and bench keys carry the lineup, not the selection.**
+  `is-active` is painted in place by `paintActiveSlot()` and appears in neither
+  key, nor in `pickSlotHtml` — the same treatment `paintPickCardFlags` gives the
+  pool, for a sharper reason. With `active` in the key, clicking a slot rebuilt
+  the pitch, and the replacement element is not hovered until the engine
+  re-resolves hover: the slot painted its selected look for a frame and then
+  dropped into its hovered one, a visible two-step where the game-plan pitch
+  changes once. `selectPlanSlot` in `plans.js` toggles the class over the
+  elements already on screen; this now does the same. Verified by stamping every
+  slot element and re-rendering: selecting, moving and clearing the selection
+  all keep **every element identical**, `aria-pressed` moves with the class, and
+  a real pick still rebuilds.
+  `active` is `null` for "nothing selected" — `paintActiveSlot` tests for it
+  explicitly, because `Number(null)` is `0` and would light up the first slot.
 - **Hovering a pitch or bench slot floats the player's info.** The lineup needs
   it more than the pool does: a slot is artwork and an ×, with no footer to turn
   on, so it is the only place the four metadata lines are otherwise unreachable.
