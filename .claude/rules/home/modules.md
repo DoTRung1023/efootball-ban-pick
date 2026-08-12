@@ -45,7 +45,23 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     - Hiding is driven by a **`mousemove` guard**, not `mouseleave`. Both
       bundles rebuild grids under the cursor (the ban grid on every staged ban,
       the room boards on a presence poll) and an element replaced while hovered
-      never fires `mouseleave`. The listener is only attached while a panel is up.
+      never fires `mouseleave`.
+    - **The panel waits `SHOW_DELAY_MS` (500 ms) before appearing.** Without it,
+      it fired on every card the pointer crossed — in a grid of 40 that is most
+      of them, flashing across the screen on the way somewhere else. Four things
+      the delay changed, each measured:
+      - the `mousemove` guard is armed when the **countdown starts**, not when
+        the panel appears. Armed on appearance, a pointer that swept off
+        mid-delay would leave nothing to cancel the timer and the panel would
+        open half a second later over wherever the pointer had got to;
+      - `hidePlayerHoverCard()` cancels a pending reveal as well as hiding a
+        visible one — it is called from render paths, so it must stop a
+        countdown aimed at a card that is about to be replaced;
+      - `showPlayerHoverCard` returns early when `anchor === anchorEl`, so
+        moving *within* a card does not restart the countdown (native `title`
+        behaves the same). Moving to a **different** card does restart it;
+      - the timer re-checks `anchorEl.isConnected` before painting, for the grid
+        that rebuilt during the delay.
   - `@/shared/players/positions.js` — `posClass` and `positionLineRank`. The bucket
     arrays and `POSITION_LINE_ORDER` back those two and are module-private; `sort.js`
     (also under `shared/`) is the other consumer, which is why this module stays shared

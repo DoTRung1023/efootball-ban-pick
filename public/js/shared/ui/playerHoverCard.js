@@ -26,8 +26,20 @@ import { escapeHtml, playerDetailSublineHtml } from "@/shared/players/playerMeta
 const GAP = 10;
 const EDGE = 8;
 
+/**
+ * How long the pointer must rest on a card before the panel appears.
+ *
+ * Without it the panel fired on every card the pointer crossed, which in a grid
+ * of 40 is most of them — it flashed its way across the screen while you were
+ * heading somewhere else. Half a second is roughly the native `title` delay,
+ * short enough to feel like a property of the card rather than a wait.
+ */
+const SHOW_DELAY_MS = 250;
+
 let panelEl = null;
+/** The card the panel is showing — or, during the delay, is about to. */
 let anchorEl = null;
+let showTimer = null;
 
 function panel() {
   if (panelEl) return panelEl;
@@ -46,18 +58,36 @@ function panel() {
  * poll — and an element replaced while hovered never fires `mouseleave`, so a
  * panel bound to it would be left open describing a card that no longer exists.
  * Testing the anchor on each move covers that and ordinary pointer-out with one
- * listener, and it is only attached while a panel is actually up.
+ * listener.
+ *
+ * It is armed when the **delay starts**, not when the panel appears. Armed only
+ * on appearance, a pointer that swept off the card mid-delay would leave nothing
+ * to cancel the timer, and the panel would open half a second later over
+ * wherever the pointer had got to.
  */
 function onMove(e) {
   if (!anchorEl || !anchorEl.isConnected || !anchorEl.contains(e.target)) hidePlayerHoverCard();
 }
 
+/** Cancels a pending reveal as well as hiding a visible one. */
 export function hidePlayerHoverCard() {
-  if (!panelEl || panelEl.hidden) return;
-  panelEl.hidden = true;
+  if (showTimer !== null) {
+    clearTimeout(showTimer);
+    showTimer = null;
+  }
   anchorEl = null;
+  if (panelEl) panelEl.hidden = true;
   document.removeEventListener("mousemove", onMove, true);
   window.removeEventListener("scroll", hidePlayerHoverCard, true);
+}
+
+function paint(anchor, player) {
+  const el = panel();
+  el.innerHTML = `
+    <div class="player-hover-name">${escapeHtml(player.name || "Player")}</div>
+    <div class="player-hover-detail">${playerDetailSublineHtml(player)}</div>`;
+  el.hidden = false;
+  position(el, anchor);
 }
 
 export function showPlayerHoverCard(anchor, player) {
@@ -65,19 +95,24 @@ export function showPlayerHoverCard(anchor, player) {
   // card" — a panel you then have to dismiss is in the way, not helpful.
   if (!window.matchMedia("(hover: hover)").matches) return;
   if (!anchor?.isConnected || !player) return;
+  // Already showing this card, or already counting down to it. Moving *within*
+  // a card must not restart the delay, which is how the native tooltip behaves.
+  if (anchor === anchorEl) return;
 
-  const el = panel();
-  el.innerHTML = `
-    <div class="player-hover-name">${escapeHtml(player.name || "Player")}</div>
-    <div class="player-hover-detail">${playerDetailSublineHtml(player)}</div>`;
-  el.hidden = false;
+  hidePlayerHoverCard();   // drop whatever was aimed at the card we just left
   anchorEl = anchor;
-  position(el, anchor);
 
   document.addEventListener("mousemove", onMove, true);
   // Capture, so an element's own scroll is caught too: a fixed panel would
   // otherwise stay put while its card slid away underneath it.
   window.addEventListener("scroll", hidePlayerHoverCard, true);
+
+  showTimer = setTimeout(() => {
+    showTimer = null;
+    // The grid may have been rebuilt during the delay.
+    if (!anchorEl?.isConnected) return hidePlayerHoverCard();
+    paint(anchorEl, player);
+  }, SHOW_DELAY_MS);
 }
 
 /**
