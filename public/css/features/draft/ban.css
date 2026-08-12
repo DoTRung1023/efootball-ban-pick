@@ -809,12 +809,32 @@
   will-change: transform;
 }
 
-.ban-phase-grid .player-card:not(.is-unavailable):hover {
+/* Gated on the board, not overridden below it: once this side's bans are
+   confirmed the grid is read-only until UN-CONFIRM, and a card that still
+   lifts and glows under the pointer is promising a click it will refuse.
+   `:not(.is-locked)` on the ancestor turns the whole effect off at the source,
+   so the resting values cannot drift away from a hand-written reset. */
+
+.draft-panel:not(.is-locked) .ban-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
   border-color: var(--g-line-active);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--g-glow);
   background: var(--bg-card-hover);
   z-index: 30;
+}
+
+/* The locked look. Flat is only half of it — the cards also have to *say* they
+   are out of play, and greying them is what carries that at a glance.
+
+   `:not(.is-unavailable)` is the point of the split: your own bans are already
+   dimmed to 0.45, and levelling everything to one opacity would erase the only
+   thing that marks them out in this grid. */
+
+.is-locked .ban-phase-grid .player-card { cursor: not-allowed; }
+
+.is-locked .ban-phase-grid .player-card:not(.is-unavailable) {
+  opacity: 0.72;
+  filter: grayscale(0.5);
 }
 
 /* Copy of home page toolbar button styles for consistent look */

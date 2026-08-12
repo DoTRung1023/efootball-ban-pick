@@ -651,3 +651,74 @@ Toolbar search bars (`.ban-phase-controls`, `.pick-phase-controls`) are `flex-wr
 with `.team-search-wrap { flex: 1 1 180px / 150px }`. They were `nowrap`, which squeezed
 the input to its icon on the ban side and ran the placeholder under the sort button in
 the 300 px pick pool column at **every** width.
+## The locked board (both phases)
+
+Once a side confirms, its board goes read-only until UN-CONFIRM. `banView` and
+`pickView` each put **`is-locked`** on their `.draft-panel` section, and three
+kinds of rule hang off it.
+
+**Hover is gated at the source, never reset afterwards.** Every hover rule that
+promises an interaction is prefixed `.draft-panel:not(.is-locked)`:
+
+| Sheet | Rule |
+| --- | --- |
+| `ban.css` | `.ban-phase-grid .player-card:not(.is-unavailable):hover` |
+| `pick.css` | `.pick-phase-grid .player-card:not(.is-unavailable):hover` |
+| `pick.css` | `.pick-slot--filled:hover::after`, `.pick-slot--empty:hover` |
+| `pick.css` | `.pick-slot--filled:hover .pick-slot-remove` (+ `:focus-within`) |
+
+A `.is-locked … :hover { transform: none; … }` override would work too and is
+the wrong shape: it has to restate the resting value of every property the hover
+touches, so the two blocks drift the first time one of them is tuned. Gating
+cannot drift — the rule either matches or it does not.
+
+**The locked look** is `cursor: not-allowed` plus `opacity: 0.72;
+filter: grayscale(0.5)` on the pool cards, scoped `:not(.is-unavailable)` in
+both grids. That exclusion is load-bearing: your own bans (0.45) and your picked
+/ banned players (0.55) carry their state *in* their opacity, and levelling
+every card to one value erases it. The pitch and bench keep full colour — a
+confirmed lineup is the thing you want to look at — and lose only their
+affordances: the rings above, and `.is-locked .pick-slot-remove { display: none }`.
+That × is `display`, not `opacity`, because `@media (hover: none)` pins it to
+`opacity: 1` with no hover to take it away, and an invisible button is still
+clickable and still in the tab order.
+
+**`.grid-lock-note`** (in `shell.css`, since both phases use it) is the banner
+above each grid: one line of 10px text, `--g-fill` on `--g-line`, with the
+UN-CONFIRM in `<strong>` at full `--green`. **No icon** — a padlock glyph was
+tried and cut; the sentence already says the word. Green because the hue table gives
+green to *confirmed*; the amber "waiting on someone" fact is a different one and
+already has `.ban-status-hint` / `.pick-confirm-hint`.
+
+It is shown by **CSS alone** — `display: none`, then `.is-locked .grid-lock-note
+{ display: block }`. No `hidden` attribute and no JS: an element with a `display`
+of its own overrides `[hidden]` (author sheet beats UA sheet regardless of
+specificity), which is the standard way this component breaks, and the state has
+only one home either way.
+
+Measured, at 1440 × 900 unless stated:
+
+- **Zero computed-style differences** across both boards against HEAD — every
+  element, plus `::before` and `::after`, in the unlocked state. Both grids'
+  own boxes included: the hidden banner costs the grid **0 px** of height.
+  (A first pass diffed old CSS against new over the *new* markup and showed
+  `#banGrid` 78 → 148 px; that is the banner rendering as an unstyled `<p>`
+  in the old sheet, not a regression. Diff against the real baseline — HEAD's
+  markup *and* HEAD's sheets.)
+- Locked vs unlocked, per probe element: pool cards `default → not-allowed`,
+  `1 → 0.72`, `none → grayscale(0.5)`; banned/picked cards hold 0.45 / 0.55 and
+  their own grayscale; slots `pointer → not-allowed`; the × `flex → none`; the
+  banner `none → block`. **Hover rules matching each element: 1 → 0** for every
+  card and slot (the gate tested by stripping `:hover` off each rule's selector
+  and asking the element whether the rest still matches — a selector that no
+  longer matches cannot paint).
+- Banner height **30 px from 1440 down to 360**, wrapping to 44 px at 320. No
+  overflow and no column scroll at any rung (1440 / 1200 / 1100 / 900 / 620 /
+  480 / 400 / 360 / 320).
+
+**Disable transitions before measuring this.** `.pick-phase-grid .player-card`
+transitions `opacity` and `filter`, and transitions never advance under
+`--virtual-time-budget`: the locked pick card read back `opacity: 1;
+filter: grayscale(0)` — its *start* values, indistinguishable from a rule that
+failed to apply — while the ban card, which transitions neither, read correctly.
+Inject `*,*::before,*::after{transition:none !important;animation:none !important}`.

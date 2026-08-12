@@ -370,12 +370,29 @@
    The ring it replaced was also a raw `rgba(53, 214, 255, …)`, which the colour
    rule in room/css.md forbids. */
 
-.pick-phase-grid .player-card:not(.is-unavailable):hover {
+/* Gated on the board exactly as the ban grid's hover is: a confirmed squad is
+   read-only until UN-CONFIRM, and a card that lifts and glows is promising a
+   click `submitPick` will refuse. Turning the effect off at the source beats
+   resetting it afterwards — a reset has to restate the resting values, and
+   those then have two places to drift apart. */
+
+.draft-panel:not(.is-locked) .pick-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
   border-color: var(--c-line-active);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--c-glow);
   background: var(--bg-card-hover);
   z-index: 30;
+}
+
+/* Locked: flat, grey and plainly out of play. `:not(.is-unavailable)` keeps the
+   PICKED and BANNED cards at their own 0.55 — they carry an overlay each, and
+   levelling every card to one opacity would flatten that distinction too. */
+
+.is-locked .pick-phase-grid .player-card { cursor: not-allowed; }
+
+.is-locked .pick-phase-grid .player-card:not(.is-unavailable) {
+  opacity: 0.72;
+  filter: grayscale(0.5);
 }
 
 .pick-phase-grid .player-card.is-clickable { cursor: pointer; }
@@ -632,9 +649,9 @@
   transition: border-color var(--transition);
 }
 
-.pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
+.draft-panel:not(.is-locked) .pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
 
-.pick-slot--empty:hover {
+.draft-panel:not(.is-locked) .pick-slot--empty:hover {
   border-color: var(--g-line-hover);
   background: var(--g-fill);
 }
@@ -704,8 +721,17 @@
   transition: opacity var(--transition), transform var(--transition), filter var(--transition);
 }
 
-.pick-slot--filled:hover .pick-slot-remove,
-.pick-slot--filled:focus-within .pick-slot-remove { opacity: 1; transform: scale(1); }
+.draft-panel:not(.is-locked) .pick-slot--filled:hover .pick-slot-remove,
+.draft-panel:not(.is-locked) .pick-slot--filled:focus-within .pick-slot-remove { opacity: 1; transform: scale(1); }
+
+/* `display: none`, not `opacity: 0` — the touch block below keeps the × visible
+   with no hover to hide it, and an invisible button is still clickable and still
+   in the tab order. The slot markup is unchanged (the pitch's state key does not
+   know about the lock), so this is the only thing taking it out of play. */
+
+.is-locked .pick-slot-remove { display: none; }
+
+.is-locked .pick-slot[data-pick-slot] { cursor: not-allowed; }
 
 .pick-slot-remove:hover { filter: brightness(1.15); }
 

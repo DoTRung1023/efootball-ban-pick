@@ -100,6 +100,11 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
   const myConfirmed = Boolean(room.bansConfirmed?.[mySide]);
   const theirConfirmed = Boolean(room.bansConfirmed?.[theirSide]);
 
+  /* One flag, read by every locked rule in `ban.css` and by the read-only
+     banner above the grid. The grid already refuses clicks while confirmed —
+     this is what makes it *look* refused, instead of broken. */
+  el.draftBanPhaseBoard.classList.toggle("is-locked", myConfirmed);
+
   renderCounts(myBans, bannedOnMe, opponentStaged, maxBans);
   renderOpponentBadge(room[theirSide], theirConfirmed);
   renderMyBadge(room[mySide], myConfirmed);

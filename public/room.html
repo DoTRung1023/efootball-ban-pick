@@ -366,6 +366,13 @@
                       </div>
 
                     </div>
+                    <!-- Read-only banner. Shown by CSS alone, off the board's
+                         `is-locked` class — a confirmed grid stops responding to
+                         the pointer, and nothing else on this side of the board
+                         says why. UN-CONFIRM is in the sidebar, not here. -->
+                    <p class="grid-lock-note">
+                      Bans confirmed — <strong>UN-CONFIRM</strong> to change them
+                    </p>
                     <div class="ban-phase-grid" id="banGrid"></div>
                   </div>
 
@@ -476,6 +483,9 @@
                       <button class="pick-pos-tab" data-pick-tab="mid" type="button">MID</button>
                       <button class="pick-pos-tab" data-pick-tab="att" type="button">ATT</button>
                     </div>
+                    <p class="grid-lock-note">
+                      Squad confirmed — <strong>UN-CONFIRM</strong> to change it
+                    </p>
                     <div class="pick-phase-grid" id="pickGrid"></div>
                   </div>
 

@@ -123,6 +123,12 @@ export function renderPickBoard({ room, mySide, theirSide, visible }) {
      say so rather than waiting to be discovered by hover. */
   board.classList.toggle("is-placing", state.pickPendingPlayerId !== null);
 
+  /* Confirmed: the pool, the pitch and the bench all go read-only until
+     UN-CONFIRM. `renderPickGrid` already drops `is-clickable` and every write
+     is refused by `isLineupLocked` — this flag is what says so on screen, and
+     what `pick.css` hangs the locked look and the banner off. */
+  board.classList.toggle("is-locked", Boolean(room.picksConfirmed?.[mySide]));
+
   renderFormationPanel(getPickFormation());
   renderClearAll(room, myPicks);
   renderPickPlanList();

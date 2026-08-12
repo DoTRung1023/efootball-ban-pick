@@ -807,3 +807,42 @@
   border-color: rgba(255, 68, 68, 0.65);
   box-shadow: 0 0 10px rgba(255, 68, 68, 0.18);
 }
+
+/* ── The read-only banner over a confirmed board ──────────────
+   Both phases lock their card grid once this side confirms, and the sole
+   remaining affordance is the UN-CONFIRM button — which sits in the ban
+   sidebar and under the pitch, not next to the cards that stopped responding.
+   A grid that silently ignores the pointer reads as broken, so it says so.
+
+   Shown by CSS alone: `is-locked` on the board is the same flag the card rules
+   in ban.css and pick.css read, so there is no second place for the state to
+   drift out of sync — and no `hidden` attribute to be overridden by a `display`
+   on the element itself.
+
+   Green, not amber: per the hue table green is the confirmed state. The amber
+   "waiting on someone" line is a different fact and already has its own home in
+   `.ban-status-hint` / `.pick-confirm-hint`. */
+
+.grid-lock-note {
+  display: none;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--g-line);
+  border-radius: 7px;
+  background: var(--g-fill);
+  color: var(--g-text);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.is-locked .grid-lock-note { display: block; }
+
+.grid-lock-note strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--green);
+}

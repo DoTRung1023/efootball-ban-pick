@@ -202,3 +202,19 @@ native `title` these cards carried; the panel lives in
 through `bindCardGridHover`, resolving ids against `state.opponentBanPlayers` —
 the grid shows the **opponent's** squad, which is what you ban from. See
 `room/modules.md`.
+
+## Confirmed is read-only, and looks it
+
+`renderBanBoard` puts `is-locked` on `#draftBanPhaseBoard` whenever
+`bansConfirmed[mySide]` is set. The grid was already inert — `renderBanGrid`
+drops `clickable` and `submitBan` refuses with a toast — but it did not *read*
+as inert: cards still scaled and glowed under the pointer, which is the page's
+one signal that a card can be clicked. Locked, they go flat, grey and
+`not-allowed`, and a banner above the grid names UN-CONFIRM, which lives in the
+sidebar where a hand on the cards will not find it.
+
+Your own bans keep their 0.45 opacity — the locked dim is
+`:not(.is-unavailable)` precisely so it cannot flatten them into the rest of the
+grid, which is the only thing marking them out here. The CSS is in
+`room/css.md`; `myConfirmed` is already in the grid's state key, so no extra
+rebuild comes with this.

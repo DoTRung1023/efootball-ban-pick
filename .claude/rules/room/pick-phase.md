@@ -263,6 +263,16 @@ and `initSlotControls` all check `isLineupLocked()`, the pool cards drop
 `is-clickable`, and **the server returns 409 on `/picks`** so a stale tab cannot
 slip an edit past a confirmation. Un-confirm, change, confirm again.
 
+**And it now looks read-only.** `renderPickBoard` puts `is-locked` on
+`#draftPickPhaseBoard` — the same shape as `is-placing`, and the flag every
+locked rule in `pick.css` reads. Refusing a click is not the same as saying you
+will: the pool cards still lifted and glowed under the pointer, the pitch still
+drew its hover ring and still revealed the × on a slot that could not be
+emptied, so the board advertised four affordances and honoured none. Locked, the
+pool goes flat, grey and `not-allowed`, the slot rings and the × go, and a
+banner above the grid says which button undoes it. See `room/css.md` for the
+rules and what was measured.
+
 Pick-timer expiry now confirms whatever you have rather than jumping to the
 ready phase — the same shape as the ban stage flushing what you staged. Both
 sides share one `turnEndsAt`, so both confirmations land and the server advances.
