@@ -71,7 +71,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   **leaf**: `state` is passed in rather than imported (state.js spreads
   `createDraftFilterState()` into its own literal), and `escapeHtml` comes from
   `shared/players/playerMeta.js` because `utils.js` imports `state`. See
-  `ban-phase.md` for the field tables.
+  `ban-phase.md` for the field tables, and for why `renderDraftFilterPanel`
+  writes the panel once and never rebuilds it — on a board that re-renders twice
+  a second, a rebuilt panel makes every control inside it unusable.
 - `sortPanel.js` — `sortCategoryLabel(key)` and `renderSortPanel(panel, activeKey,
   dataAttr)`. Ban and pick both call it; only the `data-` attribute differs. The
   categories come from **`@/shared/players/sort.js`**, the same `SORT_CATEGORIES` behind

@@ -145,6 +145,44 @@ both the state keys (`banFilterClub` / `pickFilterClub`) and the element ids
 `MULTI_FILTERS`, `RANGE_FILTERS` or `TEXT_FILTERS`; markup, clearing, the
 active-dot and filtering all follow from it.
 
+### The panel is written once and then left alone
+
+`renderDraftFilterPanel` writes the markup on its first call and never again.
+That is the same shape as `buildPlayerFilterPanel` on the home page, and it is
+not a preference — it is the only shape that works here.
+
+It used to rebuild from state on every call, which is **twice a second**, because
+both boards re-render on the presence poll. That made every control in the panel
+unusable, in two ways:
+
+- an expanded multi-select was thrown away within half a second — it opened on
+  the click, and the next poll deleted the element carrying `.open`;
+- a focused CLUB / NATIONALITY / Min / Max box was destroyed by the keystroke
+  that filled it (`input` → `onChange()` → re-render). You could type exactly one
+  character, then focus was gone.
+
+The rule that falls out: **nothing in a panel a poll rebuilds can hold state**,
+so do not rebuild. After the first write the DOM *is* the record of what the user
+typed and expanded, and the handlers in `bindDraftFilterPanel` own it — each
+writes state and then patches what it changed (`item.classList.toggle("checked")`
+plus `paintMsButton`). A handler that leaves a repaint to "the next render" is a
+bug; there is no next render.
+
+Two things still run per call, both idempotent and neither structural:
+
+- the FILTER dot;
+- **`syncMsOptions`**, which is why build-once is safe here at all.
+  `CARD_TYPE_OPTIONS` and friends are mutable arrays filled by
+  `fetchFilterOptions()`, which the lobby starts *without awaiting*, so the lists
+  can still be empty when the panel is built. It compares each list's
+  `data-options` key and refills only the ones that changed, replacing the items
+  *inside* a list and never the list itself — so an expanded one stays expanded.
+  Verified: built with 0 card types, 3 present after the fetch lands, still open.
+
+`CLEAR ALL FILTERS` is the one place the markup is legitimately rewritten — every
+box, label and tick returns to empty at once. Nothing is focused (you clicked a
+button) and no list needs to stay open.
+
 Two import constraints keep that module a leaf, and both matter:
 
 - **`state` is passed in, never imported.** `state.js` spreads

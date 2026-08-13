@@ -186,7 +186,7 @@ function multiSectionHtml(st, prefix, f) {
           <span>${escapeHtml(msLabel(selected, f.allText, f.max))}</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <div class="pos-ms-panel" id="${msPanelId(prefix, f.id)}">${msItemsHtml(f.options(), selected, `${prefix}-${f.attr}`)}</div>
+        <div class="pos-ms-panel" id="${msPanelId(prefix, f.id)}" data-options="${escapeHtml(optionsKey(f))}">${msItemsHtml(f.options(), selected, `${prefix}-${f.attr}`)}</div>
       </div>
     </div>`;
 }
@@ -213,19 +213,14 @@ function textSectionHtml(st, prefix, t) {
 
 const byField = (field) => MULTI_FILTERS.find((f) => f.field === field);
 
-/**
- * Rebuilds the panel from current state and toggles the FILTER button's dot.
- *
- * The four `.filter-group-label` sections mirror the catalog page's grouping —
- * IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL.
- */
-export function renderDraftFilterPanel(panel, st, prefix, dot) {
-  if (!panel) return;
+/** Identifies a multi-select's option list, so a changed one can be spotted. */
+const optionsKey = (f) => f.options().join("|");
 
+/** The whole panel, from state. Written once — see `renderDraftFilterPanel`. */
+function panelMarkup(st, prefix) {
   const multi = (field) => multiSectionHtml(st, prefix, byField(field));
   const range = (i) => rangeSectionHtml(st, prefix, RANGE_FILTERS[i]);
-
-  panel.innerHTML = `
+  return `
     <div class="filter-group-label">IDENTITY</div>
     ${multi("Positions")}${multi("CardType")}${multi("PlayingStyle")}${multi("Foot")}
     <div class="filter-group-label">STATS</div>
@@ -239,15 +234,83 @@ export function renderDraftFilterPanel(panel, st, prefix, dot) {
       <button class="filter-clear-btn" id="${prefix}ClearFiltersBtn">CLEAR ALL FILTERS</button>
     </div>
   `;
+}
+
+/**
+ * Fills a multi-select's list when its options change under it.
+ *
+ * `CARD_TYPE_OPTIONS` and friends are **mutable arrays filled at runtime** by
+ * `fetchFilterOptions()`, which the lobby kicks off without awaiting — so the
+ * lists can still be empty when the panel is built, and this is what fills them
+ * in afterwards. It replaces the items *inside* the list, never the list itself,
+ * so an expanded one stays expanded and no input is touched.
+ */
+function syncMsOptions(panel, st, prefix) {
+  for (const f of MULTI_FILTERS) {
+    const sub = panel.querySelector(`#${msPanelId(prefix, f.id)}`);
+    const key = optionsKey(f);
+    if (!sub || sub.dataset.options === key) continue;
+    sub.dataset.options = key;
+    sub.innerHTML = msItemsHtml(f.options(), selectedOf(st, prefix, f), `${prefix}-${f.attr}`);
+  }
+}
+
+/** Repaints one multi-select's trigger — its summary label and its active tint. */
+function paintMsButton(panel, st, prefix, f) {
+  const btn = panel.querySelector(`#${msBtnId(prefix, f.id)}`);
+  if (!btn) return;
+  const selected = selectedOf(st, prefix, f);
+  const span = btn.querySelector("span");
+  if (span) span.textContent = msLabel(selected, f.allText, f.max);
+  btn.classList.toggle("has-pos-filter", selected.length > 0);
+}
+
+/**
+ * Writes the panel **once**, then leaves it alone.
+ *
+ * The four `.filter-group-label` sections mirror the catalog page's grouping —
+ * IDENTITY / STATS / CLUB & ORIGIN / PHYSICAL.
+ *
+ * This is the same shape as `buildPlayerFilterPanel` on the home page, and for
+ * the same reason. It used to rebuild from state on every call, which is twice a
+ * second here because the ban and pick boards re-render on the presence poll —
+ * so an expanded list was thrown away within half a second, and a focused CLUB
+ * or Min/Max box was destroyed by the keystroke that filled it. You could type
+ * exactly one character. **Nothing in a panel a poll rebuilds can hold state**,
+ * and the fix is not to rebuild: after the first write, the DOM is the record of
+ * what the user typed and expanded, and the handlers below patch the few things
+ * that need to change. The home page's panel never had either bug because it has
+ * always worked this way.
+ *
+ * Two things still happen per call, both idempotent and neither structural: the
+ * FILTER dot, and `syncMsOptions` for option lists that arrive late.
+ */
+export function renderDraftFilterPanel(panel, st, prefix, dot) {
+  if (!panel) return;
 
   if (dot) dot.style.display = hasActiveDraftFilters(st, prefix) ? "inline-block" : "none";
+
+  if (panel.dataset.builtFor !== prefix) {
+    panel.dataset.builtFor = prefix;
+    panel.innerHTML = panelMarkup(st, prefix);
+    return;
+  }
+  syncMsOptions(panel, st, prefix);
 }
 
 // ── Wiring ───────────────────────────────────────────────────
 
 /**
- * Delegates every control inside the panel. Call once per phase — the panel's
- * contents are rebuilt on every render, so nothing may be bound to them directly.
+ * Delegates every control inside the panel. Call once per phase.
+ *
+ * Delegation rather than a listener per control, because the option lists are
+ * refilled when `fetchFilterOptions()` lands — the panel's shell is permanent
+ * but the items inside a multi-select are not.
+ *
+ * Since `renderDraftFilterPanel` no longer rebuilds, **these handlers own the
+ * DOM**: each one writes state and then patches the elements it changed. What
+ * they must not do is leave a repaint to the next render, because there is no
+ * next render.
  */
 export function bindDraftFilterPanel(panel, st, prefix, onChange) {
   if (!panel) return;
@@ -255,8 +318,12 @@ export function bindDraftFilterPanel(panel, st, prefix, onChange) {
   panel.addEventListener("click", (e) => {
     if (!(e.target instanceof Element)) return;
 
+    /* The one place the markup is legitimately rewritten: every box, label and
+       tick has to go back to empty at once, which is most of the panel. Nothing
+       is focused — you just clicked a button — and no list needs to stay open. */
     if (e.target.closest(`#${prefix}ClearFiltersBtn`)) {
       resetDraftFilters(st, prefix);
+      panel.innerHTML = panelMarkup(st, prefix);
       onChange();
       return;
     }
@@ -267,22 +334,30 @@ export function bindDraftFilterPanel(panel, st, prefix, onChange) {
         const value = idOf(f)(item.getAttribute(`data-${prefix}-${f.attr}`) || "");
         if (!value) return;
         const cur = new Set(selectedOf(st, prefix, f));
-        cur.has(value) ? cur.delete(value) : cur.add(value);
+        const nowChecked = !cur.has(value);
+        nowChecked ? cur.add(value) : cur.delete(value);
         st[stateKey(prefix, f.field)] = [...cur];
+        // Tick and summary label, in place — the list stays open, which is the
+        // point of a multi-select.
+        item.classList.toggle("checked", nowChecked);
+        paintMsButton(panel, st, prefix, f);
         onChange();
         return;
       }
     }
 
-    // Sub-panel open/close. stopPropagation keeps the outer dropdown open.
+    /* Sub-panel open/close. stopPropagation keeps the outer dropdown open.
+
+       Opening one closes the rest: they are absolutely positioned over the
+       sections below them, so two at once overlap. */
     for (const f of MULTI_FILTERS) {
       const btn = e.target.closest(`#${msBtnId(prefix, f.id)}`);
       if (btn) {
-        const sub = document.getElementById(msPanelId(prefix, f.id));
-        if (sub) {
-          const open = !sub.classList.contains("open");
-          sub.classList.toggle("open", open);
-          btn.classList.toggle("open", open);
+        const open = !panel.querySelector(`#${msPanelId(prefix, f.id)}`)?.classList.contains("open");
+        for (const other of MULTI_FILTERS) {
+          const on = open && other.id === f.id;
+          panel.querySelector(`#${msPanelId(prefix, other.id)}`)?.classList.toggle("open", on);
+          panel.querySelector(`#${msBtnId(prefix, other.id)}`)?.classList.toggle("open", on);
         }
         e.stopPropagation();
         return;
@@ -290,8 +365,8 @@ export function bindDraftFilterPanel(panel, st, prefix, onChange) {
     }
   });
 
-  /* Every scalar field, keyed by element id. Built once; the ids are stable even
-     though the inputs themselves are replaced on every render. */
+  /* Every scalar field, keyed by element id. Nothing to repaint for these — the
+     input the user is typing into already shows its own value. */
   const scalarByInputId = new Map();
   for (const r of RANGE_FILTERS) {
     scalarByInputId.set(inputId(prefix, r.minId), stateKey(prefix, r.min));
