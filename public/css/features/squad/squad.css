@@ -116,12 +116,24 @@
 /* ============================================================
    SQUAD TOOLBAR
    ============================================================ */
+/* The default toolbar and the select-mode toolbar sit in the same slot above
+   the grid and swap by display toggle, so every difference between their boxes
+   shifted everything below on each switch (My Players 11px, Game Plans 15px).
+   All four toolbars therefore share one box: same vertical padding, same 1px
+   border — transparent on the two default ones — same radius and margin. Only
+   the horizontal padding differs, because the selection toolbar is a tinted
+   panel and the default one sits flush with the grid edge. Row height comes
+   from the buttons alone (`min-height` below), so the count label's font
+   metrics cannot move it either. */
 .panel-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 18px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   flex-wrap: wrap;
 }
 
@@ -129,6 +141,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
+  line-height: 1;
   font-family: var(--font-display);
 }
 
@@ -144,6 +157,11 @@
   align-items: center;
   gap: 8px;
 }
+
+/* One height for every toolbar control: the default trio came out 1px taller
+   than the selection trio (larger font, no border on ADD PLAYER), which is
+   enough to move the grid on its own. */
+.toolbar-actions > button { min-height: 32px; }
 
 .add-player-btn {
   display: flex;
@@ -219,16 +237,21 @@
   background: rgba(138,165,184,0.08);
 }
 
-/* Selection toolbar */
+/* Selection toolbar — skin only; the box comes from .panel-toolbar above, so
+   the slot keeps its height when the two swap. */
 .selection-toolbar {
   background: rgba(239,68,68,0.05);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: 8px;
+  border-color: rgba(239,68,68,0.2);
   padding: 8px 16px;
-  margin-bottom: 12px;
 }
 
+/* 24px is the count labels' line box (1.5rem x line-height 1). Matching it here
+   keeps the two toolbars the same height once they wrap to two rows on narrow
+   viewports, where the label row — not the buttons — sets the first row. It has
+   to be a line box rather than a flex box: `SELECTED` is a bare text node next
+   to the count span, and flex layout would strip the space in front of it. */
 .selection-info {
+  line-height: 24px;
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;

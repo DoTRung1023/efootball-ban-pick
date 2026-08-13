@@ -9,6 +9,27 @@
   .user-name { display: none; }
   .main-content { padding: 16px 12px 32px; }
   .player-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+
+  /* Panel toolbar: count on row 1, action buttons on their own row(s) below.
+     Forced here rather than left to natural wrapping, because the default and
+     select-mode toolbars carry different labels and a different number of
+     buttons, so they wrap at different widths — Game Plans went to two rows at
+     ~660px in select mode while its default toolbar was still on one, and the
+     grid jumped 36px on every toggle. Pinned to the rung, both wrap together.
+     The widest set (SELECT ALL / CANCEL / DELETE SELECTED, ~420px) still fits
+     one row down to 481px. */
+  .panel-toolbar .toolbar-actions {
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  /* Both trios have to clear one row at 481px, and the selection toolbar has
+     32px less of it than the default one (its 16px side padding). These two
+     minimums are pure width padding, and they are what tips it over. */
+  .toggle-info-btn,
+  .select-all-btn { min-width: 0; }
 }
 
 @media (max-width: 480px) {
@@ -36,21 +57,12 @@
      right:0 anchor doesn't push the panel off the left edge of the screen. */
   .team-search-wrap { flex: 1 0 100%; min-width: 0; }
 
-  /* Panel toolbar: count on row 1, action buttons on their own row(s) below.
-     The three buttons total ~400px, so they have to be allowed to wrap. */
-  .plans-toolbar { flex-wrap: wrap; }
-
-  .panel-toolbar .toolbar-actions,
-  .plans-toolbar .toolbar-actions {
-    flex: 0 0 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 8px;
-  }
-
-  /* Their fixed minimums are what push the row over the edge. */
-  .toggle-info-btn,
-  .select-all-btn { min-width: 0; }
+  /* Below 480 the buttons need two rows — except the Game Plans default
+     toolbar, which has two of them and fits on one (and at 320 its label wraps
+     instead). Reserving the taller shape keeps that toolbar the same height as
+     the select-mode one it swaps with: label row 24 + gap 12 + two 32px button
+     rows + their 8px gap + 16px padding + 2px border. */
+  .panel-toolbar { min-height: 126px; }
 
   .select-mode-btn,
   .add-player-btn { padding: 7px 11px; }
