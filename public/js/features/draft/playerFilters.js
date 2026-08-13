@@ -283,12 +283,18 @@ function paintMsButton(panel, st, prefix, f) {
  * always worked this way.
  *
  * Two things still happen per call, both idempotent and neither structural: the
- * FILTER dot, and `syncMsOptions` for option lists that arrive late.
+ * FILTER button's active tint, and `syncMsOptions` for option lists that arrive
+ * late.
+ *
+ * "Some filter is on" is said by **the button itself** going green
+ * (`.ap-dd-btn.has-active`), not by a separate dot beside the label. The home
+ * page's toolbars have always toggled that class; they carried a dot as well,
+ * which said the same thing twice in the same control.
  */
-export function renderDraftFilterPanel(panel, st, prefix, dot) {
+export function renderDraftFilterPanel(panel, st, prefix, btn) {
   if (!panel) return;
 
-  if (dot) dot.style.display = hasActiveDraftFilters(st, prefix) ? "inline-block" : "none";
+  btn?.classList.toggle("has-active", hasActiveDraftFilters(st, prefix));
 
   if (panel.dataset.builtFor !== prefix) {
     panel.dataset.builtFor = prefix;

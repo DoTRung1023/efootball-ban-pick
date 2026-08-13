@@ -327,8 +327,7 @@ function updateSquadSortUI() {
   });
 }
 
-function updateSquadFilterDot() {
-  const dot = document.getElementById("teamFilterDot");
+function updateSquadFilterBtn() {
   const btn = document.getElementById("teamFilterBtn");
   const active = squad.filterPositions.size > 0
     || squad.filterFoot.size || squad.filterPlayingStyle.size || squad.filterCardType.size || squad.filterLeague.size || squad.filterRegion.size
@@ -338,7 +337,6 @@ function updateSquadFilterDot() {
     || !!squad.filterHeightMin || !!squad.filterHeightMax
     || !!squad.filterWeightMin || !!squad.filterWeightMax
     || !!squad.filterAgeMin    || !!squad.filterAgeMax;
-  if (dot) dot.style.display = active ? "inline-block" : "none";
   if (btn) btn.classList.toggle("has-active", active);
 }
 
@@ -386,13 +384,13 @@ function buildSquadFilterPanel() {
     ids: SQUAD_FILTER_IDS,
     state: squad,
     autocomplete: true,
-    onChange: () => { updateSquadFilterDot(); renderSquad(); },
+    onChange: () => { updateSquadFilterBtn(); renderSquad(); },
     onClear: () => {
       resetPlayerFilterState(squad);
       const wrap = document.getElementById("teamFilterWrap");
       document.getElementById("squadFilterPanel")?.remove();
       wrap.appendChild(buildSquadFilterPanel());
-      updateSquadFilterDot();
+      updateSquadFilterBtn();
       renderSquad();
     },
   });

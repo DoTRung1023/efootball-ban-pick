@@ -17,7 +17,7 @@ export function renderBanToolbar() {
   const sortLabel = document.getElementById("banSortLabel");
   const sortPanel = document.getElementById("banSortPanel");
   const posPanel = document.getElementById("banPosPanel");
-  const posDot = document.getElementById("banPosDot");
+  const posBtn = document.getElementById("banPosBtn");
   const sortDirIcon = document.getElementById("banSortDirIcon");
   if (!sortSelect || !posSelect || !sortLabel || !sortPanel || !posPanel) return;
 
@@ -31,5 +31,5 @@ export function renderBanToolbar() {
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
   renderSortPanel(sortPanel, baseKey, "data-ban-sort-cat");
-  renderDraftFilterPanel(posPanel, state, "ban", posDot);
+  renderDraftFilterPanel(posPanel, state, "ban", posBtn);
 }

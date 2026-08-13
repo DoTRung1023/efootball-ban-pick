@@ -263,7 +263,7 @@ async function openPlanDetail(userId, plan) {
   if (ppSearch) ppSearch.value = "";
   rebuildPpPanels();
   updatePpSortUI();
-  updatePpFilterDot();
+  updatePpFilterBtn();
   setPickerHint(null);
 
   renderDetailSlots();
@@ -619,7 +619,7 @@ function updatePpSortUI() {
     el.classList.toggle("active", el.dataset.sort === ppState.sortCategory));
 }
 
-function updatePpFilterDot() {
+function updatePpFilterBtn() {
   const hasFilter = ppState.filterPositions.size > 0 || ppState.filterFoot.size
     || ppState.filterPlayingStyle.size || ppState.filterCardType.size || ppState.filterLeague.size || ppState.filterRegion.size
     || ppState.filterClub || ppState.filterNation
@@ -627,9 +627,7 @@ function updatePpFilterDot() {
     || ppState.filterMaxOverallMin || ppState.filterMaxOverallMax
     || ppState.filterHeightMin || ppState.filterHeightMax
     || ppState.filterWeightMin || ppState.filterWeightMax || ppState.filterAgeMin || ppState.filterAgeMax;
-  const dot = document.getElementById("ppFilterDot");
   const btn = document.getElementById("ppFilterBtn");
-  if (dot) dot.style.display = hasFilter ? "inline-block" : "none";
   if (btn) btn.classList.toggle("has-active", hasFilter);
 }
 
@@ -684,12 +682,12 @@ function buildPpFilterPanel() {
     panelId: "ppFilterPanel",
     ids: PP_FILTER_IDS,
     state: ppState,
-    onChange: () => { updatePpFilterDot(); renderPlanPicker(); },
+    onChange: () => { updatePpFilterBtn(); renderPlanPicker(); },
     onClear: () => {
       resetPpState();
       rebuildPpPanels();
       updatePpSortUI();
-      updatePpFilterDot();
+      updatePpFilterBtn();
       renderPlanPicker();
     },
   });

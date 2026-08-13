@@ -38,10 +38,8 @@ function hasActiveFilters() {
 }
 
 function updateFilterBadge() {
-  const dot = document.getElementById("activeFilterDot");
   const btn = document.getElementById("filterDropBtn");
   const active = !!hasActiveFilters();
-  if (dot) dot.style.display = active ? "inline-block" : "none";
   if (btn) btn.classList.toggle("has-active", active);
 }
 

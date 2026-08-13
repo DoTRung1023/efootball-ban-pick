@@ -38,7 +38,7 @@ export function renderPickToolbar() {
   const sortPanel = document.getElementById("pickSortPanel");
   const sortDirIcon = document.getElementById("pickSortDirIcon");
   const filterPanel = document.getElementById("pickFilterPanel");
-  const filterDot = document.getElementById("pickFilterDot");
+  const filterBtn = document.getElementById("pickFilterBtn");
   if (!sortLabel || !sortPanel) return;
 
   const sortVal = normalizeSortValue(state.pickSort);
@@ -48,7 +48,7 @@ export function renderPickToolbar() {
   if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
 
   renderSortPanel(sortPanel, baseKey, "data-pick-sort-cat");
-  renderDraftFilterPanel(filterPanel, state, "pick", filterDot);
+  renderDraftFilterPanel(filterPanel, state, "pick", filterBtn);
 }
 
 /**
