@@ -61,6 +61,22 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     once the card could exceed 98 px — `--plan-slot-w` above that had no effect
     at all. If you change `.pitch-slot`'s padding, change the `+ 12px` and
     `SLOT_PAD_X` in `plans.js` with it.
+  - **Never `transition: all` on a slot — the measurement reads the box back.**
+    `applyPlanSlotWidth()` writes `--plan-slot-w` and then, in the same task,
+    reads `scrollHeight` to check the rows fit. A transition on the derived
+    `max-width` makes that read return the layout at the *previous* card size for
+    the next 0.22s, so the verify pass sees phantom overflow. It cost eight
+    stolen pixels: switching 4-3-3 (116px) to any five-row shape (109px) left the
+    pitch mid-shrink and therefore too tall, the loop spent all 8 of its steps
+    and stuck at 101px until the next formation change — while a *growing* write,
+    or rewriting the same value, measured clean. That is what made "change the
+    formation twice" look like a fix and made the bug look like a stale
+    measurement. Measured directly: under `transition: all`, writing 116 → 60 and
+    reading `.pitch-slot`'s rect in the same task still reports the 124px box;
+    with an explicit colour-only list it reports 70px. `.pick-slot` on the room's
+    board runs the same measure-then-verify routine and has never shown this,
+    because its transition has always been `background, border-color`. Keep every
+    slot rule's list explicit and free of layout properties.
   - The 82 px fallback still applies on the **bench**, which has no measurement:
     `.plan-mid-col` is a fixed 200 px, so 2 × 82 + gap is already as wide as it
     goes.

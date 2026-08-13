@@ -52,6 +52,14 @@ Four things that will waste time otherwise:
   The same applies to colour: a `getComputedStyle` colour read 60ms after a class
   flips can be a midpoint. Non-animatable properties (`border-style`) flip
   instantly and are the safe thing to assert on.
+  **But injecting it hides any bug whose cause *is* a transition**, and a
+  measure-then-verify routine is exactly that shape — the game-plan pitch stole
+  8px from every five-row formation because `transition: all` delayed the
+  `max-width` its own `scrollHeight` check read back, and the harness came back
+  clean at six viewports because the injection had already fixed it. When the
+  symptom is that a measured value settles wrong, assert on
+  `getComputedStyle(el).transitionProperty` and on a same-task write-then-read
+  round trip (both deterministic here) rather than trusting a timed measurement.
 - **Webfonts must be local.** Chrome's headless sandbox has no network, so a Google Fonts
   `<link>` silently falls back and every text measurement is wrong. `curl` the CSS with a
   browser UA, download the woff2 files, and rewrite `src:` to absolute `file://` URLs.

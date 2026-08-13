@@ -532,7 +532,19 @@
   padding: 7px 6px 5px;
   border-radius: 0;
   border: 1.5px solid transparent;
-  transition: all var(--transition);
+  /* Colour only — **never `all`**, and never anything that touches the box.
+     `max-width` below is derived from `--plan-slot-w`, which `applyPlanSlotWidth()`
+     writes and then immediately verifies by reading `scrollHeight`. Under
+     `transition: all` that write took 0.22s to land, so the verify pass measured
+     the pitch still laid out at the *previous* card size: changing 4-3-3 (116px)
+     to a five-row shape (109px) left the rows mid-shrink and therefore taller
+     than the box, the loop read that as overflow and spent all 8 of its steps,
+     and the pitch stuck 8px small until the next formation change. Growing the
+     value, or rewriting the same one, never overflowed — which is exactly why
+     "change formation twice" looked like a fix. The pick board's `.pick-slot`
+     runs the same measure-then-verify routine and has never shown this, because
+     its transition has always been an explicit list. */
+  transition: background var(--transition), border-color var(--transition);
   min-width: 0;
   max-width: calc(var(--plan-slot-w, 82px) + 12px);
   flex: 1;
@@ -582,7 +594,11 @@
   justify-content: center;
   gap: 2px;
   color: rgba(44,207,117,0.22);
-  transition: all var(--transition);
+  /* Colour only, for the reason spelled out on `.pitch-slot` — this box carries
+     `max-width: var(--plan-slot-w)` too, so `all` animates the very dimension
+     the sizing pass measures. */
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), box-shadow var(--transition);
   background: transparent;
 }
 
@@ -691,7 +707,11 @@
   border-radius: 0;
   border: 1.5px solid transparent;
   cursor: pointer;
-  transition: all var(--transition);
+  /* Colour only, as on `.pitch-slot`. The bench is not measured — its
+     placeholders resolve `--plan-slot-w` to the 82px fallback, since the
+     variable is written on `#planPitch` and the bench sits outside it — but the
+     hazard is the same rule shape, so it keeps the same explicit list. */
+  transition: background var(--transition), border-color var(--transition);
   user-select: none;
 }
 
