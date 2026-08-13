@@ -632,22 +632,14 @@
   transition: background 0.16s ease, border-color 0.16s ease;
 }
 
+/* Solid green fill, **no tick glyph**. The box used to carry a rotated
+   near-black `::after` chevron; a dark mark inside a small accent-filled square
+   reads as a smudge at 14px rather than as a check. The filled box plus the
+   row's brightened text is the selected state. Its twin is in `catalog.css`
+   — the two panels are kept in visual sync. */
 .pos-ms-item.checked .pos-ms-check {
   background: var(--green);
   border-color: var(--green);
-}
-
-.pos-ms-item.checked .pos-ms-check::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: -1px;
-  width: 7px;
-  height: 11px;
-  border: 2px solid #06131c;
-  border-top: none;
-  border-left: none;
-  transform: rotate(45deg);
 }
 
 .filter-clear-btn {
