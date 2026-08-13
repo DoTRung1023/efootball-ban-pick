@@ -113,7 +113,14 @@
 
   /* ── Starting XI ── */
   .plan-xi-section { overflow: visible; padding: 12px 12px 10px; }
-  .pitch-row       { flex: 0 0 auto; }
+  /* `.pitch-row` keeps `flex: 1` here, as it has side by side. It was
+     `flex: 0 0 auto` for as long as `.plan-pitch` was auto-height when stacked:
+     rows had to size themselves or the pitch had no height at all. That left
+     them content-sized and packed against `flex-start`, so the whole squad hugged
+     the top of the field and every spare pixel piled up under the goalkeeper —
+     32px of dead turf at 390px wide, 140px in 5-3-2. The `aspect-ratio` below
+     gives the pitch a real height again, so the rows can share it evenly and the
+     keeper sits on his own goal line. */
   .pitch-rows      { gap: 6px; }
 
   /* `aspect-ratio` is what stops the pitch measuring itself. Stacked, the column

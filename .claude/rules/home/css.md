@@ -192,6 +192,18 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     unused width beside it. A declared shape gives the measurement a fixed box,
     and 3:4 is roughly a pitch: five-row formations now measure 104 px at 900 px
     wide, 89 at 620, 68 at 480, 51 at 390 and 38 at 320, none of them cropped.
+  - **`.pitch-row` keeps `flex: 1` when stacked**, exactly as side by side. It
+    was `flex: 0 0 auto` for as long as the pitch was auto-height — rows had to
+    size themselves or there was no height at all — which left them packed
+    against `flex-start`: the squad hugged the top of the field and every spare
+    pixel piled up under the goalkeeper. Measured at 390 px: 19 px of turf above
+    the front line against 32 px below the keeper, and **140 px** below him in
+    5-3-2, whose narrower cards make every row shorter. With the `aspect-ratio`
+    above supplying a real height the rows share it evenly again — headroom and
+    footroom now match within 2 px for all fifteen formations at 480 / 390 /
+    320 px. The room's pick pitch never had this: `.pick-pitch-rows` distributes
+    with `justify-content: space-evenly`, which is symmetric by construction
+    (measured 7/7 px at every width).
   - **≤600 px**: the modal goes full-bleed (`100vw` / `100dvh`, overlay padding 0) and
     pitch cards cap at 72 px.
 
