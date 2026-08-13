@@ -313,11 +313,15 @@ const SQUAD_POSITIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF"
 function updateSquadSortUI() {
   const cat     = SORT_CATEGORIES.find(c => c.key === squad.sortKey);
   const labelEl = document.getElementById("teamSortLabel");
-  const btn     = document.getElementById("teamSortBtn");
   const dirBtn  = document.getElementById("teamSortDirBtn");
   const dirIcon = document.getElementById("teamSortDirIcon");
   if (labelEl) labelEl.textContent = cat ? cat.label : "Sort";
-  if (btn) btn.classList.toggle("has-active", squad.sortKey !== "overall_max" || squad.sortDir !== "desc");
+  /* No `has-active` tint here, unlike the FILTER button beside it. A sort is
+     never invisible: this button prints the category and the arrow beside it
+     prints the direction, so a colour saying "not the default" is a third way
+     of stating what the control already reads out. FILTER earns its tint
+     because a closed panel shows nothing about what is set. The ban and pick
+     toolbars never had one. */
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
     dirIcon.textContent  = squad.sortDir === "desc" ? "↓" : "↑";

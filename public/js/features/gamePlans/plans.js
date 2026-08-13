@@ -603,11 +603,15 @@ function setPickerHint() {}
 function updatePpSortUI() {
   const cat     = SORT_CATEGORIES.find((c) => c.key === ppState.sortCategory);
   const lbl     = document.getElementById("ppSortLabel");
-  const btn     = document.getElementById("ppSortBtn");
   const dirBtn  = document.getElementById("ppSortDirBtn");
   const dirIcon = document.getElementById("ppSortDirIcon");
   if (lbl)     lbl.textContent = cat ? cat.label : "SORT";
-  if (btn)     btn.classList.toggle("has-active", ppState.sortCategory !== "overall_max" || ppState.sortDir !== "desc");
+  /* No `has-active` tint here, unlike the FILTER button beside it. A sort is
+     never invisible: this button prints the category and the arrow beside it
+     prints the direction, so a colour saying "not the default" is a third way
+     of stating what the control already reads out. FILTER earns its tint
+     because a closed panel shows nothing about what is set. The ban and pick
+     toolbars never had one. */
   if (dirBtn)  dirBtn.style.display  = "flex";
   if (dirIcon) dirIcon.textContent   = ppState.sortDir === "desc" ? "↓" : "↑";
   if (dirBtn) {

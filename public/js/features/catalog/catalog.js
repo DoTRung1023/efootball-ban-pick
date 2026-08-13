@@ -65,12 +65,16 @@ function toggleSortDir() {
 function updateSortUI() {
   const cat     = SORT_CATEGORIES.find((c) => c.key === catalog.sortCategory);
   const labelEl = document.getElementById("sortDropLabel");
-  const btn     = document.getElementById("sortDropBtn");
   const dirBtn  = document.getElementById("sortDirBtn");
   const dirIcon = document.getElementById("sortDirIcon");
 
   if (labelEl) labelEl.textContent = cat ? cat.label : "SORT";
-  if (btn)     btn.classList.toggle("has-active", catalog.sortCategory !== "overall_max" || catalog.sortDir !== "desc");
+  /* No `has-active` tint here, unlike the FILTER button beside it. A sort is
+     never invisible: this button prints the category and the arrow beside it
+     prints the direction, so a colour saying "not the default" is a third way
+     of stating what the control already reads out. FILTER earns its tint
+     because a closed panel shows nothing about what is set. The ban and pick
+     toolbars never had one. */
 
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
