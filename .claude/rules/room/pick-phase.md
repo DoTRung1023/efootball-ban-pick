@@ -374,3 +374,10 @@ add a `title` back to a card, in this file or `playerCards.js`.
   index into `picks`, holes and all, so an empty slot resolves to null and shows
   nothing. See `room/modules.md`.
 - CONFIRM PICKS is covered in its own section below.
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.

@@ -1,0 +1,88 @@
+/* ============================================================
+   TOKENS — the single source of colour, type, shape and motion.
+
+   Linked FIRST on every page, ahead of every other sheet. There is no
+   bundler, so the <link> order in each <head> *is* the cascade: a sheet
+   loaded before this one would be reading undefined variables.
+
+   Nothing outside this file declares a colour. If you need a value that
+   is not here, you are looking for the nearest rung that already exists.
+   ============================================================ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────────
+     Near-black, slightly cool. Depth is --bg-elevated sitting on --bg with
+     a 1px --border — never a shadow, never a gradient.                   */
+  --bg:          #0A0B0D;
+  --bg-elevated: #141619;
+  --bg-input:    #232629;
+  --border:      #26292E;
+
+  /* ── Accent ───────────────────────────────────────────────────────────
+     Volt green. At most ONE element per screen wears it, and it marks the
+     single most important thing — usually whose turn it is right now.
+     Text on top of it is always --on-accent, never white.                */
+  --accent:       #C9F73C;
+  --accent-hover: #D6FF55;
+  --on-accent:    #0A0B0D;
+
+  /* ── Status ───────────────────────────────────────────────────────────
+     Red is the only other hue in the system. It means banned/destructive
+     and nothing else; it is never used for emphasis.                     */
+  --danger:     #FF4D4F;
+  --text:       #FFFFFF;
+  --text-muted: #9AA0A6;
+
+  /* ── Shape ─────────────────────────────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-pill: 999px;
+
+  /* ── Neutral ladder ───────────────────────────────────────────────────
+     Everything that is not the one accent element is greyscale, so lines
+     and fills come from here. Four line rungs and three fill rungs; pick
+     the closest, do not invent an intermediate.                          */
+  --line-faint:  rgba(255, 255, 255, 0.05);  /* dividers, panel edges     */
+  --line-hover:  #33373D;                    /* hover borders             */
+  --line-active: #4A4F55;                    /* selected / focused        */
+  --fill-faint:  rgba(255, 255, 255, 0.02);  /* tint washes               */
+  --fill:        rgba(255, 255, 255, 0.04);  /* hover fills               */
+  --fill-strong: rgba(255, 255, 255, 0.08);  /* selected fills            */
+  --danger-line: rgba(255, 77, 79, 0.45);
+  --danger-fill: rgba(255, 77, 79, 0.12);
+  --scrim:       rgba(0, 0, 0, 0.72);        /* modal / overlay backdrops  */
+
+  /* ── Type ─────────────────────────────────────────────────────────────
+     One family. --font-display is the same stack under a role name: it
+     marks text that is set uppercase and tracked out (nav tabs, kickers,
+     badges, buttons), which is a typesetting choice, not a family.       */
+  --font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-main:    var(--font-body);
+  --font-display: var(--font-body);
+
+  /* ── Motion ───────────────────────────────────────────────────────────
+     150ms ease, hover states only. The turn timer is the one element
+     allowed an animation of its own.                                     */
+  --transition: 150ms ease;
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --topbar-h: 64px;
+  --nav-h:    64px;
+
+  /* ── Compatibility aliases ────────────────────────────────────────────
+     Role names the feature sheets already speak, pointed at the palette
+     above. They survive because the role survives — a card is still a
+     card. Prefer the canonical token in new code.                        */
+  --bg-card:       var(--bg-elevated);
+  --bg-card-hover: #1A1D22;
+  --bg-card-solid: var(--bg-elevated);   /* sticky headers: must be opaque */
+  --bg-field:      var(--bg-input);
+  --black:         #000000;
+
+  --surface-sunken:  var(--bg);          /* inset blocks inside a card     */
+  --surface-control: var(--bg-input);    /* inputs, steppers               */
+  --surface-card:    var(--bg-elevated); /* panel cards                    */
+  --surface-popover: var(--bg-elevated); /* dropdowns — opaque by rule     */
+
+  --text-dim: var(--text-muted);         /* the scale has two text colours */
+}

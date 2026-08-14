@@ -1,30 +1,36 @@
 /* ============================================================
    PLAYER GRID
    ============================================================ */
+/* Six across on desktop, three on tablet, two on phones — the rungs are the
+   home page's existing 768/480 ladder, see `home/css.md`. Fixed column counts
+   rather than auto-fill: the card art has a fixed aspect ratio, so a column
+   count that drifts with the viewport gives cards of a different size on every
+   screen. */
 .player-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
 }
 
 /* Player Card */
+/* No container box: the card art *is* the card. It sits directly on --bg with
+   a transparent outline that only appears on hover, so a grid of these reads
+   as artwork rather than as a wall of panels. */
 .player-card {
   position: relative;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 0;
   overflow: hidden;
   cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  transition: transform var(--transition), border-color var(--transition);
   display: flex;
   flex-direction: column;
 }
 
 .player-card:hover {
-  transform: translateY(-4px) scale(1.03);
-  border-color: rgba(44,207,117,0.55);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 20px rgba(44,207,117,0.18);
-  background: var(--bg-card-hover);
+  transform: scale(1.03);
+  border-color: var(--border);
   z-index: 5;
 }
 
@@ -45,25 +51,24 @@
 
 /* fallback when image fails */
 .pc-img-wrap.no-img {
-  background: rgba(44,207,117,0.06);
+  background: var(--fill);
 }
 
 .pc-img-wrap.no-img::after {
   content: attr(data-initial);
   font-family: var(--font-display);
-  font-size: 1.8rem;
+  font-size: 28.8px;
   font-weight: 700;
-  color: rgba(44,207,117,0.35);
+  color: var(--text-muted);
 }
 
 /* ── Skeleton ── */
 /* ── Card footer ── */
 .pc-footer {
-  padding: 8px 8px 9px;
+  padding: 8px 2px 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-top: 1px solid rgba(44,207,117,0.08);
   min-width: 0; /* allow ellipsis in grid flex children */
 }
 
@@ -84,16 +89,16 @@
 }
 
 .pc-footer-meta:not(.pmeta-in-card) span {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
 .pc-footer-meta.pmeta-in-card .pmeta-stack {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-muted);
   line-height: 1.35;
 }
 
@@ -118,8 +123,8 @@
 
 .player-card.skeleton {
   pointer-events: none;
-  border-color: rgba(44,207,117,0.08);
-  background: rgba(44,207,117,0.03);
+  border-color: var(--line-faint);
+  background: var(--fill-faint);
   animation: skelPulse 1.6s ease-in-out infinite;
 }
 
@@ -128,7 +133,7 @@
   display: block;
   width: 100%;
   aspect-ratio: 3/4;
-  background: rgba(44,207,117,0.06);
+  background: var(--fill);
 }
 
 .player-card.skeleton::after {
@@ -136,8 +141,8 @@
   display: block;
   height: 40px;
   margin: 7px 8px 8px;
-  background: rgba(44,207,117,0.05);
-  border-radius: 4px;
+  background: var(--fill);
+  border-radius: var(--radius-sm);
 }
 
 @keyframes skelPulse {
@@ -149,24 +154,23 @@
   display: block;
   width: 100%;
   padding: 14px;
-  background: rgba(44,207,117,0.05);
+  background: var(--fill);
   border: none;
-  border-top: 1px solid rgba(44,207,117,0.1);
+  border-top: 1px solid var(--line-faint);
   border-radius: 0;
-  color: var(--green-dim);
+  color: var(--text-muted);
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
 }
 
 .load-more-btn:hover {
-  background: rgba(44,207,117,0.12);
-  border-color: rgba(44,207,117,0.4);
-  color: var(--green);
-  box-shadow: 0 0 16px rgba(44,207,117,0.15);
+  background: var(--fill-strong);
+  border-color: var(--line-hover);
+  color: var(--text);
 }
 
 .load-more-btn:disabled {

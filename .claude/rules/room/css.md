@@ -47,7 +47,7 @@ this order:
 
 | Sheet | Holds |
 | --- | --- |
-| `base.css` | `:root` tokens, resets, pitch background, glow orbs |
+| `base.css` | resets and page scaffolding. The tokens live in `shared/tokens.css`; the pitch background and glow orbs were removed by the re-skin |
 | `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, Done, header bars |
 | `lobby.css` | top bar, matchup, settings panel, allowance builder, chat |
 | `ban.css` | ban board, ported "My Players" toolbar, player cards, right sidebar |
@@ -154,15 +154,15 @@ component is a hue swap, not a re-design:
 - `-glow-soft` → `-glow` — box-shadows
 - `-text` / `-text-dim` — accent-coloured text below full strength
 
-Also `--r-line|-line-hover|-fill|-fill-hover` (destructive), `--a-glow` (amber pulse),
+Also `--danger-line|-line-hover|-fill|-fill-hover` (destructive), `--fill` (amber pulse),
 `--text|-dim|-muted`, and `--surface-sunken|-control|-card` (recessed → raised).
 
 Deliberate exceptions that are *not* tokens: alphas above the ladder (a filled button
 gradient, a bright focus ring), `rgba(...,0)` keyframe endpoints, the blue-tinted
 surfaces in the draft view, and the purple/pink in the body's ambient background art.
 
-Keep `:root` free of dead tokens — `--panel`, `--panel-2`, `--green-dim`, `--cyan-dim`,
-`--purple-dim`, `--pink-dim` and `--red-dim` were all declared and never referenced, and
+Keep `:root` free of dead tokens — `--panel`, `--panel-2`, `--text-muted`, `--text-dim`,
+`--purple-dim`, `--pink-dim` and `--danger-dim` were all declared and never referenced, and
 have been removed.
 
 ## Single canonical rule block (hard rule)
@@ -415,14 +415,14 @@ Key blocks:
     flips `is-active`, so a marker in the HTML would have to be rebuilt each
     render. U+2713 is `Emoji_Presentation=No`, so it renders as a text glyph with
     no variation selector needed — unlike the fog emoji in `pickView.js`.
-- `.pick-pos-tabs` / `.pick-pos-tab` / `.is-active` — tab bar with `--cyan`
+- `.pick-pos-tabs` / `.pick-pos-tab` / `.is-active` — tab bar with `--text`
   accent on the active tab.
 - `.pick-phase-grid` — same `player-card` component as `.ban-phase-grid`, and
   the hover now matches it: `scale(1.04)` (no `translateY`, same anti-jitter
   reason) plus `border-color` + glow + `z-index: 30`, and in the **same green**.
   It was cyan, which split one gesture across two hues: you hovered a card in
   cyan and it turned green the instant you clicked it. Rest → hover → chosen is
-  now one ladder — `--g-line` `.18` → `--g-line-active` `.55` → full `--green`
+  now one ladder — `--border` `.18` → `--line-active` `.55` → full `--text`
   plus the ring — and it agrees with the hue table, since the pool is *your*
   squad and cyan means the opponent. The cyan still on this column
   (`.pick-phase-left`'s border, `.pick-pos-tab.is-active`) is chrome, not part
@@ -500,14 +500,14 @@ Key blocks:
     change one and change the other), and it only mitigates the clip. `inset: 0` cannot be clipped and
     cannot be mis-sized: it *is* the border box. The idle `::after` is
     `border: 2px solid transparent`, so only the colour transitions.
-  - The `.is-active` glow stays a `box-shadow` (`0 0 18px var(--g-glow)`) — soft
+  - The `.is-active` glow stays a `box-shadow` (`0 0 18px var(--fill)`) — soft
     enough that clipping it at a container edge is imperceptible, unlike a hard
     line missing on three sides.
   - **The `::after` ring is for `--filled` slots only.** A filled slot is bare
     artwork, so the ring *is* its outline. An empty one already draws a dashed
     border, and the ring landed just outside it: a solid green rectangle around a
     dashed rectangle, two outlines deep. `.pick-slot--empty.is-active` turns its
-    own border `--green` and keeps the glow — the same thing the game-plan pitch
+    own border `--text` and keeps the glow — the same thing the game-plan pitch
     does. Measured: `border-style: dashed`, `border-color: rgb(44,207,117)`,
     ring `rgba(0,0,0,0)`, and the filled slot's ring still green.
   - **One box for both states: `aspect-ratio: 240 / 339`.** That is the intrinsic
@@ -551,7 +551,7 @@ Key blocks:
     other end. **Green, not the pick board's cyan**: cyan means the opponent, and
     this is your choice.
     - **The ring is 2 px total, and it is drawn twice.** The card's own 1 px
-      border turns `--green` *and* a `box-shadow` spread sits outside it; the
+      border turns `--text` *and* a `box-shadow` spread sits outside it; the
       two are the same colour and touch, so they render as one band. The spread
       is therefore **1 px**, not 2 — at 2 px the band came to 3 px, half again
       as thick as the `.pick-slot::after` ring that means the same thing one
@@ -560,7 +560,7 @@ Key blocks:
       continuous stroke, and the second edge inside it belongs to the pesdb
       artwork. Screenshot the card magnified before changing this — the
       arithmetic is easy to get wrong and impossible to see at 1×.
-  - **`.pick-pitch-wrap` styles its own scrollbar** (4 px, `--g-fill-strong`
+  - **`.pick-pitch-wrap` styles its own scrollbar** (4 px, `--fill-strong`
     thumb, `scrollbar-width: thin`) like every other scroller on the page. Left
     to the OS default it lands as a wide light slab over the right-hand column of
     slots. Green, because this is your side of the board.
@@ -572,9 +572,9 @@ Key blocks:
   just smaller (52 × 74 at 1440 px). `.pick-bench-head` holds the title alone —
   there is **no count**, because twelve visible rectangles already say what
   "1/12" said.
-- `.pick-slot-remove` is solid `--red` with a white glyph and a drop shadow,
+- `.pick-slot-remove` is solid `--danger` with a white glyph and a drop shadow,
   matching `.pitch-remove-btn` on the home game-plan pitch, and `z-index: 3` to
-  clear `.pick-slot::after`. It was `--r-fill` — 10% alpha over card art, which
+  clear `.pick-slot::after`. It was `--danger-fill` — 10% alpha over card art, which
   is very nearly invisible. Still hover-revealed, as on the home page, and it
   still needs the `@media (hover: none)` block.
 - `.pick-bottom-bar` / `.pick-allowance-bar` / `.pick-allowance-pill` /
@@ -724,7 +724,7 @@ prefix, just in the other direction.)
 
 Prefixed, the hover rules jumped to (0,4,0) / (0,5,0) and started winning. The
 symptom, reported from the pick board: click an empty slot and it flashed its
-full-green selected border for a frame, then dropped back to `--g-line-hover`
+full-green selected border for a frame, then dropped back to `--line-hover`
 as soon as the pointer registered on the rebuilt element — a two-step where the
 game-plan pitch changes once. The chosen pool card lost its green ring to the
 grid's cyan the same way. `:where()` contributes zero specificity, so the
@@ -742,8 +742,8 @@ That × is `display`, not `opacity`, because `@media (hover: none)` pins it to
 clickable and still in the tab order.
 
 **`.grid-lock-note`** (in `shell.css`, since both phases use it) is the banner
-above each grid: one line of 10px text, `--g-fill` on `--g-line`, with the
-UN-CONFIRM in `<strong>` at full `--green`. **No icon** — a padlock glyph was
+above each grid: one line of 10px text, `--fill` on `--border`, with the
+UN-CONFIRM in `<strong>` at full `--text`. **No icon** — a padlock glyph was
 tried and cut; the sentence already says the word. Green because the hue table gives
 green to *confirmed*; the amber "waiting on someone" fact is a different one and
 already has `.ban-status-hint` / `.pick-confirm-hint`.
@@ -804,11 +804,11 @@ side by side, every state of an empty box, on both:
 
 | | `.pitch-slot.empty` (home) | `.pick-slot--empty` (room) |
 | --- | --- | --- |
-| rest | dashed, `.22` border, no fill | dashed, `--g-line`, `--g-fill-faint` |
-| hover | dashed, `.45`, `.05` fill | dashed, `--g-line-hover`, `--g-fill` |
+| rest | dashed, `.22` border, no fill | dashed, `--border`, `--fill-faint` |
+| hover | dashed, `.45`, `.05` fill | dashed, `--line-hover`, `--fill` |
 | chosen | dashed **full green** + glow | dashed **full green** + glow |
-| chosen + hover | dashed `.45`, **glow stays** | dashed `--g-line-hover`, **glow stays** |
-| placing | **solid** `.45`, glyphs `.7` | **solid** `--g-line-hover`, glyphs `--g-text` |
+| chosen + hover | dashed `.45`, **glow stays** | dashed `--line-hover`, **glow stays** |
+| placing | **solid** `.45`, glyphs `.7` | **solid** `--line-hover`, glyphs `--text` |
 
 Only the rungs differ, and they have to: the home sheet writes raw alphas, the
 room sheet may only use the ladder. The **transitions** are identical, and those
@@ -838,3 +838,10 @@ selected look for one frame and then fell into its hovered one — the reported
 "bright box with a green rectangle, then the glow" two-step. `selectPlanSlot`
 on the home page has never had it, because it toggles the class over the
 elements already on screen.
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.

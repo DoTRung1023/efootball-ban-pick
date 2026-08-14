@@ -29,23 +29,15 @@
 
 .pitch-field {
   position: relative;
-  border-radius: var(--radius, 10px);
+  border-radius: var(--radius);
 
-  /* Background art, not UI — the same standing the pages' ambient gradients
-     have, and the reason these are not rungs on the green ladder. Every one is
-     mixed from `--green` rather than written as three more `rgba()` greens, so
-     the turf still follows the accent.
-
-     The turf mixes into **black, not `--bg`**: `--bg` is #0b1b29, and its blue
-     is a floor no amount of green can get under — mixed against it the pitch
-     came out teal at every ratio worth trying. Against black the same accent
-     reads as grass, which is what a pitch has to look like.
-
-     `--green` and `--border` are tokens *both* pages declare; the room's `--g-*`
-     ladder is not, and that is what a sheet shared by both pages has to work
-     from. */
-  --pf-turf: color-mix(in srgb, var(--green) 12%, #000);
-  --pf-mow: color-mix(in srgb, var(--green) 4%, transparent);
+  /* Background art, not UI. The turf used to be `--green` mixed into black —
+     the accent had to read as grass. It does not any more: the re-skin gives
+     the accent exactly one job per screen (DESIGN.md §3.2), and a whole pitch
+     wearing it would be the loudest thing on the page. So the turf is flat
+     `--bg` with `--fill-faint` mow stripes, and the markings carry the shape. */
+  --pf-turf: var(--bg);
+  --pf-mow: var(--fill-faint);
   --pf-line: var(--border);
 
   background: var(--pf-turf);
@@ -58,11 +50,7 @@
   pointer-events: none;
   border-radius: inherit;
   overflow: hidden;
-  background: repeating-linear-gradient(
-    180deg,
-    var(--pf-mow) 0 10%,
-    transparent 10% 20%
-  );
+  background: repeating-var(--pf-mow);
 }
 
 /* Touchlines, inset so their corners do not sit on the panel's radius. */

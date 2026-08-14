@@ -11,8 +11,9 @@
     <link rel="icon" href="/logo/logo.png" type="image/png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <!-- Grouped by concern. base first (tokens), responsive last (overrides). -->
+    <link rel="stylesheet" href="/css/shared/tokens.css" />
     <link rel="stylesheet" href="/css/features/draft/base.css" />
     <link rel="stylesheet" href="/css/shared/numberInput.css" />
     <link rel="stylesheet" href="/css/shared/playerHoverCard.css" />
@@ -23,17 +24,12 @@
     <link rel="stylesheet" href="/css/features/draft/pick.css" />
     <link rel="stylesheet" href="/css/features/draft/ready.css" />
     <link rel="stylesheet" href="/css/features/draft/responsive.css" />
+    <link rel="stylesheet" href="/css/shared/controls.css" />
   </head>
   <body>
-    <div class="pitch-bg" aria-hidden="true">
-      <div class="pitch-lines"></div>
       <div class="pitch-center-circle"></div>
       <div class="pitch-halfway"></div>
     </div>
-    <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
-    <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
-    <div class="glow-orb glow-orb-3" aria-hidden="true"></div>
-    <div class="glow-orb glow-orb-4" aria-hidden="true"></div>
 
     <!-- Error -->
     <div id="viewError" class="view view--fullscreen" hidden>

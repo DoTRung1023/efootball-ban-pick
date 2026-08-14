@@ -148,7 +148,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 480px) {
-  .stage-dot-label { font-size: 9px; letter-spacing: 0.02em; }
+  .stage-dot-label { font-size: 12px; letter-spacing: 0.02em; }
 
   /* Two columns of cards rather than one oversized one. */
   .ban-phase-grid {

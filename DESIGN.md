@@ -8,311 +8,268 @@ in `public/css/`. When you add UI, pick from these tokens. When you think you ne
 value that is not here, you are almost always looking for the nearest rung that already
 exists.
 
-**Palette provenance:** the two anchors come from a huemint monochrome palette —
-background `#0b1b29`, accent `#2ccf75`
-(`https://huemint.com/website-monochrome/#palette=0b1b29-2ccf75`). Every other neutral is
-derived from the background by lightness, and every green is derived from the accent, so
-the whole dark ladder moves together if the anchors ever change. The semantic hues
-(cyan / amber / red / gold, §3.2) are deliberately *not* derived from the anchors: they
-encode meaning, not brand.
+**Provenance:** the palette and the rules in §3 are modelled on
+[efhub.com](https://efhub.com) — near-black cool surfaces, one volt-green accent used
+sparingly, everything else greyscale, depth from a raised surface plus a hairline rather
+than from shadow.
+
+> **This replaced a deep-navy-and-emerald theme.** If you find navy (`#0b1b29`), emerald
+> (`#2ccf75`), cyan (`#35d6ff`), Orbitron, glass blur, or a green/cyan alpha ladder
+> anywhere, it is a leftover — not a second style to match. Every one of those was
+> removed; see §12.
 
 ---
 
 ## 1. Identity
 
-**eFootball Ban & Pick — deep navy pitch + emerald.** A dark competitive-esports HUD:
-a deep navy background (`#0b1b29`) with a faint drawn football pitch, emerald primary
-accents (`#2ccf75`), cyan for the opponent, glass panels with blurred backdrops, neutral
-type with wide uppercase tracking on labels, and glow instead of drop-shadow as the main
-depth cue.
+**Near-black surfaces, one volt-green accent.** A flat, quiet, high-contrast dark UI:
+cool near-black panels separated by hairlines, white type, a single lime-green mark per
+screen pointing at the one thing that needs attention.
 
 Style rules that define the look:
 
 - **Dark only.** There is no light theme and no `prefers-color-scheme` branch. Do not add
-  one; every surface assumes a deep navy backdrop.
-- **Glow, not shadow.** Depth comes from coloured `box-shadow` halos on accent elements
-  plus a large soft black shadow on raised panels. Grey material-style elevation is off-brand.
-- **Colour carries meaning** (see §3). Green is never "just decoration" — it means *you*.
-- **Glass surfaces.** Panels are translucent dark fills over the ambient background, often
-  with `backdrop-filter: blur(20px)`. Two exceptions, both because there is live content
-  directly behind them rather than backdrop art: sticky surfaces need the opaque
-  `--bg-card-solid`, and floating panels — dropdowns, popovers — need
-  `--surface-popover`. A menu you can read the page through is unreadable, not layered.
-- **Wide-tracked uppercase display type** for anything label-like: nav tabs, kickers,
-  buttons, stage names, badges.
+  one.
+- **The accent is a pointer, not decoration.** At most one element per screen wears
+  `--accent`, and it marks the single most important thing — usually what the user has to
+  act on right now. Everything else is greyscale.
+- **Never white text on the accent.** `--on-accent` (near-black) only. White on
+  `#C9F73C` measures **1.25:1**, which is unreadable; `--on-accent` measures 15.80:1.
+- **Flat surfaces.** No gradients, no glows, no drop shadows, no backdrop blur. Depth is
+  `--bg-elevated` sitting on `--bg` plus a 1px `--border`. That is the whole elevation
+  system.
+- **Two text colours.** `--text` and `--text-muted`. There is no third rung.
+- **Motion is for hover only**, 150ms ease. The turn timer is the one element allowed an
+  animation of its own.
 
 ---
 
 ## 2. Where the tokens live
 
-Four independent `:root` blocks, one per page bundle. They are intentionally duplicated
-(no build step, no shared stylesheet), so **a token change must be applied to every block
-that declares it.**
+**One file: `public/css/shared/tokens.css`.** It is linked *first* on all four pages,
+ahead of every other sheet. There is no bundler, so the `<link>` order in each `<head>`
+**is** the cascade — a sheet loaded before `tokens.css` would read undefined variables.
 
-| File | Scope | Notes |
-| --- | --- | --- |
-| `public/css/pages/home/base.css` | home page | declares `--radius: 10px`, `--topbar-h: 62px` |
-| `public/css/features/draft/base.css` | room page | the richest block — hue *ladders* (§3.2); no `--radius` |
-| `public/css/features/admin/admin.css` | admin | home's block + `--cyan/--red/--yellow`, `--nav-h: 56px` |
-| `public/css/features/auth/auth.css` | sign-in | home's block + `--bg-field`, `--radius: 12px`, `--transition: 0.25s` |
+Nothing else in the codebase declares a colour. Not the feature sheets, not the page
+sheets, not the JS. There is no hex literal outside this file.
+
+`public/css/shared/controls.css` is the companion, linked **last** (on the home page,
+just ahead of `responsive.css`, which still has the final word). It holds the two
+cross-cutting rules that have to win over feature CSS: the focus ring and the text-input
+treatment. Several feature sheets set `outline: none` on `:focus`, so the ring is written
+as `:focus-visible` — one class-weight heavier — and lands anyway.
 
 The room page's CSS is seven sheets, not one — `base / shell / lobby / ban / pick /
 ready / responsive` under `public/css/features/draft/`, linked in that order. Where the
-rest of this document says **`draft.css`** it means that set; `base.css` is the sheet
-that carries the `:root` block. The component map is in `.claude/rules/room/css.md`.
-
-**Known divergence to respect, not "fix" blindly:** home/admin/signin use solid navy-tinted text
-(`--text: #e7f0f6`, `--text-dim: #8aa5b8`); `draft.css` uses a white-alpha ladder
-(`rgba(255,255,255,0.92 / .45 / .28)`). Both read correctly on their own backgrounds.
-`draft.css` deliberately re-declares `--bg-card`, `--bg-card-hover` and `--transition` with
-home's values so shared components (`.player-card`) match across pages.
+rest of this document says **`draft.css`** it means that set. The component map is in
+`.claude/rules/room/css.md`.
 
 ---
 
 ## 3. Colour
 
-### 3.1 Base palette
+### 3.1 The palette
 
-```
-Green (primary / you)   #2ccf75     Green dim  #22b063     Green dark  #14663a
-Cyan (opponent)         #35d6ff     (admin/signin use #00e5ff)
-Amber (pending)         #f2c14e
-Red (destructive)       #ff4444     (admin uses #ff5252)
-Gold (achievement)      #ffd700     (admin --yellow #ffd740)
-Background              #0b1b29     Black #061119
-Text                    #e7f0f6     Dim #8aa5b8          (home/admin/signin)
-Text                    rgba(255,255,255,.92) / .45 / .28  (room)
+```css
+:root {
+  /* surfaces — near-black, slightly cool */
+  --bg:          #0A0B0D;
+  --bg-elevated: #141619;
+  --bg-input:    #232629;
+  --border:      #26292E;
+
+  /* accent — volt green, one element per screen */
+  --accent:       #C9F73C;
+  --accent-hover: #D6FF55;
+  --on-accent:    #0A0B0D;
+
+  /* status */
+  --danger:     #FF4D4F;
+  --text:       #FFFFFF;
+  --text-muted: #9AA0A6;
+}
 ```
 
 ### 3.2 Hue meaning — hard rule
 
-Each hue carries exactly one meaning, everywhere:
+Three colours carry meaning; nothing else carries any.
 
-| Hue | Means |
+| Colour | Means |
 | --- | --- |
-| green | you / your side / primary action / confirmed |
-| cyan | the opponent / incoming |
-| amber | pending, waiting on someone |
-| red | destructive only (close room, kick, leave) |
-| gold | achievement (Start Match stats) |
+| `--accent` | the one thing to act on now (whose turn, the primary CTA, a focused field) |
+| `--danger` | banned, or destructive (close room, kick, leave, delete) |
+| greyscale | everything else, including *you* vs *the opponent* |
 
-Never use red for emphasis, or green for a destructive action.
+Never use `--danger` for emphasis, and never let a second element on the same screen take
+the accent. **"You" and "the opponent" are not colour-coded** — the old theme used green
+for you and cyan for them; both are greyscale now and the label does the work.
 
-### 3.3 Accent ladders (`draft.css`)
+### 3.3 The neutral ladder
 
-**Never write a raw `rgba()` for green, cyan, red, amber, a light text colour, or a dark
-panel surface — use the token.** The file once carried 26 alphas of the same green;
-~340 literals were snapped onto this ladder and it must not drift back. Adding an
-intermediate rung is how the drift starts: pick the closest existing one.
+Everything that is not the accent element is greyscale, so lines and fills come from
+here. **Never write a raw `rgba()`** — pick the closest rung.
 
 ```css
 :root {
-  --green: #2ccf75;
-  --cyan: #35d6ff;
-  --amber: #f2c14e;
-  --red: #ff4444;
-  --gold: #ffd700;
+  --line-faint:  rgba(255, 255, 255, 0.05);  /* dividers, panel edges     */
+  --border:      #26292E;                    /* control borders           */
+  --line-hover:  #33373D;                    /* hover borders             */
+  --line-active: #4A4F55;                    /* selected / focused        */
 
-  /* green ladder — one rung per role */
-  --g-line-faint: rgba(44, 207, 117, 0.1);     /* panel edges, dividers      */
-  --g-line: rgba(44, 207, 117, 0.18);          /* control borders            */
-  --g-line-hover: rgba(44, 207, 117, 0.34);    /* hover borders              */
-  --g-line-active: rgba(44, 207, 117, 0.55);   /* selected / focused borders */
-  --g-fill-faint: rgba(44, 207, 117, 0.03);    /* tint washes                */
-  --g-fill: rgba(44, 207, 117, 0.07);          /* hover fills                */
-  --g-fill-strong: rgba(44, 207, 117, 0.14);   /* selected fills             */
-  --g-glow-soft: rgba(44, 207, 117, 0.1);      /* resting shadow             */
-  --g-glow: rgba(44, 207, 117, 0.22);          /* active shadow              */
-  --g-text: rgba(44, 207, 117, 0.72);          /* green text below full      */
-  --g-text-dim: rgba(44, 207, 117, 0.45);      /* muted green text           */
+  --fill-faint:  rgba(255, 255, 255, 0.02);  /* tint washes               */
+  --fill:        rgba(255, 255, 255, 0.04);  /* hover fills               */
+  --fill-strong: rgba(255, 255, 255, 0.08);  /* selected fills            */
 
-  /* cyan ladder — identical rungs, so an opponent-side component is a hue
-     swap, not a re-design */
-  --c-line-faint: rgba(53, 214, 255, 0.1);
-  --c-line: rgba(53, 214, 255, 0.18);
-  --c-line-hover: rgba(53, 214, 255, 0.34);
-  --c-line-active: rgba(53, 214, 255, 0.55);
-  --c-fill-faint: rgba(53, 214, 255, 0.03);
-  --c-fill: rgba(53, 214, 255, 0.07);
-  --c-fill-strong: rgba(53, 214, 255, 0.14);
-  --c-glow-soft: rgba(53, 214, 255, 0.1);
-  --c-glow: rgba(53, 214, 255, 0.22);
-  --c-text: rgba(53, 214, 255, 0.72);
-  --c-text-dim: rgba(53, 214, 255, 0.45);
-
-  /* destructive + pending */
-  --r-line: rgba(255, 68, 68, 0.42);
-  --r-line-hover: rgba(255, 68, 68, 0.78);
-  --r-fill: rgba(255, 68, 68, 0.1);
-  --r-fill-hover: rgba(255, 68, 68, 0.18);
-  --a-glow: rgba(242, 193, 78, 0.45);
-
-  /* text ladder */
-  --text: rgba(255, 255, 255, 0.92);
-  --text-dim: rgba(255, 255, 255, 0.45);
-  --text-muted: rgba(255, 255, 255, 0.28);
-
-  /* surfaces, recessed → raised */
-  --surface-sunken: rgba(6, 17, 26, 0.5);      /* inset blocks inside a card */
-  --surface-control: rgba(10, 27, 43, 0.7);    /* inputs, steppers           */
-  --surface-card: rgba(8, 21, 32, 0.84);       /* panel cards                */
-  --surface-popover: rgba(9, 23, 36, 0.97);    /* dropdowns — near-opaque    */
-  --border: var(--g-line);
+  --danger-line: rgba(255, 77, 79, 0.45);
+  --danger-fill: rgba(255, 77, 79, 0.12);
+  --scrim:       rgba(0, 0, 0, 0.72);        /* modal / overlay backdrops */
 }
 ```
 
-Home / admin / signin block:
+State convention on an interactive surface: rest `--border` + no fill → hover
+`--line-hover` + `--fill` → selected `--line-active` + `--fill-strong`. No glow at any
+step.
+
+### 3.4 Role aliases
+
+Names the feature sheets already speak, pointed at the palette. They survive because the
+*role* survives — a card is still a card. Prefer the canonical token in new code.
 
 ```css
-:root {
-  --green: #2ccf75;
-  --green-dim: #22b063;
-  --green-dark: #14663a;
-  --green-glow: rgba(44, 207, 117, 0.35);
-  --green-glow-sm: rgba(44, 207, 117, 0.15);
-  --black: #061119;
-  --bg: #0b1b29;
-  --bg-card: rgba(11, 31, 49, 0.82);
-  --bg-card-hover: rgba(16, 44, 69, 0.92);
-  --bg-card-solid: #0a1a27;   /* opaque — required for sticky headers */
-  --border: rgba(44, 207, 117, 0.18);
-  --border-active: rgba(44, 207, 117, 0.7);
-  --text: #e7f0f6;
-  --text-dim: #8aa5b8;
-}
+--bg-card / --bg-card-solid / --surface-card / --surface-popover  →  --bg-elevated
+--bg-card-hover                                                  →  #1A1D22
+--bg-input / --bg-field / --surface-control                      →  --bg-input
+--surface-sunken                                                 →  --bg
+--text-dim                                                       →  --text-muted
 ```
 
-**Deliberate non-token exceptions:** alphas above the ladder (filled-button gradients,
-bright focus rings), `rgba(...,0)` keyframe endpoints, the blue-tinted draft-view
-surfaces, and the purple/pink in the ambient background art (`#b36bff`, `#ff4fd8`) —
-that is background art, not UI colour.
+`--surface-popover` and `--bg-card-solid` both resolve to `--bg-elevated`, which is
+opaque — that is the point. Sticky headers and floating panels sit over live content, and
+a menu you can read the page through is unreadable, not layered.
 
-Keep `:root` free of dead tokens. `--panel`, `--panel-2`, `--green-dim`, `--cyan-dim`,
-`--purple-dim`, `--pink-dim`, `--red-dim` were declared, never referenced, and removed.
+### 3.5 Contrast — measured
+
+Every pair below was computed from the hex values, not eyeballed. The floor is 4.5:1.
+
+| on → | `--bg` | `--bg-elevated` | `--bg-input` |
+| --- | --- | --- | --- |
+| `--text` | 19.69 | 18.13 | 15.21 |
+| `--text-muted` | 7.46 | 6.86 | 5.76 |
+| `--danger` | 6.03 | 5.55 | 4.65 |
+| `--accent` | 15.80 | 14.55 | 12.21 |
+
+Worst body-text pair in the system: **5.76:1**. Do not lighten a background or darken
+`--text-muted` without re-running the numbers.
 
 ---
 
 ## 4. Typography
 
 ```css
---font-body:    'Inter', system-ui, sans-serif;      /* --font-main on home/admin/signin */
---font-display: 'Orbitron', 'Inter', sans-serif;
+--font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
+--font-main:    var(--font-body);
+--font-display: var(--font-body);
 ```
 
-Loaded from Google Fonts in all four HTML files: `Inter:wght@400;500;600;700;800` and
-`Orbitron:wght@400;600;700;900`.
+**One family.** Inter, loaded from Google Fonts in all four HTML files at
+`wght@400;500;600;700;800`. Orbitron is gone.
 
-- **Orbitron (`--font-display`)** — brand marks, nav tabs, buttons, kickers, stage labels,
-  badges, numbers that should read as a scoreboard. Always paired with uppercase and wide
-  tracking. Never for paragraphs.
-- **Inter (`--font-body`)** — everything else, including player names and inputs.
+`--font-display` is the same stack under a role name. It marks text that is set uppercase
+and tracked out — nav labels, kickers, badges — which is a typesetting choice, not a
+family. Keeping the name keeps that intent legible in the CSS.
 
-**Weights.** 700 is the workhorse; 600 for secondary labels, 800 for primary buttons,
-900 for the brand mark, 400–500 for body copy and dropdown items.
+**Size scale.** Five rungs, all in px. `rem` sizing is gone; every declaration was
+converted and snapped to the nearest rung.
 
-**Inter is not condensed.** It replaced Rajdhani, which was — at the same px size Inter
-sets **~18% wider** (measured: 184.2 px vs 156.4 px for a 28-character name at 13px/600).
-Every existing size and tracking value was kept, so if you add a fixed-width control that
-holds text, check it at 320 px before assuming it fits.
+| px | Role |
+| --- | --- |
+| 12 | small labels, captions, badges — with `--text-muted`, uppercase, `0.05em` |
+| 14 | body, list rows, buttons, inputs, toasts |
+| 15 | nav links |
+| 20 | page and section headings |
+| 22 | logo / app name (weight 800, `letter-spacing: -0.02em`) |
 
-**Size scale.** Two conventions coexist: `draft.css` sizes mostly in **px**, the home
-bundle and `auth.css` size in **rem**. Follow the file you are editing.
+Above 22px is **display numerals only** — the turn clock at 32px, the Start Match stats.
+Those are deliberate one-offs, not a sixth rung; do not size body text there.
 
-| Role | px (room) | rem (home) |
-| --- | --- | --- |
-| micro label / badge | 9–10px | 0.58–0.65rem |
-| control label, nav tab | 11–12px | 0.68–0.72rem |
-| body, list row | 13px | 0.8–0.85rem |
-| button, emphasis | 14–15px | 0.88–0.95rem |
-| section title | 16–18px | 1–1.05rem |
+**Weights.** 400 body · 500 nav links and captions · 600 emphasis and player names ·
+700 headings, buttons and the clock · 800 the logo.
 
-**Tracking.** Uppercase display text is always tracked out. Ladder in use:
-`0.02 / 0.04 / 0.06 / 0.08 / 0.1 / 0.12 / 0.15 / 0.18 / 0.2 / 0.25em` — roughly, the
-smaller the text, the wider the tracking. A 0.5rem kicker sits at `0.25em`; a 14px button
-at `0.06em`. Body copy stays at 0 or `0.02em`.
+**Tracking.** `0.05em` on uppercase labels, `-0.02em` on the logo, `0` everywhere else.
+The old ladder went out to `0.25em`; every value above `0.05em` was clamped. Do not track
+out body copy.
 
 ---
 
 ## 5. Shape
 
-Radii in use, smallest to largest — pick the closest, do not invent between:
-
 | Value | Used for |
 | --- | --- |
-| `0` | **player cards** (`.player-card`, ban thumbs) — square by design, do not round |
-| `2–4px` | tiny chips, progress bars, inline tags |
-| `6–7px` | inputs, small buttons, nav tabs, dropdown items |
-| `8px` | `.btn`, most controls — the default |
-| `10px` | cards, dropdown panels (`--radius` on home/admin) |
-| `12px` | modals, larger cards (`--radius` on signin) |
-| `14–18px` | big panels (`.draft-panel` is 18px) |
-| `20px` | hero / full-bleed sheets |
-| `50%` / `999px` | avatars, dots, timer ring, pills, scrollbar thumb |
+| `0` | **player cards** — square by design, do not round |
+| `--radius-sm` (6px) | small chips, badges, inline tags |
+| `--radius` (8px) | the default — cards, panels, buttons, modals, toasts |
+| `--radius-pill` (999px) | search inputs, filter chips, the primary CTA, dots, avatars |
+
+Three values plus zero. The old scale had ten; if you reach for 10, 12, 14 or 18px, you
+want `--radius`.
 
 ---
 
 ## 6. Spacing
 
-Base rhythm is **2px, with a strong 4px preference**. Observed gap frequency:
-`8 > 10 > 6 > 12 > 4 > 7 > 14 > 16 > 20 > 24`.
+- **40px** between major sections.
+- **16px** gap inside a grid.
+- **12–16px** padding inside a card or panel.
+- 6–8px inside a control, 10–12px between controls.
 
-- **Component gap:** 6–8px inside a control, 10–12px between controls, 14–16px between
-  sections, 20–24px between page regions.
-- **Control padding:** `7px 10px` / `6px 12px` (small), `8px 12px` / `10px 14px`
-  (medium), `10px 24px` (`.btn`).
-- **Panel padding:** 12–16px (`.draft-panel` is 14px); modals 22–28px.
-- Layout is flex/grid + `gap` throughout. Margins are for exceptions, not rhythm.
+Layout is flex/grid + `gap` throughout. Margins are for exceptions, not rhythm.
 
-Layout constants: `--topbar-h: 62px` (home), `--nav-h: 56px` (admin),
+Layout constants: `--topbar-h: 64px` (home), `--nav-h: 64px` (admin),
 `.main-content { max-width: 1400px; margin: 0 auto }`.
 
 ---
 
-## 7. Elevation & glow
+## 7. Elevation
 
-Three stacked effects, applied together:
+There is no elevation system beyond this:
 
 ```css
-/* raised panel: soft black lift + hairline inset */
-box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
-
-/* floating surface (dropdown, modal) */
-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(44, 207, 117, 0.05);
-
-/* accent halo — resting vs active */
-box-shadow: 0 0 8px rgba(44, 207, 117, 0.14);   /* or 0 0 0 2px var(--g-glow-soft) */
-box-shadow: 0 0 12px var(--g-glow);
-
-/* primary button */
-box-shadow: 0 10px 26px rgba(44, 207, 117, 0.28), 0 0 0 1px rgba(44, 207, 117, 0.08) inset;
+/* every raised surface, from a card to a modal */
+background: var(--bg-elevated);
+border: 1px solid var(--border);
+border-radius: var(--radius);
 ```
 
-Glass: `backdrop-filter: blur(20px)` on the topbar, `blur(24px)` on dropdowns — always
-with the `-webkit-` prefix alongside.
+No `box-shadow`. No `backdrop-filter`. No gradient. The only `box-shadow` allowed is a
+zero-offset, zero-blur ring used to draw a hairline that a `border` cannot
+(`box-shadow: 0 0 0 1px var(--line-active)`), and the only gradient left in the codebase
+is the `conic-gradient` on the turn clock, which encodes progress.
 
-Ambient backdrop (do not remove; it is the brand): fixed `.pitch-bg` with `.pitch-lines`,
-`.pitch-halfway`, `.pitch-center-circle` at `rgba(44,207,117,0.04)`, plus three blurred
-`.glow-orb`s (`filter: blur(120px)`) drifting on a 12–20s `orbFloat` keyframe. `draft.css`
-adds four radial gradients on `body` (cyan, green, purple, pink) as ambient art.
+The ambient background art is gone — no `.pitch-bg`, no `.glow-orb`, no drifting
+particles, no radial washes on `body`. Pages sit on a flat `--bg`. The football pitch
+markings in `shared/pitchField.css` stay, because that component *is* a pitch, but its
+turf is now `--bg` with `--fill-faint` mow stripes.
 
 ---
 
 ## 8. Motion
 
 ```css
---transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);   /* 0.25s on signin */
+--transition: 150ms ease;
 ```
 
-Use `var(--transition)` and name the properties — never `transition: all`. Fast
-interaction feedback uses `0.16s ease` (transform) / `0.2s ease` (colour, shadow).
+Use `var(--transition)` and name the properties — never `transition: all`.
 
-- Hover on a card: `transform: scale(1.04)` **only**. Never add `translateY` to a grid
-  card — it moves the bottom edge off the cursor and the hover state loops. (See
-  `.claude/rules/room/css.md`.)
-- Hover on a button: `translateY(-1px)` + brighter shadow; `:active` returns to 0.
-- Dropdowns: `opacity` + `translateY(6px) scale(0.97)` → `translateY(0) scale(1)`.
-- Pulses (live dot, amber "waiting") are 1.5–2s `ease-in-out infinite`.
+- **Hover only.** No entrance animations, no reveals, no shine sweeps.
+- Hover on a grid card: `transform: scale(1.03)` + a 1px `--border` outline. **Nothing
+  else** — never add `translateY` to a grid card, it moves the bottom edge off the cursor
+  and the hover state loops.
+- Hover on a button: a colour change. No lift, no shadow, no `filter: brightness()`.
 - `:disabled` is `opacity: 0.5; cursor: not-allowed` — never a colour change.
+- **Two exceptions, both opacity-only, both conveying live state rather than decorating:**
+  the turn timer (under `LOW_TIME_SECONDS` the digits pulse for 1s, infinitely) and the
+  live-status dots (`dotPulse` in `admin.css`, `lsPulse` in `lobby.css`, both
+  `1 → 0.7 → 1`). Opacity only — no scale, no colour flashing, no ring.
 
 ---
 
@@ -321,62 +278,77 @@ interaction feedback uses `0.16s ease` (transform) / `0.2s ease` (colour, shadow
 Copy these rather than inventing a variant.
 
 ```css
-/* base button — 8px radius, glass fill, green hairline */
+/* base button */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(44, 207, 117, 0.22);
-  background: linear-gradient(180deg, rgba(17, 47, 72, 0.92), rgba(14, 39, 61, 0.9));
-  color: rgba(244, 252, 255, 0.96);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
   padding: 10px 24px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-family: var(--font-body); font-weight: 600; font-size: 14px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(44, 207, 117, 0.05) inset;
+  transition: background var(--transition), border-color var(--transition);
 }
 
-/* primary — the only saturated fill in the system */
-.btn--primary {
-  background: linear-gradient(135deg, #22b063 0%, #2ccf75 58%, #6ee6a4 100%);
-  color: #06131c;                 /* near-black on green, never white */
-  border-color: transparent;
-  font-family: var(--font-display); font-weight: 800; letter-spacing: 0.06em;
+/* primary CTA — accent, pill, near-black label. ONE per screen. */
+.rooms-create-cta {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 14px; font-weight: 700; letter-spacing: 0.05em;
 }
+.rooms-create-cta:hover { background: var(--accent-hover); }
 
-.btn--ghost { /* cyan-tinted secondary */ }
-.btn--small { padding: 7px 15px; font-size: 13px; }
-
-/* focus ring — cyan, 3px, applies system-wide */
-.btn:focus-visible {
-  outline: none;
-  border-color: rgba(53, 214, 255, 0.6);
-  box-shadow: 0 14px 30px rgba(0,0,0,.35), 0 0 0 1px rgba(44,207,117,.12) inset,
-              0 0 0 3px rgba(53, 214, 255, 0.2);
+/* secondary — transparent, hairline, white label */
+.rooms-join-cta {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-pill);
 }
 
 /* panel */
 .draft-panel {
-  background: linear-gradient(180deg, rgba(10, 29, 45, 0.94), rgba(6, 17, 26, 0.92));
-  border: 1px solid var(--g-line-faint);
-  border-radius: 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 14px;
 }
 
-/* input */
-.filter-input {
-  background: var(--g-fill-faint);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* text input — no border until focus, then accent */
+.field-input {
+  background: var(--bg-input);
+  border: 1px solid transparent;
   color: var(--text);
-  font-size: 0.85rem;
-  padding: 7px 10px;
-  outline: none;
+  font-size: 14px;
+}
+.field-input:focus { border-color: var(--accent); }
+
+/* focus ring — system-wide, in controls.css */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 ```
 
-State convention on interactive surfaces: rest `--g-line` + no fill → hover
-`--g-line-hover` + `--g-fill` → selected `--g-line-active` + `--g-fill-strong` + glow.
+**Where the accent lives, screen by screen** — exactly one owner each:
 
-Scrollbars are themed globally (5px, `rgba(44,207,117,0.22)` thumb, `99px` radius,
-transparent track, brighter + glowing on hover) — inherit it, do not restyle per-component.
+| Screen | The accent element |
+| --- | --- |
+| sign-in | the SIGN IN button |
+| my players | ADD PLAYER |
+| game plans | the focused plan-name field |
+| rooms | CREATE ROOM (JOIN is the outline secondary) |
+| room / draft | the turn clock's progress bar, and the pick slot waiting on you |
+| admin | `.btn--primary` |
+
+The room page's `.btn--primary` is deliberately **white, not accent**: the accent is
+already spoken for by the clock, and a READY button wearing it would make the player look
+in two places at once.
+
+Scrollbars are themed globally (5px, `--fill-strong` thumb, pill radius, transparent
+track) — inherit it, do not restyle per-component.
 
 ---
 
@@ -388,16 +360,21 @@ These have bitten before; a "purely visual" change can break them.
   `768 → 480`; room `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 760px`
   rung. Do not invent a rung. Verify with a measured headless-Chrome harness, never by
   eye: `.claude/rules/responsive-testing.md`.
+- **The player grid is a fixed column count** — 6 / 3 / 2 on the home ladder — not
+  `auto-fill`. The card art has a fixed aspect ratio, so a column count that drifts with
+  the viewport gives cards of a different size on every screen.
 - **One canonical rule block per component.** Do not add a second rule for the same
-  selector later in the file to tweak a value — edit the existing block. `draft.css` and
-  `auth.css` currently have zero duplicated top-level selectors; keep it that way.
-  Variants use modifier classes (`.is-active`, `.is-mine`), not repeated base selectors.
-- **Sticky headers need `--bg-card-solid`** — `--bg-card` is translucent and content
-  scrolls through it.
+  selector later in the file to tweak a value — edit the existing block. Variants use
+  modifier classes (`.is-active`, `.is-mine`), not repeated base selectors.
+- **Sticky headers and popovers need an opaque surface** — `--bg-elevated`, which they
+  already get through `--bg-card-solid` / `--surface-popover`.
 - **Touch:** any hover-revealed control needs an `@media (hover: none)` block keeping it
   visible, or it becomes unreachable on a phone.
 - **Never hide a primary action at a narrow width** (CONFIRM PICKS, START DRAFT, READY,
   Send) — collapsing the column that carries it strands the user.
+- **Banned vs picked is never colour alone.** Both states drop the card to 35% opacity
+  and `pointer-events: none`, and both carry a word — `BANNED` in `--danger`, `PICKED` in
+  `--text-muted`. A red-blind player must still be able to tell them apart.
 - Page-level CSS notes live in `.claude/rules/home/css.md` and `.claude/rules/room/css.md`;
   the component maps there are the companion to this file.
 
@@ -405,10 +382,33 @@ These have bitten before; a "purely visual" change can break them.
 
 ## 11. Checklist before shipping a visual change
 
-1. Every colour is a token on the §3 ladder — no new `rgba()` green/cyan/red/amber.
-2. Radius, spacing, font size, tracking picked from §4–6, not invented.
-3. Hue meaning respected (green = you, cyan = opponent, red = destructive only).
-4. Token edits applied to **all** `:root` blocks that declare the token (§2).
+1. No hex or `rgba()` literal outside `tokens.css` — every colour is a token.
+2. Radius, spacing, font size and tracking picked from §4–6, not invented.
+3. Still **one** accent element on the screen (§9 table), and no white text on it.
+4. No gradient, glow, drop shadow or backdrop blur added.
 5. No duplicate selector added; variant expressed as a modifier class.
-6. Hover uses `scale`, not `translateY`, on grid cards.
-7. Measured at 320 / 390 / 620 / 900 / 1440 px, both sides of any breakpoint touched.
+6. Hover uses `scale`, not `translateY`, on grid cards; 150ms; hover states only.
+7. `npm run check` passes — `dead-css` catches a class name that matches no markup.
+8. Measured at 320 / 768 / 1440 px, both sides of any breakpoint touched.
+
+---
+
+## 12. What the re-skin removed
+
+Named here so a leftover is recognisable as a leftover, not as a second theme:
+
+- **Navy + emerald + cyan.** `#0b1b29`, `#2ccf75`, `#35d6ff` and the eleven-rung
+  green/cyan alpha ladders (`--g-*`, `--c-*`) — all mapped onto the neutral ladder.
+  ~550 raw colour literals across 20 sheets went with them.
+- **Amber and gold.** "Pending" and "achievement" no longer have hues; they are
+  `--text-muted` and `--text`.
+- **Orbitron**, and the wide-tracking display convention that came with it.
+- **115 `box-shadow` declarations, 66 gradients, 42 `backdrop-filter`s** and every
+  `text-shadow`.
+- **The ambient art** — `.pitch-bg`, four `.glow-orb`s, `orbFloat`, the sign-in particle
+  field and `initParticles()`, and the `.btn-shine` sweep.
+- **The four duplicated `:root` blocks.** There is one now, and a token change no longer
+  has to be applied in four places.
+- **Two hex literals in JS** (`GREEN`/`RED` in `features/draft/constants.js`). The timer
+  engine now writes a `--timer-progress` percentage and a class; `draft/shell.css` decides
+  what those look like.

@@ -1,7 +1,3 @@
-// ── Colours ──────────────────────────────────────────────────────
-export const GREEN = "#2ccf75";
-export const RED = "#ff4444";
-
 // ── Draft config ─────────────────────────────────────────────────
 export const FIXED_PICKS_PER_SIDE = 23;
 export const DEFAULT_BAN_DURATION_SECONDS = 120;

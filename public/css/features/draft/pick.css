@@ -37,16 +37,16 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  border-color: var(--c-line);
-  color: var(--c-text);
+  letter-spacing: 0.05em;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .pick-load-plan-btn:hover {
-  border-color: var(--c-line-hover);
-  background: var(--c-fill);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .pick-formation-wrap {
@@ -58,24 +58,24 @@
   align-items: center;
   gap: 5px;
   padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   background: var(--surface-control);
   color: var(--text);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
 }
 
 .pick-formation-btn:hover {
-  border-color: var(--c-line-hover);
-  background: var(--c-fill);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
-.pick-formation-hash { color: var(--cyan); }
+.pick-formation-hash { color: var(--text); }
 
 /* Opens downward: the row sits at the *top* of the pitch column now, so an
    upward panel (which is what it had when the row was under the pitch) would
@@ -107,16 +107,14 @@
      than a full-bleed band with square corners butting into the panel's rounded
      ones — which is what the first row looked like when it was the active one. */
   padding: 4px;
-  border-radius: 10px;
-  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
   background: var(--surface-popover);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--c-glow-soft);
+
   max-height: min(340px, 60vh);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--c-fill-strong) transparent;
+  scrollbar-color: var(--fill-strong) transparent;
 }
 
 .pick-formation-panel button {
@@ -128,13 +126,13 @@
   padding: 8px 10px;
   border: none;
   /* 10px panel radius minus its 4px padding: concentric with the panel edge. */
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-align: left;
   /* `4-3-3` has two hyphens, which are break opportunities: without this the
      panel's shrink-to-fit width depends on how wide its trigger happens to be,
@@ -151,16 +149,16 @@
   content: "✓";
   font-size: 12px;
   line-height: 1;
-  color: var(--cyan);
+  color: var(--text);
   opacity: 0;
   transition: opacity var(--transition);
 }
 
-.pick-formation-panel button:hover { background: var(--c-fill); }
+.pick-formation-panel button:hover { background: var(--fill); }
 
 .pick-formation-panel button.is-active {
-  color: var(--cyan);
-  background: var(--c-fill-strong);
+  color: var(--text);
+  background: var(--fill-strong);
 }
 
 .pick-formation-panel button.is-active::after { opacity: 1; }
@@ -189,24 +187,24 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border-radius: 14px;
-  border: 1px solid var(--c-line-faint);
-  background: rgba(17, 44, 68, 0.18);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-faint);
+  background: var(--bg-elevated);
 }
 
 .pick-squad-header { line-height: 1.2; }
 
 .pick-squad-kicker {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
 .pick-squad-sub {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
 }
@@ -251,13 +249,13 @@
 .pick-phase-controls .ap-dd-btn {
   padding: 6px 9px;
   gap: 5px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .pick-phase-controls .toggle-info-btn {
   min-width: 0;
   padding: 7px 9px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 /* The leading glyphs go — the sort bars and the filter funnel — and they are
@@ -293,24 +291,24 @@
 .pick-pos-tab {
   flex: 1;
   padding: 5px 0;
-  border-radius: 7px;
-  border: 1px solid var(--c-line);
-  background: rgba(17, 47, 74, 0.5);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   font-family: var(--font-display);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
-.pick-pos-tab:hover { border-color: var(--c-line-hover); color: var(--text); }
+.pick-pos-tab:hover { border-color: var(--line-hover); color: var(--text); }
 
 .pick-pos-tab.is-active {
-  border-color: var(--c-line-active);
-  background: var(--c-fill);
-  color: var(--cyan);
+  border-color: var(--line-active);
+  background: var(--fill);
+  color: var(--text);
 }
 
 /* Squad pick grid */
@@ -368,8 +366,8 @@
 
 /* Same shape as `.ban-phase-grid`'s hover — lift the card's own border rather
    than painting a hard 2px ring outside it, and raise it above its neighbours.
-   `z-index` needs the `position: relative` above. The ring it replaced was also
-   a raw `rgba(53, 214, 255, …)`, which the colour rule in room/css.md forbids.
+   `z-index` needs the `position: relative` above. Both are `--line-hover` now;
+   the hue that used to separate hover from chosen is gone (DESIGN.md §3.2).
 
    **Green, and it was cyan.** Hovering a card and choosing one are two halves
    of a single gesture, and they were painting it in two different hues: cyan on
@@ -392,8 +390,8 @@
 
 :where(.draft-panel:not(.is-locked)) .pick-phase-grid .player-card:not(.is-unavailable):hover {
   transform: scale(1.04);
-  border-color: var(--g-line-active);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px var(--g-glow);
+  border-color: var(--line-active);
+
   background: var(--bg-card-hover);
   z-index: 30;
 }
@@ -411,64 +409,60 @@
 
 .pick-phase-grid .player-card.is-clickable { cursor: pointer; }
 
-/* Chosen, waiting for a slot — the same loud green ring `.pick-slot.is-active`
-   uses, because it is the same half-finished action seen from the other end.
-   Green, not the grid's cyan: cyan is the opponent, and this is your choice. */
-
+/* Chosen, waiting for a slot: the card the accent-ringed slot is waiting on.
+   White rather than accent — the slot is already carrying the accent for this
+   one action, and two accent marks for a single pending pick reads as two
+   separate things to do. */
 .pick-phase-grid .player-card.is-pending,
 .pick-phase-grid .player-card.is-pending:hover {
-  border-color: var(--green);
-  /* 1px, not 2 — the card's own 1px border is already green here, and the two
-     stack into one continuous band. At 2px that band came to **3px**, half
-     again as thick as the 2px `.pick-slot::after` ring that means the same
-     thing one column over. Measured at 8x: one stroke, no second rectangle. */
-  box-shadow: 0 0 0 1px var(--green), 0 0 18px var(--g-glow);
+  border-color: var(--text);
   z-index: 31;
 }
 
-/* PICKED overlay */
+/* ── Out of play ──────────────────────────────────────────────────────────
+   A card that is already banned or picked drops to 35% and stops taking the
+   pointer. The word is what tells the two apart: colour alone would leave a
+   red-blind player with two identical grey cards, so the badge always spells
+   it out and the hue only reinforces it. */
+
+.pick-phase-grid .player-card.is-pick-taken,
+.pick-phase-grid .player-card.is-ban-taken {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after,
+.pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
 
 .pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after {
   content: "PICKED";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  color: #fff;
-  background: rgba(40, 164, 96, 0.78);
-  border-radius: 0;
+  color: var(--text-muted);
 }
-
-/* BANNED overlay */
 
 .pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
   content: "BANNED";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  color: #fff;
-  background: rgba(200, 40, 40, 0.78);
-  border-radius: 0;
+  color: var(--danger);
+  border-color: var(--danger-line);
 }
 
 .pick-phase-grid::-webkit-scrollbar { width: 4px; }
 
 .pick-phase-grid::-webkit-scrollbar-track { background: transparent; }
 
-.pick-phase-grid::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 4px; }
+.pick-phase-grid::-webkit-scrollbar-thumb { background: var(--fill-strong); border-radius: var(--radius-sm); }
 
-.pick-phase-grid::-webkit-scrollbar-thumb:hover { background: rgba(53, 214, 255, 0.38); }
+.pick-phase-grid::-webkit-scrollbar-thumb:hover { background: var(--fill-strong); }
 
 /* Substitutes strip under the pitch. Every slot past the starting XI is drawn,
    so the picks still to make are visible as empty rectangles rather than
@@ -490,9 +484,9 @@
 
 .pick-bench-title {
   font-family: var(--font-display);
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
@@ -518,7 +512,7 @@
   max-width: none;
 }
 
-.pick-bench .pick-slot-pos-label { font-size: 8.5px; }
+.pick-bench .pick-slot-pos-label { font-size: 12px; }
 
 .pick-bench .pick-slot-plus { font-size: 15px; }
 
@@ -531,9 +525,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border-radius: 14px;
-  border: 1px solid var(--g-line-faint);
-  background: rgba(11, 26, 39, 0.32);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-faint);
+  background: var(--bg);
 }
 
 /* LOAD GAME PLAN + formation on the left, CLEAR ALL on the right. `flex-wrap`
@@ -552,7 +546,7 @@
 
 .pick-clear-btn {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: 12px;
   padding: 4px 10px;
 }
 
@@ -571,16 +565,16 @@
   display: flex;
   flex-direction: column;
   scrollbar-width: thin;
-  scrollbar-color: var(--g-fill-strong) transparent;
+  scrollbar-color: var(--fill-strong) transparent;
 }
 
 .pick-pitch-wrap::-webkit-scrollbar { width: 4px; }
 
 .pick-pitch-wrap::-webkit-scrollbar-track { background: transparent; }
 
-.pick-pitch-wrap::-webkit-scrollbar-thumb { background: var(--g-fill-strong); border-radius: 4px; }
+.pick-pitch-wrap::-webkit-scrollbar-thumb { background: var(--fill-strong); border-radius: var(--radius-sm); }
 
-.pick-pitch-wrap::-webkit-scrollbar-thumb:hover { background: var(--g-line-hover); }
+.pick-pitch-wrap::-webkit-scrollbar-thumb:hover { background: var(--line-hover); }
 
 /* The panel is the field — see `shared/pitchField.css`, which the home page's
    game-plan pitch shares. It carries no `overflow` of its own: clipping here
@@ -590,7 +584,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  border: 1px solid var(--g-line-faint);
+  border: 1px solid var(--line-faint);
   padding: 6px 8px;
 }
 
@@ -651,8 +645,8 @@
    selection, or use the × to empty it. Both the pitch and the bench use these. */
 
 .pick-slot--empty {
-  border: 1.5px dashed var(--g-line);
-  background: var(--g-fill-faint);
+  border: 1.5px dashed var(--border);
+  background: var(--fill-faint);
   gap: 4px;
   transition: background var(--transition), border-color var(--transition);
 }
@@ -682,7 +676,7 @@
   transition: border-color var(--transition);
 }
 
-:where(.draft-panel:not(.is-locked)) .pick-slot--filled:hover::after { border-color: var(--g-line-hover); }
+:where(.draft-panel:not(.is-locked)) .pick-slot--filled:hover::after { border-color: var(--line-hover); }
 
 /* A card is chosen and every slot is a live target. `pickView` puts `is-placing`
    on the board; without it the empty rectangles look exactly as inert as they do
@@ -691,8 +685,8 @@
 
 .is-placing .pick-slot--empty {
   border-style: solid;
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 /* The selected slot. Deliberately loud — until you click a second slot the
@@ -706,16 +700,19 @@
    a dashed rectangle, two outlines deep. An empty slot turns its own border
    green and glows instead, which is what the game-plan pitch does. */
 
-.pick-slot--filled.is-active::after { border-color: var(--green); }
+.pick-slot--filled.is-active::after { border-color: var(--line-active); }
 
+/* This draft is simultaneous — there is no alternating clock and so no "team
+   on the clock" to outline. The nearest thing is the slot waiting on you, so
+   that is what wears the accent, alongside the turn timer. Everything else on
+   the board is greyscale. */
 .pick-slot.is-active {
-  box-shadow: 0 0 18px var(--g-glow);
   z-index: 2;
 }
 
 .pick-slot--empty.is-active {
-  border-color: var(--green);
-  background: var(--g-fill);
+  border: 2px solid var(--accent);
+  background: var(--fill);
 }
 
 /* **The empty slot's hover sits below the selection rules on purpose**, so it
@@ -731,8 +728,8 @@
    being chosen?". */
 
 :where(.draft-panel:not(.is-locked)) .pick-slot--empty:hover {
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 /* Solid `--red` with a white glyph and a drop shadow, matching
@@ -750,9 +747,9 @@
   height: 18px;
   border-radius: 50%;
   border: none;
-  background: var(--red);
-  color: #fff;
-  font-size: 13px;
+  background: var(--danger);
+  color: var(--text);
+  font-size: 12px;
   line-height: 1;
   padding: 0;
   display: flex;
@@ -761,7 +758,7 @@
   cursor: pointer;
   opacity: 0;
   transform: scale(0.7);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+
   z-index: 3;
   transition: opacity var(--transition), transform var(--transition), filter var(--transition);
 }
@@ -789,16 +786,16 @@
 .pick-slot-plus {
   font-size: 20px;
   font-weight: 300;
-  color: var(--g-text-dim);
+  color: var(--text-muted);
   line-height: 1;
 }
 
 .pick-slot-pos-label {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--g-text-dim);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 /* While a card is chosen the empty boxes brighten their `+` and row label as
@@ -808,7 +805,7 @@
 
 .is-placing .pick-slot--empty .pick-slot-plus,
 .is-placing .pick-slot--empty .pick-slot-pos-label {
-  color: var(--g-text);
+  color: var(--text);
 }
 
 .pick-slot--filled {
@@ -855,9 +852,9 @@
 }
 
 .pick-allowance-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
   text-transform: uppercase;
   flex-shrink: 0;
@@ -865,21 +862,21 @@
 
 .pick-allowance-pill {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
   padding: 2px 8px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-faint);
+  background: var(--fill-faint);
   white-space: nowrap;
 }
 
 .pick-allowance-pill.is-maxed {
-  color: var(--green);
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
+  color: var(--text);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .pick-bottom-actions {
@@ -894,7 +891,7 @@
    the footer under it. `min-height` is font-size × line-height. */
 
 .pick-confirm-hint {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   min-height: 15.4px;
   color: var(--text-muted);
@@ -903,23 +900,23 @@
 }
 
 /* Amber is the "pending, waiting on someone" hue, per the colour system. */
-.pick-confirm-hint.is-waiting { color: var(--amber); }
+.pick-confirm-hint.is-waiting { color: var(--text-muted); }
 
 /* Confirmed: the button is now UN-CONFIRM, so it must stop reading as the
    primary call to action. */
 
 .pick-confirm-btn.is-confirmed {
   background: transparent;
-  border-color: var(--g-line-hover);
-  color: var(--g-text);
+  border-color: var(--line-hover);
+  color: var(--text);
   box-shadow: none;
 }
 
 .pick-confirm-btn {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   padding: 7px 18px;
 }
 
@@ -932,9 +929,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border-radius: 14px;
-  border: 1px solid var(--c-line-faint);
-  background: rgba(14, 39, 61, 0.28);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-faint);
+  background: var(--bg-elevated);
 }
 
 .pick-live-header {
@@ -946,14 +943,14 @@
 
 .pick-live-tag {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.14em;
-  color: var(--green);
+  letter-spacing: 0.05em;
+  color: var(--text);
   padding: 2px 7px;
-  border-radius: 5px;
-  border: 1px solid var(--g-line-hover);
-  background: var(--g-fill);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-hover);
+  background: var(--fill);
 }
 
 .pick-opp-section {
@@ -988,10 +985,10 @@
   transition: background var(--transition);
 }
 
-.pick-opp-dot.is-online { background: var(--green); }
+.pick-opp-dot.is-online { background: var(--text); }
 
 .pick-opp-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -1001,24 +998,24 @@
 
 .pick-opp-count {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
-  color: var(--cyan);
+  color: var(--text);
   flex-shrink: 0;
 }
 
 .pick-opp-progress-wrap {
   height: 3px;
-  border-radius: 2px;
-  background: var(--c-fill-strong);
+  border-radius: var(--radius-sm);
+  background: var(--fill-strong);
   overflow: hidden;
   flex-shrink: 0;
 }
 
 .pick-opp-progress-fill {
   height: 100%;
-  background: var(--cyan);
-  border-radius: 2px;
+  background: var(--text);
+  border-radius: var(--radius-sm);
   transition: width 0.4s ease;
   width: 0%;
 }
@@ -1044,7 +1041,7 @@
 
 .pick-opp-grid::-webkit-scrollbar-track { background: transparent; }
 
-.pick-opp-grid::-webkit-scrollbar-thumb { background: var(--c-fill-strong); border-radius: 2px; }
+.pick-opp-grid::-webkit-scrollbar-thumb { background: var(--fill-strong); border-radius: var(--radius-sm); }
 
 .pick-opp-grid .player-card { cursor: default; }
 
@@ -1059,7 +1056,6 @@
    the grid, the count and the bar and shows `.pick-opp-locked` instead. */
 
 .pick-opp-grid.is-concealed {
-  filter: blur(7px) saturate(0.55);
   opacity: 0.75;
   pointer-events: none;
   user-select: none;
@@ -1078,8 +1074,8 @@
   gap: 6px;
   padding: 18px 10px;
   text-align: center;
-  border: 1px dashed var(--c-line-faint);
-  background: var(--c-fill-faint);
+  border: 1px dashed var(--line-faint);
+  background: var(--fill-faint);
 }
 
 .pick-opp-locked-icon {
@@ -1091,9 +1087,9 @@
 .pick-opp-locked-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
@@ -1101,7 +1097,7 @@
   margin: 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--cyan);
+  color: var(--text);
 }
 
 .pick-opp-conceal-note {
@@ -1110,9 +1106,9 @@
   padding-top: 6px;
   text-align: center;
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -1131,7 +1127,7 @@
   gap: 5px;
   flex-shrink: 0;
   padding-top: 4px;
-  border-top: 1px solid var(--c-line-faint);
+  border-top: 1px solid var(--line-faint);
 }
 
 .pick-live-footer-dot {
@@ -1142,10 +1138,10 @@
   flex-shrink: 0;
 }
 
-.pick-live-footer-dot.is-online { background: var(--green); }
+.pick-live-footer-dot.is-online { background: var(--text); }
 
 .pick-live-status-text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
   flex: 1;
@@ -1214,17 +1210,17 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--g-line);
+  border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
   transition: border-color var(--transition), color var(--transition);
 }
 
 .pick-plan-close:hover {
-  border-color: var(--r-line-hover);
+  border-color: var(--danger);
   color: var(--text);
 }
 
@@ -1243,9 +1239,9 @@
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--g-line-faint);
-  background: var(--g-fill-faint);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-faint);
+  background: var(--fill-faint);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -1253,8 +1249,8 @@
 }
 
 .pick-plan-item:hover {
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .pick-plan-item[aria-busy="true"] {
@@ -1265,19 +1261,19 @@
 .pick-plan-badge {
   flex-shrink: 0;
   padding: 3px 7px;
-  border-radius: 6px;
-  background: var(--g-fill);
-  color: var(--green);
+  border-radius: var(--radius-sm);
+  background: var(--fill);
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .pick-plan-name {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1287,7 +1283,7 @@
 .pick-plan-empty {
   padding: 20px 12px;
   text-align: center;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
 }

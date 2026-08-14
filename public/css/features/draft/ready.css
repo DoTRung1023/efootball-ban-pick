@@ -41,14 +41,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--green);
-  background: var(--g-fill);
-  border: 1px solid var(--g-line);
-  border-radius: 20px;
+  color: var(--text);
+  background: var(--fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 4px 12px;
   margin-bottom: 8px;
 }
@@ -57,24 +57,24 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--text);
   animation: pulse 1.8s ease-in-out infinite;
 }
 
 .sm-title {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 32px;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0 0 6px;
   color: var(--text);
 }
 
-.sm-title-green { color: var(--green); }
+.sm-title-green { color: var(--text); }
 
 .sm-sub {
-  font-size: 0.82rem;
+  font-size: 14px;
   color: var(--text-dim);
   margin: 0;
 }
@@ -101,22 +101,22 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 2px solid var(--g-line);
+  border: 2px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 900;
-  color: var(--g-text-dim);
+  color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 /* Column card */
 
 .sm-col {
-  border: 1px solid var(--g-line-faint);
-  border-radius: 12px;
+  border: 1px solid var(--line-faint);
+  border-radius: var(--radius);
   background: var(--surface-sunken);
   overflow: hidden;
 }
@@ -126,8 +126,8 @@
   align-items: center;
   gap: 9px;
   padding: 9px 12px;
-  border-bottom: 1px solid var(--g-line-faint);
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--line-faint);
+  background: var(--scrim);
 }
 
 .sm-col-info {
@@ -137,7 +137,7 @@
 
 .sm-col-name {
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--text);
@@ -147,7 +147,7 @@
 }
 
 .sm-col-meta {
-  font-size: 0.68rem;
+  font-size: 12px;
   color: var(--text-dim);
   margin-top: 1px;
   letter-spacing: 0.03em;
@@ -155,27 +155,27 @@
 
 .sm-col-badge {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   border: 1px solid;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .sm-col-badge.is-ready {
-  color: var(--green);
-  border-color: var(--g-line-hover);
-  background: var(--g-fill);
+  color: var(--text);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .sm-col-badge.is-writing {
-  color: var(--cyan);
-  border-color: var(--c-line-hover);
-  background: var(--c-fill);
+  color: var(--text);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 /* `blur` reveal mode wraps the pitch and bench — but not the column head, whose
@@ -187,7 +187,6 @@
    is replaced wholesale by `.sm-col--hidden`. */
 
 .sm-squad.is-concealed {
-  filter: blur(9px) saturate(0.55);
   opacity: 0.75;
   pointer-events: none;
   user-select: none;
@@ -219,7 +218,7 @@
 }
 
 .sm-pitch-row .player-card .pc-footer-meta.pmeta-in-card .pmeta-stack {
-  font-size: 0.62rem;
+  font-size: 12px;
 }
 
 .sm-pitch-row .player-card .pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
@@ -229,16 +228,16 @@
 /* Bench section */
 
 .sm-bench {
-  border-top: 1px solid var(--g-line-faint);
+  border-top: 1px solid var(--line-faint);
   padding: 7px 8px;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--scrim);
 }
 
 .sm-bench-head {
   font-family: var(--font-display);
-  font-size: 0.64rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 6px;
@@ -248,10 +247,10 @@
 }
 
 .sm-bench-meta {
-  font-size: 0.6rem;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .sm-bench-strip {
@@ -264,8 +263,8 @@
 .sm-bench-strip::-webkit-scrollbar { height: 3px; }
 
 .sm-bench-strip::-webkit-scrollbar-thumb {
-  background: var(--g-fill-strong);
-  border-radius: 2px;
+  background: var(--fill-strong);
+  border-radius: var(--radius-sm);
 }
 
 .sm-bench-strip .player-card {
@@ -278,7 +277,7 @@
 }
 
 .sm-bench-strip .player-card .pc-footer-meta.pmeta-in-card .pmeta-stack {
-  font-size: 0.58rem;
+  font-size: 12px;
 }
 
 .sm-bench-strip .player-card .pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
@@ -290,7 +289,7 @@
 .sm-col--hidden .sm-hidden-msg {
   text-align: center;
   padding: 40px 16px;
-  font-size: 0.82rem;
+  font-size: 14px;
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -298,8 +297,8 @@
 /* Stats comparison bar */
 
 .sm-stats-wrap {
-  border: 1px solid var(--g-line-faint);
-  border-radius: 10px;
+  border: 1px solid var(--line-faint);
+  border-radius: var(--radius);
   background: var(--surface-sunken);
   overflow: hidden;
 }
@@ -311,16 +310,16 @@
 
 .sm-stat {
   padding: 12px 10px;
-  border-right: 1px solid var(--g-line-faint);
+  border-right: 1px solid var(--line-faint);
 }
 
 .sm-stat:last-child { border-right: none; }
 
 .sm-stat-label {
   font-family: var(--font-display);
-  font-size: 0.58rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 6px;
@@ -330,20 +329,20 @@
 .sm-stat-bars {
   display: flex;
   height: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 5px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--fill-faint);
 }
 
 .sm-stat-bar--me {
-  background: var(--green);
+  background: var(--text);
   height: 100%;
   transition: width 0.5s ease;
 }
 
 .sm-stat-bar--opp {
-  background: var(--cyan);
+  background: var(--text);
   height: 100%;
   transition: width 0.5s ease;
 }
@@ -352,7 +351,7 @@
    than as a real comparison — a bar sized by their value *is* their value. */
 
 .sm-stat-bar--opp.is-masked {
-  background: var(--c-fill-strong);
+  background: var(--fill-strong);
 }
 
 .sm-stat-vals {
@@ -361,24 +360,24 @@
   justify-content: center;
   gap: 5px;
   font-family: var(--font-display);
-  font-size: 0.88rem;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .sm-stat-vals--text {
-  font-size: 0.72rem;
+  font-size: 12px;
   flex-wrap: wrap;
   text-align: center;
 }
 
-.sm-stat-me { color: var(--green); }
+.sm-stat-me { color: var(--text); }
 
-.sm-stat-opp { color: var(--cyan); }
+.sm-stat-opp { color: var(--text); }
 
 .sm-stat-vs {
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -398,14 +397,14 @@
 }
 
 .sm-ready-btn {
-  font-size: 0.98rem;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   padding: 10px 28px;
 }
 
 .sm-hint {
-  font-size: 0.82rem;
+  font-size: 14px;
   color: var(--text-dim);
   margin: 0;
   font-weight: 600;
@@ -416,7 +415,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.68rem;
+  font-size: 12px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
@@ -425,7 +424,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--text);
   display: inline-block;
   flex-shrink: 0;
 }
@@ -434,13 +433,13 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--cyan);
+  background: var(--text);
   display: inline-block;
   flex-shrink: 0;
 }
 
 .sm-tip {
-  font-size: 0.68rem;
+  font-size: 12px;
   color: var(--text-muted);
   text-align: center;
   margin: 0;

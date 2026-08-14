@@ -22,38 +22,35 @@
 
 .plan-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(44,207,117,0.45);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 0 16px rgba(44,207,117,0.12);
+  border-color: var(--line-hover);
 }
 
 .plan-formation {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--green);
+  color: var(--text);
   letter-spacing: 0.05em;
-  text-shadow: 0 0 14px rgba(44,207,117,0.3);
 }
 
 .plan-name {
-  font-size: 1.28rem;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--green);
+  color: var(--text);
   letter-spacing: 0.02em;
-  text-shadow: 0 0 16px rgba(44,207,117,0.3);
 }
 
 .plan-formation-tag {
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgba(44,207,117,0.9);
+  letter-spacing: 0.05em;
+  color: var(--text);
 }
 
 .plan-date {
-  font-size: 0.78rem;
-  color: rgba(186,196,204,0.75);
+  font-size: 12px;
+  color: var(--text);
   letter-spacing: 0.02em;
 }
 
@@ -71,29 +68,29 @@
   width: 64px;
   height: 64px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(44,207,117,0.05);
+  border-radius: var(--radius);
+  background: var(--fill);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(44,207,117,0.3);
+  color: var(--text-muted);
 }
 
 .plans-empty h3 {
   font-family: var(--font-display);
-  font-size: 0.9rem;
-  letter-spacing: 0.12em;
+  font-size: 14px;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
   font-weight: 600;
 }
 
 .plans-empty p {
-  font-size: 0.85rem;
-  color: rgba(138,165,184,0.55);
+  font-size: 14px;
+  color: var(--text-muted);
   max-width: 280px;
 }
 
-.plans-empty strong { color: var(--green); }
+.plans-empty strong { color: var(--text); }
 
 /* ── Plans toolbar ──
    The box is `.panel-toolbar` in squad.css, shared with this panel's selection
@@ -101,12 +98,11 @@
    plans-specific. */
 .plans-count-label {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.05em;
-  color: var(--green);
-  text-shadow: 0 0 12px rgba(44,207,117,0.3);
+  color: var(--text);
 }
 
 /* ── Plan card select mode ── */
@@ -116,9 +112,9 @@
   right: 10px;
   width: 20px;
   height: 20px;
-  border-radius: 5px;
-  background: rgba(5,14,22,0.75);
-  border: 2px solid rgba(44,207,117,0.4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 2px solid var(--line-hover);
   display: none;
   align-items: center;
   justify-content: center;
@@ -132,48 +128,47 @@
 .plans-grid.select-mode .plan-card { cursor: pointer; }
 
 .plan-card.selected .plan-checkbox {
-  background: var(--green);
-  border-color: var(--green);
+  background: var(--text);
+  border-color: var(--line-active);
 }
 
 .plan-card.selected .plan-checkbox::after {
   content: '';
   width: 5px;
   height: 8px;
-  border: 2px solid #06131c;
+  border: 2px solid var(--bg);
   border-top: none;
   border-left: none;
   transform: rotate(45deg) translateY(-1px);
 }
 
 .plan-card.selected {
-  border-color: rgba(44,207,117,0.7);
-  background: rgba(44,207,117,0.08);
-  box-shadow: 0 0 0 2px rgba(44,207,117,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  border-color: var(--line-active);
+  background: var(--fill);
 }
 
 .plan-delete-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(255, 60, 60, 0.07);
-  border: 1px solid rgba(255, 60, 60, 0.18);
-  border-radius: 6px;
-  color: rgba(255, 100, 100, 0.45);
+  background: var(--danger-fill);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
   cursor: pointer;
   display: flex;
   align-items: center;
   padding: 5px;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
   opacity: 0;
 }
 
 .plan-card:hover .plan-delete-btn { opacity: 1; }
 
 .plan-delete-btn:hover {
-  background: rgba(255, 60, 60, 0.18);
-  border-color: rgba(255, 60, 60, 0.5);
-  color: #ff6b6b;
+  background: var(--danger-fill);
+  border-color: var(--danger-line);
+  color: var(--danger);
 }
 
 /* ============================================================
@@ -210,7 +205,7 @@
   /* Right padding clears the close button, which is positioned out of flow. */
   padding: 16px 54px 14px 22px;
   border-bottom: 1px solid var(--border);
-  background: rgba(8,21,32,0.6);
+  background: var(--bg-elevated);
 }
 
 /* The shared -4px/-4px offset puts the button under .modal-card's overflow
@@ -224,28 +219,27 @@
 
 .plan-name-input {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 25.6px;
   font-weight: 700;
-  color: var(--green);
+  color: var(--text);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   outline: none;
   padding: 3px 2px;
   width: 100%;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   transition: border-color var(--transition), color var(--transition);
   cursor: text;
-  text-shadow: 0 0 22px rgba(44,207,117,0.35);
 }
 
-.plan-name-input:focus { border-bottom-color: var(--green); }
+.plan-name-input:focus { border-bottom-color: var(--accent); }
 .plan-name-input::placeholder { color: var(--text-dim); }
 
 .plan-name-hint {
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 500;
-  color: rgba(138,165,184,0.72);
+  color: var(--text-muted);
   display: block;
   margin-top: 5px;
   letter-spacing: 0.05em;
@@ -295,11 +289,10 @@
 
 .plan-section-title {
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--green);
-  text-shadow: 0 0 14px rgba(44,207,117,0.35);
+  letter-spacing: 0.05em;
+  color: var(--text);
 }
 
 .plan-section-header.plan-xi-header-row {
@@ -340,32 +333,32 @@
   align-items: center;
   gap: 5px;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: rgba(10, 27, 43, 0.7);
+  background: var(--bg-input);
   color: var(--text);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
 }
 
 .plan-formation-trigger:hover,
 .plan-formation-trigger.open {
-  border-color: rgba(44, 207, 117, 0.34);
-  background: rgba(44, 207, 117, 0.07);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .plan-formation-trigger:focus { outline: none; }
 
 .plan-formation-trigger:focus-visible {
-  outline: 2px solid rgba(44, 207, 117, 0.45);
+  outline: 2px solid var(--line-hover);
   outline-offset: 2px;
 }
 
-.plan-formation-hash { color: var(--green); }
+.plan-formation-hash { color: var(--text); }
 
 .plan-formation-dd-chevron {
   flex-shrink: 0;
@@ -393,16 +386,14 @@
   z-index: 520;
   min-width: 0;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--surface-popover);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(44, 207, 117, 0.1);
+
   max-height: min(340px, 60vh);
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(44, 207, 117, 0.22) transparent;
+  scrollbar-color: var(--text-muted) transparent;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px) scale(0.98);
@@ -426,13 +417,13 @@
   padding: 8px 10px;
   border: none;
   /* 10px panel radius minus its 4px padding: concentric with the panel edge. */
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-align: left;
   /* `4-3-3` has two hyphens, which are break opportunities: without this the
      panel's shrink-to-fit width depends on how wide its trigger happens to be,
@@ -446,20 +437,20 @@
   content: "✓";
   font-size: 12px;
   line-height: 1;
-  color: var(--green);
+  color: var(--text);
   opacity: 0;
   transition: opacity var(--transition);
 }
 
 .plan-formation-option:hover,
 .plan-formation-option:focus {
-  background: rgba(44, 207, 117, 0.07);
+  background: var(--fill);
   outline: none;
 }
 
 .plan-formation-option.active {
-  color: var(--green);
-  background: rgba(44, 207, 117, 0.14);
+  color: var(--text);
+  background: var(--fill-strong);
 }
 
 .plan-formation-option.active::after { opacity: 1; }
@@ -549,8 +540,8 @@
 }
 
 .pitch-slot.empty:hover .pitch-slot-placeholder {
-  border-color: rgba(44,207,117,0.45);
-  background: rgba(44,207,117,0.05);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .pitch-slot.active {
@@ -559,8 +550,7 @@
 }
 
 .pitch-slot.active .pitch-slot-placeholder {
-  border-color: var(--green);
-  box-shadow: 0 0 14px rgba(44,207,117,0.3);
+  border-color: var(--line-active);
 }
 
 /* Shared card size — used by both placeholder and filled card, so an empty box
@@ -583,13 +573,13 @@
 }
 
 .pitch-slot-placeholder {
-  border: 2px dashed rgba(44,207,117,0.22);
+  border: 2px dashed var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: rgba(44,207,117,0.22);
+  color: var(--text-muted);
   /* Colour only, for the reason spelled out on `.pitch-slot` — this box carries
      `max-width: var(--plan-slot-w)` too, so `all` animates the very dimension
      the sizing pass measures. */
@@ -603,35 +593,35 @@
 .pitch-slot-plus {
   font-size: 20px;
   font-weight: 300;
-  color: rgba(44,207,117,0.35);
+  color: var(--text-muted);
   line-height: 1;
 }
 
 .pitch-slot-pos-label {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: rgba(44,207,117,0.35);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 /* The bench prints a smaller label: its boxes are the 82px fallback while the
    pitch's have grown, and at that size the pitch metrics crowd the box. */
 .bench-slot .pitch-slot-plus { font-size: 15px; }
-.bench-slot .pitch-slot-pos-label { font-size: 8.5px; }
+.bench-slot .pitch-slot-pos-label { font-size: 12px; }
 
 /* A player is chosen in the picker and every empty box is a target. Solid, not
    dashed — the box is about to hold something. Mirrors `.is-placing
    .pick-slot--empty` on the pick board. */
 .plan-detail-cols.is-placing .pitch-slot-placeholder {
   border-style: solid;
-  border-color: rgba(44,207,117,0.45);
-  background: rgba(44,207,117,0.06);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .plan-detail-cols.is-placing .pitch-slot-plus,
 .plan-detail-cols.is-placing .pitch-slot-pos-label {
-  color: rgba(44,207,117,0.7);
+  color: var(--text);
 }
 
 /* Full player card */
@@ -647,13 +637,13 @@
   border-radius: 0;
 }
 
-.pitch-slot.active .pitch-card-wrap { filter: drop-shadow(0 0 8px rgba(44,207,117,0.5)); }
+.pitch-slot.active .pitch-card-wrap { filter: drop-shadow(0 0 8px var(--fill-strong)); }
 
 .pitch-remove-btn {
   position: absolute;
   top: 5px;
   right: 5px;
-  background: rgba(239,68,68,0.85);
+  background: var(--danger);
   border: none;
   border-radius: 50%;
   width: 18px;
@@ -665,14 +655,14 @@
   opacity: 0;
   transform: scale(0.7);
   transition: opacity var(--transition), transform var(--transition), background var(--transition);
-  color: #fff;
-  font-size: 0.8rem;
+  color: var(--text);
+  font-size: 12px;
   padding: 0;
   z-index: 10;
 }
 .pitch-slot:hover .pitch-remove-btn,
 .bench-slot:hover .pitch-remove-btn { opacity: 1; transform: scale(1); }
-.pitch-remove-btn:hover { background: #ef4444; }
+.pitch-remove-btn:hover { background: var(--danger); }
 
 /* Touch devices never hover, so the remove button has to stay visible —
    otherwise a player can be assigned but never taken off the plan. */
@@ -717,13 +707,12 @@
 }
 
 .bench-slot.empty:hover .pitch-slot-placeholder {
-  border-color: rgba(44,207,117,0.45);
-  background: rgba(44,207,117,0.05);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .bench-slot.active .pitch-slot-placeholder {
-  border-color: var(--green);
-  box-shadow: 0 0 12px rgba(44,207,117,0.3);
+  border-color: var(--line-active);
 }
 
 .bench-slot.filled {
@@ -732,7 +721,7 @@
 }
 
 .bench-slot.active.filled .pitch-card-wrap {
-  filter: drop-shadow(0 0 8px rgba(44,207,117,0.5));
+  filter: drop-shadow(0 0 8px var(--fill-strong));
 }
 
 /* ── RIGHT COLUMN (picker) ── */
@@ -748,7 +737,7 @@
   flex-shrink: 0;
   padding: 10px 14px 8px;
   border-bottom: 1px solid var(--border);
-  background: rgba(8,21,32,0.3);
+  background: var(--bg-elevated);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -764,12 +753,12 @@
 .pp-list-count {
   flex-shrink: 0;
   padding: 5px 16px;
-  font-size: 0.7rem;
+  font-size: 12px;
   font-family: var(--font-display);
   color: var(--text-dim);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
-  background: rgba(8,21,32,0.3);
+  background: var(--bg-elevated);
 }
 
 .pp-player-row {
@@ -778,24 +767,23 @@
   gap: 12px;
   padding: 10px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(44,207,117,0.04);
+  border-bottom: 1px solid var(--line-faint);
   transition: background var(--transition);
 }
-.pp-player-row:hover       { background: rgba(44,207,117,0.05); }
-.pp-row-current            { background: rgba(44,207,117,0.09); }
-.pp-row-current:hover      { background: rgba(44,207,117,0.13); }
+.pp-player-row:hover       { background: var(--fill); }
+.pp-row-current            { background: var(--fill); }
+.pp-row-current:hover      { background: var(--fill-strong); }
 .pp-row-used               { opacity: 0.45; cursor: not-allowed; }
 .pp-row-used:hover         { background: transparent; }
 .pp-row-pending            {
-  background: rgba(44,207,117,0.12);
-  box-shadow: inset 0 0 0 1px rgba(44,207,117,0.45);
+  background: var(--fill-strong);
 }
-.pp-row-pending:hover      { background: rgba(44,207,117,0.16); }
+.pp-row-pending:hover      { background: var(--fill-strong); }
 
 .sp-empty {
   padding: 40px 16px;
   text-align: center;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: 14px;
 }
 

@@ -1,36 +1,9 @@
 /* ============================================================
    eFootball Ban & Pick — Home Page
-   Theme: Deep Navy + Emerald  (bg #0b1b29 · accent #2ccf75)
-   ============================================================ */
 
-:root {
-  --green: #2ccf75;
-  --green-dim: #22b063;
-  --green-dark: #14663a;
-  --green-glow: rgba(44, 207, 117, 0.35);
-  --green-glow-sm: rgba(44, 207, 117, 0.15);
-  --black: #061119;
-  --bg: #0b1b29;
-  --bg-card: rgba(11, 31, 49, 0.82);
-  --bg-card-hover: rgba(16, 44, 69, 0.92);
-  /* Opaque stand-in for --bg-card, for surfaces that overlap their own content
-     (sticky headers) where a translucent panel would let it show through. */
-  --bg-card-solid: #0a1a27;
-  /* Floating panels — dropdowns, popovers, the player hover card. Same reason
-     as above and a separate name because the reason is separate: this one hangs
-     over live content rather than scrolling with it. Declared on both pages, so
-     `css/shared/` sheets can rely on it. */
-  --surface-popover: #0a1a27;
-  --border: rgba(44, 207, 117, 0.18);
-  --border-active: rgba(44, 207, 117, 0.7);
-  --text: #e7f0f6;
-  --text-dim: #8aa5b8;
-  --font-main: 'Inter', system-ui, sans-serif;
-  --font-display: 'Orbitron', 'Inter', sans-serif;
-  --radius: 10px;
-  --topbar-h: 62px;
-  --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
+   Colour, type, shape and motion all come from `shared/tokens.css`, which is
+   linked ahead of this sheet. Nothing here declares a colour.
+   ============================================================ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -39,7 +12,7 @@ html, body { height: 100%; }
 /* ── Global scrollbar ── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(44,207,117,0.22) transparent;
+  scrollbar-color: var(--text-muted) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -52,14 +25,13 @@ html, body { height: 100%; }
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(44,207,117,0.22);
-  border-radius: 99px;
+  background: var(--fill-strong);
+  border-radius: var(--radius-pill);
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(44,207,117,0.48);
-  box-shadow: 0 0 6px rgba(44,207,117,0.3);
+  background: var(--fill-strong);
 }
 
 ::-webkit-scrollbar-corner { background: transparent; }
@@ -73,61 +45,6 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-}
-
-/* ============================================================
-   PITCH BACKGROUND
-   ============================================================ */
-.pitch-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.pitch-lines {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(transparent 4%, rgba(44,207,117,0.04) 4%, rgba(44,207,117,0.04) 4.1%, transparent 4.1%),
-    linear-gradient(transparent 95.9%, rgba(44,207,117,0.04) 95.9%, rgba(44,207,117,0.04) 96%, transparent 96%),
-    linear-gradient(90deg, transparent 3%, rgba(44,207,117,0.04) 3%, rgba(44,207,117,0.04) 3.2%, transparent 3.2%),
-    linear-gradient(90deg, transparent 96.8%, rgba(44,207,117,0.04) 96.8%, rgba(44,207,117,0.04) 97%, transparent 97%);
-}
-
-.pitch-halfway {
-  position: absolute;
-  top: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 1px; height: 100%;
-  background: rgba(44,207,117,0.04);
-}
-
-.pitch-center-circle {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-  width: min(55vw,55vh); height: min(55vw,55vh);
-  border: 1px solid rgba(44,207,117,0.04);
-  border-radius: 50%;
-}
-
-.glow-orb {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-  z-index: 0;
-}
-.glow-orb-1 { width:600px;height:600px;background:radial-gradient(circle,rgba(44,207,117,0.1) 0%,transparent 70%);top:-200px;right:-150px;animation:orbFloat 12s ease-in-out infinite; }
-.glow-orb-2 { width:500px;height:500px;background:radial-gradient(circle,rgba(25,172,100,0.07) 0%,transparent 70%);bottom:-150px;left:-100px;animation:orbFloat 16s ease-in-out infinite reverse; }
-.glow-orb-3 { width:350px;height:350px;background:radial-gradient(circle,rgba(44,207,117,0.06) 0%,transparent 70%);top:40%;left:10%;animation:orbFloat 20s ease-in-out infinite 3s; }
-
-@keyframes orbFloat {
-  0%,100% { transform:translateY(0) scale(1); }
-  33%      { transform:translateY(-40px) scale(1.05); }
-  66%      { transform:translateY(25px) scale(0.97); }
 }
 
 /* ============================================================
@@ -159,14 +76,11 @@ body {
   align-items: center;
   gap: 16px;
   padding: 0 20px;
-  background: rgba(5, 14, 22, 0.85);
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 0 rgba(44,207,117,0.06), 0 4px 20px rgba(0,0,0,0.4);
 }
 
 .topbar-brand {
@@ -177,21 +91,18 @@ body {
 }
 
 .brand-game {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  color: var(--green);
-  text-shadow: 0 0 16px var(--green-glow);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .brand-sub {
-  font-family: var(--font-display);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  color: var(--text-dim);
-  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .topbar-center {
@@ -205,30 +116,24 @@ body {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 18px;
+  padding: 7px 14px;
   background: none;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-dim);
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
   cursor: pointer;
-  transition: color var(--transition), border-color var(--transition), background var(--transition);
+  transition: color var(--transition);
 }
 
-.nav-tab:hover {
-  color: var(--text);
-  background: rgba(44,207,117,0.06);
-  border-color: var(--border);
-}
+.nav-tab:hover { color: var(--text); }
 
 .nav-tab.active {
-  color: var(--green);
-  background: rgba(44,207,117,0.1);
-  border-color: rgba(44,207,117,0.35);
-  box-shadow: 0 0 12px rgba(44,207,117,0.12);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .topbar-right {
@@ -246,9 +151,9 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 10px 6px 10px;
-  background: rgba(44,207,117,0.07);
+  background: var(--fill);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text);
   cursor: pointer;
   font-family: var(--font-main);
@@ -256,8 +161,8 @@ body {
 }
 
 .user-trigger:hover {
-  background: rgba(44,207,117,0.12);
-  border-color: rgba(44,207,117,0.4);
+  background: var(--fill-strong);
+  border-color: var(--line-hover);
 }
 
 .user-name {
@@ -265,7 +170,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -283,12 +188,11 @@ body {
   top: calc(100% + 8px);
   right: 0;
   min-width: 200px;
-  background: rgba(9, 23, 36, 0.97);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  backdrop-filter: blur(24px);
+  border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(44,207,117,0.05);
+
   opacity: 0;
   pointer-events: none;
   transform: translateY(6px) scale(0.97);
@@ -305,13 +209,13 @@ body {
 .dropdown-username {
   padding: 12px 16px 2px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 15px;
   color: var(--text);
 }
 
 .dropdown-email {
   padding: 2px 16px 12px;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -331,7 +235,7 @@ body {
   border: none;
   color: var(--text-dim);
   font-family: var(--font-main);
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
@@ -339,7 +243,7 @@ body {
 }
 
 .dropdown-item.sign-out:hover {
-  background: rgba(239,68,68,0.1);
-  color: #f87171;
+  background: var(--danger-fill);
+  color: var(--danger);
 }
 

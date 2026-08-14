@@ -1,9 +1,13 @@
 /* ============================================================
-   Sign-in page decoration — floating card art and drifting particles
+   Sign-in page — the TOP PLAYERS THIS SEASON strip
 
    Purely visual; nothing here gates sign-in. The fallback list renders
    immediately so the page is never empty, then `/api/top-players` swaps in
    real data if it returns something different.
+
+   The rotated floating card art that used to sit behind the form went with the
+   re-skin: it was decoration on an animation, and the new surface rule is a
+   flat --bg (DESIGN.md §7).
    ============================================================ */
 
 import { CARD_IMG } from "@/shared/players/playerMeta.js";
@@ -49,49 +53,6 @@ async function fetchTopPlayers() {
   }
 }
 
-function renderBackgroundCards(players) {
-  const container = document.getElementById("playerCardsBg");
-  if (!container) return;
-
-  const positions = [
-    { left: "3%",  top: "8%"  }, { left: "88%", top: "5%"  },
-    { left: "6%",  top: "45%" }, { left: "85%", top: "40%" },
-    { left: "2%",  top: "75%" }, { left: "87%", top: "70%" },
-    { left: "18%", top: "3%"  }, { left: "72%", top: "2%"  },
-    { left: "15%", top: "88%" }, { left: "75%", top: "85%" },
-    { left: "40%", top: "1%"  }, { left: "55%", top: "92%" },
-  ];
-
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-
-  positions.forEach((pos, i) => {
-    const player = shuffled[i % shuffled.length];
-    const el = document.createElement("div");
-    el.className = "bg-player-card";
-
-    const rotate = (Math.random() * 24 - 12).toFixed(1);
-    const duration = (14 + Math.random() * 12).toFixed(1);
-    const delay = (Math.random() * 8).toFixed(1);
-
-    el.style.cssText = `
-      left: ${pos.left};
-      top: ${pos.top};
-      --card-rotate: ${rotate}deg;
-      --card-duration: ${duration}s;
-      --card-delay: -${delay}s;
-    `;
-
-    const img = document.createElement("img");
-    img.src = CARD_IMG(player.id);
-    img.alt = player.name;
-    img.loading = "lazy";
-    img.onerror = () => { el.style.display = "none"; };
-
-    el.appendChild(img);
-    container.appendChild(el);
-  });
-}
-
 function renderStripPlayers(players) {
   const strip = document.getElementById("stripPlayers");
   if (!strip) return;
@@ -114,7 +75,6 @@ function renderStripPlayers(players) {
 
 export async function initPlayers() {
   // Render fallback immediately so the UI isn't empty
-  renderBackgroundCards(FALLBACK_PLAYERS);
   renderStripPlayers(FALLBACK_PLAYERS);
 
   // Fetch real data in the background and swap if it differs
@@ -124,30 +84,9 @@ export async function initPlayers() {
 
   if (firstFetchedId !== firstFallbackId) {
     // Clear and re-render with fresh data
-    const bg = document.getElementById("playerCardsBg");
     const strip = document.getElementById("stripPlayers");
-    if (bg) bg.innerHTML = "";
     if (strip) strip.innerHTML = "";
-    renderBackgroundCards(players);
     renderStripPlayers(players);
   }
 }
 
-export function initParticles() {
-  const container = document.getElementById("particles");
-  if (!container) return;
-
-  for (let i = 0; i < 30; i++) {
-    const p = document.createElement("div");
-    p.className = "particle";
-    p.style.cssText = `
-      --x: ${Math.random() * 100}%;
-      --duration: ${6 + Math.random() * 10}s;
-      --delay: ${Math.random() * 12}s;
-      width: ${1 + Math.random() * 3}px;
-      height: ${1 + Math.random() * 3}px;
-      opacity: 0;
-    `;
-    container.appendChild(p);
-  }
-}

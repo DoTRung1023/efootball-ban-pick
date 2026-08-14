@@ -66,10 +66,17 @@ All in `src/features/admin/routes.js`, all behind `requireAdminKey` (`src/lib/ht
 
 ## CSS (`admin.css`)
 
-Self-contained; reuses the same `:root` CSS variables as `pages/home/base.css` (navy/emerald
-theme, Inter + Orbitron — see `DESIGN.md`). Key blocks: `.login-overlay` / `.login-card`,
+Self-contained; reads its colours from `shared/tokens.css` like every other page — there
+is no `:root` block here any more (see `DESIGN.md` §2). Key blocks: `.login-overlay` / `.login-card`,
 `.admin-nav` (sticky 56 px), `.stats-row` (4-column grid), `.panel-grid-2` (2-column
 grid), `.admin-table` (sticky thead, hover rows), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/success`), data-quality bars (`.dq-bar.is-ok/warn/bad`),
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.
 pagination bar.

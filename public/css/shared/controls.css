@@ -1,0 +1,76 @@
+/* ============================================================
+   CONTROLS — the cross-cutting shape and focus rules.
+
+   Linked AFTER the feature sheets on every page, because these rules have
+   to win: a focus ring that a feature sheet can quietly cancel with
+   `outline: none` is not an accessibility guarantee. Everything here is
+   deliberately generic; anything component-shaped belongs in its feature
+   sheet instead.
+   ============================================================ */
+
+/* ── Focus ────────────────────────────────────────────────────────────────
+   Every interactive element gets a visible ring. Several feature sheets set
+   `outline: none` on :focus and hand-roll a border instead; :focus-visible
+   here is more specific than a bare :focus, so this still lands.
+
+   :focus-visible, not :focus — a mouse click on a button should not leave a
+   ring behind, but a Tab to it must.                                       */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="option"]:focus-visible,
+[role="listbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Text inputs ──────────────────────────────────────────────────────────
+   Recessed fill, no border at rest, a 1px accent border on focus. The ring
+   above sits outside that, so a focused field reads at two removes without
+   either mark moving the layout.                                           */
+.search-input,
+.field-input,
+.rooms-code-input,
+.rooms-invite-input,
+.rd-code-input {
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.search-input::placeholder,
+.field-input::placeholder,
+.rooms-code-input::placeholder,
+.rooms-invite-input::placeholder,
+.rd-code-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus,
+.field-input:focus,
+.rooms-code-input:focus,
+.rooms-invite-input:focus,
+.rd-code-input:focus {
+  border-color: var(--accent);
+}
+
+/* ── Pill shapes ──────────────────────────────────────────────────────────
+   Search fields and filter chips only. Cards and ordinary buttons stay on
+   --radius; the primary CTA is pilled in its own feature sheet, next to the
+   rest of that button's rules. */
+.search-input,
+.search-box,
+.team-search-bar,
+.rooms-code-input,
+.rooms-invite-input {
+  border-radius: var(--radius-pill);
+}

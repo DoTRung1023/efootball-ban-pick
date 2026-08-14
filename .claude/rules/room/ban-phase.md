@@ -260,3 +260,10 @@ Your own bans keep their 0.45 opacity — the locked dim is
 grid, which is the only thing marking them out here. The CSS is in
 `room/css.md`; `myConfirmed` is already in the grid's state key, so no extra
 rebuild comes with this.
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.

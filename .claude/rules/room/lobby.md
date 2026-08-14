@@ -67,7 +67,7 @@ Layout:
   boxes) centers text, and without this override every `.lv-field-label`,
   `.lv-field-hint` and `.prep-section-title` floats centered above a left-aligned
   control.
-- `.prep-title` — `border-left: 2px solid var(--green); padding-left: 10px;
+- `.prep-title` — `border-left: 2px solid var(--text); padding-left: 10px;
   margin-bottom: 16px`. Shared by both "BAN SETTING" and "LOBBY CHAT" headings; do not
   add a second rule for this selector.
 - `.prep-col--chat` — `display: grid; grid-template-rows: auto minmax(0, 1fr) auto`
@@ -129,4 +129,11 @@ The `min`/`max` attributes must match `MIN/MAX_BAN_DURATION_SECONDS` and
 `state.room.config` as the user types without pushing; the `change` handler (blur or
 Enter) clamps through `normalizeBanDurationSec` / `normalizePickDurationSec`, writes the
 clamped value back into the field, and schedules the config push. `startDraftFromLobby`
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.
 re-validates both fields and refuses to start on an out-of-range value.

@@ -1,27 +1,7 @@
 /* ============================================================
    eFootball Ban & Pick — Sign In Page
-   Theme: Deep Navy + Emerald  (bg #0b1b29 · accent #2ccf75)
+   Colour, type, shape and motion come from `shared/tokens.css`. See DESIGN.md.
    ============================================================ */
-
-:root {
-  --green: #2ccf75;
-  --green-dim: #22b063;
-  --green-dark: #14663a;
-  --green-glow: rgba(44, 207, 117, 0.35);
-  --green-glow-sm: rgba(44, 207, 117, 0.15);
-  --black: #061119;
-  --bg: #0b1b29;
-  --bg-card: rgba(11, 31, 49, 0.82);
-  --bg-field: rgba(255,255,255,0.03);
-  --border: rgba(44, 207, 117, 0.18);
-  --border-active: rgba(44, 207, 117, 0.7);
-  --text: #e7f0f6;
-  --text-dim: #8aa5b8;
-  --font-main: 'Inter', system-ui, sans-serif;
-  --font-display: 'Orbitron', 'Inter', sans-serif;
-  --radius: 12px;
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -39,185 +19,7 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
-}
-
-/* ============================================================
-   PITCH BACKGROUND
-   ============================================================ */
-.pitch-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.pitch-lines {
-  position: absolute;
-  inset: 0;
-  background:
-    /* outer border */
-    linear-gradient(transparent 4%, rgba(44,207,117,0.06) 4%, rgba(44,207,117,0.06) 4.1%, transparent 4.1%),
-    linear-gradient(transparent 95.9%, rgba(44,207,117,0.06) 95.9%, rgba(44,207,117,0.06) 96%, transparent 96%),
-    linear-gradient(90deg, transparent 3%, rgba(44,207,117,0.06) 3%, rgba(44,207,117,0.06) 3.2%, transparent 3.2%),
-    linear-gradient(90deg, transparent 96.8%, rgba(44,207,117,0.06) 96.8%, rgba(44,207,117,0.06) 97%, transparent 97%);
-  background-size: 100% 100%;
-}
-
-.pitch-halfway {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 100%;
-  background: rgba(44, 207, 117, 0.05);
-}
-
-.pitch-center-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(55vw, 55vh);
-  height: min(55vw, 55vh);
-  border: 1px solid rgba(44, 207, 117, 0.05);
-  border-radius: 50%;
-}
-
-.pitch-center-circle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: rgba(44, 207, 117, 0.08);
-  border: 1px solid rgba(44, 207, 117, 0.15);
-}
-
-/* ============================================================
-   GLOW ORBS
-   ============================================================ */
-.glow-orb {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.glow-orb-1 {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(44,207,117,0.12) 0%, transparent 70%);
-  top: -200px;
-  right: -150px;
-  animation: orbFloat 12s ease-in-out infinite;
-}
-
-.glow-orb-2 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(25,172,100,0.09) 0%, transparent 70%);
-  bottom: -150px;
-  left: -100px;
-  animation: orbFloat 16s ease-in-out infinite reverse;
-}
-
-.glow-orb-3 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(44,207,117,0.07) 0%, transparent 70%);
-  top: 40%;
-  left: 10%;
-  animation: orbFloat 20s ease-in-out infinite 3s;
-}
-
-@keyframes orbFloat {
-  0%, 100% { transform: translateY(0) scale(1); }
-  33% { transform: translateY(-40px) scale(1.05); }
-  66% { transform: translateY(25px) scale(0.97); }
-}
-
-/* ============================================================
-   FLOATING PARTICLES
-   ============================================================ */
-.particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.particle {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  background: var(--green);
-  border-radius: 50%;
-  opacity: 0;
-  animation: particleRise var(--duration) ease-in-out infinite;
-  animation-delay: var(--delay);
-  left: var(--x);
-  bottom: -10px;
-  box-shadow: 0 0 6px var(--green);
-}
-
-@keyframes particleRise {
-  0% { opacity: 0; transform: translateY(0) scale(0.5); }
-  10% { opacity: 0.8; }
-  90% { opacity: 0.3; }
-  100% { opacity: 0; transform: translateY(-100vh) scale(1.5); }
-}
-
-/* ============================================================
-   FLOATING PLAYER CARDS BACKGROUND
-   ============================================================ */
-.player-cards-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.bg-player-card {
-  position: absolute;
-  width: 90px;
-  border-radius: 8px;
-  opacity: 0;
-  filter: blur(0.5px) brightness(0.55) saturate(0.8);
-  animation: cardFloat var(--card-duration) ease-in-out infinite var(--card-delay);
-  transform: rotate(var(--card-rotate));
-}
-
-.bg-player-card img {
-  width: 100%;
-  /* border-radius: 8px; */
-  display: block;
-}
-
-@keyframes cardFloat {
-  0%, 100% {
-    opacity: 0;
-    transform: translateY(60px) rotate(var(--card-rotate)) scale(0.85);
-  }
-  15% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 0.2;
-    transform: translateY(-20px) rotate(calc(var(--card-rotate) + 3deg)) scale(0.92);
-  }
-  85% {
-    opacity: 0.3;
-  }
-}
-
-/* ============================================================
+}/* ============================================================
    MAIN LAYOUT
    ============================================================ */
 .signin-wrapper {
@@ -256,9 +58,9 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: rgba(44,207,117,0.05);
+  background: var(--fill);
   padding: 4px;
 }
 
@@ -282,33 +84,31 @@ body {
 
 .brand-game {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 22px;
   font-weight: 900;
-  letter-spacing: 0.08em;
-  color: var(--green);
-  text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(44,207,117,0.2);
+  letter-spacing: 0.05em;
+  color: var(--text);
 }
 
 .brand-sub {
   font-family: var(--font-display);
-  font-size: 0.65rem;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
   margin-top: 2px;
 }
 
 .brand-badge {
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--black);
-  background: var(--green);
+  letter-spacing: 0.05em;
+  color: var(--text);
+  background: var(--fill-strong);
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   align-self: flex-start;
-  box-shadow: 0 0 12px var(--green-glow);
 }
 
 /* ============================================================
@@ -320,14 +120,8 @@ body {
   border-radius: var(--radius);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   overflow: hidden;
-  box-shadow:
-    0 0 0 1px rgba(44,207,117,0.05),
-    0 8px 48px rgba(0,0,0,0.6),
-    0 0 80px rgba(44,207,117,0.06),
-    inset 0 1px 0 rgba(44,207,117,0.1);
+
   animation: cardSlideIn 0.7s cubic-bezier(0.4,0,0.2,1) 0.1s both;
 }
 
@@ -337,7 +131,7 @@ body {
   left: 10%;
   right: 10%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  background: var(--border);
   opacity: 0.8;
 }
 
@@ -354,16 +148,15 @@ body {
 
 .card-title {
   font-family: var(--font-display);
-  font-size: 1.55rem;
+  font-size: 24.8px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   color: var(--text);
   margin-bottom: 6px;
-  text-shadow: 0 0 30px rgba(44,207,117,0.15);
 }
 
 .card-subtitle {
-  font-size: 0.9rem;
+  font-size: 14px;
   color: var(--text-dim);
   letter-spacing: 0.02em;
 }
@@ -385,9 +178,9 @@ body {
 
 .field-label {
   font-family: var(--font-display);
-  font-size: 0.65rem;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
   text-transform: uppercase;
 }
@@ -410,12 +203,12 @@ body {
 
 .field-input {
   width: 100%;
-  background: rgba(44, 207, 117, 0.04);
+  background: var(--fill-faint);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--text);
   font-family: var(--font-main);
-  font-size: 1rem;
+  font-size: 15px;
   padding: 12px 14px 12px 42px;
   outline: none;
   transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
@@ -423,19 +216,18 @@ body {
 }
 
 .field-input::placeholder {
-  color: rgba(138,165,184,0.45);
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 14px;
 }
 
 .field-input:focus {
-  border-color: var(--border-active);
-  background: rgba(44, 207, 117, 0.07);
-  box-shadow: 0 0 0 3px rgba(44,207,117,0.1), 0 0 20px rgba(44,207,117,0.08);
+  border-color: var(--line-active);
+  background: var(--fill);
 }
 
 .field-input:focus + .field-icon,
 .field-input-wrap:focus-within .field-icon {
-  color: var(--green);
+  color: var(--text);
 }
 
 .toggle-password {
@@ -448,11 +240,11 @@ body {
   display: flex;
   align-items: center;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: color var(--transition);
 }
 
-.toggle-password:hover { color: var(--green); }
+.toggle-password:hover { color: var(--text); }
 
 /* ============================================================
    FORM OPTIONS (Remember + Forgot)
@@ -478,16 +270,16 @@ body {
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--border);
-  border-radius: 4px;
-  background: rgba(44,207,117,0.04);
+  border-radius: var(--radius-sm);
+  background: var(--fill-faint);
   position: relative;
   flex-shrink: 0;
   transition: border-color var(--transition), background var(--transition);
 }
 
 .remember-me input:checked ~ .checkbox-custom {
-  border-color: var(--green);
-  background: var(--green);
+  border-color: var(--line-active);
+  background: var(--text);
 }
 
 .remember-me input:checked ~ .checkbox-custom::after {
@@ -504,22 +296,21 @@ body {
 }
 
 .remember-label {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: var(--text-dim);
   letter-spacing: 0.02em;
 }
 
 .forgot-link {
-  font-size: 0.85rem;
-  color: var(--green-dim);
+  font-size: 14px;
+  color: var(--text-muted);
   text-decoration: none;
   letter-spacing: 0.02em;
-  transition: color var(--transition), text-shadow var(--transition);
+  transition: color var(--transition);
 }
 
 .forgot-link:hover {
-  color: var(--green);
-  text-shadow: 0 0 12px var(--green-glow);
+  color: var(--text);
 }
 
 /* ============================================================
@@ -534,29 +325,26 @@ body {
   gap: 10px;
   padding: 13px 24px;
   margin-top: 8px;
-  background: linear-gradient(135deg, #22b063 0%, #2ccf75 50%, #6ee6a4 100%);
+  background: var(--accent);
   border: none;
-  border-radius: 8px;
-  color: #06131c;
-  font-family: var(--font-display);
-  font-size: 0.9rem;
+  border-radius: var(--radius-pill);
+  color: var(--on-accent);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.05em;
   cursor: pointer;
   overflow: hidden;
-  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
-  box-shadow: 0 4px 24px rgba(44,207,117,0.4), 0 0 0 1px rgba(44,207,117,0.3);
+  transition: background var(--transition);
 }
 
 .signin-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(44,207,117,0.55), 0 0 0 1px rgba(44,207,117,0.5);
+
   filter: brightness(1.05);
 }
 
 .signin-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 12px rgba(44,207,117,0.3);
 }
 
 .signin-btn:disabled {
@@ -582,22 +370,6 @@ body {
   transform: translateX(4px);
 }
 
-.btn-shine {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-  transform: skewX(-20deg);
-  animation: btnShine 3s ease-in-out infinite 1s;
-}
-
-@keyframes btnShine {
-  0% { left: -100%; }
-  30%, 100% { left: 160%; }
-}
-
 /* ============================================================
    LOADING STATE
    ============================================================ */
@@ -608,8 +380,8 @@ body {
   position: absolute;
   width: 20px;
   height: 20px;
-  border: 2.5px solid rgba(8,21,32,0.3);
-  border-top-color: #06131c;
+  border: 2.5px solid var(--bg-elevated);
+  border-top-color: var(--bg);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -621,21 +393,17 @@ body {
    ============================================================ */
 .signup-prompt {
   text-align: center;
-  font-size: 0.875rem;
+  font-size: 14px;
   color: var(--text-dim);
   margin-top: 8px;
   letter-spacing: 0.02em;
 }
 
 .signup-link {
-  color: var(--green);
+  color: var(--text);
   text-decoration: none;
   font-weight: 600;
-  transition: text-shadow var(--transition);
-}
 
-.signup-link:hover {
-  text-shadow: 0 0 12px var(--green-glow);
 }
 
 /* ============================================================
@@ -648,9 +416,9 @@ body {
 
 .strip-label {
   font-family: var(--font-display);
-  font-size: 0.6rem;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
   text-align: center;
   margin-bottom: 10px;
@@ -659,24 +427,20 @@ body {
 .strip-players {
   display: flex;
   gap: 10px;
-  animation: stripScroll 40s linear infinite;
-  width: max-content;
+  /* Scrolls by hand, not on a 40s loop — the system has no ambient motion. */
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.strip-players:hover { animation-play-state: paused; }
-
-@keyframes stripScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+.strip-players::-webkit-scrollbar { display: none; }
 
 .strip-card {
   flex-shrink: 0;
   width: 60px;
-  /* border-radius: 6px; */
+  /* border-radius: var(--radius-sm); */
   overflow: hidden;
-  border: 1px solid rgba(44,207,117,0.15);
-  background: rgba(44,207,117,0.05);
+  border: 1px solid var(--border);
+  background: var(--fill);
   cursor: pointer;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
   position: relative;
@@ -684,8 +448,8 @@ body {
 
 .strip-card:hover {
   transform: translateY(-4px) scale(1.05);
-  border-color: var(--green);
-  box-shadow: 0 4px 20px var(--green-glow);
+  border-color: var(--line-active);
+
   z-index: 10;
 }
 
@@ -702,14 +466,13 @@ body {
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: rgba(11, 31, 49, 0.95);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--font-main);
-  font-size: 0.9rem;
+  font-size: 14px;
   padding: 12px 24px;
-  border-radius: 8px;
-  backdrop-filter: blur(16px);
+  border-radius: var(--radius);
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
@@ -722,20 +485,19 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-.toast.error { border-color: rgba(239,68,68,0.5); color: #fca5a5; }
-.toast.success { border-color: var(--border-active); color: var(--green); }
+.toast.error { border-color: var(--danger-line); color: var(--danger); }
+.toast.success { border-color: var(--line-active); color: var(--text); }
 
 /* ============================================================
    VALIDATION STATES
    ============================================================ */
 .field-input.invalid {
-  border-color: rgba(239,68,68,0.6);
-  box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+  border-color: var(--danger);
 }
 
 .field-error {
-  font-size: 0.75rem;
-  color: #f87171;
+  font-size: 12px;
+  color: var(--danger);
   letter-spacing: 0.02em;
   margin-top: 2px;
   display: none;
@@ -748,8 +510,8 @@ body {
    ============================================================ */
 @media (max-width: 480px) {
   .card-inner { padding: 28px 20px 24px; }
-  .brand-game { font-size: 1.2rem; }
-  .card-title { font-size: 1.3rem; }
+  .brand-game { font-size: 20px; }
+  .card-title { font-size: 20px; }
 }
 
 @media (max-width: 360px) {
@@ -768,9 +530,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(6, 17, 25, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: var(--bg);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -788,14 +548,8 @@ body {
   border-radius: var(--radius);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  backdrop-filter: blur(32px) saturate(1.5);
-  -webkit-backdrop-filter: blur(32px) saturate(1.5);
   overflow: hidden;
-  box-shadow:
-    0 0 0 1px rgba(44,207,117,0.06),
-    0 12px 60px rgba(0,0,0,0.7),
-    0 0 100px rgba(44,207,117,0.07),
-    inset 0 1px 0 rgba(44,207,117,0.12);
+
   transform: translateY(24px) scale(0.97);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -820,9 +574,9 @@ body {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: rgba(44,207,117,0.08);
+  background: var(--fill);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   cursor: pointer;
   display: flex;
@@ -832,9 +586,9 @@ body {
 }
 
 .modal-close:hover {
-  color: var(--green);
-  background: rgba(44,207,117,0.14);
-  border-color: var(--border-active);
+  color: var(--text);
+  background: var(--fill-strong);
+  border-color: var(--line-active);
 }
 
 @media (max-width: 480px) {

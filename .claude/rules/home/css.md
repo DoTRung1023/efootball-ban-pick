@@ -24,7 +24,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
 - `shared/pitchField.css` — the football field both squad pitches stand on
   (`.pitch-field`, `.pitch-field-marks`, `.pf-*`), shared with the room's pick
   pitch. Like every `shared/` sheet it may only use tokens **both** pages declare
-  — here `--green`, `--border`, and `--radius` behind a fallback; the room's
+  — here `--text`, `--border`, and `--radius` behind a fallback; the room's
   `--g-*` ladder is not available to it.
 - `squad.css` — `.main-content` (centered container, `max-width: 1400px; margin: 0 auto`
   — no `flex: 1`, that is owned by `.content-scroll` in `base.css`), tab panels, squad
@@ -42,7 +42,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `#planPitchRows` rather than inside it, because `renderStartingXI()` replaces
     that container's contents outright. `.pitch-rows` carries `z-index: 1`: the
     marks are positioned and the rows are not, so without it the field paints
-    over the cards. The turf mixes `--green` into **black rather than `--bg`** —
+    over the cards. The turf mixes `--text` into **black rather than `--bg`** —
     `--bg`'s blue is a floor no ratio can get under, and against it the pitch
     comes out teal at every mix worth trying.
   - **Card sizing is measured, not fixed.** `.pitch-slot` is `flex: 1` with
@@ -248,3 +248,10 @@ Three properties are load-bearing:
 
 `z-index: 315` puts it over `.plan-detail-overlay` (310) and under
 `.plan-formation-panel` (520).
+
+> **Colour system note.** This file predates the efhub re-skin. The token *names* below
+> are current, but the reasoning often says "green", "cyan" or "glow" — those hues and
+> that glow are gone. Green meant "you" and cyan meant "the opponent"; both are greyscale
+> now, and the only accent left on this page is the turn clock and the pick slot waiting
+> on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
+> history and the structural claims as current.

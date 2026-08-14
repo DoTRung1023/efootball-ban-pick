@@ -24,7 +24,7 @@
 /* ── Shared card base ─────────────────────────────────────── */
 .rooms-card {
   position: relative;
-  border-radius: 16px;
+  border-radius: var(--radius);
   padding: 22px 22px 20px;
   display: flex;
   flex-direction: column;
@@ -34,75 +34,73 @@
 
 /* CREATE card */
 .rooms-card--create {
-  background: linear-gradient(145deg, rgba(11, 31, 49, 0.95) 0%, rgba(15, 42, 65, 0.9) 60%, rgba(7, 18, 28, 0.95) 100%);
-  border: 1px solid rgba(44, 207, 117, 0.28);
-  box-shadow: 0 0 40px rgba(44, 207, 117, 0.08), inset 0 1px 0 rgba(44, 207, 117, 0.1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-hover);
 }
 
 .rooms-card--create::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 70% 60% at 30% 50%, rgba(44, 207, 117, 0.07) 0%, transparent 65%);
+  background: var(--fill);
   pointer-events: none;
 }
 
 /* JOIN card */
 .rooms-card--join {
-  background: linear-gradient(145deg, rgba(12, 34, 53, 0.95) 0%, rgba(15, 42, 65, 0.9) 60%, rgba(10, 26, 41, 0.95) 100%);
-  border: 1px solid rgba(0, 160, 255, 0.22);
-  box-shadow: 0 0 40px rgba(0, 140, 255, 0.06), inset 0 1px 0 rgba(0, 160, 255, 0.08);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
 }
 
 .rooms-card--join::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 70% 60% at 70% 50%, rgba(0, 140, 255, 0.05) 0%, transparent 65%);
+  background: var(--fill);
   pointer-events: none;
 }
 
 /* ── Card inner elements ──────────────────────────────────── */
 .rooms-card-role {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.05em;
   padding: 3px 9px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   width: fit-content;
   position: relative;
   z-index: 1;
 }
 
 .rooms-card--create .rooms-card-role {
-  color: #2ccf75;
-  background: rgba(44, 207, 117, 0.12);
-  border: 1px solid rgba(44, 207, 117, 0.3);
+  color: var(--text);
+  background: var(--fill-strong);
+  border: 1px solid var(--line-hover);
 }
 
 .rooms-card--join .rooms-card-role {
-  color: #40c4ff;
-  background: rgba(0, 160, 255, 0.1);
-  border: 1px solid rgba(0, 160, 255, 0.28);
+  color: var(--text);
+  background: var(--fill-strong);
+  border: 1px solid var(--line-hover);
 }
 
 .rooms-card-title {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.96);
+  color: var(--text);
   position: relative;
   z-index: 1;
 }
 
 .rooms-card-sub {
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-muted);
   line-height: 1.55;
   position: relative;
   z-index: 1;
@@ -124,15 +122,14 @@
   gap: 10px;
   align-items: center;
   padding: 9px 11px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(4px);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-faint);
   transition: border-color var(--transition), background var(--transition);
 }
 
 .rooms-create-step:hover {
-  border-color: rgba(44, 207, 117, 0.2);
-  background: rgba(0, 0, 0, 0.68);
+  border-color: var(--border);
+  background: var(--scrim);
 }
 
 .rooms-step-icon {
@@ -146,37 +143,37 @@
 }
 
 .rooms-create-step:nth-child(1) .rooms-step-icon {
-  background: rgba(44, 207, 117, 0.1);
-  border: 1px solid rgba(44, 207, 117, 0.22);
-  color: #2ccf75;
+  background: var(--fill-strong);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .rooms-create-step:nth-child(2) .rooms-step-icon {
-  background: rgba(0, 180, 255, 0.08);
-  border: 1px solid rgba(0, 180, 255, 0.2);
-  color: #40c4ff;
+  background: var(--fill);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .rooms-create-step:nth-child(3) .rooms-step-icon {
-  background: rgba(180, 255, 100, 0.08);
-  border: 1px solid rgba(180, 255, 100, 0.2);
-  color: #b4ff64;
+  background: var(--fill);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .rooms-step-name {
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text);
   margin-bottom: 1px;
 }
 
 .rooms-step-hint {
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--text-muted);
   line-height: 1.35;
 }
 
@@ -184,25 +181,22 @@
   margin-top: auto;
   width: 100%;
   padding: 13px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   border: none;
-  background: linear-gradient(90deg, #2ccf75, #22b063);
-  color: #000;
-  font-family: var(--font-display);
-  font-size: 0.88rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   cursor: pointer;
   position: relative;
   z-index: 1;
-  box-shadow: 0 4px 20px rgba(44, 207, 117, 0.35);
-  transition: transform var(--transition), filter var(--transition), box-shadow var(--transition);
+  transition: background var(--transition);
 }
 
 .rooms-create-cta:hover {
-  transform: translateY(-1px);
+  background: var(--accent-hover);
   filter: brightness(1.06);
-  box-shadow: 0 6px 28px rgba(44, 207, 117, 0.5);
 }
 
 /* Join card elements */
@@ -216,10 +210,10 @@
 
 .rooms-code-label {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.22em;
-  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 .rooms-code-row {
@@ -235,21 +229,20 @@
      screen below ~340px. */
   min-width: 0;
   padding: 11px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 160, 255, 0.2);
-  background: rgba(0, 0, 0, 0.45);
-  color: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--scrim);
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 1rem;
-  letter-spacing: 0.24em;
+  font-size: 15px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .rooms-code-input:focus {
-  border-color: rgba(0, 160, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 140, 255, 0.12);
+  border-color: var(--line-active);
 }
 
 .rooms-code-paste-btn {
@@ -257,9 +250,9 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 160, 255, 0.22);
-  background: rgba(0, 140, 255, 0.06);
-  color: rgba(0, 160, 255, 0.65);
+  border: 1px solid var(--border);
+  background: var(--fill);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,17 +261,17 @@
 }
 
 .rooms-code-paste-btn:hover {
-  background: rgba(0, 140, 255, 0.14);
-  border-color: rgba(0, 160, 255, 0.45);
-  color: #40c4ff;
+  background: var(--fill-strong);
+  border-color: var(--line-hover);
+  color: var(--text);
 }
 
 .rooms-or-divider {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.28);
+  font-size: 12px;
+  color: var(--text-muted);
   position: relative;
   z-index: 1;
 }
@@ -288,7 +281,7 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--fill);
 }
 
 .rooms-invite-area {
@@ -296,9 +289,9 @@
   align-items: flex-start;
   gap: 11px;
   padding: 13px;
-  border-radius: 10px;
-  background: rgba(0, 100, 200, 0.06);
-  border: 1px solid rgba(0, 140, 255, 0.14);
+  border-radius: var(--radius);
+  background: var(--fill);
+  border: 1px solid var(--border);
   position: relative;
   z-index: 1;
 }
@@ -307,13 +300,13 @@
   flex-shrink: 0;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
-  background: rgba(0, 140, 255, 0.1);
-  border: 1px solid rgba(0, 140, 255, 0.2);
+  border-radius: var(--radius);
+  background: var(--fill-strong);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #40c4ff;
+  color: var(--text);
   margin-top: 2px;
 }
 
@@ -326,54 +319,50 @@
 
 .rooms-invite-title {
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.18em;
-  color: #40c4ff;
+  letter-spacing: 0.05em;
+  color: var(--text);
 }
 
 .rooms-invite-input {
   width: 100%;
   padding: 7px 10px;
-  border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(0, 0, 0, 0.38);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-faint);
+  background: var(--scrim);
+  color: var(--text);
+  font-size: 14px;
   outline: none;
   transition: border-color var(--transition);
   box-sizing: border-box;
 }
 
 .rooms-invite-input:focus {
-  border-color: rgba(0, 160, 255, 0.38);
+  border-color: var(--line-hover);
 }
 
 .rooms-join-cta {
   margin-top: auto;
   width: 100%;
   padding: 13px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 180, 255, 0.45);
-  background: linear-gradient(90deg, rgba(0, 120, 255, 0.18), rgba(0, 80, 200, 0.22));
-  color: #40c4ff;
-  font-family: var(--font-display);
-  font-size: 0.88rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
   position: relative;
   z-index: 1;
-  box-shadow: 0 4px 20px rgba(0, 140, 255, 0.22), inset 0 1px 0 rgba(0, 200, 255, 0.1);
-  transition: background var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition), color var(--transition);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .rooms-join-cta:hover {
-  background: linear-gradient(90deg, rgba(0, 140, 255, 0.28), rgba(0, 100, 220, 0.32));
-  border-color: rgba(0, 200, 255, 0.65);
-  color: #80d8ff;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(0, 160, 255, 0.38), inset 0 1px 0 rgba(0, 220, 255, 0.15);
+  background: var(--fill);
+  border-color: var(--line-hover);
+  color: var(--text);
 }
 
 /* ── Info row ─────────────────────────────────────────────── */
@@ -384,9 +373,9 @@
 }
 
 .rooms-info-panel {
-  border-radius: 14px;
-  background: rgb(18, 41, 62);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-faint);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -394,8 +383,8 @@
 }
 
 .rooms-info-panel:nth-child(1) {
-  border-top-color: rgba(255, 200, 0, 0.45);
-  background: linear-gradient(180deg, rgba(255, 180, 0, 0.07) 0%, rgb(18, 16, 6) 36%);
+  border-top-color: var(--line-hover);
+  background: var(--fill);
 }
 
 .rooms-info-head {
@@ -403,18 +392,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 11px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--line-faint);
 }
 
 .rooms-info-label {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.22em;
-  color: rgba(255, 255, 255, 0.48);
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
-.rooms-info-panel:nth-child(1) .rooms-info-label { color: rgba(255, 200, 0, 0.85); }
+.rooms-info-panel:nth-child(1) .rooms-info-label { color: var(--text); }
 
 .rooms-info-panel:nth-child(1) .rooms-info-body { justify-content: center; }
 
@@ -432,10 +421,10 @@
   gap: 9px;
   align-items: flex-start;
   font-family: var(--font-display);
-  font-size: 0.76rem;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text);
   line-height: 1.5;
 }
 
@@ -444,9 +433,8 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255, 200, 0, 0.75);
+  background: var(--fill-strong);
   margin-top: 6px;
-  box-shadow: 0 0 6px rgba(255, 200, 0, 0.4);
 }
 
 /* ── Bottom row (tips + how it works side by side) ─────────── */
@@ -464,21 +452,21 @@
 
 /* ── How it works ─────────────────────────────────────────── */
 .rooms-how {
-  border-radius: 14px;
-  background: rgb(18, 41, 62);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top: 2px solid rgba(44, 207, 117, 0.35);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-faint);
+  border-top: 2px solid var(--line-hover);
   overflow: hidden;
 }
 
 .rooms-how-kicker {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.28em;
-  color: rgba(44, 207, 117, 0.7);
+  letter-spacing: 0.05em;
+  color: var(--text);
   padding: 11px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--line-faint);
 }
 
 .rooms-how-steps {
@@ -491,7 +479,7 @@
   gap: 16px;
   align-items: flex-start;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--line-faint);
 }
 
 .rooms-how-step:last-child {
@@ -500,9 +488,9 @@
 
 .rooms-how-num {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 900;
-  color: rgba(44, 207, 117, 0.22);
+  color: var(--text-muted);
   flex-shrink: 0;
   width: 26px;
   line-height: 1.2;
@@ -510,19 +498,19 @@
 
 .rooms-how-step-title {
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.05em;
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 .rooms-how-step-desc {
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-muted);
   line-height: 1.5;
 }
 

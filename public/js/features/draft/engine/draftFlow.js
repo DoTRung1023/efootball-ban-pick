@@ -7,7 +7,6 @@
  * then a simultaneous pick stage (see buildTurnSchedule).
  */
 
-import { GREEN, RED } from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import {
@@ -20,7 +19,7 @@ import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQu
 
 const FALLBACK_TURN_SECONDS = 60;
 const TIMER_TICK_MS = 250;
-const LOW_TIME_SECONDS = 5;
+const LOW_TIME_SECONDS = 10;   // when the clock turns red — styling only
 
 /** True once picking is done and both sides are confirming the match. */
 export function isReadyPhase(room = state.room) {
@@ -127,20 +126,19 @@ export function clearTurnTimer() {
   }
 }
 
-/** Paints the ring + digits for the remaining seconds. */
+/** Paints the digits + progress bar for the remaining seconds.
+    Colour is not decided here: the element carries `is-low` and a
+    `--timer-progress` width, and `draft/shell.css` says what those look like. */
 function paintTimer(secondsLeft, durationSec) {
   const inner = document.getElementById("timerInner");
   const ring = document.getElementById("timerRing");
   const isLow = secondsLeft <= LOW_TIME_SECONDS;
 
-  if (inner) {
-    inner.textContent = String(secondsLeft);
-    inner.style.color = isLow ? RED : "#fff";
-  }
+  if (inner) inner.textContent = String(secondsLeft);
   if (ring) {
-    const deg = Math.min(1, secondsLeft / durationSec) * 360;
+    const pct = Math.min(1, secondsLeft / durationSec) * 100;
     ring.classList.toggle("is-low", isLow);
-    ring.style.background = `conic-gradient(${isLow ? RED : GREEN} ${deg}deg, #263c4e 0deg)`;
+    ring.style.setProperty("--timer-progress", `${pct}%`);
   }
 }
 

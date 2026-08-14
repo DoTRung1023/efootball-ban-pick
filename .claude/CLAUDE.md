@@ -56,10 +56,12 @@ Code is grouped **by feature, not by file type**.
   it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
   `features/<name>/<name>.css`,
-  `shared/{playerCard,modals,numberInput,playerHoverCard,pitchField}.css`. There is
-  no bundler, so
-  a page's `<link>` tags **are** its cascade — the order in the `<head>` is load-bearing,
-  and `responsive.css` must stay last on the home page.
+  `shared/{tokens,controls,playerCard,modals,numberInput,playerHoverCard,pitchField}.css`.
+  There is no bundler, so a page's `<link>` tags **are** its cascade — the order in the
+  `<head>` is load-bearing. `shared/tokens.css` must be **first** (every other sheet
+  reads its variables) and `shared/controls.css` **last**, because its focus ring has to
+  beat the feature sheets that set `outline: none`; on the home page `responsive.css`
+  still comes after it.
 - `scripts/` — `check.js` (the `npm run check` runner and its self-test) and
   `checks/`, one file per check plus a shared `lib.js`. Node-only tooling; it is
   not served, and the checks scan `public/js` and `src` but not themselves.
@@ -78,12 +80,19 @@ keep `./sibling.js` relative.
 
 ## Visual design
 
-**`DESIGN.md` in the repo root is the source of truth for how the app looks** — colour
-tokens and their meanings, the green/cyan accent ladders, type scale, radius/spacing
+**`DESIGN.md` in the repo root is the source of truth for how the app looks** — the
+palette and what each colour means, the neutral ladder, type scale, radius/spacing
 scales, elevation, motion, and copy-paste component recipes. Read it before writing any
 CSS or markup with a visual result, and before acting on any "make it look better /
 more modern" request. Do not introduce a colour, radius, or spacing value that is not on
 one of its ladders.
+
+**All colour lives in `public/css/shared/tokens.css`**, linked first on every page; there
+is no hex or `rgba()` literal anywhere else in the codebase, CSS or JS.
+`public/css/shared/controls.css` is linked last and owns the focus ring and text-input
+treatment, which have to win over feature CSS. The look is flat near-black with a single
+volt-green accent used **once per screen** — no gradients, glows, shadows or backdrop
+blur. `DESIGN.md` §12 lists what the re-skin removed, so a leftover reads as a leftover.
 
 ## Cross-cutting conventions
 
