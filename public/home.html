@@ -263,142 +263,65 @@
         <section class="tab-panel" id="roomsPanel">
           <div class="rooms-page">
 
-            <!-- ── Dual action cards ───────────────────────── -->
-            <div class="rooms-hero">
-              <div class="rooms-dual-cards">
-
-                <!-- HOST card -->
-                <div class="rooms-card rooms-card--create">
-                  <div class="rooms-card-role">HOST</div>
-                  <h2 class="rooms-card-title">CREATE A ROOM</h2>
-                  <p class="rooms-card-sub">You’ll get a 6-character code to share. Configure rules, allowances and bans together in the lobby.</p>
-                  <ul class="rooms-create-steps">
-                    <li class="rooms-create-step">
-                      <span class="rooms-step-icon" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-                      </span>
-                      <div>
-                        <div class="rooms-step-name">Host the rules</div>
-                        <div class="rooms-step-hint">Pick durations, reveal mode, category caps.</div>
-                      </div>
-                    </li>
-                    <li class="rooms-create-step">
-                      <span class="rooms-step-icon" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                      </span>
-                      <div>
-                        <div class="rooms-step-name">Share a link or code</div>
-                        <div class="rooms-step-hint">Drop it in Discord, GM, anywhere.</div>
-                      </div>
-                    </li>
-                    <li class="rooms-create-step">
-                      <span class="rooms-step-icon" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                      </span>
-                      <div>
-                        <div class="rooms-step-name">Start when both ready</div>
-                        <div class="rooms-step-hint">Room stays open until you close it.</div>
-                      </div>
-                    </li>
-                  </ul>
-                  <button class="rooms-create-cta" id="roomHubCreateBtn" type="button">CREATE ROOM »</button>
-                </div>
-
-                <!-- GUEST card -->
-                <div class="rooms-card rooms-card--join">
-                  <div class="rooms-card-role">GUEST</div>
-                  <h2 class="rooms-card-title">JOIN A ROOM</h2>
-                  <p class="rooms-card-sub">Got a 6-character code from your opponent? Drop it in.</p>
-
-                  <div class="rooms-code-section">
-                    <label class="rooms-code-label" for="joinRoomCode">ROOM CODE</label>
-                    <div class="rooms-code-row">
-                      <input
-                        class="rooms-code-input"
-                        id="joinRoomCode"
-                        type="text"
-                        inputmode="text"
-                        autocomplete="off"
-                        autocapitalize="characters"
-                        spellcheck="false"
-                        placeholder="——————"
-                        maxlength="10"
-                      >
-                      <button class="rooms-code-paste-btn" id="pasteCodeBtn" type="button" title="Paste from clipboard" aria-label="Paste code from clipboard">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="rooms-or-divider">or paste an invite link below</div>
-
-                  <div class="rooms-invite-area">
-                    <div class="rooms-invite-icon" aria-hidden="true">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    </div>
-                    <div class="rooms-invite-content">
-                      <div class="rooms-invite-title">PASTE AN INVITE LINK</div>
-                      <input class="rooms-invite-input" id="joinRoomLink" type="text" placeholder="Accepts copy/invite links" autocomplete="off" spellcheck="false">
-                    </div>
-                  </div>
-
-                  <button class="rooms-join-cta" id="joinRoomBtn" type="button">ENTER CODE TO JOIN</button>
-                </div>
-
+            <!-- ── Room code ──────────────────────────────── -->
+            <div class="rooms-code-block">
+              <p class="rooms-code-kicker"><span>YOUR ROOM CODE</span></p>
+              <p class="rooms-code-display" id="roomCode">——————</p>
+              <div class="rooms-code-tools">
+                <button class="rooms-code-tool" id="copyCode" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  COPY CODE
+                </button>
+                <button class="rooms-code-tool" id="regenCode" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                  NEW CODE
+                </button>
               </div>
             </div>
 
-            <!-- ── Tips + How it works ────────────────────── -->
-            <div class="rooms-bottom-row">
+            <!-- ── Host / Guest ───────────────────────────── -->
+            <div class="rooms-actions">
 
-              <div class="rooms-info-row">
-                <div class="rooms-info-panel">
-                  <div class="rooms-info-head">
-                    <span class="rooms-info-label">STRATEGY TIPS</span>
-                  </div>
-                  <div class="rooms-info-body">
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>Ban roles, not names — a missing DMF or AMF breaks formations faster than any star.</div>
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>Their most versatile player is the best ban — it blocks multiple roles at once.</div>
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>Target the pivot (DMF/CMF) — removing it forces a complete formation rethink.</div>
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>If they have one elite GK, ban it — quality replacements are rare in any squad.</div>
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>23 picks means 23 decisions — treat every bench slot as a weapon, not a filler.</div>
-                    <div class="rooms-tip-item"><span class="rooms-tip-bullet"></span>Category caps bite mid-draft — know your pick limits before the timer starts.</div>
-                  </div>
+              <div class="rooms-panel">
+                <div class="rooms-panel-head">
+                  <span class="rooms-role"><span class="rooms-role-dot"></span>HOST</span>
+                  <span class="rooms-status"><span class="rooms-status-dot"></span>WAITING</span>
                 </div>
+                <h2 class="rooms-panel-title">Create the room</h2>
+                <div class="rooms-host-row">
+                  <span class="rooms-host-avatar" id="roomHostAvatar" aria-hidden="true"></span>
+                  <span class="rooms-host-name" id="roomHostName">—</span>
+                  <span class="rooms-host-meta" id="roomHostMeta">HOST</span>
+                </div>
+                <button class="rooms-create-cta" id="startRoomBtn" type="button">OPEN ROOM &#9656;</button>
               </div>
 
-              <div class="rooms-how">
-                <p class="rooms-how-kicker">HOW A SESSION GOES</p>
-                <div class="rooms-how-steps">
-                  <div class="rooms-how-step">
-                    <span class="rooms-how-num">01</span>
-                    <div>
-                      <div class="rooms-how-step-title">SET RULES</div>
-                      <div class="rooms-how-step-desc">Bans per side, durations, category caps, reveal mode.</div>
-                    </div>
-                  </div>
-                  <div class="rooms-how-step">
-                    <span class="rooms-how-num">02</span>
-                    <div>
-                      <div class="rooms-how-step-title">BAN PHASE</div>
-                      <div class="rooms-how-step-desc">Each side bans from the opponent’s squad. Confirm to lock.</div>
-                    </div>
-                  </div>
-                  <div class="rooms-how-step">
-                    <span class="rooms-how-num">03</span>
-                    <div>
-                      <div class="rooms-how-step-title">PICK PHASE</div>
-                      <div class="rooms-how-step-desc">Pick from the filtered pool. Watch your opponent fill out in real time.</div>
-                    </div>
-                  </div>
-                  <div class="rooms-how-step">
-                    <span class="rooms-how-num">04</span>
-                    <div>
-                      <div class="rooms-how-step-title">START MATCH</div>
-                      <div class="rooms-how-step-desc">Both squads revealed. Both players READY to start.</div>
-                    </div>
-                  </div>
+              <span class="rooms-or">OR</span>
+
+              <div class="rooms-panel">
+                <div class="rooms-panel-head">
+                  <span class="rooms-role"><span class="rooms-role-dot"></span>GUEST</span>
                 </div>
+                <h2 class="rooms-panel-title">Join a room</h2>
+                <div class="rooms-code-row">
+                  <input
+                    class="rooms-code-input"
+                    id="joinRoomCode"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    placeholder="——————"
+                    maxlength="10"
+                    aria-label="Room code"
+                  >
+                  <span class="rooms-code-count" id="joinCodeCount">0/6</span>
+                  <button class="rooms-code-paste-btn" id="pasteCodeBtn" type="button" title="Paste from clipboard" aria-label="Paste code from clipboard">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                </div>
+                <button class="rooms-join-cta" id="joinRoomBtn" type="button">ENTER CODE TO JOIN</button>
               </div>
 
             </div>
@@ -409,59 +332,6 @@
       </main>
       </div><!-- /.content-scroll -->
     </div><!-- /.app-shell -->
-
-    <!-- ── Create Room Drawer ───────────────────────────── -->
-    <div class="modal-overlay" id="roomOverlay" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
-      <div class="room-drawer">
-
-        <!-- Close -->
-        <div class="rd-close-row">
-          <button type="button" class="rd-close" id="roomClose" aria-label="Close">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Hero -->
-        <div class="rd-hero">
-          <p class="rd-kicker">NEW SESSION</p>
-          <h2 class="rd-title" id="roomTitle">CREATE<br>ROOM</h2>
-          <p class="rd-sub">Invite a friend and start your ban &amp; pick draft.</p>
-        </div>
-
-        <!-- Code -->
-        <div class="rd-body">
-          <p class="rd-code-label">ROOM CODE</p>
-          <div class="rd-code-row">
-            <input type="text" id="roomCode" class="rd-code-input" readonly autocomplete="off" spellcheck="false">
-            <button type="button" class="rd-icon-btn" id="regenCode" aria-label="Regenerate code">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-            </button>
-            <button type="button" class="rd-icon-btn" id="copyCode" aria-label="Copy code">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-            </button>
-          </div>
-          <p class="rd-hint">Share this code with your opponent to let them join.</p>
-        </div>
-
-        <!-- Footer -->
-        <div class="rd-footer">
-          <button type="button" class="rd-start-btn" id="startRoomBtn">
-            <span>START ROOM</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </button>
-          <button type="button" class="rd-cancel-btn" id="roomCancel">CANCEL</button>
-        </div>
-
-      </div>
-    </div>
 
     <!-- ── Add Player Modal ─────────────────────────────── -->
     <div class="modal-overlay add-player-overlay" id="addPlayerOverlay" role="dialog" aria-modal="true" aria-labelledby="apTitle">

@@ -406,7 +406,9 @@ Named here so a leftover is recognisable as a leftover, not as a second theme:
 - **115 `box-shadow` declarations, 66 gradients, 42 `backdrop-filter`s** and every
   `text-shadow`.
 - **The ambient art** — `.pitch-bg`, four `.glow-orb`s, `orbFloat`, the sign-in particle
-  field and `initParticles()`, and the `.btn-shine` sweep.
+  field and `initParticles()`, the floating card backdrop and `renderBackgroundCards()`,
+  and the `.btn-shine` sweep. A rooms hero stage briefly reintroduced some of it and was
+  taken out again — the flat `--bg` rule has no exceptions.
 - **The four duplicated `:root` blocks.** There is one now, and a token change no longer
   has to be applied in four places.
 - **Two hex literals in JS** (`GREEN`/`RED` in `features/draft/constants.js`). The timer

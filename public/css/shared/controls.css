@@ -34,10 +34,7 @@ summary:focus-visible,
    above sits outside that, so a focused field reads at two removes without
    either mark moving the layout.                                           */
 .search-input,
-.field-input,
-.rooms-code-input,
-.rooms-invite-input,
-.rd-code-input {
+.field-input {
   background: var(--bg-input);
   border: 1px solid transparent;
   color: var(--text);
@@ -48,18 +45,12 @@ summary:focus-visible,
 }
 
 .search-input::placeholder,
-.field-input::placeholder,
-.rooms-code-input::placeholder,
-.rooms-invite-input::placeholder,
-.rd-code-input::placeholder {
+.field-input::placeholder {
   color: var(--text-muted);
 }
 
 .search-input:focus,
-.field-input:focus,
-.rooms-code-input:focus,
-.rooms-invite-input:focus,
-.rd-code-input:focus {
+.field-input:focus {
   border-color: var(--accent);
 }
 
@@ -69,8 +60,6 @@ summary:focus-visible,
    rest of that button's rules. */
 .search-input,
 .search-box,
-.team-search-bar,
-.rooms-code-input,
-.rooms-invite-input {
+.team-search-bar {
   border-radius: var(--radius-pill);
 }

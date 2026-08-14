@@ -30,6 +30,15 @@
      minimums are pure width padding, and they are what tips it over. */
   .toggle-info-btn,
   .select-all-btn { min-width: 0; }
+
+  .rooms-code-display { font-size: 40px; letter-spacing: 0.1em; text-indent: 0.1em; }
+
+  /* One column, so the divider turns on its side and loses its rules —
+     a vertical hairline between stacked panels would point nowhere. */
+  .rooms-actions { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rooms-or { align-self: center; padding: 0; }
+  .rooms-or::before,
+  .rooms-or::after { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -209,4 +218,11 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     max-width: 340px;
   }
+
+  .rooms-page { padding: 40px 12px 32px; }
+  .rooms-code-block { margin-bottom: 28px; }
+  .rooms-code-display { font-size: 28px; letter-spacing: 0.08em; text-indent: 0.08em; }
+  .rooms-code-tool { padding: 6px 11px; }
+  .rooms-panel { padding: 18px; }
+  .rooms-code-input { font-size: 17px; letter-spacing: 0.2em; }
 }

@@ -3,7 +3,7 @@ import { initUserMenu, initEditProfile } from '@/features/auth/index.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/features/squad/index.js';
 import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
 import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
-import { initRoomModal, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
+import { initRoomHost, refreshRoomHost, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
 
 /** Nav tab ↔ URL. `src/pages.js` serves `home.html` on all three, so a reload
     or a shared link lands on the tab named by the path rather than always on
@@ -69,12 +69,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUserMenu(user);
   initEditProfile();
   initRoomHub();
-  initRoomModal();
+  initRoomHost(user);
   initAddPlayerModal();
   initSquadSearchSortFilter();
   initPlayerPopup();
   initSquadControls(user.id);
   initGamePlans(user.id);
   await loadSquad(user.id);
+  refreshRoomHost();   // the host row prints the squad count, known only now
   loadGamePlans(user.id);
 });

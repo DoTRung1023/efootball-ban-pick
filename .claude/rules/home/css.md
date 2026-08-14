@@ -132,21 +132,32 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   CSS rule.
 - `modals.css` — shared modal overlay/card base, spinner, player popup, toast, confirm
   dialog, edit profile modal.
-  - **Room CREATE drawer**: `#roomOverlay` is overridden to `justify-content: flex-end;
-    align-items: stretch; padding: 0` so it anchors right. `.room-drawer` (380 px wide,
-    full height, `transform: translateX(100%)` → `translateX(0)` on open, slides in from
-    the right). Inner layout: `.rd-close-row` (close button row), `.rd-hero`
-    (`rd-kicker` + `rd-title` + `rd-sub`), `.rd-body` (`rd-code-label` + `.rd-code-row`
-    with `rd-code-input` + two `rd-icon-btn` for regen/copy + `rd-hint`), `.rd-footer`
-    (`rd-start-btn` green primary + `rd-cancel-btn` ghost). On mobile (≤420 px)
-    `.room-drawer` expands to full width.
-- `rooms.css` — Rooms tab. Key blocks: `.rooms-dual-cards` (2-column grid);
-  `.rooms-card--create` (deep green gradient, green glow border) / `.rooms-card--join`
-  (deep navy gradient, cyan glow border); `.rooms-create-step` (dark pill, per-step icon
-  colour); `.rooms-create-cta` / `.rooms-join-cta` / `.rooms-invite-area`.
+- `rooms.css` — Rooms tab: the host's room code, then two action panels either side of
+  an OR. Key blocks: `.rooms-code-block` (`.rooms-code-kicker` / `.rooms-code-display` /
+  `.rooms-code-tool`) and `.rooms-actions` (3-column grid: panel · OR · panel) with
+  `.rooms-panel`, `.rooms-panel-head`, `.rooms-role` / `.rooms-status`,
+  `.rooms-host-row`, `.rooms-create-cta` / `.rooms-join-cta`, `.rooms-code-row`.
+  - **There is no create-room drawer.** The code is on the page, generated at boot, so
+    there is no overlay, no body scroll-lock and no Escape handler to get wrong. The
+    drawer's Escape branch had been reading `addPlayerModalOpen`, which is module-private
+    to `catalog.js` — it threw a ReferenceError on every press. Deleted with the drawer.
+  - `.rooms-code-display` is display type (56px), one of the handful of sizes above the
+    22px ceiling — see DESIGN.md §4. Its tracking adds a trailing gap, so `text-indent`
+    matches the tracking to keep the block optically centred.
+  - A hero stage (fanned cards, `1v1` emblem, position chips, `BAN PICK` watermark) lived
+    above these panels for one revision and was removed. If you are reinstating something
+    like it, the two traps below are what cost the time.
+  - `.rooms-actions` uses `minmax(0, 1fr)`, **not `1fr`**. A bare `1fr` is
+    `minmax(auto, 1fr)`, so the track floors at the panel's min-content — measured at
+    340px, which put the panels 20px past a 320px viewport. `body { overflow: hidden }`
+    clipped it, so the page did not scroll and the break was invisible until measured.
+    `.rooms-panel` and `.rooms-code-row` carry `min-width: 0` for the same reason.
+  - `.rooms-or` draws its rules as `::before` / `::after` and is **not** given an explicit
+    `grid-row`. Placing it explicitly re-anchors it to the first free cell — it jumped to
+    column 1, left of the HOST panel. Source order alone puts it in the middle.
   - `.rooms-code-input` needs `min-width: 0`: as a `flex: 1` item its intrinsic width
-    (~20 chars at `0.24em` tracking) otherwise stops the row shrinking and pushes the
-    paste button off screen below ~340 px.
+    (6 chars at `0.3em` tracking, 20px) otherwise stops the row shrinking and pushes the
+    counter and paste button off the edge.
   - **Bottom row**: `.rooms-bottom-row` (`display: grid;
     grid-template-columns: 1fr 1fr; align-items: stretch`) — left child is
     `.rooms-info-row` (single-panel STRATEGY TIPS with gold `border-top`), right child is

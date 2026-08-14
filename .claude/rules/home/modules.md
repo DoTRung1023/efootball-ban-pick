@@ -183,16 +183,21 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     `closePlanDetail()`. Both renders replace their slot elements outright, so a
     hovered card is detached without ever firing `mouseleave`.
 
-- `rooms.js` — Rooms tab: create-room drawer + join flow. Exports `initRoomModal`
-  and `initRoomHub`.
+- `rooms.js` — Rooms tab: the host's room code + the join flow. Exports
+  `initRoomHost`, `refreshRoomHost` and `initRoomHub`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;
     if `room.host` is null (room not found) it shows an error toast and stops
     navigation, preventing users from entering a non-existent room.
-  - `initRoomModal` opens/closes the right-side drawer (`#roomOverlay`); when opening it
-    measures the scrollbar width and adds matching `padding-right` to the body so the
-    background does not shift.
-  - `initRoomHub` wires: code input normalisation, `#pasteCodeBtn` (clipboard paste,
-    URL-aware), `#joinRoomLink` (invite-link input).
+  - `initRoomHost(user)` generates the code at boot into `#roomCode`, paints the host
+    row, and wires `#copyCode` / `#regenCode` / `#startRoomBtn`. **There is no drawer** —
+    the create-room overlay it replaced also carried an Escape handler that read
+    `addPlayerModalOpen`, a module-private of `catalog.js`, and threw on every press.
+  - `refreshRoomHost()` repaints only the host row's squad count. It is separate because
+    the count comes from `cb.getSquadPlayers()`, which is empty until `loadSquad`
+    resolves — `home.js` calls it again right after that await.
+  - `initRoomHub` wires: code input normalisation, the `#joinCodeCount` counter, and
+    `#pasteCodeBtn` (clipboard paste, URL-aware). There is no separate invite-link field
+    — pasting a `/room/CODE` URL into `#joinRoomCode` extracts the code in place.
   - **There is no roster/tactics stats panel.** `loadRoomsStats` and three renderers
     (`renderCreateVisual`, `renderRosterPanel`, `renderTacticsPanel`) targeted
     `#roomsCreateVisual` / `#rosterStatBody` / `#tacticsStatBody`, which no version of

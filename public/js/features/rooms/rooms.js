@@ -1,3 +1,4 @@
+import { cb } from '@/pages/home/callbacks.js';
 import { showToast } from '@/shared/ui/toast.js';
 
 function normalizeRoomCode(raw) {
@@ -65,67 +66,96 @@ export async function redirectToActiveRoom(userId) {
   }
 }
 
-function genCode(len = 6) {
+/** Codes the host hands out are this long; the join field counts against it. */
+const ROOM_CODE_LENGTH = 6;
+
+function genCode(len = ROOM_CODE_LENGTH) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-export function initRoomModal() {
-  const overlay   = document.getElementById("roomOverlay");
-  const codeInput = document.getElementById("roomCode");
+/**
+ * The host side of the Rooms tab: the room code and the button that opens it.
+ *
+ * This replaced a slide-in drawer. The code now lives on the page itself, so
+ * there is no overlay to open, no body scroll-lock to restore, and no Escape
+ * handler — the drawer's Escape branch referenced `addPlayerModalOpen`, which
+ * is module-private to `catalog.js` and threw a ReferenceError every time it
+ * ran. Nothing is behind a click any more, so the code is generated at boot.
+ *
+ * `refreshRoomHost` is separate because the squad count it prints is only
+ * known once `loadSquad` resolves, which is after this binds.
+ */
+export function initRoomHost(user) {
+  const codeEl = document.getElementById("roomCode");
+  if (!codeEl) return;
 
-  if (!overlay) return;
+  const setCode = (code) => { codeEl.textContent = code; };
+  setCode(genCode());
 
-  const open  = () => {
-    if (codeInput) codeInput.value = genCode();
-    const sb = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.paddingRight = sb + "px";
-    document.body.style.overflow = "hidden";
-    overlay.classList.add("open");
-  };
-  const close = () => {
-    overlay.classList.remove("open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
-  };
+  const avatar = document.getElementById("roomHostAvatar");
+  const name   = document.getElementById("roomHostName");
+  const label  = (user?.display_name || user?.username || "").trim();
+  if (name)   name.textContent = label || "—";
+  if (avatar) avatar.textContent = (label[0] || "?").toUpperCase();
 
-  document.getElementById("roomHubCreateBtn")?.addEventListener("click", open);
-  document.getElementById("roomClose")?.addEventListener("click", close);
-  document.getElementById("roomCancel")?.addEventListener("click", close);
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  refreshRoomHost();
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("open") && !addPlayerModalOpen) close();
-  });
-
-  document.getElementById("regenCode")?.addEventListener("click", () => { if (codeInput) codeInput.value = genCode(); });
+  document.getElementById("regenCode")?.addEventListener("click", () => setCode(genCode()));
 
   document.getElementById("copyCode")?.addEventListener("click", async () => {
-    const code = codeInput?.value;
+    const code = codeEl.textContent.trim();
     if (!code) return;
     try { await navigator.clipboard.writeText(code); showToast("Room code copied!", "success"); }
     catch { showToast(code, "info"); }
   });
 
   document.getElementById("startRoomBtn")?.addEventListener("click", () => {
-    const code  = codeInput?.value;
-    close();
-    goToRoom({ code, mode: "host" });
+    goToRoom({ code: codeEl.textContent.trim(), mode: "host" });
   });
+}
+
+/** Repaint the host row's squad count. Safe to call before the squad loads. */
+export function refreshRoomHost() {
+  const meta = document.getElementById("roomHostMeta");
+  if (!meta) return;
+  const n = cb.getSquadPlayers().length;
+  meta.textContent = n ? `HOST · ${n} PLAYERS` : "HOST";
 }
 
 /* ============================================================
    Room Hub (Create / Join)
    ============================================================ */
+/** Pulls the code out of a `/room/CODE` URL. Returns "" for anything else. */
+function codeFromInviteUrl(text) {
+  try {
+    const match = new URL(String(text).trim()).pathname.match(/\/room\/([A-Z0-9]+)/i);
+    return match ? normalizeRoomCode(match[1]) : "";
+  } catch {
+    return ""; // not a URL — the caller falls back to treating it as a raw code
+  }
+}
+
 export function initRoomHub() {
   const input = document.getElementById("joinRoomCode");
   const btn   = document.getElementById("joinRoomBtn");
+  const count = document.getElementById("joinCodeCount");
   if (!input || !btn) return;
 
   const submit = () => goToRoom({ code: input.value, mode: "join", btn: btn });
 
+  const paintCount = () => {
+    if (count) count.textContent = `${input.value.length}/${ROOM_CODE_LENGTH}`;
+  };
+
   input.addEventListener("input", () => {
-    input.value = normalizeRoomCode(input.value).slice(0, 10);
+    /* Paste a whole invite link and it collapses to the code. The separate
+       link field this replaced is gone with the redesign; folding it in here
+       means one box accepts either, which is what people were doing anyway. */
+    const fromUrl = codeFromInviteUrl(input.value);
+    input.value = (fromUrl || normalizeRoomCode(input.value)).slice(0, 10);
+    if (fromUrl) showToast("Room code extracted.", "success");
+    paintCount();
   });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") submit();
@@ -137,16 +167,10 @@ export function initRoomHub() {
     try {
       const text = await navigator.clipboard.readText();
       // Try extracting from a URL first, then treat as raw code
-      let code = "";
-      try {
-        const url = new URL(text.trim());
-        const match = url.pathname.match(/\/room\/([A-Z0-9]+)/i);
-        if (match) code = normalizeRoomCode(match[1]);
-      } catch {
-        code = normalizeRoomCode(text);
-      }
+      const code = codeFromInviteUrl(text) || normalizeRoomCode(text);
       if (code) {
         input.value = code.slice(0, 10);
+        paintCount();
         input.focus();
       } else {
         showToast("Nothing useful on the clipboard.", "info");
@@ -156,25 +180,7 @@ export function initRoomHub() {
     }
   });
 
-  // Extract room code from a pasted invite link
-  const linkInput = document.getElementById("joinRoomLink");
-  linkInput?.addEventListener("input", function () {
-    const val = this.value.trim();
-    if (!val) return;
-    try {
-      const url = new URL(val);
-      const match = url.pathname.match(/\/room\/([A-Z0-9]+)/i);
-      if (match) {
-        const code = normalizeRoomCode(match[1]).slice(0, 10);
-        if (code) {
-          input.value = code;
-          this.value = "";
-          showToast("Room code extracted.", "success");
-          input.focus();
-        }
-      }
-    } catch { /* not a valid URL yet — keep typing */ }
-  });
+  paintCount();
 
   // Tab navigation links (MANAGE › / EDIT ›)
   document.querySelectorAll("[data-switch-tab]").forEach((el) => {
