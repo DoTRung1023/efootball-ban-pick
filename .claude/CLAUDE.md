@@ -39,8 +39,8 @@ Code is grouped **by feature, not by file type**.
   `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`, `cli.js`.
   `ingestion` has **no** barrel — both its files are npm-script entry points that nothing
   imports, so a barrel there would have no consumer. `src/pages.js` is the one router
-  outside `features/` — it maps four URLs to four static HTML files and belongs to the
-  composition root.
+  outside `features/` — it maps every page URL to one of four static HTML files and
+  belongs to the composition root.
 - `public/` — four pages: `home.html` (squad / game plans / rooms), `room.html` (the
   ban-pick draft), `admin.html`, `signin.html`. Each has an ESM entry file in
   `public/js/pages/`; the behaviour lives in `public/js/features/<name>/`.

@@ -13,8 +13,27 @@ paths:
 
 `home.html` + `public/js/pages/home.js` — main app entry point (`type="module"`); an ESM
 boot file that imports the home features (`squad`, `catalog`, `gamePlans`, `rooms`)
-through their barrels and owns `initTabs` (nav tabs ↔ tab panels), the page's only piece
-of chrome.
+through their barrels and owns `initTabs` (nav tabs ↔ tab panels ↔ the URL), the page's
+only piece of chrome.
+
+**Each tab has its own URL** — `team` → `/players`, `plans` → `/game-plans`, `rooms` →
+`/rooms`, the `TAB_PATHS` table at the top of `home.js`. All four home URLs (those three
+plus `/`) serve the same `home.html` from `src/pages.js`, so the tab is entirely a
+client-side read of `location.pathname`; a tab added here needs its route added there or
+reloading on it 404s. Three details are load-bearing:
+
+  - `initTabs()` is called at **module top level**, not from `DOMContentLoaded`. A module
+    script is deferred, so the DOM is already parsed, and the boot block below it awaits
+    `redirectToActiveRoom` — a fetch. Run from there, a reload on `/rooms` would sit on
+    the markup's own default (MY PLAYERS) until that resolved.
+  - Boot calls `history.replaceState`, so `/` — the target of every "back to home" button
+    on the room page — is rewritten to `/players`. The URL then always names the visible
+    tab, including the one the user copies out of the address bar. Clicks `pushState`, so
+    Back walks the tabs instead of leaving the page; a `popstate` listener re-shows the
+    tab for the restored path.
+  - Clicking the tab already in the URL returns early rather than pushing a duplicate
+    history entry — Back would otherwise appear dead. `rooms.js` drives its `MANAGE ›` /
+    `EDIT ›` links by `.click()`ing the nav tab, so those go through the same path.
 
 `utils.js` is **gone**. It was the grab-bag every home module imported from; the nav
 account menu and edit-profile modal moved to `@/features/auth/`, and everything more

@@ -25,9 +25,15 @@ Router mounts:
 | `/api/admin` | `#features/admin/index.js` | `features/admin/routes.js` |
 | `/` (page routes) | — | `src/pages.js` |
 
-`src/pages.js` is the one router outside `features/`, and deliberately so: it maps four
-URLs to four static HTML files and holds no domain logic, so it belongs to the
+`src/pages.js` is the one router outside `features/`, and deliberately so: it maps every
+page URL to one of four static HTML files and holds no domain logic, so it belongs to the
 composition root rather than to a feature. `server.js` imports it as `./pages.js`.
+
+`home.html` is served on four of those URLs — `/`, `/players`, `/game-plans` and
+`/rooms` — one per home tab, so that reloading or sharing a link keeps the tab the user
+was on. The server does not care which; `initTabs` in `public/js/pages/home.js` reads the
+path, and rewrites `/` to the tab it shows. Adding a home tab means adding its URL here
+too, or a reload on it 404s.
 
 Supporting modules:
 

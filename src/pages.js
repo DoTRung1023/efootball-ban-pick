@@ -4,9 +4,15 @@ import { PUBLIC_DIR } from "#lib/paths.js";
 
 const router = Router();
 
-/** URL path -> static HTML entry point. Room codes are resolved client-side. */
+/** URL path -> static HTML entry point. Room codes are resolved client-side.
+    The three home tabs each get their own URL so a reload lands back on the
+    tab the user was looking at; `initTabs` in `public/js/pages/home.js` reads
+    the path and keeps it in sync from then on. */
 const PAGES = {
   "/": "home.html",
+  "/players": "home.html",
+  "/game-plans": "home.html",
+  "/rooms": "home.html",
   "/signin": "signin.html",
   "/admin": "admin.html",
   "/room": "room.html",

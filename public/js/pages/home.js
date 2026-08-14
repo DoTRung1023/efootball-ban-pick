@@ -5,18 +5,57 @@ import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js
 import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
 import { initRoomModal, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
 
-/** Nav tabs ↔ tab panels. Home-page chrome, so it lives with the page entry. */
+/** Nav tab ↔ URL. `src/pages.js` serves `home.html` on all three, so a reload
+    or a shared link lands on the tab named by the path rather than always on
+    the first one. */
+const TAB_PATHS = { team: "/players", plans: "/game-plans", rooms: "/rooms" };
+const DEFAULT_TAB = "team";
+
+/** `/` — the link every "back to home" button uses — and anything unrecognised
+    fall back to the default tab. */
+function tabFromPath(pathname) {
+  return Object.keys(TAB_PATHS).find((tab) => TAB_PATHS[tab] === pathname) ?? DEFAULT_TAB;
+}
+
+function tabUrl(tab) {
+  return TAB_PATHS[tab] + window.location.search + window.location.hash;
+}
+
+function showTab(target) {
+  document.querySelectorAll(".nav-tab")
+    .forEach((t) => t.classList.toggle("active", t.dataset.tab === target));
+  document.querySelectorAll(".tab-panel")
+    .forEach((p) => p.classList.toggle("active", p.id === target + "Panel"));
+}
+
+/** Nav tabs ↔ tab panels ↔ the address bar. Home-page chrome, so it lives with
+    the page entry. */
 function initTabs() {
-  const tabs   = document.querySelectorAll(".nav-tab");
-  const panels = document.querySelectorAll(".tab-panel");
-  tabs.forEach((tab) => {
+  const initial = tabFromPath(window.location.pathname);
+  showTab(initial);
+  /* Normalises `/` to the tab it actually shows, so the URL always names the
+     visible tab — including the one the user would copy out of the bar. */
+  history.replaceState({ tab: initial }, "", tabUrl(initial));
+
+  document.querySelectorAll(".nav-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       const target = tab.dataset.tab;
-      tabs.forEach((t)   => t.classList.toggle("active", t.dataset.tab === target));
-      panels.forEach((p) => p.classList.toggle("active", p.id === target + "Panel"));
+      if (!TAB_PATHS[target] || target === tabFromPath(window.location.pathname)) return;
+      showTab(target);
+      history.pushState({ tab: target }, "", tabUrl(target));
     });
   });
+
+  /* Back/forward walks the tabs the user visited instead of leaving the page. */
+  window.addEventListener("popstate", () => showTab(tabFromPath(window.location.pathname)));
 }
+
+/* Not inside `DOMContentLoaded`: a module script is deferred, so the DOM is
+   already parsed by the time this runs, and the tab named by the URL has to be
+   on screen from the first frame. Deferring it to the boot block below would
+   leave the markup's own default — MY PLAYERS — showing until the seated-room
+   fetch resolves. */
+initTabs();
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireAuth();
@@ -29,7 +68,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initUserMenu(user);
   initEditProfile();
-  initTabs();
   initRoomHub();
   initRoomModal();
   initAddPlayerModal();
