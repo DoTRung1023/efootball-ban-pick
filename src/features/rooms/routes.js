@@ -16,6 +16,7 @@ import {
   normalizeRoomCodeParam,
   pushSystemChat,
   resetDraftToLobby,
+  resetMatchSteps,
   pushUserChat,
   resolveSide,
   roomPhase,
@@ -147,7 +148,7 @@ function reopenRoom(entry) {
   entry.status = ROOM_STATUS.LOBBY;
   entry.turnIndex = 0;
   entry.turnEndsAt = null;
-  entry.matchReady = { host: false, guest: false };
+  resetMatchSteps(entry);
 }
 
 function claimHostSeat(entry, participant) {
@@ -172,7 +173,7 @@ function claimGuestSeat(entry, participant) {
   if (changed) {
     pushSystemChat(entry, `${participant.username} joined the room.`);
     entry.ready.guest = false;
-    entry.matchReady.guest = false;
+    resetMatchSteps(entry, "guest");
   }
   entry.guest = participant;
   return { changed };
@@ -272,7 +273,7 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
       entry.turnEndsAt = null;
       entry.guest = null;
       entry.ready.guest = false;
-      entry.matchReady = { host: false, guest: false };
+      resetMatchSteps(entry);
     }
     /* A lone host leaving deliberately sets no `closed` flag at all: there is
        nobody to show it to, so the room is simply deleted below. Reopening the
@@ -326,7 +327,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, (req, res) => {
   entry.status = ROOM_STATUS.DRAFTING;
   entry.turnIndex = 0;
   entry.turnEndsAt = Date.now() + durationSec * 1000;
-  entry.matchReady = { host: false, guest: false };
+  resetMatchSteps(entry);
   entry.stagedBans = { host: [], guest: [] };
   entry.bansConfirmed = { host: false, guest: false };
   entry.updatedAt = Date.now();
@@ -456,7 +457,7 @@ router.post(
       entry.status = ROOM_STATUS.AWAIT_READY;
       entry.turnEndsAt = null;
       entry.picksConfirmed = { host: false, guest: false };
-      entry.matchReady = { host: false, guest: false };
+      resetMatchSteps(entry);
       pushSystemChat(entry, "Both squads confirmed — on to the match!");
     }
 
@@ -561,34 +562,59 @@ router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) =>
   sendRoom(res, entry);
 });
 
-/** POST body: { requesterId, ready } — post-draft confirmation; both ready ends the room. */
+/**
+ * The three post-draft handshakes, in the order a room walks them. Each names
+ * the status it is open in and the status *both* presses lead to.
+ *
+ * `undoable` is whether a side may take its press back once the room has
+ * already moved on. Ready and start may: the other player simply gets walked
+ * back a stage with them, and nothing has happened yet. **Finish may not.**
+ * Walking `done` back would look exactly like a rematch-accept to the other
+ * client — it sits in the `done` phase watching for the status to leave `done`,
+ * and that is the signal it reloads on.
+ */
+const MATCH_STEPS = {
+  ready:  { flag: "matchReady",    from: ROOM_STATUS.AWAIT_READY, to: ROOM_STATUS.AWAIT_START, undoable: true },
+  start:  { flag: "matchStarted",  from: ROOM_STATUS.AWAIT_START, to: ROOM_STATUS.LIVE,        undoable: true },
+  finish: { flag: "matchFinished", from: ROOM_STATUS.LIVE,        to: ROOM_STATUS.DONE,        undoable: false },
+};
+
+/** POST body: { requesterId, step, value } — one side's answer to one handshake. */
 router.post(
-  "/:code/match-ready",
+  "/:code/match-step",
   withRoomCode,
   requireRequesterId,
-  requireParticipant("updating match ready"),
+  requireParticipant("updating the match"),
   (req, res) => {
     const { entry, side } = req;
-    const ready = Boolean(req.body?.ready);
-
-    /* Only from the ready screen onward. This used to promote a **drafting**
-       room to `await-ready` on the first call, which meant either player could
-       post match-ready mid-ban or mid-pick and skip the rest of the draft for
-       both of them. Nothing in the UI does that — `initReadyControls` returns
-       unless `state.phase === "ready"` — but the endpoint was the only thing
-       standing between a stale tab and a cancelled pick phase. The legitimate
-       route into `await-ready` is both sides confirming in `/picks-confirm`. */
-    if (entry.status !== ROOM_STATUS.AWAIT_READY && entry.status !== ROOM_STATUS.DONE) {
-      return res.status(409).json({ error: "Match ready is only available after both squads are confirmed." });
+    const step = MATCH_STEPS[String(req.body?.step || "")];
+    if (!step) {
+      return res.status(400).json({ error: "Unknown match step." });
     }
 
-    entry.matchReady[side] = ready;
+    /* A step is only answerable in its own status. This matters more than it
+       looks: the ancestor of this route promoted a **drafting** room to
+       `await-ready` on the first call, which meant either player could post it
+       mid-ban and skip the rest of the draft for both of them. Nothing in the
+       UI does that — the button is not on screen — but the endpoint was the only
+       thing standing between a stale tab and a cancelled pick phase. The
+       legitimate route into `await-ready` is both sides confirming their squads
+       in `/picks-confirm`; every status after it is reached from the one before
+       it, by both sides, through here. */
+    const open = entry.status === step.from || (step.undoable && entry.status === step.to);
+    if (!open) {
+      return res.status(409).json({ error: "That is not the step this room is on." });
+    }
 
-    if (entry.matchReady.host && entry.matchReady.guest) {
-      entry.status = ROOM_STATUS.DONE;
+    entry[step.flag][side] = Boolean(req.body?.value);
+
+    if (entry[step.flag].host && entry[step.flag].guest) {
+      entry.status = step.to;
       entry.turnEndsAt = null;
-    } else if (entry.status === ROOM_STATUS.DONE) {
-      entry.status = ROOM_STATUS.AWAIT_READY;
+      if (step.to === ROOM_STATUS.LIVE) pushSystemChat(entry, "Both sides kicked off — match in progress.");
+      if (step.to === ROOM_STATUS.DONE) pushSystemChat(entry, "Match finished.");
+    } else if (entry.status === step.to) {
+      entry.status = step.from;
     }
 
     entry.updatedAt = Date.now();
@@ -599,12 +625,16 @@ router.post(
 /**
  * POST body: { requesterId, action } — what happens once the match is over.
  *
- * Three ways out of a finished room, and they differ in who they affect:
+ * Two ways out of a finished room, and they differ in who they affect:
  *
- * - `close` / `new-match` end the room for **both** sides. They are the same
- *   transition; only the message differs, because the other player deserves to
- *   know whether they were shut down or left behind. The initiator's client
- *   navigates itself somewhere afterwards — the server does not care where.
+ * - `new-match` ends the room for **both** sides and the initiator's client
+ *   opens a fresh one; the server does not care where it goes.
+ *
+ *   There used to be a `close` action beside it — the same transition with a
+ *   different chat line. Its button is gone from the post-match footer, because
+ *   the stage header already carries Close room (host) / Leave (guest) on every
+ *   screen of the room including this one, so the footer was offering a second
+ *   door into the same room. With no caller left the branch went too.
  * - `rematch-propose` / `-accept` / `-decline` keep both seats. An offer is
  *   held on the entry so the other side's next poll finds it; accepting is the
  *   only thing that resets the draft, and **only the other side can accept**.
@@ -629,14 +659,12 @@ router.post(
       return res.status(409).json({ error: "The match is not over yet." });
     }
 
-    if (action === "close" || action === "new-match") {
+    if (action === "new-match") {
       /* Same shape as a host's deliberate close in `/leave`: the entry has to
          outlive both seats so the other player's poll finds `closed` and gets
          the room-closed screen rather than an empty snapshot. */
       entry.closed = true;
-      entry.closeReason = action === "new-match"
-        ? `${who} started a new match.`
-        : `${who} closed the room.`;
+      entry.closeReason = `${who} started a new match.`;
       entry.host = null;
       entry.guest = null;
       entry.ready.guest = false;

@@ -27,6 +27,26 @@ export const REVEAL_MODE_INSTANT = "instant";
 export const REVEAL_MODE_BLUR = "blur";
 export const REVEAL_MODE_HIDDEN = "hidden";
 
+// ── Room status ───────────────────────────────────────────────────
+/* The server's `ROOM_STATUS` values, as the client needs to read them off a
+   snapshot. Kept in step with `src/features/rooms/store.js`, which is where the
+   transitions between them live — this side only ever compares.
+
+   The last four are all the same screen (Start Match); the status says which of
+   its three handshakes is open. `LIVE` means *this match is being played*, not
+   "the room is alive". */
+export const ROOM_STATUS_DRAFTING = "drafting";
+export const ROOM_STATUS_AWAIT_READY = "await-ready";
+export const ROOM_STATUS_AWAIT_START = "await-start";
+export const ROOM_STATUS_LIVE = "live";
+export const ROOM_STATUS_DONE = "done";
+/** The statuses that put Start Match on screen with a handshake still open. */
+export const START_MATCH_STATUSES = [
+  ROOM_STATUS_AWAIT_READY,
+  ROOM_STATUS_AWAIT_START,
+  ROOM_STATUS_LIVE,
+];
+
 // ── Image helpers ─────────────────────────────────────────────────
 // Shared with the home bundle — see @/shared/players/playerMeta.js.
 export { CARD_IMG, ANON_PLAYER_IMG } from "@/shared/players/playerMeta.js";

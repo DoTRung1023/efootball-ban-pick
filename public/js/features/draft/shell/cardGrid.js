@@ -8,6 +8,7 @@
 
 import { state } from "@/features/draft/state.js";
 import { normalizePlayerForFooter } from "@/features/draft/players.js";
+import { isReadyPhase } from "@/features/draft/engine/draftFlow.js";
 import { bindPlayerHoverCardGrid } from "@/shared/ui/playerHoverCard.js";
 
 /**
@@ -56,7 +57,7 @@ export function attachMiniCardGridHandlers(grid, getDraftDisplayPlayers, submitB
     const id = card.dataset.playerId;
     const room = state.room;
     const turn = room ? state.schedule[room.turnIndex] : null;
-    const isReadyPhase = state.phase === "ready" || String(room?.status || "") === "await-ready";
+    const readyPhase = isReadyPhase(room);
     const isBanPhase = turn?.action === "ban";
     const source = isBanPhase
       ? (Array.isArray(state.opponentBanPlayers) ? state.opponentBanPlayers : [])
@@ -67,11 +68,11 @@ export function attachMiniCardGridHandlers(grid, getDraftDisplayPlayers, submitB
     state.actionError = "";
     const errEl = document.getElementById("draftActionError");
     if (errEl) errEl.hidden = true;
-    if (isBanPhase && !isReadyPhase) {
+    if (isBanPhase && !readyPhase) {
       submitBan(player);
       return;
     }
-    if (!isReadyPhase) {
+    if (!readyPhase) {
       void submitPick(player);
       return;
     }

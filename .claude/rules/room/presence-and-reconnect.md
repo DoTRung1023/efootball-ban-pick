@@ -284,7 +284,8 @@ about it.
 
 The server does the matching half. `resetDraftToLobby()` in `store.js` puts the entry
 back to `status: "lobby"` and clears bans, picks, staged bans, both confirmation pairs,
-`bannedPlayerIds`, `matchReady` and `ready.guest`, so whoever joins next does not inherit
+`bannedPlayerIds`, all three match handshakes (`resetMatchSteps`) and `ready.guest`, so
+whoever joins next does not inherit
 half a draft. It runs from **both** `/leave` (guest branch) and `/kick-guest`, and returns
 whether there was a draft to cancel so the caller can say so in chat.
 

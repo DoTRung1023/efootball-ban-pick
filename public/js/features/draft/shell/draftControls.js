@@ -13,9 +13,10 @@ import {
   isLineupLocked,
   placePickInSlot,
   replaceMyPicks,
-  setMatchReady,
+  setMatchStep,
   unconfirmBans,
 } from '@/features/draft/engine/draftActions.js';
+import { stepForStatus } from '@/features/draft/ready/matchSteps.js';
 import { renderDraftUi } from './draftView.js';
 import { allowLeave, initLeaveGuard } from './leaveGuard.js';
 
@@ -42,7 +43,7 @@ const clickedInside = (e, id) =>
     .some((n) => n instanceof Element && n.id === id);
 
 export function initDraftControls() {
-  initReadyControls();
+  initStepControls();
   initBanControls();
   initPickControls();
   initSlotControls();
@@ -52,10 +53,15 @@ export function initDraftControls() {
   initLeaveGuard();
 }
 
-function initReadyControls() {
-  on("draftReadyBtn", "click", () => {
+/* One button, three meanings — READY, then START MATCH, then FINISH MATCH. The
+   room status says which handshake is open and `matchSteps.js` says what to
+   post for it, so nothing here has to know there are three. */
+function initStepControls() {
+  on("draftStepBtn", "click", () => {
     if (state.phase !== "ready" || !state.room) return;
-    void setMatchReady(!state.room.matchReady?.[state.mySide]);
+    const step = stepForStatus(state.room.status);
+    if (!step) return;
+    void setMatchStep(step.step, !state.room[step.flag]?.[state.mySide]);
   });
 }
 

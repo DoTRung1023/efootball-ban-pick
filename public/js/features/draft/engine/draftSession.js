@@ -10,6 +10,9 @@ import {
   MAX_BAN_DURATION_SECONDS,
   MIN_PICK_DURATION_SECONDS,
   MAX_PICK_DURATION_SECONDS,
+  ROOM_STATUS_DONE,
+  ROOM_STATUS_DRAFTING,
+  START_MATCH_STATUSES,
 } from '@/features/draft/constants.js';
 import { showToast, showView } from '@/features/draft/utils.js';
 import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot } from '@/features/draft/state.js';
@@ -28,7 +31,9 @@ import { setGuestReady } from './draftActions.js';
 import { renderDraftUi, attachDraftGridHandlers } from '@/features/draft/shell/draftView.js';
 import { updateStageTabs } from '@/features/draft/shell/stageTabs.js';
 
-const DRAFT_STATUSES = ["drafting", "await-ready", "done"];
+/* Every status that means "not the lobby". They all enter the draft view; which
+   board is up inside it is `renderDraftUi`'s business. */
+const DRAFT_STATUSES = [ROOM_STATUS_DRAFTING, ...START_MATCH_STATUSES, ROOM_STATUS_DONE];
 
 /** Survives a page reload — see initLobby, which reads this back on load. */
 function cacheRoomPhase(code, phase) {
@@ -65,7 +70,14 @@ export function tryEnterDraftFromRoomSnapshot() {
   syncCurrentTurnFromIndex(room);
   ensureDraftTimer(room);
 
-  state.phase = status === "done" ? "done" : status === "await-ready" ? "ready" : "draft";
+  /* Three statuses map to one phase: the client keeps a single `ready` phase for
+     the whole Start Match screen, because its three handshakes are one screen
+     with one set of rules about what else is on it. Only the finished room is
+     its own phase, and only because the exit guard and the rematch watch turn
+     on it. */
+  state.phase = status === ROOM_STATUS_DONE ? "done"
+    : status === ROOM_STATUS_DRAFTING ? "draft"
+    : "ready";
   cacheRoomPhase(room.code, state.phase);
 
   stopPresencePolling();

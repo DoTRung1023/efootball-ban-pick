@@ -1,20 +1,27 @@
 /* ============================================================
    START MATCH — the last screen of a room.
 
-   One screen, two stages. `data-stage` on `#draftReadyPhaseBoard` is written by
+   One screen, four stages. `data-stage` on `#draftReadyPhaseBoard` is written by
    readyView.js and swaps the footer; nothing else on the screen moves:
 
-     confirm   both squads + the READY button
-     live      both squads + the three ways out (rematch / new match / close)
+     confirm   both squads + READY         (my squad is set up in the game)
+     start     both squads + START MATCH   (I have kicked off)
+     live      both squads + FINISH MATCH  (the match is being played)
+     post      both squads + rematch / new match
+
+   The first three are one footer — `.sm-foot--step` — reading its words out of
+   `ready/matchSteps.js`; only `post` is different markup. Each of the three
+   needs both sides before the room advances.
 
    There is no screen after this one. A separate `#viewDone` used to re-list the
    same two squads as plain text once both players were ready; the squads on
    screen already say it.
 
    Accent budget (DESIGN.md §3.2 — one accent per screen):
-     confirm   the READY button, until it is pressed
-     live      whichever action is the primary next step for the rematch state
-   Never both, because the two footers are never on screen together.
+     confirm/start/live   the step button, until it is pressed
+     post                 whichever action is the primary next step for the
+                          rematch state
+   Never two at once, because the two footers are never on screen together.
    ============================================================ */
 
 /* ── Board ───────────────────────────────────────────────────── */
@@ -311,9 +318,10 @@
 
 /* ── Footers ─────────────────────────────────────────────────── */
 
-/* One of the two is on screen at a time; `data-stage` picks it. */
-.sm[data-stage="confirm"] .sm-foot--live,
-.sm[data-stage="live"] .sm-foot--confirm {
+/* One of the two is on screen at a time; `data-stage` picks it. The three
+   handshake stages share `--step`, and only the finished room gets `--post`. */
+.sm[data-stage="post"] .sm-foot--step,
+.sm:not([data-stage="post"]) .sm-foot--post {
   display: none;
 }
 
@@ -334,22 +342,36 @@
   margin: 0;
 }
 
-.sm-foot-note {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--text-muted);
-  text-align: center;
-  max-width: 640px;
-  margin: 0;
+/* ── Handshake stages: the one button ────────────────────────── */
+
+/* While the match is being played the status line reads first and the button
+   answers it — the other way round from the two stages before it, where the
+   button *is* the message. One declaration rather than two DOM orders. */
+.sm[data-stage="live"] .sm-foot-hint {
+  order: -1;
+  font-size: 15px;
+  color: var(--text);
 }
 
-/* ── Confirm stage: the READY button ─────────────────────────── */
+/* Only on screen while the match is on. It is written in every stage — see
+   renderStepFooter — so it can never flash a line from a previous one. */
+.sm-foot-tip {
+  margin: 0;
+  max-width: 46ch;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.sm:not([data-stage="live"]) .sm-foot-tip {
+  display: none;
+}
 
 /* The accent, for as long as this is the one thing to act on. The rule
    reserving it for the turn clock does not bite here: the clock is not on
    screen in this phase and nothing is counting down. */
-.sm-ready-btn {
+.sm-step-btn {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -360,23 +382,24 @@
   border-color: transparent;
 }
 
-.sm-ready-btn:hover:not(:disabled) { background: var(--accent-hover); }
+.sm-step-btn:hover:not(:disabled) { background: var(--accent-hover); }
 
-/* Pressed. The old button toggled `btn--ghost` from JS, which `.sm-ready-btn`
-   then overrode on cascade order — so READY changed its word and kept its
-   accent, and a player could not tell at a glance whether they had confirmed.
-   An attribute on the same selector cannot lose that fight. */
-.sm-ready-btn[data-ready="1"] {
+/* Answered, and waiting on the other side. The button used to toggle
+   `btn--ghost` from JS, which `.sm-step-btn` then overrode on cascade order —
+   so it changed its word and kept its accent, and a player could not tell at a
+   glance whether they had pressed it. An attribute on the same selector cannot
+   lose that fight. */
+.sm-step-btn[data-pressed="1"] {
   background: transparent;
   color: var(--text);
   border-color: var(--line-active);
 }
 
-.sm-ready-btn[data-ready="1"]:hover:not(:disabled) {
+.sm-step-btn[data-pressed="1"]:hover:not(:disabled) {
   background: var(--fill);
 }
 
-/* ── Match-live stage: the three ways out ────────────────────── */
+/* ── Post-match stage: the ways out ──────────────────────────── */
 
 .sm-foot-actions {
   display: flex;
@@ -395,56 +418,46 @@
 
 /* Which buttons exist depends on whether a rematch is on the table:
 
-     none      REMATCH · NEW MATCH · CLOSE ROOM
-     pending   (you asked, waiting)  NEW MATCH · CLOSE ROOM
-     incoming  (they asked)  ACCEPT · DECLINE · NEW MATCH · CLOSE ROOM
+     none      REMATCH · NEW MATCH
+     pending   (you asked, waiting)  NEW MATCH
+     incoming  (they asked)  ACCEPT · DECLINE · NEW MATCH
 
    Accept/decline only while there is something to answer, and REMATCH only
    while there is not — otherwise you could offer a rematch you have already
    been offered, and both sides would sit waiting on each other. */
-.sm-foot--live[data-rematch="none"] .pm-btn--accept,
-.sm-foot--live[data-rematch="none"] .pm-btn--decline,
-.sm-foot--live[data-rematch="pending"] .pm-btn--accept,
-.sm-foot--live[data-rematch="pending"] .pm-btn--decline,
-.sm-foot--live[data-rematch="incoming"] .pm-btn--rematch {
+.sm-foot--post[data-rematch="none"] .pm-btn--accept,
+.sm-foot--post[data-rematch="none"] .pm-btn--decline,
+.sm-foot--post[data-rematch="pending"] .pm-btn--accept,
+.sm-foot--post[data-rematch="pending"] .pm-btn--decline,
+.sm-foot--post[data-rematch="incoming"] .pm-btn--rematch {
   display: none;
 }
 
 /* Asked and waiting: the button stays on screen so the state is legible, but it
    is spent. */
-.sm-foot--live[data-rematch="pending"] .pm-btn--rematch {
+.sm-foot--post[data-rematch="pending"] .pm-btn--rematch {
   opacity: 0.5;
   pointer-events: none;
 }
 
 /* The accent goes to the primary next step, and there is exactly one at a time:
    propose while nothing is pending, accept once something is. */
-.sm-foot--live[data-rematch="none"] .pm-btn--rematch,
-.sm-foot--live[data-rematch="incoming"] .pm-btn--accept {
+.sm-foot--post[data-rematch="none"] .pm-btn--rematch,
+.sm-foot--post[data-rematch="incoming"] .pm-btn--accept {
   background: var(--accent);
   color: var(--on-accent);
   border-color: transparent;
   font-weight: 700;
 }
 
-.sm-foot--live[data-rematch="none"] .pm-btn--rematch:hover:not(:disabled),
-.sm-foot--live[data-rematch="incoming"] .pm-btn--accept:hover:not(:disabled) {
+.sm-foot--post[data-rematch="none"] .pm-btn--rematch:hover:not(:disabled),
+.sm-foot--post[data-rematch="incoming"] .pm-btn--accept:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
 .pm-btn--decline,
 .pm-btn--new {
   background: var(--fill);
-}
-
-.pm-btn--close {
-  border-color: var(--danger-line);
-  color: var(--danger);
-}
-
-.pm-btn--close:hover:not(:disabled) {
-  border-color: var(--danger);
-  background: var(--danger-fill);
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
@@ -471,7 +484,7 @@
     flex-direction: column;
   }
   .pm-btn,
-  .sm-ready-btn {
+  .sm-step-btn {
     width: 100%;
   }
 }

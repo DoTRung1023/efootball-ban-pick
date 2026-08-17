@@ -34,12 +34,45 @@ const MAX_CHAT_MESSAGES = 150;
  */
 const DEFAULT_FORMATION = "4-3-3";
 
+/**
+ * A room walks these in order and never skips one.
+ *
+ * The last four are all the **same screen** (Start Match); what changes is which
+ * handshake is open. Each of the three handshakes needs *both* sides before the
+ * room advances — same rule the draft already used for confirming squads:
+ *
+ *   await-ready  squads are confirmed, each side presses READY
+ *   await-start  both are ready, each side presses START MATCH
+ *   live         the match is being played, each side presses FINISH MATCH
+ *   done         it is over: rematch or new match
+ *
+ * `live` is the one a reader is likely to guess wrong: it does not mean "the
+ * room is alive", it means *this match is in progress*.
+ */
 export const ROOM_STATUS = {
   LOBBY: "lobby",
   DRAFTING: "drafting",
   AWAIT_READY: "await-ready",
+  AWAIT_START: "await-start",
+  LIVE: "live",
   DONE: "done",
 };
+
+/**
+ * The three handshakes, in order, each a `{ host, guest }` pair of booleans.
+ *
+ * They are separate fields rather than one counter because either side can take
+ * their own press back while the other has not answered — see `/match-step`.
+ */
+export const MATCH_STEP_FLAGS = ["matchReady", "matchStarted", "matchFinished"];
+
+/** Clears every handshake, or just one side's. */
+export function resetMatchSteps(entry, side = null) {
+  for (const key of MATCH_STEP_FLAGS) {
+    if (side) entry[key][side] = false;
+    else entry[key] = { host: false, guest: false };
+  }
+}
 
 export function normalizeRoomCodeParam(raw) {
   return String(raw || "")
@@ -70,6 +103,8 @@ function createRoomEntry() {
     bannedPlayerIds: [],
     ready: { guest: false },
     matchReady: { host: false, guest: false },
+    matchStarted: { host: false, guest: false },
+    matchFinished: { host: false, guest: false },
     rematch: null,
     chat: [],
     closed: false,
@@ -96,7 +131,9 @@ export function ensureRoomEntry(code) {
   if (!entry.bans) entry.bans = { host: [], guest: [] };
   if (!entry.picks) entry.picks = { host: [], guest: [] };
   if (!entry.ready) entry.ready = { guest: false };
-  if (!entry.matchReady) entry.matchReady = { host: false, guest: false };
+  for (const key of MATCH_STEP_FLAGS) {
+    if (!entry[key]) entry[key] = { host: false, guest: false };
+  }
   if (entry.rematch === undefined) entry.rematch = null;
   if (!entry.stagedBans) entry.stagedBans = { host: [], guest: [] };
   if (!entry.bansConfirmed) entry.bansConfirmed = { host: false, guest: false };
@@ -172,6 +209,8 @@ export function serializeRoomEntry(entry) {
     config: entry.config,
     ready: entry.ready,
     matchReady: entry.matchReady,
+    matchStarted: entry.matchStarted,
+    matchFinished: entry.matchFinished,
     rematch: entry.rematch || null,
     chat: entry.chat,
     closed: Boolean(entry.closed),
@@ -192,6 +231,8 @@ export function emptyRoomSnapshot() {
     formations: { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     ready: { guest: false },
     matchReady: { host: false, guest: false },
+    matchStarted: { host: false, guest: false },
+    matchFinished: { host: false, guest: false },
     rematch: null,
     chat: [],
     closed: false,
@@ -211,7 +252,9 @@ export function roomPhase(entry) {
   if (status === ROOM_STATUS.DRAFTING) {
     return TURN_INDEX_PHASE[Number(entry.turnIndex)] || "ban";
   }
-  if (status === ROOM_STATUS.AWAIT_READY) return "ready";
+  /* `await-start` is still "getting ready" as far as a dashboard cares — the
+     split that matters there is whether a match is being played. */
+  if (status === ROOM_STATUS.AWAIT_READY || status === ROOM_STATUS.AWAIT_START) return "ready";
   return status;
 }
 
@@ -264,7 +307,7 @@ export function resetDraftToLobby(entry) {
   entry.picksConfirmed = { host: false, guest: false };
   entry.formations = { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION };
   entry.bannedPlayerIds = [];
-  entry.matchReady = { host: false, guest: false };
+  resetMatchSteps(entry);
   entry.rematch = null;
   entry.ready.guest = false;
 

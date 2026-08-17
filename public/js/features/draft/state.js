@@ -153,6 +153,9 @@ function defaultReadyState() {
   return { guest: false };
 }
 
+/** The three handshake fields on a room, in the order they are answered. */
+const MATCH_STEP_FLAGS = ["matchReady", "matchStarted", "matchFinished"];
+
 function defaultMatchReadyState() {
   return { host: false, guest: false };
 }
@@ -255,10 +258,14 @@ export function applyPresenceSnapshot(sr) {
     ...defaultReadyState(),
     ...(sr.ready || {}),
   };
-  room.matchReady = {
-    ...defaultMatchReadyState(),
-    ...(sr.matchReady || {}),
-  };
+  /* All three Start Match handshakes. Each has to be read off **every**
+     snapshot, including the ones that clear it — this is the only way one
+     side's press reaches the other's screen, and the only way an undo takes it
+     back off. `rematch` below is here for the same reason, and was missing for
+     the same reason. */
+  for (const key of MATCH_STEP_FLAGS) {
+    room[key] = { ...defaultMatchReadyState(), ...(sr[key] || {}) };
+  }
   /* The pending rematch offer, `{ by: "host" | "guest" }` or null. It has to be
      read off **every** snapshot, including the ones that clear it: this is how
      an offer reaches the other player at all, and how a decline takes it back
@@ -338,6 +345,8 @@ export function emptyRoom(code, host, guest) {
     config: defaultRoomConfig(),
     ready: defaultReadyState(),
     matchReady: defaultMatchReadyState(),
+    matchStarted: defaultMatchReadyState(),
+    matchFinished: defaultMatchReadyState(),
     formations: { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     chat: [],
     bannedPlayerIds: [],

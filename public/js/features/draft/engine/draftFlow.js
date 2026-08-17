@@ -16,14 +16,22 @@ import {
   normalizePickDurationSec,
 } from '@/features/draft/state.js';
 import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQuery.js';
+import { START_MATCH_STATUSES } from '@/features/draft/constants.js';
 
 const FALLBACK_TURN_SECONDS = 60;
 const TIMER_TICK_MS = 250;
 const LOW_TIME_SECONDS = 10;   // when the clock turns red — styling only
 
-/** True once picking is done and both sides are confirming the match. */
+/**
+ * True once picking is done — the whole Start Match screen, from confirming
+ * squads through to the final whistle. The ban and pick boards are off for all
+ * of it, which is the only thing every caller wants to know.
+ *
+ * `state.phase === "ready"` covers the same ground locally: the client keeps one
+ * phase for all three handshakes, because they are one screen.
+ */
 export function isReadyPhase(room = state.room) {
-  return state.phase === "ready" || String(room?.status || "") === "await-ready";
+  return state.phase === "ready" || START_MATCH_STATUSES.includes(String(room?.status || ""));
 }
 
 /** The ban/pick list currently backing the grid. */
@@ -179,9 +187,11 @@ export function startTurnTimer() {
 
 // ── Post-draft ready phase ───────────────────────────────────
 
-export function isBothMatchReady(room = state.room) {
-  return Boolean(room?.matchReady?.host) && Boolean(room?.matchReady?.guest);
-}
+/* There is no `isBothMatchReady`. It answered "should the room advance?" from
+   the client's copy of the flags, which is a second implementation of a rule
+   the server already owns — and with three handshakes rather than one it would
+   have had to grow a step argument to keep saying the same thing. The status on
+   the snapshot is the answer. */
 
 /**
  * Switches this client into the ready phase.
@@ -191,6 +201,10 @@ export function isBothMatchReady(room = state.room) {
  * state only and leaves every room field to the snapshot that announced it. It
  * replaces `beginPostDraftReadyPhase`, which wrote `status`, `turnEndsAt` and
  * `matchReady` itself and so could carry one player into Start Match alone.
+ *
+ * The phase then holds for all three handshakes — ready, start, finish — because
+ * they are one screen and one set of rules about what else is on it. Only the
+ * finished room moves off it, into `done`.
  *
  * Idempotent: `renderDraftUi` calls it on every poll while the phase holds.
  */

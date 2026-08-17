@@ -114,6 +114,10 @@ new rung without checking them. Verify with a measured harness, not by eye — s
 **Duplicated logic to keep in sync** — each pair straddles the client/server boundary,
 where there is no shared module to extract into:
 
+- room status strings — `ROOM_STATUS` in `src/features/rooms/store.js` and the
+  `ROOM_STATUS_*` constants in `public/js/features/draft/constants.js`. The server owns
+  every transition between them; the client only ever compares, which is why there is no
+  second copy of the transition table
 - allowance-cap normalisation — `src/features/rooms/config.js` and
   `public/js/features/draft/allowance.js`
 - ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and

@@ -44,7 +44,10 @@ export function fmtDate(ts) {
 }
 
 export function phasePill(phase) {
-  const cls = { ban: "is-ban", pick: "is-pick", lobby: "is-lobby", ready: "is-ready", done: "is-done" };
+  /* `live` = a match being played. It borrows the ready pill rather than
+     earning a colour of its own: the dashboard's palette marks *attention*, and
+     a room mid-match needs none. */
+  const cls = { ban: "is-ban", pick: "is-pick", lobby: "is-lobby", ready: "is-ready", live: "is-ready", done: "is-done" };
   return `<span class="phase-pill ${cls[phase] || "is-lobby"}">${escapeHtml(phase.toUpperCase())}</span>`;
 }
 

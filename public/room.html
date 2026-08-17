@@ -598,24 +598,36 @@
                      The squads start at the top of the panel. -->
                 <div class="sm-teams" id="smTeams"></div>
 
-                <!-- Confirm stage: the one thing to act on. -->
-                <footer class="sm-foot sm-foot--confirm">
-                  <button type="button" class="btn sm-ready-btn" id="draftReadyBtn" data-ready="0" aria-pressed="false">READY</button>
-                  <p class="sm-foot-hint" id="smReadyHint"></p>
+                <!-- The three handshakes — READY, START MATCH, FINISH MATCH — share
+                     this footer. `data-stage` on the panel says which one is open and
+                     `ready/matchSteps.js` holds the words; the markup does not change
+                     between them. The tip only shows while the match is being played. -->
+                <footer class="sm-foot sm-foot--step">
+                  <button type="button" class="btn sm-step-btn" id="draftStepBtn" data-pressed="0" aria-pressed="false">READY</button>
+                  <p class="sm-foot-hint" id="smStepHint"></p>
+                  <p class="sm-foot-tip" id="smMatchTip"></p>
                 </footer>
 
-                <!-- Match-live stage. `data-rematch` decides which of these
+                <!-- Post-match stage. `data-rematch` decides which of these
                      buttons are on screen; see ready.css. -->
-                <footer class="sm-foot sm-foot--live" id="postMatchActions" data-rematch="none">
+                <footer class="sm-foot sm-foot--post" id="postMatchActions" data-rematch="none">
                   <p class="sm-foot-hint" id="pmStatus"></p>
+                  <!-- What each button does is on the button, as a tooltip. It used to be
+                       a line of small print under the row naming three of the five, always
+                       on screen — permanent text for something you read once. -->
                   <div class="sm-foot-actions">
-                    <button type="button" class="btn pm-btn pm-btn--rematch" id="pmRematchBtn">REMATCH</button>
-                    <button type="button" class="btn pm-btn pm-btn--accept" id="pmAcceptBtn">ACCEPT REMATCH</button>
-                    <button type="button" class="btn pm-btn pm-btn--decline" id="pmDeclineBtn">DECLINE</button>
-                    <button type="button" class="btn pm-btn pm-btn--new" id="pmNewMatchBtn">NEW MATCH</button>
-                    <button type="button" class="btn pm-btn pm-btn--close" id="pmCloseBtn">CLOSE ROOM</button>
+                    <button type="button" class="btn pm-btn pm-btn--rematch" id="pmRematchBtn"
+                            title="Keeps both players and returns to ban settings. The other side has to accept.">REMATCH</button>
+                    <button type="button" class="btn pm-btn pm-btn--accept" id="pmAcceptBtn"
+                            title="Both of you return to ban settings, same players, same seats.">ACCEPT REMATCH</button>
+                    <button type="button" class="btn pm-btn pm-btn--decline" id="pmDeclineBtn"
+                            title="Turn down the rematch. The room stays open.">DECLINE</button>
+                    <button type="button" class="btn pm-btn pm-btn--new" id="pmNewMatchBtn"
+                            title="Closes this room for both of you and opens a fresh one with you as host.">NEW MATCH</button>
+                    <!-- No CLOSE ROOM here. The stage header carries Close room (host) /
+                         Leave (guest) on every screen of the room, this one included, so a
+                         second door into the same action belongs to neither of them. -->
                   </div>
-                  <p class="sm-foot-note">Rematch keeps both players and returns to ban settings · New match opens a fresh room with you as host · Close ends it for both.</p>
                 </footer>
               </section>
             </div>

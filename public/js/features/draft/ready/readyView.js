@@ -2,13 +2,20 @@
  * Start Match — the last screen of a room, and the **only** screen after the
  * picks are in.
  *
- * It has two stages and it does not navigate between them; `data-stage` on the
- * board is the whole difference:
+ * It has four stages and it does not navigate between them; `data-stage` on the
+ * board is the whole difference, and the two squads never move:
  *
- *   confirm  both squads + the READY button       (room status "await-ready")
- *   live     both squads + the three ways out     (room status "done")
+ *   confirm  READY         — my squad is set up in the game   ("await-ready")
+ *   start    START MATCH   — I have kicked off                ("await-start")
+ *   live     FINISH MATCH  — the match is being played        ("live")
+ *   post     rematch / new match                              ("done")
  *
- * There used to be a separate `#viewDone` screen for the second stage, which
+ * The first three are the same footer with a different row of `matchSteps.js`
+ * behind it; only the last one is different markup. Each of the three needs
+ * **both** sides before the room moves on, so the button you are looking at is
+ * always the step the room is actually on — never one you pressed ahead.
+ *
+ * There used to be a separate `#viewDone` screen for the last stage, which
  * re-listed as plain text the same two squads this screen already draws as
  * cards. Swapping the footer says the same thing without making the user leave
  * the page they were looking at.
@@ -27,6 +34,7 @@ import {
   normalizeFormation,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
+import { currentMatchTip, stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
 const LINEUP_SIZE = 11;
@@ -79,18 +87,25 @@ const formationOf = (room, side) => normalizeFormation(room?.formations?.[side])
 
 // ── Entry point ──────────────────────────────────────────────
 
-export function renderReadyBoard({ room, mySide, theirSide, matchLive, visible }) {
+export function renderReadyBoard({ room, mySide, theirSide, visible }) {
   const board = document.getElementById("draftReadyPhaseBoard");
   if (!board) return;
 
   board.hidden = !visible;
   if (!visible) return;
 
-  const stage = matchLive ? "live" : "confirm";
+  /* The room status is the only thing that decides which stage is up. It is the
+     server's answer and both clients read the same one, so the two screens
+     cannot disagree about which handshake is open. */
+  const step = stepForStatus(room.status);
+  const stage = step ? step.stage : "post";
   if (board.dataset.stage !== stage) board.dataset.stage = stage;
 
-  const myReady = Boolean(room.matchReady?.[mySide]);
-  const theirReady = Boolean(room.matchReady?.[theirSide]);
+  /* Each side's answer to whichever step is open — the chip on their team head,
+     and who the hint says we are waiting for. Once the match is over there is
+     no step left, and both chips read FINISHED. */
+  const mine = step ? Boolean(room[step.flag]?.[mySide]) : true;
+  const theirs = step ? Boolean(room[step.flag]?.[theirSide]) : true;
   const revealMode = normalizeRevealMode(room.config?.revealMode);
 
   const myPicks = room.picks?.[mySide] || [];
@@ -100,10 +115,10 @@ export function renderReadyBoard({ room, mySide, theirSide, matchLive, visible }
 
   renderTeams({
     room, mySide, theirSide, myPicks, theirPicks,
-    myFormation, theirFormation, revealMode, myReady, theirReady,
+    myFormation, theirFormation, revealMode, step, mine, theirs,
   });
-  if (matchLive) renderPostMatch();
-  else renderConfirmFooter(room, theirSide, myReady, theirReady);
+  if (step) renderStepFooter(step, room, theirSide, mine, theirs);
+  else renderPostMatch();
 }
 
 /* There is no page heading. The stage rail across the top of the room already
@@ -120,7 +135,7 @@ function setText(id, text) {
 // ── The two squads ───────────────────────────────────────────
 
 function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
-                       myFormation, theirFormation, revealMode, myReady, theirReady }) {
+                       myFormation, theirFormation, revealMode, step, mine, theirs }) {
   const host = document.getElementById("smTeams");
   if (!host) return;
 
@@ -141,8 +156,9 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     room[theirSide]?.username || "",
     revealMode,
     mySide,
-    myReady ? "1" : "0",
-    theirReady ? "1" : "0",
+    step?.stage || "post",
+    mine ? "1" : "0",
+    theirs ? "1" : "0",
   ].join("|");
   if (host.dataset.teamsKey === key) return;
   host.dataset.teamsKey = key;
@@ -151,13 +167,14 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
      Revealing at Start Match would make the lobby setting a draft-only
      promise. */
   const theirColumn = hidden
-    ? hiddenColumnHtml(room[theirSide]?.username, theirReady)
+    ? hiddenColumnHtml(room[theirSide]?.username, step, theirs)
     : teamColumnHtml({
         name: room[theirSide]?.username || "Opponent",
         role: "OPPONENT",
         picks: theirPicks,
         formation: theirFormation,
-        ready: theirReady,
+        step,
+        done: theirs,
         isMe: false,
         blurred: revealMode === REVEAL_MODE_BLUR,
       });
@@ -168,7 +185,8 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
       role: "YOU",
       picks: myPicks,
       formation: myFormation,
-      ready: myReady,
+      step,
+      done: mine,
       isMe: true,
       blurred: false,
     }) +
@@ -176,12 +194,19 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     theirColumn;
 }
 
-const readyChipHtml = (ready) => `
-  <span class="sm-chip ${ready ? "is-ready" : "is-waiting"}">
-    <span class="sm-chip-mark" aria-hidden="true">${ready ? "✓" : "•"}</span>${ready ? "READY" : "NOT READY"}
+/* The chip answers "where is this player up to", so its words come from the
+   step that is open — READY / NOT READY while squads are being set up, PLAYING /
+   FINISHED once the match is on. With no step left the match is over and there
+   is nothing to be waiting for. */
+const stepChipHtml = (step, done) => {
+  const label = step ? (done ? step.chip.on : step.chip.off) : "FINISHED";
+  return `
+  <span class="sm-chip ${done ? "is-ready" : "is-waiting"}">
+    <span class="sm-chip-mark" aria-hidden="true">${done ? "✓" : "•"}</span>${label}
   </span>`;
+};
 
-function teamColumnHtml({ name, role, picks, formation, ready, isMe, blurred }) {
+function teamColumnHtml({ name, role, picks, formation, step, done, isMe, blurred }) {
   const lineup = picks.slice(0, LINEUP_SIZE);
   // `picks` is slot-addressed, so the holes go before anything counts.
   const bench = filledPicks(picks.slice(LINEUP_SIZE));
@@ -210,7 +235,7 @@ function teamColumnHtml({ name, role, picks, formation, ready, isMe, blurred }) 
           <h3 class="sm-team-name">${escapeHtml(name)}</h3>
           <p class="sm-team-role">${escapeHtml(role)} · ${escapeHtml(formation)}</p>
         </div>
-        ${readyChipHtml(ready)}
+        ${stepChipHtml(step, done)}
       </header>
       <div class="sm-squad${blurred ? " is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
         <div class="sm-pitch pitch-field">
@@ -234,7 +259,7 @@ function benchHtml(bench) {
     </div>`;
 }
 
-function hiddenColumnHtml(name, ready) {
+function hiddenColumnHtml(name, step, done) {
   return `
     <section class="sm-team is-opp is-hidden">
       <header class="sm-team-head">
@@ -242,31 +267,41 @@ function hiddenColumnHtml(name, ready) {
           <h3 class="sm-team-name">${escapeHtml(name || "Opponent")}</h3>
           <p class="sm-team-role">OPPONENT</p>
         </div>
-        ${readyChipHtml(ready)}
+        ${stepChipHtml(step, done)}
       </header>
       <p class="sm-hidden-msg">Picks hidden — this room was set to reveal nothing.</p>
     </section>`;
 }
 
-// ── Footer, confirm stage ────────────────────────────────────
+// ── Footer, while a handshake is open ────────────────────────
 
-function renderConfirmFooter(room, theirSide, myReady, theirReady) {
-  const btn = document.getElementById("draftReadyBtn");
+/**
+ * One footer for all three steps: a button and a line telling you what it is
+ * waiting on. Everything that differs is a field on `step`.
+ */
+function renderStepFooter(step, room, theirSide, mine, theirs) {
+  const btn = document.getElementById("draftStepBtn");
   if (btn) {
-    /* The label and the look both have to move. The old button toggled
-       `btn--ghost`, which `.sm-ready-btn` overrode on cascade order, so
-       pressing READY changed the word and nothing else. `data-ready` is read by
-       `ready.css` and cannot lose that fight. */
-    const label = myReady ? "READY ✓ · UNDO" : "READY";
+    /* The label and the look both have to move. The button used to toggle
+       `btn--ghost` from JS, which `.sm-step-btn` overrode on cascade order, so
+       pressing it changed the word and kept its accent — you could not tell at
+       a glance whether you had answered. `data-pressed` is read by `ready.css`
+       on the same selector and cannot lose that fight. */
+    const label = mine ? `${step.label} ✓ · UNDO` : step.label;
     if (btn.textContent !== label) btn.textContent = label;
-    btn.dataset.ready = myReady ? "1" : "0";
-    btn.setAttribute("aria-pressed", myReady ? "true" : "false");
+    btn.dataset.pressed = mine ? "1" : "0";
+    btn.setAttribute("aria-pressed", mine ? "true" : "false");
   }
 
   const them = room[theirSide]?.username || (theirSide === "host" ? "Host" : "Guest");
-  setText("smReadyHint",
-    myReady && theirReady ? "Both sides ready."
-    : myReady ? `Waiting for ${them}…`
-    : theirReady ? `${them} is ready and waiting for you.`
-    : "Press READY once your squad is in the game.");
+  setText("smStepHint",
+    mine ? step.hint.waiting(them)
+    : theirs ? step.hint.prompted(them)
+    : step.hint.idle(them));
+
+  /* Only the live stage carries a tip, and `ready.css` hides the element in the
+     other two — but it is still written here, because a stale line flashing on
+     the way into the stage is exactly the kind of thing a hidden element hides
+     until it is too late. */
+  setText("smMatchTip", currentMatchTip());
 }

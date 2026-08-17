@@ -62,5 +62,5 @@ export function showRoomClosed(message = "Room is closed.") {
 
    `showDone` painted a second screen once both players were READY, re-listing
    as plain text the two squads Start Match had just drawn as cards. Start Match
-   swaps its own footer instead (`enterMatchLive` in shell/draftView.js), so the
+   swaps its own footer instead (`enterPostMatch` in shell/draftView.js), so the
    room being *closed* is the only genuinely terminal screen left. */

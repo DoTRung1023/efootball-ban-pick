@@ -15,11 +15,11 @@ import { normalizeFormation, pickCount } from '@/features/draft/players.js';
 import {
   applyLocalBan,
   banLimit,
-  isBothMatchReady,
   isReadyPhase,
   pickLimit,
   startTurnTimer,
 } from './draftFlow.js';
+import { ROOM_STATUS_DONE } from '@/features/draft/constants.js';
 
 /**
  * A ban only ever renders as a card image, and `getPlayerImageSrc` falls back to
@@ -64,24 +64,34 @@ export async function setGuestReady(ready) {
   }
 }
 
-export async function setMatchReady(ready) {
-  const { ok, data } = await postAsMe("match-ready", { ready: Boolean(ready) });
+/**
+ * Answers one of the Start Match handshakes — ready, start or finish.
+ *
+ * The server owns the transitions, so this posts an answer and re-renders from
+ * whatever status comes back. It does **not** work out whether the room should
+ * advance: it used to, by testing both sides' ready flags itself, which is a
+ * second implementation of a rule that already lives in one place.
+ */
+export async function setMatchStep(step, value) {
+  const { ok, data } = await postAsMe("match-step", { step, value: Boolean(value) });
   if (!ok) {
-    showToast(data.error || "Could not update match ready.");
+    showToast(data.error || "Could not update the match.");
     return;
   }
   if (data.room) applyPresenceSnapshot(data.room);
 
-  if (isBothMatchReady()) {
-    cb.enterMatchLive();
+  /* Both sides pressed FINISH: the match is over, and this is the one-way move
+     into the post-match footer. Every other answer is an ordinary re-render. */
+  if (String(state.room?.status || "") === ROOM_STATUS_DONE) {
+    cb.enterPostMatch();
     return;
   }
   cb.renderDraftUi();
 }
 
 /**
- * The three ways out of a finished room. `close` and `newMatch` end it for both
- * sides; the rematch trio keeps both seats and only `accept` resets the draft.
+ * The ways out of a finished room. `new-match` ends it for both sides; the
+ * rematch trio keeps both seats and only `accept` resets the draft.
  *
  * Returns true when the server took the action, so the caller can decide where
  * to go next — this function deliberately does not navigate.

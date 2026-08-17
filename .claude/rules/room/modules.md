@@ -146,11 +146,17 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
-- `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, both
+- `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
   stages. See `ready-phase.md`.
+- `ready/matchSteps.js` — the table behind those stages: one row per handshake (READY,
+  START MATCH, FINISH MATCH) carrying its room status, its `data-stage`, the field on the
+  room holding each side's answer, the button label, the team-head chip and the three
+  things the hint can say. `stepForStatus()` is how `readyView` and `draftControls` both
+  find the open one, so neither branches on which it is. `currentMatchTip()` lives here
+  too — the line under the button while the match is being played.
 - `ready/postMatch.js` — `renderPostMatch()`, `bindPostMatchOnce()` and
-  `onRematchAccepted()`: the three ways out of a finished match, in the footer of Start
-  Match's `live` stage. It is in `ready/` and not `shell/` because that footer is part
+  `onRematchAccepted()`: the ways out of a finished match, in the footer of Start
+  Match's `post` stage. It is in `ready/` and not `shell/` because that footer is part
   of that screen — it lived on a separate `#viewDone` until Start Match absorbed it.
 - `exitScreens.js` — `showRoomClosed`, now the **only** terminal screen. The countdown
   runs for **10 seconds** before redirecting to `/`. `showOpponentLeft` went when a

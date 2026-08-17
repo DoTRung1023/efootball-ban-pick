@@ -52,10 +52,20 @@ Supporting modules:
   deletes an entry, and only when no seat is left and the room is not closed —
   see `room/presence-and-reconnect.md`.
 - Two guards in `features/rooms/routes.js` worth not undoing:
-  - **`/match-ready` requires `await-ready` or `done`.** It used to promote a
+  - **`/match-step` answers one handshake, and only in its own status.** The
+    `MATCH_STEPS` table pairs each step with the status it is open in and the
+    status *both* answers lead to: ready `await-ready → await-start`, start
+    `await-start → live`, finish `live → done`. Its ancestor promoted a
     *drafting* room on the first call, so either player could post it mid-ban or
     mid-pick and skip the rest of the draft for both. The legitimate route into
-    `await-ready` is both sides confirming in `/picks-confirm`.
+    `await-ready` is both sides confirming in `/picks-confirm`; every status
+    after it is reached from the one before it, by both sides, through here.
+
+    **`finish` is not undoable and the other two are.** Ready and start may be
+    taken back — the room walks the other player back a stage too and nothing
+    has happened yet. Walking `done` back would look exactly like a rematch
+    being accepted to the other client, which sits in the `done` phase watching
+    for the status to *leave* `done` and reloads on it.
   - **A kick is permanent.** `/kick-guest` appends to `entry.kickedGuestIds` and
     **nothing ever removes an id from it** — not a different guest taking the
     seat, not host promotion, not `reopenRoom`. There is no `/unkick`; it existed

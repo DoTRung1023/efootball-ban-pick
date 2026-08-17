@@ -1,6 +1,7 @@
 ---
 paths:
   - "public/js/features/draft/ready/readyView.js"
+  - "public/js/features/draft/ready/matchSteps.js"
   - "public/js/features/draft/ready/postMatch.js"
   - "public/js/features/draft/shell/exitScreens.js"
   - "public/js/pages/room.js"
@@ -8,24 +9,47 @@ paths:
 
 # Start Match — the last screen of a room (`#draftReadyPhaseBoard`)
 
-**There is no screen after this one.** It has two stages and it does not navigate
+**There is no screen after this one.** It has four stages and it does not navigate
 between them — `data-stage` on the board, written by `renderReadyBoard`, swaps the
-footer and nothing else:
+footer and nothing else moves:
 
-| `data-stage` | Room status | Footer |
-| --- | --- | --- |
-| `confirm` | `await-ready` | READY button + hint (`.sm-foot--confirm`) |
-| `live` | `done` | the three ways out (`.sm-foot--live`) |
+| `data-stage` | Room status | Footer | Means |
+| --- | --- | --- | --- |
+| `confirm` | `await-ready` | READY | my squad is set up in the game |
+| `start` | `await-start` | START MATCH | I have kicked off |
+| `live` | `live` | FINISH MATCH + tip | the match is being played |
+| `post` | `done` | rematch / new match (`.sm-foot--post`) | it is over |
+
+**The first three are one footer** (`.sm-foot--step`) reading its words out of a row of
+`ready/matchSteps.js`: the button label, the chip on each team head, and the three things
+the hint can say. Adding or reordering a step is a row there; nothing branches on which
+step is open. Only `post` is different markup.
+
+**Every one of the three needs both sides.** The server owns the transition, so the
+button on your screen is always the step the room is actually on — you cannot press ahead
+into the next one. `renderReadyBoard` takes no stage argument for the same reason: it
+reads `room.status`, which is the one answer both clients share.
+
+Each step is undoable while the other side has not answered — press again and the room
+walks back a stage with you. **Finish is the exception and must stay one**: see
+`/match-step` in `backend.md`.
 
 You reach `confirm` only when **both** sides have confirmed their squads: the server
 sets `status: "await-ready"` and `renderDraftUi` calls `enterReadyPhase()` on the
 snapshot carrying it. Confirming alone leaves you on the pick board waiting — see
 `pick-phase.md`.
 
-`enterMatchLive()` (in `shell/draftView.js`) is the one-way move to `live`. It sets
-`state.phase = "done"`, stands the exit guard down, and renders. It **does not** change
-the view and **does not** clear the cached phase — that cache is what lets a reload come
-straight back here, and the room is still live while a rematch can be offered.
+The client keeps **one phase, `ready`, for the first three stages** — they are one screen
+with one set of rules about what else is on it, and `isReadyPhase()` is what every other
+module asks. Only the finished room gets its own phase, because the exit guard and the
+rematch watch turn on it.
+
+`enterPostMatch()` (in `shell/draftView.js`) is the one-way move to `post`. It sets
+`state.phase = "done"`, stands the exit guard down, and renders. The guard stays **up**
+through `live`: a match in progress is very much something to warn about walking out of.
+It **does not** change the view and **does not** clear the cached phase — that cache is
+what lets a reload come straight back here, and the room is still open while a rematch
+can be offered.
 
 > There used to be a separate `#viewDone` screen for the second stage: it re-listed as
 > plain text the same two squads this screen already draws as cards. It is gone —
@@ -38,6 +62,15 @@ it would walk the phase back out of `done` on the next poll.
 
 ## Layout
 
+- **The tip** (`#smMatchTip`) is only on screen in `live`, and its line is picked from
+  the wall clock (`currentMatchTip`) rather than from a timer — `renderDraftUi` already
+  runs twice a second, and a clock-derived slot means both players read the same line at
+  the same time without anything being synced. It is written in **every** stage even
+  though CSS hides it in three, so it can never flash a line left over from the last one.
+- **In `live` the hint reads before the button** (`order: -1` on `.sm-foot-hint`, scoped
+  to that stage). In the two stages before it the button *is* the message; once the match
+  is on, "Match in progress" is, and the button answers it. Measured at 1440×900: hint at
+  y=859, button at 888, tip at 942 — against button 859 / hint 913 in the other stages.
 - **No header.** There was a `.sm-head` block (`FINAL STEP · START MATCH` and a line of
   instructions). It is gone: the stage rail across the top of the room already reads
   START MATCH, so the title said it twice and pushed the squads — the only thing on this
@@ -128,7 +161,8 @@ would make the lobby setting a draft-only promise:
   mode whose only job is to hide them was perfectly legible. The team head stays outside
   the blur on purpose — the name and the READY chip are what blur still promises you.
   Stats stay live; blur conceals identities, not shape.
-- `hidden` — the column is replaced wholesale by `.sm-team.is-hidden`. Their ids and
+- `hidden` — the column is replaced wholesale by `.sm-team.is-hidden`. The chip stays:
+  it says how far along the *step* the opponent is, not anything about their squad. Their ids and
   their formation also stay out of `data-teams-key`, which is written to the DOM and
   would otherwise publish exactly what the column refuses to draw. There is nothing else
   left to mask now the stats row is gone — which is the point of the warning above.
@@ -136,19 +170,30 @@ would make the lobby setting a draft-only promise:
 `.pick-opp-grid.is-concealed` on the pick board has the **same missing blur** and is not
 fixed here — see `pick-phase.md`.
 
-## READY
+## The one button
 
-`#draftReadyBtn` → `setMatchReady()` → `POST /api/rooms/:code/match-ready`. When both
-sides are ready the server sets `status = "done"` and `cb.enterMatchLive()` runs.
+`#draftStepBtn` → `setMatchStep(step, value)` → `POST /api/rooms/:code/match-step`.
+`draftControls` looks the open step up by room status and posts the negation of this
+side's current flag; it does not know there are three.
 
-The pressed state is `data-ready="1"` on the button, **not** a class swap. It toggled
-`btn--ghost` from JS, which `.sm-ready-btn` overrode on cascade order, so pressing READY
+The client **does not work out whether the room should advance** — it posts an answer and
+re-renders from the status that comes back. `isBothMatchReady()` used to do exactly that
+from the client's copy of the flags, a second implementation of a rule the server already
+owned, and with three handshakes it would have needed a step argument to keep saying the
+same thing. It is gone, along with its `cb` entry.
+
+The pressed state is `data-pressed="1"` on the button, **not** a class swap. It toggled
+`btn--ghost` from JS, which `.sm-step-btn` overrode on cascade order, so pressing it
 changed the word and kept its accent — you could not tell at a glance whether you had
-confirmed. An attribute on the same selector cannot lose that fight.
+answered. An attribute on the same selector cannot lose that fight.
 
-`.sm-ready-btn` is the confirm stage's single `--accent` element (DESIGN.md §3.2). The
-rule reserving the accent for the turn clock does not bite: the clock is not on screen
-here and nothing is counting down.
+`.sm-step-btn` is each handshake stage's single `--accent` element (DESIGN.md §3.2). The
+rule reserving the accent for the turn clock does not bite: the clock is **hidden** for
+this whole screen — see `draft-shell.md`.
+
+The chip on each team head takes its words from the same row: READY / NOT READY, then
+STARTING / NOT STARTED, then FINISHED / PLAYING. It answers "where is this player up to",
+so it has to move with the step or it answers a question nobody is asking any more.
 
 The stage indicator reads **start** for this whole screen. It read `ban` before, because
 the only thing that ever reached "start" was the deleted done screen — so the indicator
@@ -158,7 +203,7 @@ walked backwards from pick to ban at the exact moment the draft finished.
 
 # The three ways out (`#postMatchActions`, `ready/postMatch.js`)
 
-The `live` footer. **Presence keeps polling in the `done` phase** — `pollPresence`
+The `post` footer. **Presence keeps polling in the `done` phase** — `pollPresence`
 allows it, `setMatchReady` does not stop it, and `tryEnterDraftFromRoomSnapshot` no
 longer stops it when reconnecting into a finished room. A rematch offer the other side
 never receives is not an offer.
@@ -171,15 +216,18 @@ All three actions go to `POST /api/rooms/:code/post-match`, and the route **409s
 
 | Action | Server effect | Where each client ends up |
 | --- | --- | --- |
-| `close` | `closed = true`, both seats cleared, reason "X closed the room." | initiator → `/`; other side's poll hits `closed` → `showRoomClosed` countdown |
-| `new-match` | identical to `close`, reason "X started a new match." | initiator → `/room/<fresh code>?mode=host`; other side → room-closed countdown |
+| `new-match` | `closed = true`, both seats cleared, reason "X started a new match." | initiator → `/room/<fresh code>?mode=host`; other side's poll hits `closed` → `showRoomClosed` countdown |
 | `rematch-propose` | `entry.rematch = { by: side }` | offer appears in the other side's next poll |
 | `rematch-accept` | `resetDraftToLobby(entry)`, seats kept | both reload into the lobby (ban settings) |
 | `rematch-decline` | clears the offer | footer returns to its resting state |
 
-`close` and `new-match` both ask first (`askConfirm`) — they end the room for the *other*
-player too and cannot be taken back, the same reason Leave and Close room ask everywhere
-else.
+`new-match` asks first (`askConfirm`) — it ends the room for the *other* player too and
+cannot be taken back, the same reason Leave and Close room ask everywhere else.
+
+**There is no CLOSE ROOM button, and no `close` action behind it.** The stage header
+carries Close room (host) / Leave (guest) on every screen of the room including this one,
+so the footer was a second door into an action that already had one. `/leave` is what the
+header button posts; the post-match branch had no caller left once the button went.
 
 **Only the other side can accept** (`entry.rematch?.by !== other` → 409). Without it a
 player could propose and accept their own rematch and drag the opponent back into a ban
@@ -192,6 +240,14 @@ rendering the page caught it.
 
 `entry.rematch` is cleared by `resetDraftToLobby`, so an offer never outlives the draft
 it was made about.
+
+**What each button does is a `title` on the button**, and all five carry one — including
+ACCEPT and DECLINE, which the old copy did not cover. It was a line of small print under
+the row (`.sm-foot-note`) naming three of the five, on screen permanently, for something
+you read once. Native `title` is what the rest of the app uses for exactly this; the
+styled hover panel in `shared/ui/playerHoverCard.js` is not a general tooltip component,
+it exists because a `title` on a *concealed* player card leaks the name it is hiding.
+Nothing here is concealed.
 
 The footer's three shapes come from `data-rematch` (`none` / `pending` / `incoming`)
 rather than toggling `hidden` on five buttons — one attribute, and `ready.css` owns which

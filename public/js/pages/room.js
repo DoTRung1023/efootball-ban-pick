@@ -11,11 +11,10 @@ import {
   announce,
   showToast,
   getRoomCodeFromUrl,
-  isBothMatchReady,
   flushAndSubmitStagedBans,
   confirmPicks,
   renderDraftUi,
-  enterMatchLive,
+  enterPostMatch,
   initDraftControls,
   startDraftFromLobby,
   tryEnterDraftFromRoomSnapshot,
@@ -54,8 +53,7 @@ window.addEventListener("error", (ev) => {
 
 cb.renderDraftUi = renderDraftUi;
 cb.tryEnterDraftFromRoomSnapshot = tryEnterDraftFromRoomSnapshot;
-cb.isBothMatchReady = isBothMatchReady;
-cb.enterMatchLive = enterMatchLive;
+cb.enterPostMatch = enterPostMatch;
 cb.onRematchAccepted = onRematchAccepted;
 cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;

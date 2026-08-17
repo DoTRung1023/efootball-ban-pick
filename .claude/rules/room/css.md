@@ -182,7 +182,7 @@ Hue meanings, applied page-wide:
 | green | you / your side / primary action / confirmed |
 | cyan | the opponent / incoming |
 | amber | pending, waiting on someone |
-| red | destructive only (close room, kick, leave) |
+| red | destructive only (close room, kick, leave) — and only in the stage header on the room's last screen, never a second time in a footer |
 | gold | achievement (Start Match stats) |
 
 Ladders — `--g-*` (green) and `--c-*` (cyan) carry the same rungs, so an opponent-side

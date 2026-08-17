@@ -19,11 +19,10 @@
 export { cb } from "./callbacks.js";
 export { showToast, announce, getRoomCodeFromUrl } from "./utils.js";
 
-export { isBothMatchReady } from "@/features/draft/engine/draftFlow.js";
 export { confirmPicks, flushAndSubmitStagedBans } from "@/features/draft/engine/draftActions.js";
 export { startDraftFromLobby, tryEnterDraftFromRoomSnapshot } from "@/features/draft/engine/draftSession.js";
 
-export { renderDraftUi, enterMatchLive } from "@/features/draft/shell/draftView.js";
+export { renderDraftUi, enterPostMatch } from "@/features/draft/shell/draftView.js";
 export { initDraftControls } from "@/features/draft/shell/draftControls.js";
 export { updateStageTabs } from "@/features/draft/shell/stageTabs.js";
 export { showRoomClosed } from "@/features/draft/shell/exitScreens.js";

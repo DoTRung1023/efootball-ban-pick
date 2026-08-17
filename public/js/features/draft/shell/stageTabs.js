@@ -4,6 +4,7 @@
  */
 
 import { state } from '@/features/draft/state.js';
+import { isReadyPhase } from '@/features/draft/engine/draftFlow.js';
 
 const STAGE_ORDER = ["bansetting", "ban", "pick", "start"];
 const STAGE_CLASSES = STAGE_ORDER.map((_, i) => `stage-${i}`);
@@ -15,11 +16,11 @@ function currentStageFor(viewId) {
 
   const room = state.room;
   const turn = room ? state.schedule[room.turnIndex] : null;
-  /* Start Match *is* the "start" stage, in both its confirm and its match-live
-     shape. It used to light the **ban** dot, because the only thing that ever
-     reached "start" was the separate done screen — so the indicator walked
-     backwards from pick to ban at the exact moment the draft finished. */
-  if (state.phase === "done" || state.phase === "ready" || String(room?.status || "") === "await-ready") {
+  /* Start Match *is* the "start" stage, in all four of its shapes. It used to
+     light the **ban** dot, because the only thing that ever reached "start" was
+     the separate done screen — so the indicator walked backwards from pick to
+     ban at the exact moment the draft finished. */
+  if (state.phase === "done" || isReadyPhase(room)) {
     return "start";
   }
   return turn?.action === "ban" ? "ban" : "pick";

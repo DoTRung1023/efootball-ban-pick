@@ -1,11 +1,15 @@
 /**
- * The three ways out of a finished match, in the footer of the Start Match
- * screen's `live` stage.
+ * The ways out of a finished match, in the footer of the Start Match screen's
+ * `post` stage.
  *
  *   REMATCH     same two players, back to ban settings — needs the other side
  *               to accept, so it is an offer rather than an action
  *   NEW MATCH   this room ends; you land in a fresh one as host
- *   CLOSE ROOM  this room ends; both players go home
+ *
+ * **There is no CLOSE ROOM button.** The stage header carries Close room (host)
+ * / Leave (guest) on every screen of the room including this one, so the footer
+ * was a second door into an action that already had one. The server's `close`
+ * action went with it — `/leave` is what the header button posts.
  *
  * `data-rematch` on the row (`none` / `pending` / `incoming`) is the only thing
  * that changes between the three shapes of this footer — `ready.css` owns which
@@ -46,9 +50,8 @@ export function bindPostMatchOnce() {
     if (await postMatchAction("rematch-decline")) renderPostMatch();
   });
 
-  /* Both of these end the room for the *other* player too, and neither can be
-     taken back — the same reason Leave and Close room ask on every other
-     screen. */
+  /* This ends the room for the *other* player too and cannot be taken back —
+     the same reason Leave and Close room ask on every other screen. */
   on("pmNewMatchBtn", async () => {
     const ok = await askConfirm({
       title: "New match",
@@ -60,16 +63,6 @@ export function bindPostMatchOnce() {
        there is no create-room endpoint, a room exists as soon as somebody sends
        presence for its code. */
     if (await postMatchAction("new-match")) leaveTo(`/room/${genRoomCode()}?mode=host`);
-  });
-
-  on("pmCloseBtn", async () => {
-    const ok = await askConfirm({
-      title: "Close room",
-      message: "This ends the room for both of you and sends you back to My Players.",
-      okText: "Close room",
-    });
-    if (!ok) return;
-    if (await postMatchAction("close")) leaveTo("/");
   });
 }
 

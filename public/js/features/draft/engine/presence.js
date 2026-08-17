@@ -2,6 +2,7 @@ import {
   LOBBY_PRESENCE_POLL_MS,
   OPPONENT_CONNECTED_MS,
   OPPONENT_GONE_MS,
+  ROOM_STATUS_DONE,
 } from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
@@ -302,16 +303,23 @@ export async function pollPresence() {
       return;
     }
 
-    if (String(state.room?.status || "") === "done" && cb.isBothMatchReady()) {
-      /* Polling deliberately stays on — see the guard at the top. `enterMatchLive`
-         is the one-time transition and renders on its way through; after that
-         the ordinary render keeps the footer in step with a rematch offer. */
-      if (state.phase !== "done") cb.enterMatchLive();
+    /* The server sets `done` only once both sides have pressed FINISH MATCH, so
+       the status is the whole test — there is no second opinion to form from the
+       flags. Polling deliberately stays on (see the guard at the top);
+       `enterPostMatch` is the one-time transition and renders on its way
+       through, after which the ordinary render keeps the footer in step with a
+       rematch offer. */
+    if (String(state.room?.status || "") === ROOM_STATUS_DONE) {
+      if (state.phase !== "done") cb.enterPostMatch();
       else cb.renderDraftUi();
       return;
     }
 
-    /* Rematch accepted: the server put the room back in the lobby under us. */
+    /* We were in the finished room and it is no longer finished: the only way
+       out of `done` is a rematch being accepted, which puts the room back in the
+       lobby under us. (A close arrives as `closed` and is caught above; FINISH
+       deliberately cannot be undone once the room is `done`, precisely so it
+       cannot be mistaken for this.) */
     if (state.phase === "done") {
       cb.onRematchAccepted();
       return;
