@@ -637,6 +637,39 @@ Key blocks:
   clear `.pick-slot::after`. It was `--danger-fill` — 10% alpha over card art, which
   is very nearly invisible. Still hover-revealed, as on the home page, and it
   still needs the `@media (hover: none)` block.
+- **`.pick-phase-left` stays `stretch` above 900px — do not give it
+  `align-self: start` there.**
+  All three columns share a top and a bottom edge because every one of them
+  stretches to the grid row, and that flush bottom is the point.
+
+  A short pool leaves an empty band under the last card (measured 393px of a
+  763px panel with one card showing; the trigger is how many cards the filter
+  leaves, **not** the window width — a full 35-card roster overflows and scrolls
+  at the same viewport). `align-self: start` + `max-height: 100%` was tried
+  against that band and is the wrong trade twice over: off `stretch` the row is
+  sized by its tallest item, so the percentage cap has no definite height to
+  resolve against and the panel fell back to content height — it then stopped
+  short of the bottom **even with a full roster**, which is the case that had
+  nothing wrong with it. Verified after reverting, at 900×900, 1440×900 and
+  1200×760, full roster and one card: all three columns share both edges to the
+  pixel. Any future attempt at the empty band has to keep `stretch` up here.
+
+  **Below 900px it is the opposite**, and the `align-self: start` lives in
+  `responsive.css` for a measured reason. That rung caps the pool
+  (`.pick-phase-grid { max-height: 55vh }`) because the row is content-sized
+  there and nothing else bounds it — with the cap removed the pool rendered all
+  35 cards and drove the panel to **2649px** at an 880px viewport. But the cap
+  is `vh` while the panel around it is sized by the centre column, a constant
+  ~763px, so the two yardsticks diverge and the difference showed as a dead
+  strip under the grid: **197px at 880×731**, 181 at 880×760, 148 at 880×820.
+  Letting the panel hug its capped grid closes it. Measured after: strip 11px
+  (the panel's own padding) at 880×731 and 880×900, with the pool still
+  scrolling; and 1440×900 / 1200×800 unchanged, panel bottom flush with the
+  centre to the pixel.
+
+  So: bounded pool, no strip, and the column stops above the pitch **only**
+  where the pool really is capped. Changing either half without the other
+  brings back one of the two failures above.
 - `.pick-bottom-bar` / `.pick-allowance-bar` / `.pick-allowance-pill` /
   `.is-maxed`, plus `.pick-confirm-hint` and `.pick-confirm-btn.is-confirmed`.
   **`.pick-bottom-actions` wraps and may shrink.** It was `flex-shrink: 0` with

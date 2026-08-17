@@ -44,6 +44,7 @@ export function renderDraftUi() {
   }
 
   renderActionError();
+  renderTurnClock(readyPhase);
 
   const showBanBoard = isBanPhase && !readyPhase;
   renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, visible: showBanBoard });
@@ -96,6 +97,23 @@ function renderLeaveLabel(mySide) {
   const label = mySide === "host" ? "Close room" : "Leave";
   // Runs ~2x/second; rewriting an unchanged text node would drop a selection.
   if (btn.textContent !== label) btn.textContent = label;
+}
+
+/**
+ * The clock is a *turn* clock, and the Start Match screen has no turn.
+ *
+ * `startTurnTimer`'s tick already returns early outside the draft phase, which
+ * stopped the countdown but left the last digits it painted frozen in the top
+ * corner — on the final screen the room showed a number like "275" with a
+ * half-full accent bar under it, which reads as time left to do something.
+ * Nothing on that screen is timed.
+ *
+ * The column it sits in keeps its width (`shell.css`), so the stage rail does
+ * not jump sideways when the clock goes.
+ */
+function renderTurnClock(readyPhase) {
+  const ring = document.getElementById("timerRing");
+  if (ring && ring.hidden !== readyPhase) ring.hidden = readyPhase;
 }
 
 function renderActionError() {

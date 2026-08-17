@@ -75,10 +75,14 @@ it would walk the phase back out of `done` on the next poll.
 ## No aggregates anywhere on this screen
 
 Nothing here counts or averages. Removed, in order: the bench's `AVG`, the head's
-`n/11 XI`, and finally the whole `#smStats` comparison row — AVG RATING, SQUAD DEPTH,
-FORMATION, STARTING XI, AVG AGE — along with `averageOf`, `barStat`, `textStat` and the
-`.sm-stat*` rules. The screen's one job is to show the two squads, and five numbers per
-side competed with them for the space.
+`n/11 XI`, the whole `#smStats` comparison row — AVG RATING, SQUAD DEPTH, FORMATION,
+STARTING XI, AVG AGE — along with `averageOf`, `barStat`, `textStat` and the `.sm-stat*`
+rules, and finally the bench head's own `· n`. The strip prints `BENCH` and the cards
+under it are the count. The screen's one job is to show the two squads, and five numbers
+per side competed with them for the space.
+
+`bench.length` is still read — it chooses between the strip and "No substitutes picked."
+It just is not printed.
 
 This deleted a whole masking path: every one of those cells was an aggregate of the
 opponent's squad, so `hidden` reveal mode had to blank each one or hand back in numbers

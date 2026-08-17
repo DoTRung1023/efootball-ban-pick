@@ -184,7 +184,7 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     hovered card is detached without ever firing `mouseleave`.
 
 - `rooms.js` — Rooms tab: the host's room code + the join flow. Exports
-  `initRoomHost`, `refreshRoomHost` and `initRoomHub`.
+  `initRoomHost` and `initRoomHub`.
   - `goToRoom` is **async** — for `mode: "join"` it calls `GET /api/rooms/:code` first;
     if `room.host` is null (room not found) it shows an error toast and stops
     navigation, preventing users from entering a non-existent room.
@@ -192,9 +192,15 @@ than one feature needed moved to `public/js/shared/`, imported from there direct
     row, and wires `#copyCode` / `#regenCode` / `#startRoomBtn`. **There is no drawer** —
     the create-room overlay it replaced also carried an Escape handler that read
     `addPlayerModalOpen`, a module-private of `catalog.js`, and threw on every press.
-  - `refreshRoomHost()` repaints only the host row's squad count. It is separate because
-    the count comes from `cb.getSquadPlayers()`, which is empty until `loadSquad`
-    resolves — `home.js` calls it again right after that await.
+  - **The host row prints the name and nothing else**, and there is no second paint.
+    It used to read "HOST · n PLAYERS", which is why `refreshRoomHost` existed and why
+    `home.js` called it a second time after `loadSquad` resolved — the count comes from
+    `cb.getSquadPlayers()`, which is empty until then. Both are gone, along with the
+    `cb` import; `rooms.js` no longer depends on the squad at all. The `HOST` half was
+    redundant too: the badge directly above the row already says it.
+  - **There is no WAITING chip.** `.rooms-panel-head` holds the role badge alone, on
+    both panels. The chip said what the OPEN ROOM button under it already meant, and
+    said it before there was anything to wait for.
   - `initRoomHub` wires: code input normalisation, the `#joinCodeCount` counter, and
     `#pasteCodeBtn` (clipboard paste, URL-aware). There is no separate invite-link field
     — pasting a `/room/CODE` URL into `#joinRoomCode` extracts the code in place.

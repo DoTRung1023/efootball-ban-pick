@@ -226,7 +226,7 @@ function benchHtml(bench) {
   return `
     <div class="sm-bench">
       <div class="sm-bench-head">
-        <span>BENCH · ${bench.length}</span>
+        <span>BENCH</span>
       </div>
       ${bench.length
         ? `<div class="sm-bench-strip">${bench.map((p) => playerCardHtml(p, STATIC_CARD)).join("")}</div>`

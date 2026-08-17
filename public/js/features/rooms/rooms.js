@@ -1,4 +1,3 @@
-import { cb } from '@/pages/home/callbacks.js';
 import { ROOM_CODE_LENGTH, genRoomCode } from '@/shared/lib/roomCode.js';
 import { showToast } from '@/shared/ui/toast.js';
 
@@ -76,8 +75,11 @@ export async function redirectToActiveRoom(userId) {
  * is module-private to `catalog.js` and threw a ReferenceError every time it
  * ran. Nothing is behind a click any more, so the code is generated at boot.
  *
- * `refreshRoomHost` is separate because the squad count it prints is only
- * known once `loadSquad` resolves, which is after this binds.
+ * Everything here is known at boot, so there is nothing to repaint later. There
+ * used to be a `refreshRoomHost` that home.js called a second time after
+ * `loadSquad` resolved, because the host row printed "HOST · n PLAYERS" and the
+ * count is not known until then. The count is gone, and with it the only reason
+ * this module had to run twice.
  */
 export function initRoomHost(user) {
   const codeEl = document.getElementById("roomCode");
@@ -92,8 +94,6 @@ export function initRoomHost(user) {
   if (name)   name.textContent = label || "—";
   if (avatar) avatar.textContent = (label[0] || "?").toUpperCase();
 
-  refreshRoomHost();
-
   document.getElementById("regenCode")?.addEventListener("click", () => setCode(genRoomCode()));
 
   document.getElementById("copyCode")?.addEventListener("click", async () => {
@@ -106,14 +106,6 @@ export function initRoomHost(user) {
   document.getElementById("startRoomBtn")?.addEventListener("click", () => {
     goToRoom({ code: codeEl.textContent.trim(), mode: "host" });
   });
-}
-
-/** Repaint the host row's squad count. Safe to call before the squad loads. */
-export function refreshRoomHost() {
-  const meta = document.getElementById("roomHostMeta");
-  if (!meta) return;
-  const n = cb.getSquadPlayers().length;
-  meta.textContent = n ? `HOST · ${n} PLAYERS` : "HOST";
 }
 
 /* ============================================================

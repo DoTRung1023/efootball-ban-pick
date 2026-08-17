@@ -10,4 +10,4 @@
    first and refuses to navigate into a room that does not exist.
    ============================================================ */
 
-export { initRoomHost, refreshRoomHost, initRoomHub, redirectToActiveRoom } from "./rooms.js";
+export { initRoomHost, initRoomHub, redirectToActiveRoom } from "./rooms.js";

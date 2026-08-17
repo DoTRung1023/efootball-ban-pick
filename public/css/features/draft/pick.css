@@ -180,6 +180,17 @@
 
 /* Left: squad pool */
 
+/* **Full height, flush with the pitch and the live feed.** It stretches as a
+   grid item, and the bottom edges of all three columns line up because of it.
+
+   `align-self: start` + `max-height: 100%` was tried here to close the empty
+   band a short pool leaves under the last card. It closed that band and broke
+   this: off `stretch` the row is sized by the tallest item and the percentage
+   cap has no definite height to resolve against, so the panel fell back to
+   content height and stopped short of the bottom **even with a full roster**.
+   A column that ends in mid-air is worse than one with space at the end of a
+   short list. If the empty band is worth attacking again, it has to be done
+   without giving up `stretch`. */
 .pick-phase-left {
   min-width: 0;
   min-height: 0;

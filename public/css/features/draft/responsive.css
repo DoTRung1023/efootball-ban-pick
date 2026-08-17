@@ -73,9 +73,22 @@
   .pick-phase-center,
   .pick-phase-right { flex: 0 0 auto; }
 
-  /* The pools stay scrollers so the page does not grow by hundreds of cards. */
+  /* The pools stay scrollers so the page does not grow by hundreds of cards.
+     This is not optional: with the cap off, the pick pool rendered all 35 cards
+     and drove `.pick-phase-left` to **2649px** at an 880px viewport. The row is
+     content-sized in this rung, so nothing else bounds it. */
   .ban-phase-grid  { max-height: 62vh; }
   .pick-phase-grid { max-height: 55vh; }
+
+  /* The cap above is measured in `vh`; the panel around it is sized by the
+     grid row, which the centre column drives to a constant ~763px. The two
+     yardsticks diverge and the difference showed as a dead strip between the
+     bottom of the grid and the bottom of the panel — 197px at 880×731. Letting
+     the panel hug its capped grid is what closes it. The column then stops
+     above the pitch beside it, which is the honest rendering of a pool that
+     really is bounded here; above 900px the panel and grid agree and both
+     stretch, so nothing changes there. */
+  .pick-phase-left { align-self: start; }
 
   /* Without a floor the pitch is a `flex: 1` child of an auto-height column,
      which collapses to nothing. 300px was the floor while every formation was

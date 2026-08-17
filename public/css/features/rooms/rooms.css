@@ -174,33 +174,17 @@
   color: var(--text);
 }
 
-/* Role badge on the left, live status on the right. */
+/* The role badge, alone. Both panels carry one and nothing else: a WAITING
+   status chip used to sit opposite on the host side, saying in a second place
+   what the OPEN ROOM button below it already means, and saying it before there
+   was anything to wait for. */
 .rooms-panel-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
 }
 
-.rooms-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-}
-
-.rooms-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-/* Who is hosting, and how big their squad is — the two things worth checking
-   before opening the room. */
+/* Who is hosting — the one thing worth checking before opening the room. */
 .rooms-host-row {
   display: flex;
   align-items: center;
@@ -233,15 +217,6 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
-}
-
-.rooms-host-meta {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
 }
 
 /* `margin-top: auto` pins both buttons to the bottom of their panel, so the
