@@ -638,14 +638,32 @@
   font-size: 12px;
 }
 
-/* Active step — glowing solid green with enlarged size */
+/* Active step — a solid disc, larger than the rest.
 
+   **The fill must be opaque, and it must be light.** It was
+   `var(--fill-strong)`, which is `rgba(255,255,255,0.08)`, and that broke the
+   dot two ways at once:
+
+   - The connector line runs *behind* the circles (`.stage-progress-line`,
+     `z-index: 0`, against `z-index: 2` on the dots) and the other three hide it
+     because their `--bg-elevated` is opaque. An 8% wash does not, so the line
+     was plainly visible crossing the active circle. The stacking was never
+     wrong — `elementFromPoint` returns the dot at every circle, active
+     included; you were seeing straight through it.
+   - Composited over `--bg` that wash is `#22242A`, and the rule pairs it with
+     `color: var(--bg)` — near-black on near-black, measured **1.22:1**. The
+     dark text is a leftover from when this fill was a solid bright colour; the
+     re-skin turned it translucent and left the text behind.
+
+   White fill with `--bg` text is 18.86:1 and the same treatment `.btn--primary`
+   uses for "this is the one that matters". It deliberately does **not** take
+   `--accent`: DESIGN.md §3.2 spends that on the turn clock. */
 .stage-progress-dot.is-active::before {
   content: attr(data-step);
   width: 36px;
   height: 36px;
-  background: var(--fill-strong);
-  border-color: var(--line-active);
+  background: var(--text);
+  border-color: var(--text);
   color: var(--bg);
   font-size: 14px;
 }

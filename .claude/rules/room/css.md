@@ -143,6 +143,30 @@ before being fixed:
    `gap` probe added to a block that sets `gap` again lower down is simply overridden,
    and the resulting silence looks like a broken harness rather than a bad probe.
 
+## The stage rail (`.stage-progress-*`)
+
+Four numbered discs joined by `.stage-progress-line`, which is absolutely
+positioned at `z-index: 0` and runs **behind** the dots (`z-index: 2`). The dots
+hide it by being opaque, not by any clipping — so **every dot's `::before` fill
+must be an opaque colour, never one of the `--fill-*` washes.**
+
+`.is-active` used `background: var(--fill-strong)` — `rgba(255,255,255,0.08)` —
+and that one declaration caused both reported faults at once: the connector line
+showed straight through the active circle, and the rule's `color: var(--bg)`
+(dark text, a leftover from when this fill was solid and bright) measured
+**1.22:1** against the wash's composited `#22242A`. The stacking was never
+wrong; `elementFromPoint` returns the dot at every circle, active included.
+
+It is `var(--text)` fill with `var(--bg)` text now — 18.86:1, and opaque.
+Deliberately **not** `--accent`: DESIGN.md §3.2 spends that on the turn clock.
+Measured across both stage states, in the lobby and in the pick phase:
+
+| state | fill | number contrast |
+| --- | --- | --- |
+| upcoming | `--bg-elevated` | 5.60:1 |
+| completed (✓) | `--bg-elevated` | 17.52:1 |
+| active | `--text` | 18.86:1 |
+
 ## Colour system (hard rule)
 
 **Never write a raw `rgba()` for green, cyan, red, amber, a light text colour, or a dark
