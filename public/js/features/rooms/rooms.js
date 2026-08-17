@@ -1,4 +1,5 @@
 import { cb } from '@/pages/home/callbacks.js';
+import { ROOM_CODE_LENGTH, genRoomCode } from '@/shared/lib/roomCode.js';
 import { showToast } from '@/shared/ui/toast.js';
 
 function normalizeRoomCode(raw) {
@@ -66,14 +67,6 @@ export async function redirectToActiveRoom(userId) {
   }
 }
 
-/** Codes the host hands out are this long; the join field counts against it. */
-const ROOM_CODE_LENGTH = 6;
-
-function genCode(len = ROOM_CODE_LENGTH) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
 /**
  * The host side of the Rooms tab: the room code and the button that opens it.
  *
@@ -91,7 +84,7 @@ export function initRoomHost(user) {
   if (!codeEl) return;
 
   const setCode = (code) => { codeEl.textContent = code; };
-  setCode(genCode());
+  setCode(genRoomCode());
 
   const avatar = document.getElementById("roomHostAvatar");
   const name   = document.getElementById("roomHostName");
@@ -101,7 +94,7 @@ export function initRoomHost(user) {
 
   refreshRoomHost();
 
-  document.getElementById("regenCode")?.addEventListener("click", () => setCode(genCode()));
+  document.getElementById("regenCode")?.addEventListener("click", () => setCode(genRoomCode()));
 
   document.getElementById("copyCode")?.addEventListener("click", async () => {
     const code = codeEl.textContent.trim();

@@ -49,7 +49,8 @@ Code is grouped **by feature, not by file type**.
   (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
   (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js`),
   `ui/` (`toast.js`, `confirm.js`, `dropdown.js`, `playerHoverCard.js`), `lib/`
-  (`session.js`). `positions.js`
+  (`session.js`, `roomCode.js` — both bundles mint room codes: the Rooms tab for the
+  host, the post-match screen for "new match"). `positions.js`
   is the one module with a single *feature* consumer: `shared/players/sort.js` is the
   other, so it cannot move down. Import these **directly** — `shared/` deliberately has
   no barrel files, because with no bundler a barrel makes the browser fetch every module
@@ -119,7 +120,10 @@ where there is no shared module to extract into:
   `public/js/features/draft/state.js`
 - `DEFAULT_FORMATION` (`"4-3-3"`) **and the formation whitelist** — `ALLOWED_FORMATIONS`
   in `src/features/gamePlans/routes.js` against `FORMATION_ROWS` in
-  `public/js/shared/players/formations.js`
+  `public/js/shared/players/formations.js`. There is deliberately **no third copy** in
+  `src/features/rooms/`: a room's `formations` field is display data that the client
+  runs through `normalizeFormation` on the way in, so an unknown string can never reach
+  a pitch. Length-cap it there and leave the whitelist where it guards a DB column.
 
 Within the client there should be **no** such pairs: the formation table, the draft sort
 categories and the club-suggestion markup each live in exactly one module.
@@ -131,10 +135,14 @@ LWF · RWF · CF) rather than a generic ATT/MID/DEF label. `shared/players/forma
 declares the table and derives the slot numbers from it; `BENCH_ROW_LABEL` (`"SUB"`)
 lives beside it because both pitches print it into empty bench slots.
 
-**Both pitches are drawn as a football field** — turf, mow stripes, touchlines, penalty
+**Every pitch is drawn as a football field** — turf, mow stripes, touchlines, penalty
 and goal areas, halfway line and centre circle — by `public/css/shared/pitchField.css`.
-The markings are static markup in `home.html` / `room.html`; the renderers only ever
-write the rows container beside them.
+Three consumers: the game-plan pitch (home), the pick pitch and both Start Match squads
+(room). For the first two the markings are static markup in `home.html` / `room.html`
+and the renderers only ever write the rows container beside them. **Start Match is the
+exception**: it draws two pitches and rebuilds the whole container when a reveal mode
+swaps a column, so it emits its own markings — see `PITCH_MARKS_HTML` in
+`ready/readyView.js`. Geometry lives in the shared sheet either way.
 
 ## Detailed rules
 

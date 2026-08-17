@@ -581,45 +581,46 @@
                 </div>
               </section>
 
-              <!-- Ready Phase = Start Match view -->
-              <section class="draft-panel draft-panel--ready-phase" id="draftReadyPhaseBoard" hidden>
-                <div class="sm-layout">
-                  <div class="sm-head">
-                    <div class="sm-kicker"><span class="sm-kicker-dot"></span> READY PHASE · CONFIRM TO BEGIN MATCH</div>
-                    <h2 class="sm-title">START <span class="sm-title-green">MATCH</span></h2>
-                    <p class="sm-sub">Both squads locked. Confirm <strong>READY</strong> on both sides to start.</p>
+              <!-- ══════════════════════════════════════════════════════
+                   START MATCH — the last screen of the room.
+
+                   Two stages, one screen. `data-stage` is written by
+                   readyView.js and is the only difference between them:
+
+                     confirm  both squads + the READY button
+                     live     both squads + the three ways out
+
+                   There is no screen after this one. The footer swaps; the
+                   squads stay put.
+                   ══════════════════════════════════════════════════════ -->
+              <section class="draft-panel sm" id="draftReadyPhaseBoard" data-stage="confirm" hidden>
+                <!-- No heading: the stage rail above already reads START MATCH.
+                     The squads start at the top of the panel. -->
+                <div class="sm-teams" id="smTeams"></div>
+
+                <!-- Confirm stage: the one thing to act on. -->
+                <footer class="sm-foot sm-foot--confirm">
+                  <button type="button" class="btn sm-ready-btn" id="draftReadyBtn" data-ready="0" aria-pressed="false">READY</button>
+                  <p class="sm-foot-hint" id="smReadyHint"></p>
+                </footer>
+
+                <!-- Match-live stage. `data-rematch` decides which of these
+                     buttons are on screen; see ready.css. -->
+                <footer class="sm-foot sm-foot--live" id="postMatchActions" data-rematch="none">
+                  <p class="sm-foot-hint" id="pmStatus"></p>
+                  <div class="sm-foot-actions">
+                    <button type="button" class="btn pm-btn pm-btn--rematch" id="pmRematchBtn">REMATCH</button>
+                    <button type="button" class="btn pm-btn pm-btn--accept" id="pmAcceptBtn">ACCEPT REMATCH</button>
+                    <button type="button" class="btn pm-btn pm-btn--decline" id="pmDeclineBtn">DECLINE</button>
+                    <button type="button" class="btn pm-btn pm-btn--new" id="pmNewMatchBtn">NEW MATCH</button>
+                    <button type="button" class="btn pm-btn pm-btn--close" id="pmCloseBtn">CLOSE ROOM</button>
                   </div>
-                  <div class="sm-columns" id="readyPhaseColumns"></div>
-                  <div class="sm-stats-wrap" id="startMatchStats"></div>
-                  <div class="sm-footer">
-                    <div class="sm-footer-left">
-                      <button type="button" class="btn btn--primary sm-ready-btn" id="draftReadyBtn">READY →</button>
-                      <div class="sm-legend">
-                        <span class="sm-dot-you"></span><span>YOU</span>
-                        <span class="sm-dot-opp"></span><span>OPPONENT</span>
-                      </div>
-                    </div>
-                    <p class="sm-hint" id="readyPhaseHint"></p>
-                  </div>
-                  <p class="sm-tip">Tip · review opponent's lineup before confirming. Once both sides are ready the match starts and the room moves to summary.</p>
-                </div>
+                  <p class="sm-foot-note">Rematch keeps both players and returns to ban settings · New match opens a fresh room with you as host · Close ends it for both.</p>
+                </footer>
               </section>
             </div>
           </div>
         </section>
-      </div>
-    </div>
-
-    <!-- Done -->
-    <div id="viewDone" class="view view--done" hidden>
-      <div class="done-inner">
-        <div class="done-header">
-          <div class="done-icon" aria-hidden="true">🏁</div>
-          <h2 class="done-title">DRAFT COMPLETE</h2>
-          <p class="done-sub" id="doneRoomCode"></p>
-        </div>
-        <div class="done-columns" id="doneColumns"></div>
-        <a class="btn btn--primary done-back" href="/">Back to home</a>
       </div>
     </div>
 

@@ -24,7 +24,8 @@ import {
   stringifyTextAllowanceCapMap,
 } from './allowance.js';
 
-import { normalizeDraftPlayer } from './players.js';
+import { DEFAULT_FORMATION } from './constants.js';
+import { normalizeDraftPlayer, normalizeFormation } from './players.js';
 import { createDraftFilterState } from './playerFilters.js';
 
 /** @type {{ phase: string, room: object | null, schedule: object[], mySide: string, search: string, position: string, players: object[], loadingPlayers: boolean, turnTimer: ReturnType<typeof setInterval> | null, presencePollId: ReturnType<typeof setInterval> | null, actionError: string }} */
@@ -258,6 +259,13 @@ export function applyPresenceSnapshot(sr) {
     ...defaultMatchReadyState(),
     ...(sr.matchReady || {}),
   };
+  /* The pending rematch offer, `{ by: "host" | "guest" }` or null. It has to be
+     read off **every** snapshot, including the ones that clear it: this is how
+     an offer reaches the other player at all, and how a decline takes it back
+     off both screens. */
+  room.rematch = sr.rematch?.by === "host" || sr.rematch?.by === "guest"
+    ? { by: sr.rematch.by }
+    : null;
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);
@@ -284,6 +292,15 @@ export function applyPresenceSnapshot(sr) {
   }
   if (sr.picksConfirmed && typeof sr.picksConfirmed === "object") {
     room.picksConfirmed = { host: Boolean(sr.picksConfirmed.host), guest: Boolean(sr.picksConfirmed.guest) };
+  }
+  /* Both sides' pitch shape, sent on picks-confirm. `normalizeFormation` is the
+     gate — anything the fifteen-row table does not know becomes the default —
+     so this stores whatever arrives and lets the reader decide. */
+  if (sr.formations && typeof sr.formations === "object") {
+    room.formations = {
+      host: normalizeFormation(sr.formations.host),
+      guest: normalizeFormation(sr.formations.guest),
+    };
   }
   const theirSide = state.mySide === "host" ? "guest" : "host";
   if (sr.stagedBans && typeof sr.stagedBans === "object") {
@@ -321,6 +338,7 @@ export function emptyRoom(code, host, guest) {
     config: defaultRoomConfig(),
     ready: defaultReadyState(),
     matchReady: defaultMatchReadyState(),
+    formations: { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     chat: [],
     bannedPlayerIds: [],
     currentTurn: null,

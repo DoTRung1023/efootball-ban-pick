@@ -1,263 +1,277 @@
 /* ============================================================
-   Ready phase — the Start Match screen: two-column pitch, bench, stat
-   comparison and footer.
+   START MATCH — the last screen of a room.
 
-   Split out of draft.css by concern. Rule order within this file follows the
-   original; see room/css.md for what the cascade depends on.
+   One screen, two stages. `data-stage` on `#draftReadyPhaseBoard` is written by
+   readyView.js and swaps the footer; nothing else on the screen moves:
+
+     confirm   both squads + the READY button
+     live      both squads + the three ways out (rematch / new match / close)
+
+   There is no screen after this one. A separate `#viewDone` used to re-list the
+   same two squads as plain text once both players were ready; the squads on
+   screen already say it.
+
+   Accent budget (DESIGN.md §3.2 — one accent per screen):
+     confirm   the READY button, until it is pressed
+     live      whichever action is the primary next step for the rematch state
+   Never both, because the two footers are never on screen together.
    ============================================================ */
 
-/* ── Ready Phase ────────────────────────────────────────────── */
+/* ── Board ───────────────────────────────────────────────────── */
 
-.draft-panel--ready-phase {
+.sm {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-}
-
-/* ── Start Match (Ready Phase) ───────────────────────────────────── */
-
-.sm-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 16px 16px;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
-.sm-head {
-  text-align: center;
-  padding-bottom: 4px;
+/* ── The two squads ──────────────────────────────────────────── */
+
+/* `minmax(0, 1fr)` on both columns, not `1fr`: the tracks hold player cards
+   with a min-content width, and a bare `1fr` floors at that and pushes the
+   board past the viewport instead of shrinking.
+
+   `stretch`, not `start`: the two squads are meant to be read against each
+   other, and they cannot be if they are different heights. A 4-4-2 is four
+   rows and a 3-2-4-1 is five, so with `start` the shorter card ended well
+   above the taller one and the two BENCH strips sat at different heights —
+   the one row on this screen that is genuinely a like-for-like comparison.
+   Stretched, both cards fill the taller of the two and the pitch inside takes
+   up the slack, so the benches always line up. */
+.sm-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
 }
 
-.sm-kicker {
-  display: inline-flex;
+/* Centred against the columns rather than nudged down by a fixed offset — the
+   old `padding-top: 60px` was measured against one particular head height and
+   slid out of line the moment a long username wrapped. */
+.sm-vs {
+  align-self: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text);
-  background: var(--fill);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 4px 12px;
-  margin-bottom: 8px;
-}
-
-.sm-kicker-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text);
-  animation: pulse 1.8s ease-in-out infinite;
-}
-
-.sm-title {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin: 0 0 6px;
-  color: var(--text);
-}
-
-.sm-title-green { color: var(--text); }
-
-.sm-sub {
-  font-size: 14px;
-  color: var(--text-dim);
-  margin: 0;
-}
-
-.sm-sub strong { color: var(--text); }
-
-/* Two-column pitch layout with VS divider */
-
-.sm-columns {
-  display: grid;
-  grid-template-columns: 1fr 52px 1fr;
-  gap: 8px;
-  align-items: start;
-}
-
-.sm-vs-col {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 60px;
-}
-
-.sm-vs-circle {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 900;
   color: var(--text-muted);
-  letter-spacing: 0.04em;
 }
 
-/* Column card */
-
-.sm-col {
+/* A flex column so the pitch can absorb the height difference between two
+   formations and leave the bench pinned to the bottom edge of both cards.
+   `--bg-elevated`, not `--surface-sunken`: the pitch inside is turfed in
+   `--bg`, and a field the same colour as the card it sits on is not a field. */
+.sm-team {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line-faint);
   border-radius: var(--radius);
-  background: var(--surface-sunken);
+  background: var(--bg-elevated);
   overflow: hidden;
+  min-width: 0;
 }
 
-.sm-col-head {
+.sm-team-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 12px;
   border-bottom: 1px solid var(--line-faint);
-  background: var(--scrim);
 }
 
-.sm-col-info {
+.sm-team-id {
   flex: 1;
   min-width: 0;
 }
 
-.sm-col-name {
-  font-family: var(--font-display);
+.sm-team-name {
   font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-weight: 600;
   color: var(--text);
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sm-col-meta {
+.sm-team-role {
+  font-family: var(--font-display);
   font-size: 12px;
-  color: var(--text-dim);
-  margin-top: 1px;
-  letter-spacing: 0.03em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 2px 0 0;
 }
 
-.sm-col-badge {
+/* READY vs NOT READY. These two collapsed into the same grey chip when the hue
+   ladder went, which left the single most important state on the screen
+   unreadable. Three things separate them now — the word, the brightness, and
+   the mark — so none of them is carrying it alone (DESIGN.md: never colour
+   only). */
+.sm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: var(--radius-sm);
   border: 1px solid;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
-.sm-col-badge.is-ready {
+.sm-chip.is-ready {
   color: var(--text);
-  border-color: var(--line-hover);
-  background: var(--fill);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
-.sm-col-badge.is-writing {
-  color: var(--text);
-  border-color: var(--line-hover);
-  background: var(--fill);
+.sm-chip.is-waiting {
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: transparent;
 }
 
-/* `blur` reveal mode wraps the pitch and bench — but not the column head, whose
-   name and READY badge the mode still promises you. Same treatment as
-   `.pick-opp-grid.is-concealed` on the pick board, and for the same reason:
-   `user-select: none` so the names cannot be recovered by dragging across the
-   blur, with `aria-hidden` set in `readyView` so a screen reader cannot read
-   straight through it either. `hidden` does not come through here — that column
-   is replaced wholesale by `.sm-col--hidden`. */
+.sm-chip-mark {
+  font-size: 12px;
+  line-height: 1;
+}
 
+/* Pitch then bench, the pitch taking the slack — this is what carries the
+   stretch from `.sm-team` down to the two things that have to line up. */
+.sm-squad {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* `blur` reveal mode. **The blur is the whole mechanism** — this rule used to
+   set opacity alone, which dimmed the opponent's squad and left every name
+   perfectly legible under a mode whose entire promise is that they are not.
+   `user-select: none` stops the names being recovered by dragging across it,
+   and readyView sets `aria-hidden` so a screen reader cannot read straight
+   through either.
+
+   The team head sits outside this on purpose: the name and the READY chip are
+   what blur still promises you. `hidden` mode does not come through here — that
+   column is replaced wholesale by `.sm-team.is-hidden`. */
 .sm-squad.is-concealed {
+  filter: blur(7px);
   opacity: 0.75;
   pointer-events: none;
   user-select: none;
 }
 
-/* Pitch formation rows */
+/* ── Pitch ───────────────────────────────────────────────────── */
 
+/* The panel *is* a football field — turf, mow stripes, touchlines, penalty and
+   goal areas, halfway line and centre circle, all from
+   `shared/pitchField.css`, the same sheet behind the game-plan and pick
+   pitches. This screen emits its own markings; see `PITCH_MARKS_HTML` in
+   readyView.js for why it may. `flex: 1` is what lets it soak up the height
+   difference between a four-row and a five-row formation. */
 .sm-pitch {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 6px 4px;
+  flex: 1;
+  min-height: 0;
+  margin: 12px;
+  padding: 8px;
+  border: 1px solid var(--line-faint);
 }
 
-.sm-pitch-row {
+/* Above the markings — they are absolutely positioned and would otherwise
+   paint over the cards. `space-evenly` distributes the rows symmetrically by
+   construction, so headroom and footroom match at any height without the
+   pitch needing to be measured. */
+.sm-pitch-rows {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-evenly;
   gap: 4px;
 }
 
-.sm-pitch-row .player-card {
+.sm-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.sm-row .player-card {
   flex: 1;
-  max-width: 105px;
+  max-width: 96px;
   min-width: 0;
 }
 
-.sm-pitch-row .player-card .pc-footer {
-  padding: 3px 4px 4px;
-}
-
-.sm-pitch-row .player-card .pc-footer-meta.pmeta-in-card .pmeta-stack {
+/* An unfilled slot names the position it is missing, rather than leaving a
+   blank the reader has to count rows to identify. */
+.sm-slot-empty {
+  flex: 1;
+  max-width: 96px;
+  min-width: 0;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  background: var(--fill-faint);
+  font-family: var(--font-display);
   font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
-.sm-pitch-row .player-card .pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
-  display: none;
-}
+/* ── Bench ───────────────────────────────────────────────────── */
 
-/* Bench section */
-
+/* Last in the flex column, so it is flush with the bottom of both cards. */
 .sm-bench {
   border-top: 1px solid var(--line-faint);
-  padding: 7px 8px;
-  background: var(--scrim);
+  padding: 12px;
 }
 
 .sm-bench-head {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.sm-bench-meta {
+  gap: 8px;
+  font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-weight: 500;
   letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
 .sm-bench-strip {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  padding-bottom: 3px;
+  padding-bottom: 4px;
 }
 
 .sm-bench-strip::-webkit-scrollbar { height: 3px; }
@@ -269,195 +283,195 @@
 
 .sm-bench-strip .player-card {
   flex-shrink: 0;
-  width: 68px;
+  width: 64px;
 }
 
-.sm-bench-strip .player-card .pc-footer {
-  padding: 2px 3px 3px;
-}
-
-.sm-bench-strip .player-card .pc-footer-meta.pmeta-in-card .pmeta-stack {
+.sm-bench-empty {
   font-size: 12px;
-}
-
-.sm-bench-strip .player-card .pc-footer-meta.pmeta-in-card .pmeta-row + .pmeta-row {
-  display: none;
-}
-
-/* Hidden column (reveal mode = hidden) */
-
-.sm-col--hidden .sm-hidden-msg {
-  text-align: center;
-  padding: 40px 16px;
-  font-size: 14px;
   color: var(--text-muted);
-  line-height: 1.5;
+  margin: 0;
 }
 
-/* Stats comparison bar */
+/* ── Hidden reveal mode ──────────────────────────────────────── */
 
-.sm-stats-wrap {
-  border: 1px solid var(--line-faint);
-  border-radius: var(--radius);
-  background: var(--surface-sunken);
-  overflow: hidden;
-}
-
-.sm-stats-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-}
-
-.sm-stat {
-  padding: 12px 10px;
-  border-right: 1px solid var(--line-faint);
-}
-
-.sm-stat:last-child { border-right: none; }
-
-.sm-stat-label {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  text-align: center;
-}
-
-.sm-stat-bars {
-  display: flex;
-  height: 3px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-bottom: 5px;
-  background: var(--fill-faint);
-}
-
-.sm-stat-bar--me {
-  background: var(--text);
-  height: 100%;
-  transition: width 0.5s ease;
-}
-
-.sm-stat-bar--opp {
-  background: var(--text);
-  height: 100%;
-  transition: width 0.5s ease;
-}
-
-/* Hidden reveal mode. The bar is pinned at half and reads as "unknown" rather
-   than as a real comparison — a bar sized by their value *is* their value. */
-
-.sm-stat-bar--opp.is-masked {
-  background: var(--fill-strong);
-}
-
-.sm-stat-vals {
+/* Centred in whatever height the *other* column set — the card is stretched,
+   so a fixed padding would leave the message stranded at the top. */
+.sm-team.is-hidden .sm-hidden-msg {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font-family: var(--font-display);
+  margin: 0;
+  padding: 48px 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ── Footers ─────────────────────────────────────────────────── */
+
+/* One of the two is on screen at a time; `data-stage` picks it. */
+.sm[data-stage="confirm"] .sm-foot--live,
+.sm[data-stage="live"] .sm-foot--confirm {
+  display: none;
+}
+
+.sm-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-faint);
+}
+
+.sm-foot-hint {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.sm-foot-note {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 640px;
+  margin: 0;
+}
+
+/* ── Confirm stage: the READY button ─────────────────────────── */
+
+/* The accent, for as long as this is the one thing to act on. The rule
+   reserving it for the turn clock does not bite here: the clock is not on
+   screen in this phase and nothing is counting down. */
+.sm-ready-btn {
   font-size: 14px;
   font-weight: 700;
-  white-space: nowrap;
-}
-
-.sm-stat-vals--text {
-  font-size: 12px;
-  flex-wrap: wrap;
-  text-align: center;
-}
-
-.sm-stat-me { color: var(--text); }
-
-.sm-stat-opp { color: var(--text); }
-
-.sm-stat-vs {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Footer row */
-
-.sm-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.sm-footer-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.sm-ready-btn {
-  font-size: 15px;
-  font-weight: 800;
   letter-spacing: 0.05em;
-  padding: 10px 28px;
+  padding: 12px 40px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
 }
 
-.sm-hint {
-  font-size: 14px;
-  color: var(--text-dim);
-  margin: 0;
-  font-weight: 600;
-  text-align: right;
+.sm-ready-btn:hover:not(:disabled) { background: var(--accent-hover); }
+
+/* Pressed. The old button toggled `btn--ghost` from JS, which `.sm-ready-btn`
+   then overrode on cascade order — so READY changed its word and kept its
+   accent, and a player could not tell at a glance whether they had confirmed.
+   An attribute on the same selector cannot lose that fight. */
+.sm-ready-btn[data-ready="1"] {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line-active);
 }
 
-.sm-legend {
+.sm-ready-btn[data-ready="1"]:hover:not(:disabled) {
+  background: var(--fill);
+}
+
+/* ── Match-live stage: the three ways out ────────────────────── */
+
+.sm-foot-actions {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 
-.sm-dot-you {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text);
-  display: inline-block;
-  flex-shrink: 0;
+.pm-btn {
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
-.sm-dot-opp {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text);
-  display: inline-block;
-  flex-shrink: 0;
+/* Which buttons exist depends on whether a rematch is on the table:
+
+     none      REMATCH · NEW MATCH · CLOSE ROOM
+     pending   (you asked, waiting)  NEW MATCH · CLOSE ROOM
+     incoming  (they asked)  ACCEPT · DECLINE · NEW MATCH · CLOSE ROOM
+
+   Accept/decline only while there is something to answer, and REMATCH only
+   while there is not — otherwise you could offer a rematch you have already
+   been offered, and both sides would sit waiting on each other. */
+.sm-foot--live[data-rematch="none"] .pm-btn--accept,
+.sm-foot--live[data-rematch="none"] .pm-btn--decline,
+.sm-foot--live[data-rematch="pending"] .pm-btn--accept,
+.sm-foot--live[data-rematch="pending"] .pm-btn--decline,
+.sm-foot--live[data-rematch="incoming"] .pm-btn--rematch {
+  display: none;
 }
 
-.sm-tip {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
-  margin: 0;
-  padding-bottom: 2px;
-  font-style: italic;
+/* Asked and waiting: the button stays on screen so the state is legible, but it
+   is spent. */
+.sm-foot--live[data-rematch="pending"] .pm-btn--rematch {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
-/* Responsive: stack columns at narrow widths */
+/* The accent goes to the primary next step, and there is exactly one at a time:
+   propose while nothing is pending, accept once something is. */
+.sm-foot--live[data-rematch="none"] .pm-btn--rematch,
+.sm-foot--live[data-rematch="incoming"] .pm-btn--accept {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+  font-weight: 700;
+}
 
+.sm-foot--live[data-rematch="none"] .pm-btn--rematch:hover:not(:disabled),
+.sm-foot--live[data-rematch="incoming"] .pm-btn--accept:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.pm-btn--decline,
+.pm-btn--new {
+  background: var(--fill);
+}
+
+.pm-btn--close {
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.pm-btn--close:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-fill);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+
+/* 860 is the room's own rung for "the two squads no longer fit side by side"
+   (see room/css.md). Below it the VS badge has nothing to sit between. */
 @media (max-width: 860px) {
-  .sm-columns {
-    grid-template-columns: 1fr;
+  .sm-teams {
+    grid-template-columns: minmax(0, 1fr);
   }
-  .sm-vs-col { display: none; }
-  .sm-stats-row { grid-template-columns: repeat(3, 1fr); }
+  .sm-vs {
+    display: none;
+  }
 }
 
-@media (max-width: 620px) {
-  .sm-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .sm-stat:nth-child(5) { display: none; }
+@media (max-width: 480px) {
+  .sm {
+    padding: 12px;
+  }
+  /* Full-width so the three ways out stack into one readable column rather
+     than wrapping into ragged pairs. */
+  .sm-foot-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .pm-btn,
+  .sm-ready-btn {
+    width: 100%;
+  }
 }

@@ -1,6 +1,5 @@
-/** Terminal screens: room closed, opponent left, and the final draft summary. */
+/** The room-closed exit screen and its countdown. */
 
-import { escapeHtml, showView } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
@@ -55,52 +54,13 @@ export function showRoomClosed(message = "Room is closed.") {
   });
 }
 
-/* There is no `showOpponentLeft`. A guest walking out no longer ends anything:
-   the host drops back to the lobby with the room intact and can invite someone
-   else — see `returnToLobby` in presence.js. The only exit screens left are the
-   two that really are terminal: the room being closed, and the match starting. */
+/* There is no `showOpponentLeft`, and no `showDone` either.
 
-/** Final side-by-side squad summary once both players are ready. */
-export function showDone() {
-  allowLeave();
-  clearRoomPhaseCache(state.room?.code);
-  showView("viewDone");
-  updateStageTabs();
+   A guest walking out no longer ends anything: the host drops back to the lobby
+   with the room intact and can invite someone else — see `returnToLobby` in
+   presence.js.
 
-  const room = state.room;
-  if (!room) return;
-
-  const codeEl = document.getElementById("doneRoomCode");
-  if (codeEl) codeEl.textContent = `Room ${room.code}`;
-
-  const mySide = state.mySide;
-  const theirSide = mySide === "host" ? "guest" : "host";
-
-  const columns = document.getElementById("doneColumns");
-  if (columns) {
-    columns.innerHTML =
-      doneColumnHtml(room, mySide, true) + doneColumnHtml(room, theirSide, false);
-  }
-}
-
-function doneColumnHtml(room, side, isMe) {
-  const name = room[side]?.username || side;
-  const picks = room.picks[side] || [];
-  return `
-    <div>
-      <div class="done-col-title ${isMe ? "is-me" : ""}">${escapeHtml(name)}${isMe ? " (YOU)" : ""}</div>
-      ${picks.map(donePickRowHtml).join("")}
-    </div>
-  `;
-}
-
-function donePickRowHtml(player) {
-  return `
-    <div class="done-pick-row">
-      <div class="done-pick-ovr">${escapeHtml(String(player.overall_rating ?? "—"))}</div>
-      <div>
-        <div class="done-pick-name">${escapeHtml(player.name ?? "—")}</div>
-        <div class="done-pick-sub">${escapeHtml(player.position ?? "—")} · ${escapeHtml(player.nation ?? "—")}</div>
-      </div>
-    </div>`;
-}
+   `showDone` painted a second screen once both players were READY, re-listing
+   as plain text the two squads Start Match had just drawn as cards. Start Match
+   swaps its own footer instead (`enterMatchLive` in shell/draftView.js), so the
+   room being *closed* is the only genuinely terminal screen left. */

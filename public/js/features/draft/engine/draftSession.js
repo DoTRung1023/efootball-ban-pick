@@ -3,7 +3,6 @@
  * into the draft view once the server reports the room is drafting.
  */
 
-import { cb } from '@/features/draft/callbacks.js';
 import {
   FIXED_PICKS_PER_SIDE,
   LOBBY_PRESENCE_POLL_MS,
@@ -51,13 +50,12 @@ export function tryEnterDraftFromRoomSnapshot() {
   const status = String(room.status || "");
   if (!DRAFT_STATUSES.includes(status)) return false;
 
-  if (status === "done") {
-    state.phase = "done";
-    stopPresencePolling();
-    cb.showDone();
-    return true;
-  }
-
+  /* `done` is entered exactly like the other two, and that is the fix: it used
+     to get its own branch that called `showDone()` and **stopped polling**. Both
+     halves are now wrong — there is no separate done screen to show, and a
+     client that has stopped polling can never receive the rematch offer that is
+     the only reason to still be here. Reloading during a live match landed on a
+     dead lobby because of it. */
   const bansPerSide = banLimit(room.config);
   state.schedule = buildTurnSchedule(bansPerSide, FIXED_PICKS_PER_SIDE);
   // With no bans configured the draft opens straight into the pick stage.
@@ -67,7 +65,7 @@ export function tryEnterDraftFromRoomSnapshot() {
   syncCurrentTurnFromIndex(room);
   ensureDraftTimer(room);
 
-  state.phase = status === "await-ready" ? "ready" : "draft";
+  state.phase = status === "done" ? "done" : status === "await-ready" ? "ready" : "draft";
   cacheRoomPhase(room.code, state.phase);
 
   stopPresencePolling();

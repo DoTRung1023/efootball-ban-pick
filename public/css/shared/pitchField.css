@@ -1,11 +1,12 @@
 /* ============================================================
    Pitch field — the markings both squad pitches stand on
 
-   Two consumers, which is why it is here and not in either feature: the
-   game-plan pitch (`.plan-pitch`, home) and the pick pitch (`.pick-pitch`,
-   room). Both were a flat panel with a gradient on it; a lineup laid out on a
-   flat panel reads as a list in four rows rather than as a shape on a field,
-   and the shape is the whole point of a formation.
+   Three consumers, which is why it is here and not in any one feature: the
+   game-plan pitch (`.plan-pitch`, home), the pick pitch (`.pick-pitch`, room)
+   and both Start Match squads (`.sm-pitch`, room). Each was a flat panel with a
+   gradient on it; a lineup laid out on a flat panel reads as a list in four
+   rows rather than as a shape on a field, and the shape is the whole point of a
+   formation.
 
    ── How it is put together ───────────────────────────────────
    `.pitch-field` is the panel, `.pitch-field-marks` an inset, absolutely
@@ -13,11 +14,16 @@
    `z-index: 1`, because the marks are positioned and the rows are not — without
    it the field paints *over* the cards.
 
-   The marks are **static markup in `home.html` / `room.html`**, not something
-   either renderer emits. Both pitches rebuild their rows from a diff guard on
-   every render, so anything the renderer wrote into the same element would be
-   thrown away and rebuilt several times a second. Keeping the field out of the
-   rows container means the renderers never touch it.
+   For the game-plan and pick pitches the marks are **static markup in
+   `home.html` / `room.html`**, not something either renderer emits: both rebuild
+   their rows from a diff guard, so anything the renderer wrote into the same
+   element would be thrown away and rebuilt several times a second. Keeping the
+   field out of the rows container means those renderers never touch it.
+
+   Start Match is the exception and emits its own — it draws *two* pitches and
+   replaces the whole container when the reveal mode swaps a column, so static
+   markup could not survive. See `PITCH_MARKS_HTML` in `ready/readyView.js`. The
+   geometry stays here either way; only the four empty spans move.
 
    ── Proportions ──────────────────────────────────────────────
    Percentages of the panel, taken from the real thing (105 × 68 m) per axis:
@@ -43,14 +49,23 @@
   background: var(--pf-turf);
 }
 
-/* Ten mown bands down the pitch, every other one a shade lighter. */
+/* Ten mown bands down the pitch, every other one a shade lighter.
+
+   This read `background: repeating-var(--pf-mow)` — there is no such CSS
+   function, so the declaration was invalid and dropped, and no pitch on the
+   site has ever had stripes. The gradient below is what the comment always
+   described: five light bands at 10% each, alternating with bare turf. */
 .pitch-field-marks {
   position: absolute;
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
   overflow: hidden;
-  background: repeating-var(--pf-mow);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 10%,
+    var(--pf-mow) 10% 20%
+  );
 }
 
 /* Touchlines, inset so their corners do not sit on the panel's radius. */

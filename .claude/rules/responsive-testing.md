@@ -60,6 +60,21 @@ Four things that will waste time otherwise:
   symptom is that a measured value settles wrong, assert on
   `getComputedStyle(el).transitionProperty` and on a same-task write-then-read
   round trip (both deterministic here) rather than trusting a timed measurement.
+- **Kill every Chrome process between runs, and use a fresh `--user-data-dir`.**
+  Orphaned renderers from earlier runs accumulate — `kill` on the launcher PID
+  does not take its children with it — and once enough are alive a new headless
+  page loads, runs its first statements, and then its **timers stop advancing**:
+  a `setTimeout` poll loop never ticks and never hits its own deadline, so the
+  probe hangs instead of failing. The tell is a partial trace that stops at the
+  same step every time while the page itself is provably fine (the server
+  answers, the URL 200s, an immediate `fetch` at the top of the script arrives).
+  `pkill -9 -f "Google Chrome"` plus `rm -rf` of the profile dir clears it. A
+  stale `SingletonLock` in a reused profile is the other half of this: Chrome
+  exits **21** and prints nothing the caller looks at.
+  Instrument long probes with a beacon per stage rather than one report at the
+  end — a trace that stops at step 2 of 5 localises this in one run, where a
+  silent timeout tells you nothing.
+
 - **Webfonts must be local.** Chrome's headless sandbox has no network, so a Google Fonts
   `<link>` silently falls back and every text measurement is wrong. `curl` the CSS with a
   browser UA, download the woff2 files, and rewrite `src:` to absolute `file://` URLs.

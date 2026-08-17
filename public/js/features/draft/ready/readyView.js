@@ -1,248 +1,272 @@
 /**
- * Ready phase ("Start Match"): both squads side by side with a stat comparison,
- * and the READY toggle that ends the room once both players confirm.
+ * Start Match — the last screen of a room, and the **only** screen after the
+ * picks are in.
  *
- * Formations are not synced through presence, so the opponent's pitch is drawn
- * with DEFAULT_FORMATION.
+ * It has two stages and it does not navigate between them; `data-stage` on the
+ * board is the whole difference:
+ *
+ *   confirm  both squads + the READY button       (room status "await-ready")
+ *   live     both squads + the three ways out     (room status "done")
+ *
+ * There used to be a separate `#viewDone` screen for the second stage, which
+ * re-listed as plain text the same two squads this screen already draws as
+ * cards. Swapping the footer says the same thing without making the user leave
+ * the page they were looking at.
+ *
+ * Every DOM write in here is behind a state key, because `renderDraftUi` calls
+ * this on every presence poll (~2 Hz).
  */
 
-import { DEFAULT_FORMATION, REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
+import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
 import { escapeHtml } from '@/features/draft/utils.js';
 import { normalizeRevealMode } from '@/features/draft/state.js';
-import { buildOrderedSlotMap, filledPicks, getFormationLayout,
-  getPlayerCardValue } from '@/features/draft/players.js';
+import {
+  buildOrderedSlotMap,
+  filledPicks,
+  getFormationLayout,
+  normalizeFormation,
+} from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
-import { getPickFormation } from '@/features/draft/gamePlans.js';
+import { renderPostMatch } from './postMatch.js';
 
 const LINEUP_SIZE = 11;
-const STATIC_CARD = { banned: false, picked: false, clickable: false };
+/* `footer: false` — the art alone, no detail strip under it. The card already
+   prints the name, the position and both ratings; the strip repeated the region
+   and nation under every one of 23 cards per side, which on a screen showing 46
+   of them at once is a wall of "Europe · Italy". Same call the pick board's
+   opponent grid makes. */
+const STATIC_CARD = { banned: false, picked: false, clickable: false, footer: false };
 
-const averageOf = (players, read) =>
-  players.length
-    ? Math.round(players.reduce((sum, p) => sum + (Number(read(p)) || 0), 0) / players.length)
-    : 0;
+/**
+ * The field markings, drawn by `shared/pitchField.css` — the same field the
+ * game-plan and pick pitches stand on.
+ *
+ * Those two keep this markup static in their page's HTML, because their
+ * renderers rewrite the rows container several times a second and would throw
+ * away anything they found in it. **This screen emits it**, for a reason that
+ * does not apply to them: there are two pitches here, and `renderTeams` rebuilds
+ * the whole of `#smTeams` because the opponent's column is swapped wholesale
+ * between reveal modes — static markup could not survive that. Emitting it is
+ * safe because the marks are a *sibling* of the rows and the renderer writes
+ * both together, and because that renderer is behind a state key rather than
+ * running every poll. Geometry still lives entirely in the shared sheet.
+ */
+const PITCH_MARKS_HTML = `
+  <div class="pitch-field-marks" aria-hidden="true">
+    <span class="pf-box pf-box--top"></span>
+    <span class="pf-box pf-box--bottom"></span>
+    <span class="pf-halfway"></span>
+    <span class="pf-circle"></span>
+  </div>`;
 
-export function renderReadyBoard({ room, mySide, theirSide, visible }) {
+/* There is no stat-comparison row, and no aggregate anywhere on this screen.
+   It compared five numbers per side — average rating, squad depth, formation,
+   starting XI, average age — none of which is a player, on the one screen whose
+   whole job is to show the two squads. `hidden` reveal mode needed a masking
+   path through every one of them for the same reason it needs one for the
+   opponent's column; that path went with them. */
+
+/**
+ * The formation a side actually confirmed.
+ *
+ * **Both sides come from the room, mine included.** Reading my own from
+ * `getPickFormation()` — the pick board's local dropdown — looks equivalent and
+ * is not: that value lives in memory and resets to the default on reload, so a
+ * refresh on this screen redrew my own squad in a shape I never picked. The
+ * server has held the confirmed one since `/picks-confirm`.
+ */
+const formationOf = (room, side) => normalizeFormation(room?.formations?.[side]);
+
+// ── Entry point ──────────────────────────────────────────────
+
+export function renderReadyBoard({ room, mySide, theirSide, matchLive, visible }) {
   const board = document.getElementById("draftReadyPhaseBoard");
   if (!board) return;
 
   board.hidden = !visible;
   if (!visible) return;
 
+  const stage = matchLive ? "live" : "confirm";
+  if (board.dataset.stage !== stage) board.dataset.stage = stage;
+
   const myReady = Boolean(room.matchReady?.[mySide]);
   const theirReady = Boolean(room.matchReady?.[theirSide]);
-
-  renderReadyButton(myReady);
-  renderReadyHint(room, theirSide, myReady, theirReady);
-
-  const myPicks = room.picks[mySide] || [];
-  const theirPicks = room.picks[theirSide] || [];
-  const myFormation = getPickFormation();
   const revealMode = normalizeRevealMode(room.config?.revealMode);
 
-  renderColumns({ room, mySide, theirSide, myPicks, theirPicks, myFormation, revealMode, myReady, theirReady });
-  renderStats(myPicks, theirPicks, myFormation, revealMode === REVEAL_MODE_HIDDEN);
+  const myPicks = room.picks?.[mySide] || [];
+  const theirPicks = room.picks?.[theirSide] || [];
+  const myFormation = formationOf(room, mySide);
+  const theirFormation = formationOf(room, theirSide);
+
+  renderTeams({
+    room, mySide, theirSide, myPicks, theirPicks,
+    myFormation, theirFormation, revealMode, myReady, theirReady,
+  });
+  if (matchLive) renderPostMatch();
+  else renderConfirmFooter(room, theirSide, myReady, theirReady);
 }
 
-function renderReadyButton(myReady) {
-  const btn = document.getElementById("draftReadyBtn");
-  if (!btn) return;
-  btn.textContent = myReady ? "UNREADY" : "READY →";
-  btn.classList.toggle("btn--ghost", myReady);
-  btn.classList.toggle("btn--primary", !myReady);
+/* There is no page heading. The stage rail across the top of the room already
+   reads START MATCH, so a title under it said it twice and pushed the squads —
+   the only thing on this screen worth the space — below the fold. Which stage
+   you are in is carried by the footer instead. */
+
+/** Writes text only if it changed — a rewritten text node drops a selection. */
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el && el.textContent !== text) el.textContent = text;
 }
 
-function renderReadyHint(room, theirSide, myReady, theirReady) {
-  const hint = document.getElementById("readyPhaseHint");
-  if (!hint) return;
+// ── The two squads ───────────────────────────────────────────
 
-  const theirName = room[theirSide]?.username || (theirSide === "host" ? "Host" : "Guest");
-  if (myReady && theirReady) hint.textContent = "Both players ready — starting…";
-  else if (myReady) hint.textContent = "OPPONENT READY · WAITING FOR YOU";
-  else if (theirReady) hint.textContent = `${theirName} is ready — click READY to start!`;
-  else hint.textContent = "Click READY when you're set to play.";
-}
+function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
+                       myFormation, theirFormation, revealMode, myReady, theirReady }) {
+  const host = document.getElementById("smTeams");
+  if (!host) return;
 
-function renderColumns({ room, mySide, theirSide, myPicks, theirPicks, myFormation, revealMode, myReady, theirReady }) {
-  const cols = document.getElementById("readyPhaseColumns");
-  if (!cols) return;
+  const hidden = revealMode === REVEAL_MODE_HIDDEN;
+  const ids = (picks) => picks.map((p) => (p ? String(p.id) : "-")).join(",");
 
-  /* Their ids stay out of the key in hidden mode — it is written to a `data-`
-     attribute, so putting them there would publish in the DOM exactly what the
-     column is refusing to draw. */
+  /* Their ids and their formation stay out of the key under `hidden`: the key
+     is written to a `data-` attribute, so putting them there would publish in
+     the DOM exactly what this column is refusing to draw. Both names are in it
+     because a name can arrive after the first paint — the old key left them
+     out and the column kept saying "Opponent" for the rest of the match. */
   const key = [
-    myPicks.map((p) => (p ? String(p.id) : "-")).join(","),
-    revealMode === REVEAL_MODE_HIDDEN ? "" : theirPicks.map((p) => (p ? String(p.id) : "-")).join(","),
+    ids(myPicks),
+    hidden ? "" : ids(theirPicks),
+    myFormation,
+    hidden ? "" : theirFormation,
+    room[mySide]?.username || "",
+    room[theirSide]?.username || "",
     revealMode,
     mySide,
     myReady ? "1" : "0",
     theirReady ? "1" : "0",
   ].join("|");
-  if (cols.dataset.colKey === key) return;
+  if (host.dataset.teamsKey === key) return;
+  host.dataset.teamsKey = key;
 
-  cols.dataset.colKey = key;
-  /* The three modes carry through to this screen unchanged: `blur` still shows
-     the squad it cannot let you read, `hidden` still shows nothing. Revealing
-     either one here would make the lobby setting a draft-only promise. */
-  const theirColumn = revealMode === REVEAL_MODE_HIDDEN
-    ? hiddenColumnHtml(room[theirSide], theirReady)
-    : squadColumnHtml(room, theirSide, theirPicks, DEFAULT_FORMATION, false, revealMode === REVEAL_MODE_BLUR);
+  /* All three reveal modes mean here what they meant during the draft.
+     Revealing at Start Match would make the lobby setting a draft-only
+     promise. */
+  const theirColumn = hidden
+    ? hiddenColumnHtml(room[theirSide]?.username, theirReady)
+    : teamColumnHtml({
+        name: room[theirSide]?.username || "Opponent",
+        role: "OPPONENT",
+        picks: theirPicks,
+        formation: theirFormation,
+        ready: theirReady,
+        isMe: false,
+        blurred: revealMode === REVEAL_MODE_BLUR,
+      });
 
-  cols.innerHTML =
-    squadColumnHtml(room, mySide, myPicks, myFormation, true) +
-    `<div class="sm-vs-col"><div class="sm-vs-circle">VS</div></div>` +
+  host.innerHTML =
+    teamColumnHtml({
+      name: room[mySide]?.username || "You",
+      role: "YOU",
+      picks: myPicks,
+      formation: myFormation,
+      ready: myReady,
+      isMe: true,
+      blurred: false,
+    }) +
+    `<div class="sm-vs" aria-hidden="true"><span>VS</span></div>` +
     theirColumn;
 }
 
-const readyBadgeHtml = (isReady) =>
-  `<div class="sm-col-badge ${isReady ? "is-ready" : "is-writing"}">${isReady ? "✦ READY" : "✦ WRITING"}</div>`;
+const readyChipHtml = (ready) => `
+  <span class="sm-chip ${ready ? "is-ready" : "is-waiting"}">
+    <span class="sm-chip-mark" aria-hidden="true">${ready ? "✓" : "•"}</span>${ready ? "READY" : "NOT READY"}
+  </span>`;
 
-function hiddenColumnHtml(theirInfo, theirReady) {
-  const name = theirInfo?.username || "Opponent";
-  return `<div class="sm-col sm-col--opp sm-col--hidden">
-    <div class="sm-col-head">
-      <div class="sm-col-info">
-        <div class="sm-col-name">${escapeHtml(name)}</div>
-        <div class="sm-col-meta">OPPONENT</div>
-      </div>
-      ${readyBadgeHtml(theirReady)}
-    </div>
-    <div class="sm-hidden-msg">Picks hidden — revealed after match</div>
-  </div>`;
-}
-
-function squadColumnHtml(room, side, picks, formation, isMe, blurred = false) {
+function teamColumnHtml({ name, role, picks, formation, ready, isMe, blurred }) {
   const lineup = picks.slice(0, LINEUP_SIZE);
-  // `picks` is slot-addressed, so drop the holes before counting or averaging.
+  // `picks` is slot-addressed, so the holes go before anything counts.
   const bench = filledPicks(picks.slice(LINEUP_SIZE));
-  const starters = filledPicks(lineup);
   const slotMap = buildOrderedSlotMap(lineup);
-  const name = room[side]?.username || (isMe ? "You" : "Opponent");
-  const avgOvr = starters.length ? averageOf(starters, getPlayerCardValue) : "—";
 
-  const pitch = getFormationLayout(formation)
+  const rows = getFormationLayout(formation)
     .map((row) => {
-      const cards = row
-        .map(({ slot }) => (slotMap[slot] ? playerCardHtml(slotMap[slot], STATIC_CARD) : `<div class="sm-empty-slot"></div>`))
+      const cells = row
+        .map(({ slot, pos }) =>
+          slotMap[slot]
+            ? playerCardHtml(slotMap[slot], STATIC_CARD)
+            : `<div class="sm-slot-empty"><span>${escapeHtml(pos)}</span></div>`)
         .join("");
-      return `<div class="sm-pitch-row">${cards}</div>`;
+      return `<div class="sm-row">${cells}</div>`;
     })
     .join("");
 
-  /* Only the cards are blurred, not the head: the name and the READY badge are
-     what the mode still promises you. `aria-hidden` on the squad for the same
-     reason as the pick board — a blur a screen reader reads straight through is
-     not a blur. */
+  /* Only the squad is blurred, never the head: the name and the READY chip are
+     what `blur` mode still promises you. `aria-hidden` for the same reason as
+     the pick board — a blur a screen reader reads straight through is not a
+     blur. */
   return `
-    <div class="sm-col ${isMe ? "sm-col--me" : "sm-col--opp"}">
-      <div class="sm-col-head">
-          <div class="sm-col-info">
-          <div class="sm-col-name">${escapeHtml(name)}</div>
-          <div class="sm-col-meta">${escapeHtml(isMe ? "YOU" : "OPPONENT")} · ${escapeHtml(formation)} · AVG ${avgOvr}</div>
+    <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
+      <header class="sm-team-head">
+        <div class="sm-team-id">
+          <h3 class="sm-team-name">${escapeHtml(name)}</h3>
+          <p class="sm-team-role">${escapeHtml(role)} · ${escapeHtml(formation)}</p>
         </div>
-        ${readyBadgeHtml(Boolean(room.matchReady?.[side]))}
-      </div>
-      <div class="sm-squad ${blurred ? "is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
-        <div class="sm-pitch">${pitch}</div>
+        ${readyChipHtml(ready)}
+      </header>
+      <div class="sm-squad${blurred ? " is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
+        <div class="sm-pitch pitch-field">
+          ${PITCH_MARKS_HTML}
+          <div class="sm-pitch-rows">${rows}</div>
+        </div>
         ${benchHtml(bench)}
       </div>
-    </div>`;
+    </section>`;
 }
 
 function benchHtml(bench) {
-  if (!bench.length) return "";
-  const meta = `OVR Max ${averageOf(bench, getPlayerCardValue)}`;
   return `
     <div class="sm-bench">
       <div class="sm-bench-head">
-        <span>BENCH · ${bench.length} SUBS</span>
-        <span class="sm-bench-meta">${escapeHtml(meta)}</span>
+        <span>BENCH · ${bench.length}</span>
       </div>
-      <div class="sm-bench-strip">
-        ${bench.map((p) => playerCardHtml(p, STATIC_CARD)).join("")}
-      </div>
+      ${bench.length
+        ? `<div class="sm-bench-strip">${bench.map((p) => playerCardHtml(p, STATIC_CARD)).join("")}</div>`
+        : `<p class="sm-bench-empty">No substitutes picked.</p>`}
     </div>`;
 }
 
-// ── Stat comparison ──────────────────────────────────────────
-
-/**
- * `masked` is hidden reveal mode. Every cell here is an aggregate of the
- * opponent's squad — average rating, squad size, their formation — so leaving it
- * live would hand back in five numbers what the hidden column just withheld.
- * Blur does *not* mask: it conceals identities, not shape, which is the same
- * line the pick board's count and progress bar sit on.
- */
-function renderStats(myPicks, theirPicks, myFormation, masked) {
-  const el = document.getElementById("startMatchStats");
-  if (!el) return;
-
-  const fingerprint = (picks) => picks.map((p) => (p ? `${p.id}:${getPlayerCardValue(p)}` : "-")).join(",");
-  // masked: their fingerprint would otherwise land in a `data-` attribute
-  const key = [fingerprint(myPicks), masked ? "m" : fingerprint(theirPicks), myFormation].join("|");
-  if (el.dataset.statsKey === key) return;
-
-  el.dataset.statsKey = key;
-  el.innerHTML = statsRowHtml(myPicks, theirPicks, myFormation, DEFAULT_FORMATION, masked);
-}
-
-function statsRowHtml(rawMyPicks, rawTheirPicks, myFormation, theirFormation, masked) {
-  /* Every stat below counts or averages, so the slot holes have to go first —
-     `averageOf` would read `.age` off a null and divide by the wrong total. */
-  const myPicks = filledPicks(rawMyPicks);
-  const theirPicks = filledPicks(rawTheirPicks);
-  const myLineup = filledPicks(rawMyPicks.slice(0, LINEUP_SIZE));
-  const theirLineup = filledPicks(rawTheirPicks.slice(0, LINEUP_SIZE));
-  const myAvgAge = averageOf(myLineup, (p) => p.age);
-  const theirAvgAge = averageOf(theirLineup, (p) => p.age);
-
-  /* Age is missing for some card sources; fall back to squad size in that case.
-     Masked, the choice is made on my squad alone — reading theirs to pick the
-     row would leak whether their cards carry an age. */
-  const hasAge = masked ? myAvgAge : myAvgAge || theirAvgAge;
-  const lastStat = hasAge
-    ? barStatHtml("AVG AGE", myAvgAge, theirAvgAge, masked)
-    : textStatHtml("SQUAD SIZE", myPicks.length, theirPicks.length, masked);
-
-  return `<div class="sm-stats-row">
-    ${barStatHtml("AVG OVERALL", averageOf(myLineup, getPlayerCardValue), averageOf(theirLineup, getPlayerCardValue), masked)}
-    ${barStatHtml("AVG OVR MAX", averageOf(myPicks, getPlayerCardValue), averageOf(theirPicks, getPlayerCardValue), masked)}
-    ${textStatHtml("FORMATION", myFormation, theirFormation, masked)}
-    ${barStatHtml("STARTING XI", myLineup.length, theirLineup.length, masked)}
-    ${lastStat}
-  </div>`;
-}
-
-/** What the opponent's half of a stat reads as under hidden reveal mode. */
-const MASKED_VALUE = "?";
-
-/** Two-sided bar sized by each player's share of the total. */
-function barStatHtml(label, myVal, theirVal, masked) {
-  const total = myVal + theirVal;
-  // Masked, the split has to be fixed — a bar sized by their value *is* their value.
-  const myPct = masked ? 50 : total > 0 ? Math.round((myVal / total) * 100) : 50;
-  return `<div class="sm-stat">
-    <div class="sm-stat-label">${escapeHtml(label)}</div>
-    <div class="sm-stat-bars">
-      <div class="sm-stat-bar sm-stat-bar--me" style="width:${myPct}%"></div>
-      <div class="sm-stat-bar sm-stat-bar--opp ${masked ? "is-masked" : ""}" style="width:${100 - myPct}%"></div>
-    </div>
-    <div class="sm-stat-vals">
-      <span class="sm-stat-me">${myVal}</span>
-      <span class="sm-stat-vs">vs</span>
-      <span class="sm-stat-opp">${masked ? MASKED_VALUE : theirVal}</span>
-    </div>
-  </div>`;
-}
-
-function textStatHtml(label, myVal, theirVal, masked) {
+function hiddenColumnHtml(name, ready) {
   return `
-    <div class="sm-stat">
-      <div class="sm-stat-label">${escapeHtml(label)}</div>
-      <div class="sm-stat-vals sm-stat-vals--text">
-        <span class="sm-stat-me">${escapeHtml(String(myVal))}</span>
-        <span class="sm-stat-vs">vs</span>
-        <span class="sm-stat-opp">${masked ? MASKED_VALUE : escapeHtml(String(theirVal))}</span>
-      </div>
-    </div>`;
+    <section class="sm-team is-opp is-hidden">
+      <header class="sm-team-head">
+        <div class="sm-team-id">
+          <h3 class="sm-team-name">${escapeHtml(name || "Opponent")}</h3>
+          <p class="sm-team-role">OPPONENT</p>
+        </div>
+        ${readyChipHtml(ready)}
+      </header>
+      <p class="sm-hidden-msg">Picks hidden — this room was set to reveal nothing.</p>
+    </section>`;
+}
+
+// ── Footer, confirm stage ────────────────────────────────────
+
+function renderConfirmFooter(room, theirSide, myReady, theirReady) {
+  const btn = document.getElementById("draftReadyBtn");
+  if (btn) {
+    /* The label and the look both have to move. The old button toggled
+       `btn--ghost`, which `.sm-ready-btn` overrode on cascade order, so
+       pressing READY changed the word and nothing else. `data-ready` is read by
+       `ready.css` and cannot lose that fight. */
+    const label = myReady ? "READY ✓ · UNDO" : "READY";
+    if (btn.textContent !== label) btn.textContent = label;
+    btn.dataset.ready = myReady ? "1" : "0";
+    btn.setAttribute("aria-pressed", myReady ? "true" : "false");
+  }
+
+  const them = room[theirSide]?.username || (theirSide === "host" ? "Host" : "Guest");
+  setText("smReadyHint",
+    myReady && theirReady ? "Both sides ready."
+    : myReady ? `Waiting for ${them}…`
+    : theirReady ? `${them} is ready and waiting for you.`
+    : "Press READY once your squad is in the game.");
 }

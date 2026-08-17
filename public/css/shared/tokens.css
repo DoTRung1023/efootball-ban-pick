@@ -7,31 +7,53 @@
 
    Nothing outside this file declares a colour. If you need a value that
    is not here, you are looking for the nearest rung that already exists.
+
+   The palette is efhub.com's own, read off its stylesheets rather than
+   eyeballed. Its surfaces are **blue-tinted navy, not neutral black** —
+   that is the single thing that decides whether a screen reads as "the
+   same family" or merely "also dark", and it is what the first pass at
+   this palette got wrong.
    ============================================================ */
 
 :root {
+  /* Tells the browser its own furniture is dark — form controls, scrollbars,
+     and the canvas behind an overscroll. Without it a dark page still flashes
+     white chrome at the edges. */
+  color-scheme: dark;
+
   /* ── Surfaces ─────────────────────────────────────────────────────────
-     Near-black, slightly cool. Depth is --bg-elevated sitting on --bg with
-     a 1px --border — never a shadow, never a gradient.                   */
-  --bg:          #0A0B0D;
-  --bg-elevated: #141619;
-  --bg-input:    #232629;
-  --border:      #26292E;
+     Navy-black, cool. Every rung carries the same blue cast, so a panel
+     on a page reads as one material at two depths rather than as grey on
+     black. Depth is --bg-elevated sitting on --bg with a 1px --border —
+     never a shadow, never a gradient.                                    */
+  --bg:          #0F1118;
+  --bg-elevated: #171922;
+  --bg-input:    #262A3A;
+  --border:      #31364B;
 
   /* ── Accent ───────────────────────────────────────────────────────────
-     Volt green. At most ONE element per screen wears it, and it marks the
-     single most important thing — usually whose turn it is right now.
-     Text on top of it is always --on-accent, never white.                */
-  --accent:       #C9F73C;
-  --accent-hover: #D6FF55;
-  --on-accent:    #0A0B0D;
+     efhub's volt lime. At most ONE element per screen wears it, and it
+     marks the single most important thing — usually whose turn it is
+     right now. Text on top of it is always --on-accent, never white:
+     white on this lime is 1.3:1 and effectively invisible, while the
+     page background on it measures 14.4:1.                               */
+  --accent:       #C6F135;
+  --accent-hover: #D0FE05;
+  --on-accent:    #0F1118;
 
   /* ── Status ───────────────────────────────────────────────────────────
      Red is the only other hue in the system. It means banned/destructive
-     and nothing else; it is never used for emphasis.                     */
-  --danger:     #FF4D4F;
+     and nothing else; it is never used for emphasis.
+
+     efhub's red is #FB2C36, and that is what the washes below are mixed
+     from — but as *text* it only reaches 3.74:1 on --bg-input, and an
+     invalid form field puts danger-coloured text on exactly that surface.
+     So --danger is one rung lighter: same hue family, 4.93:1 at its worst
+     pairing. Fills and borders keep the brand value; text gets the legible
+     one.                                                                  */
+  --danger:     #FF6467;
   --text:       #FFFFFF;
-  --text-muted: #9AA0A6;
+  --text-muted: #8B91A8;
 
   /* ── Shape ─────────────────────────────────────────────────────────── */
   --radius-sm:   6px;
@@ -39,23 +61,34 @@
   --radius-pill: 999px;
 
   /* ── Neutral ladder ───────────────────────────────────────────────────
-     Everything that is not the one accent element is greyscale, so lines
-     and fills come from here. Four line rungs and three fill rungs; pick
-     the closest, do not invent an intermediate.                          */
-  --line-faint:  rgba(255, 255, 255, 0.05);  /* dividers, panel edges     */
-  --line-hover:  #33373D;                    /* hover borders             */
-  --line-active: #4A4F55;                    /* selected / focused        */
+     Everything that is not the one accent element comes from here. Four
+     line rungs and three fill rungs; pick the closest, do not invent an
+     intermediate.
+
+     The two faint rungs stay white-alpha on purpose — laid over a navy
+     surface they pick up its hue for free, which is how efhub does its
+     own hairlines. The two solid rungs are navy outright, because a
+     border has to hold its colour against whatever sits behind it.       */
+  --line-faint:  rgba(255, 255, 255, 0.06);  /* dividers, panel edges     */
+  --line-hover:  #31364B;                    /* hover borders             */
+  --line-active: #596080;                    /* selected / focused        */
   --fill-faint:  rgba(255, 255, 255, 0.02);  /* tint washes               */
   --fill:        rgba(255, 255, 255, 0.04);  /* hover fills               */
   --fill-strong: rgba(255, 255, 255, 0.08);  /* selected fills            */
-  --danger-line: rgba(255, 77, 79, 0.45);
-  --danger-fill: rgba(255, 77, 79, 0.12);
+  --danger-line: rgba(251, 44, 54, 0.45);
+  --danger-fill: rgba(251, 44, 54, 0.12);
   --scrim:       rgba(0, 0, 0, 0.72);        /* modal / overlay backdrops  */
 
   /* ── Type ─────────────────────────────────────────────────────────────
-     One family. --font-display is the same stack under a role name: it
-     marks text that is set uppercase and tracked out (nav tabs, kickers,
-     badges, buttons), which is a typesetting choice, not a family.       */
+     One family: Inter, which is efhub's own UI face — loaded at
+     wght@400;500;600;700;800 in all four pages. --font-display is the
+     same stack under a role name: it marks text that is set uppercase
+     and tracked out (nav tabs, kickers, badges, buttons), which is a
+     typesetting choice, not a family.
+
+     efhub also ships eFootballSans and eFootballStencil for its own
+     branding. Those are Konami's faces, not ours to redistribute, and
+     Inter is what carries its actual interface — so Inter is the match. */
   --font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-main:    var(--font-body);
   --font-display: var(--font-body);
@@ -74,7 +107,7 @@
      above. They survive because the role survives — a card is still a
      card. Prefer the canonical token in new code.                        */
   --bg-card:       var(--bg-elevated);
-  --bg-card-hover: #1A1D22;
+  --bg-card-hover: #1A1D27;
   --bg-card-solid: var(--bg-elevated);   /* sticky headers: must be opaque */
   --bg-field:      var(--bg-input);
   --black:         #000000;

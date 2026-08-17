@@ -30,8 +30,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   "upward" into a module that already imports it goes through `cb` instead of a direct
   import, which keeps the module graph acyclic. `room.js` installs the real
   implementations on boot; until then every entry is a no-op. Keys: `renderDraftUi`,
-  `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `showDone`,
-  `showRoomClosed`, `startDraftFromLobby`, `updateStageTabs`,
+  `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `enterMatchLive`,
+  `onRematchAccepted`, `showRoomClosed`, `startDraftFromLobby`, `updateStageTabs`,
   `flushAndSubmitStagedBans`, `confirmPicks`.
 - `api.js` — `postAsMe(action, body)` (fills in `requesterId`) / `getJson(url)`. Both
   resolve; none throw. `postRoomAction(action, body, code)` backs `postAsMe` and is
@@ -139,15 +139,23 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 
 - `draftView.js` — `renderDraftUi()`, the orchestrator called on every presence poll. It
   picks which board is visible and delegates; each board guards its own DOM writes.
-  Also `attachDraftGridHandlers()`.
+  Also `attachDraftGridHandlers()` and `enterMatchLive()`, the one-way move into the
+  match-live stage of Start Match — it changes `state.phase`, not the view, because
+  there is no screen after Start Match. `RENDERED_PHASES` is why it renders at all in
+  the `done` phase.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
-- `readyView.js` — `renderReadyBoard()`: the Start Match columns and stat comparison.
-- `exitScreens.js` — `showRoomClosed` and `showDone`, the only two terminal screens
-  left. The countdown runs for **10 seconds** before redirecting to `/`.
-  `showOpponentLeft` went when a guest leaving stopped ending the room — see
-  `presence-and-reconnect.md`.
+- `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, both
+  stages. See `ready-phase.md`.
+- `ready/postMatch.js` — `renderPostMatch()`, `bindPostMatchOnce()` and
+  `onRematchAccepted()`: the three ways out of a finished match, in the footer of Start
+  Match's `live` stage. It is in `ready/` and not `shell/` because that footer is part
+  of that screen — it lived on a separate `#viewDone` until Start Match absorbed it.
+- `exitScreens.js` — `showRoomClosed`, now the **only** terminal screen. The countdown
+  runs for **10 seconds** before redirecting to `/`. `showOpponentLeft` went when a
+  guest leaving stopped ending the room (see `presence-and-reconnect.md`); `showDone`
+  went when Start Match stopped needing a sequel.
 - `stageTabs.js` — `updateStageTabs()`: ban-setting → ban → pick → start indicator.
 - **Hovering a card floats the player's info** — `bindCardGridHover(containerId,
   selector, findPlayer)` in `shell/cardGrid.js`, over the shared

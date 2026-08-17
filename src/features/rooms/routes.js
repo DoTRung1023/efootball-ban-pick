@@ -436,6 +436,14 @@ router.post(
     const { entry, side } = req;
     const confirmed = req.body?.confirmed !== false;
 
+    /* The formation rides along with the confirmation because *this* is the
+       moment the squad becomes final — changing the shape on the pick board
+       does not repost the lineup, so the last `/picks` write is not a reliable
+       carrier. Length-capped only; see `formations` in store.js for why there
+       is no whitelist on this side. */
+    const formation = String(req.body?.formation || "").slice(0, 20);
+    if (formation) entry.formations[side] = formation;
+
     entry.picksConfirmed[side] = confirmed;
     pushSystemChat(
       entry,
@@ -585,6 +593,85 @@ router.post(
 
     entry.updatedAt = Date.now();
     sendRoom(res, entry);
+  },
+);
+
+/**
+ * POST body: { requesterId, action } — what happens once the match is over.
+ *
+ * Three ways out of a finished room, and they differ in who they affect:
+ *
+ * - `close` / `new-match` end the room for **both** sides. They are the same
+ *   transition; only the message differs, because the other player deserves to
+ *   know whether they were shut down or left behind. The initiator's client
+ *   navigates itself somewhere afterwards — the server does not care where.
+ * - `rematch-propose` / `-accept` / `-decline` keep both seats. An offer is
+ *   held on the entry so the other side's next poll finds it; accepting is the
+ *   only thing that resets the draft, and **only the other side can accept**.
+ *   Without that check a player could propose and accept their own rematch and
+ *   drag the opponent back into a ban phase they never agreed to.
+ *
+ * Restricted to a finished room. Mid-draft these would be a way to wipe the
+ * other player's picks.
+ */
+router.post(
+  "/:code/post-match",
+  withRoomCode,
+  requireRequesterId,
+  requireParticipant("ending the match"),
+  (req, res) => {
+    const { entry, side } = req;
+    const action = String(req.body?.action || "");
+    const other = side === "host" ? "guest" : "host";
+    const who = entry[side]?.username || side;
+
+    if (entry.status !== ROOM_STATUS.DONE) {
+      return res.status(409).json({ error: "The match is not over yet." });
+    }
+
+    if (action === "close" || action === "new-match") {
+      /* Same shape as a host's deliberate close in `/leave`: the entry has to
+         outlive both seats so the other player's poll finds `closed` and gets
+         the room-closed screen rather than an empty snapshot. */
+      entry.closed = true;
+      entry.closeReason = action === "new-match"
+        ? `${who} started a new match.`
+        : `${who} closed the room.`;
+      entry.host = null;
+      entry.guest = null;
+      entry.ready.guest = false;
+      entry.rematch = null;
+      resetDraftToLobby(entry);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
+    if (action === "rematch-propose") {
+      entry.rematch = { by: side };
+      pushSystemChat(entry, `${who} wants a rematch.`);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
+    if (action === "rematch-accept") {
+      if (entry.rematch?.by !== other) {
+        return res.status(409).json({ error: "There is no rematch to accept." });
+      }
+      entry.rematch = null;
+      resetDraftToLobby(entry);   // also clears matchReady and the offer
+      pushSystemChat(entry, `${who} accepted the rematch — back to ban settings.`);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
+    if (action === "rematch-decline") {
+      entry.rematch = null;
+      pushSystemChat(entry, `${who} declined the rematch.`);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
+    return res.status(400).json({ error: "Unknown post-match action." });
   },
 );
 

@@ -16,6 +16,14 @@ pass: whole families left behind by features that were removed or rebuilt —
 `ban-history-*`, `ban-tracker-*`, `draft-panel--*` in `ban.css`; the pre-`.sm-*`
 `ready-phase-*` screen in `ready.css`.
 
+A later sweep took the `.done-*` family and `.view--done` with the screen they
+styled — Start Match absorbed the post-match footer, so there is no second screen
+to draw. `ready.css` itself was rewritten at the same time; nothing named
+`.sm-col-*`, `.sm-stats-row`, `.sm-footer`, `.sm-legend`, `.sm-tip` or `.post-match`
+survives. A third pass took `.sm-head` / `.sm-kicker` / `.sm-title` / `.sm-sub` (the page
+heading) and the whole `.sm-stat*` family with the comparison row — Start Match shows
+squads and nothing else now.
+
 Breakpoint overrides count too. A second pass recursing into `@media` blocks took the
 last six — `.ban-phase-confirm` / `.ban-phase-actions` (ban), `.draft-side` /
 `.draft-side--right` (shell), `.create-room-btn` / `.room-settings-row`
@@ -48,19 +56,26 @@ this order:
 | Sheet | Holds |
 | --- | --- |
 | `base.css` | resets and page scaffolding. The tokens live in `shared/tokens.css`; the pitch background and glow orbs were removed by the re-skin |
-| `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, Done, header bars |
+| `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, header bars |
 | `lobby.css` | top bar, matchup, settings panel, allowance builder, chat |
 | `ban.css` | ban board, ported "My Players" toolbar, player cards, right sidebar |
 | `pick.css` | quick-load bar, squad pool, formation pitch, allowance bar, live feed |
-| `ready.css` | the Start Match screen |
+| `ready.css` | the Start Match screen — **both** its stages, `confirm` and `live`, switched by `data-stage` on `#draftReadyPhaseBoard` |
 | `responsive.css` | cross-cutting responsive rules |
 
-`room.html` also links `css/shared/pitchField.css` (the football field under
-`.pick-pitch`, shared with the home page's game-plan pitch — see the entry on
-`.pick-pitch` below) and `css/shared/playerHoverCard.css` — the floating
-player-info panel, shared with the home page. It is documented in `home/css.md`;
-the only room-side constraint is that it may use no room-only token, which is why
-`--surface-popover` is declared on both pages.
+`room.html` also links two shared sheets.
+
+`css/shared/pitchField.css` is the football field under `.pick-pitch` **and** under
+both Start Match squads (`.sm-pitch`), shared with the home page's game-plan pitch —
+see the entry on `.pick-pitch` below. Its mow stripes were declared
+`background: repeating-var(--pf-mow)`, which is not a real CSS function, so the
+declaration was invalid and **no pitch on the site ever had stripes**; it is a
+`repeating-linear-gradient` now.
+
+`css/shared/playerHoverCard.css` is the floating player-info panel, shared with the
+home page. It is documented in `home/css.md`; the only room-side constraint is that
+it may use no room-only token, which is why `--surface-popover` is declared on both
+pages.
 
 There is no bundler, so the `<link>` order **is** the cascade. `base.css` must stay
 first (everything reads its custom properties) and `responsive.css` last (it
@@ -443,13 +458,34 @@ Key blocks:
     above its neighbours when scaled (`z-index` needs the `position: relative`
     that rule already sets).
 
+  **The pool card's footer is capped at two rows** —
+  `.pick-phase-grid .player-card .pmeta-row:nth-child(n + 3) { display: none }`.
+  `playerDetailSublineHtml` emits four (region · nationality, league · club,
+  foot · style, height · weight · age); in a ~104px column the last two wrapped
+  to four lines and took **89px of a 235px card, 38% of it**, on the grid whose
+  job is to let you recognise a player by his art. Now 52px, 26%, two lines.
+  Nothing is lost — `bindCardGridHover` floats all four rows for this grid, and
+  the hidden two are the ones you look up rather than scan. The ban grid is
+  **not** capped: its cards are ~139px, so the same rows do not wrap.
+
   Note the horizontal padding costs 12px, which drops `auto-fill` from three
   tracks to two at a 112px floor — hence the 108px floor. Overlay CSS:
   `.is-pick-taken .pc-img-wrap::after { content: "PICKED" }` and
   `.is-ban-taken::after { content: "BANNED" }`.
 - **`grid-auto-rows: max-content` is load-bearing on every grid holding a
-  `.player-card`** — `.ban-phase-grid` had it, `.pick-phase-grid` and
-  `.pick-opp-grid` did not. `room.html` does **not** link
+  `.player-card` or a `.pick-slot`** — `.ban-phase-grid` had it;
+  `.pick-phase-grid`, `.pick-opp-grid` and `.pick-bench` did not.
+
+  On `.pick-bench` the symptom was worse than a collapsed card: a slot takes
+  its height from `aspect-ratio: 240/339` against a track width the grid only
+  knows after it has sized the columns, so with `auto` rows the row was sized
+  from a block-size contribution that is not that number. Measured at an 880px
+  viewport: rows **53px**, slots **76px**, every row overflowing 18px into the
+  one below — **8 overlapping slot pairs at 880px, 15 at 870**, which on screen
+  is the filled subs sitting on top of the SUB placeholders. `align-self: start`
+  on `.pick-bench .pick-slot` is the other half: stretched, the item takes the
+  row's height instead of its own, which is what made the contribution circular.
+  Fixed at 1440 / 1200 / 940 / 900 / 880 / 870: **zero overlaps** at every one. `room.html` does **not** link
   `shared/playerCard.css`; the room's `.pc-img-wrap` comes from `ban.css` and has
   *no height of its own*, taking the image's natural height instead. Without
   max-content rows the card is sized by the grid rather than by its content and
@@ -579,6 +615,14 @@ Key blocks:
   still needs the `@media (hover: none)` block.
 - `.pick-bottom-bar` / `.pick-allowance-bar` / `.pick-allowance-pill` /
   `.is-maxed`, plus `.pick-confirm-hint` and `.pick-confirm-btn.is-confirmed`.
+  **`.pick-bottom-actions` wraps and may shrink.** It was `flex-shrink: 0` with
+  no `flex-wrap`, and the hint is `white-space: nowrap`, so once hint + button
+  needed more room than the bar had they ran straight off its right edge rather
+  than wrapping — 367px of content in 350px at a 1000px viewport, and **136px
+  past the panel edge at 870px**, where CONFIRM PICKS printed over the live
+  feed's "Picking…" line in the next column. It is not clipped by anything, so
+  it really does float across the gutter. Measured after: the button ends 11px
+  *inside* the centre panel at every rung from 1440 down to 870.
   The confirm button is **never hidden** — it is disabled until the squad is
   full, and the hint beside it says why. `.pick-confirm-hint` is always in flow
   with a `min-height` (font-size × line-height) for the same reason
@@ -604,7 +648,10 @@ Key blocks:
   panel instead — lock icon, PICKS HIDDEN, and one line of status. Do not collapse
   the two modes into one rule; blur is not a weaker `display: none`, it is the
   middle rung and both are user-selectable. `.sm-squad.is-concealed` in
-  `ready.css` is the same blur carried onto the Start Match screen.
+  `ready.css` carries the same mode onto Start Match — and **that one really does
+  blur** (`filter: blur(7px)`). Both rules used to set `opacity` alone with no
+  filter at all, so the "blur" leaked every name it exists to hide; only the Start
+  Match copy has been fixed.
 - `.pick-plan-*` — the LOAD GAME PLAN dialog, which reuses `.confirm-overlay` /
   `.confirm-modal` from `shell.css` so the page has one modal shell.
   **`.pick-plan-overlay` sets `z-index: 110`, below the shell's 120**, and that

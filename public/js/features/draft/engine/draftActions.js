@@ -11,8 +11,7 @@ import { showToast } from '@/features/draft/utils.js';
 import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
 import { getAllowanceCapViolation } from '@/features/draft/allowance.js';
-import { pickCount } from '@/features/draft/players.js';
-import { stopPresencePolling } from './presence.js';
+import { normalizeFormation, pickCount } from '@/features/draft/players.js';
 import {
   applyLocalBan,
   banLimit,
@@ -74,12 +73,27 @@ export async function setMatchReady(ready) {
   if (data.room) applyPresenceSnapshot(data.room);
 
   if (isBothMatchReady()) {
-    stopPresencePolling();
-    state.phase = "done";
-    cb.showDone();
+    cb.enterMatchLive();
     return;
   }
   cb.renderDraftUi();
+}
+
+/**
+ * The three ways out of a finished room. `close` and `newMatch` end it for both
+ * sides; the rematch trio keeps both seats and only `accept` resets the draft.
+ *
+ * Returns true when the server took the action, so the caller can decide where
+ * to go next — this function deliberately does not navigate.
+ */
+export async function postMatchAction(action) {
+  const { ok, data } = await postAsMe("post-match", { action });
+  if (!ok) {
+    showToast(data.error || "Could not do that.");
+    return false;
+  }
+  if (data.room) applyPresenceSnapshot(data.room);
+  return true;
 }
 
 // ── Bans ─────────────────────────────────────────────────────
@@ -160,7 +174,17 @@ export async function unconfirmBans() {
  */
 export async function confirmPicks(confirmed) {
   if (!state.room) return;
-  const { ok, data } = await postAsMe("picks-confirm", { confirmed: Boolean(confirmed) });
+  /* The formation goes with the confirmation, not with the lineup: picking a
+     shape re-renders the pitch locally and posts nothing, so `/picks` can be
+     several changes stale by the time a side confirms. Start Match draws the
+     opponent's pitch from this. */
+  const { ok, data } = await postAsMe("picks-confirm", {
+    confirmed: Boolean(confirmed),
+    /* Read straight off state rather than through `getPickFormation`:
+       gamePlans.js imports `replaceMyPicks` from this module, so importing it
+       back would close a cycle. It is the same one-line expression. */
+    formation: normalizeFormation(state.pickManualFormation),
+  });
   if (!ok) {
     showToast(data?.error || "Could not update your squad confirmation.");
     return;

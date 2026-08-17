@@ -245,7 +245,9 @@ function returnToLobby() {
 export async function pollPresence() {
   if (!state.room?.code) return;
   // Allow presence polling during lobby, ready, and draft so clients stay in sync
-  if (state.phase !== "lobby" && state.phase !== "ready" && state.phase !== "draft") return;
+  /* `done` polls too. The post-match screen is where a rematch offer arrives,
+     and an offer the other side never sees is not an offer. */
+  if (!["lobby", "ready", "draft", "done"].includes(state.phase)) return;
   try {
     const prevUpdatedAt = Number(state.lastRoomUpdatedAt || 0);
     const prevHostId = String(state.room?.host?.id || "");
@@ -301,9 +303,17 @@ export async function pollPresence() {
     }
 
     if (String(state.room?.status || "") === "done" && cb.isBothMatchReady()) {
-      stopPresencePolling();
-      state.phase = "done";
-      cb.showDone();
+      /* Polling deliberately stays on — see the guard at the top. `enterMatchLive`
+         is the one-time transition and renders on its way through; after that
+         the ordinary render keeps the footer in step with a rematch offer. */
+      if (state.phase !== "done") cb.enterMatchLive();
+      else cb.renderDraftUi();
+      return;
+    }
+
+    /* Rematch accepted: the server put the room back in the lobby under us. */
+    if (state.phase === "done") {
+      cb.onRematchAccepted();
       return;
     }
 

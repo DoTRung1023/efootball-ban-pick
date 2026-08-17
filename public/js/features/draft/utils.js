@@ -87,7 +87,7 @@ export function askConfirm({ title = "Confirm", message = "Are you sure?", okTex
 }
 
 export function showView(id) {
-  ["viewError", "viewAbandoned", "viewLobby", "viewDraft", "viewDone"].forEach((vid) => {
+  ["viewError", "viewAbandoned", "viewLobby", "viewDraft"].forEach((vid) => {
     const el = document.getElementById(vid);
     if (!el) return;
     if (vid === id) {

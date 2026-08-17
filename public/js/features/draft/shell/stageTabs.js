@@ -11,14 +11,18 @@ const STAGE_CLASSES = STAGE_ORDER.map((_, i) => `stage-${i}`);
 /** Maps the visible view to its stage. Returns null for views with no stage. */
 function currentStageFor(viewId) {
   if (viewId === "viewLobby") return "bansetting";
-  if (viewId === "viewDone") return "start";
   if (viewId !== "viewDraft") return null;
 
   const room = state.room;
   const turn = room ? state.schedule[room.turnIndex] : null;
-  const readyPhase = state.phase === "ready" || String(room?.status || "") === "await-ready";
-  // The ready phase keeps the ban dot lit — picking is not "current" any more.
-  return readyPhase || turn?.action === "ban" ? "ban" : "pick";
+  /* Start Match *is* the "start" stage, in both its confirm and its match-live
+     shape. It used to light the **ban** dot, because the only thing that ever
+     reached "start" was the separate done screen — so the indicator walked
+     backwards from pick to ban at the exact moment the draft finished. */
+  if (state.phase === "done" || state.phase === "ready" || String(room?.status || "") === "await-ready") {
+    return "start";
+  }
+  return turn?.action === "ban" ? "ban" : "pick";
 }
 
 export function updateStageTabs() {

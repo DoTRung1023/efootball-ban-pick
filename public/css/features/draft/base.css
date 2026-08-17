@@ -16,13 +16,15 @@
 
 html, body { height: 100%; margin: 0; }
 
+/* One flat colour. This was five comma-separated *colours* in a `background`
+   shorthand — a multi-layer background may only carry a <color> in its LAST
+   layer, so the whole declaration was invalid and the browser dropped it: the
+   room's body computed to rgba(0,0,0,0) and painted nothing. It survived
+   because the view containers underneath happen to cover the viewport. The
+   layers were radial-gradient orbs once, with --bg last, which was valid; they
+   were swapped for flat token colours in the re-skin and the rule died then. */
 body {
-  background:
-    var(--fill),
-    var(--fill-strong),
-    var(--fill),
-    var(--fill),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   overflow: hidden;

@@ -326,7 +326,9 @@ export function initLobby() {
   // The async handler will fall back to showing the lobby if the server disagrees.
   let cachedPhase;
   try { cachedPhase = code ? sessionStorage.getItem(`efb_room_${code}_phase`) : null; } catch { /* ignore */ }
-  const restoringDraft = cachedPhase === "draft" || cachedPhase === "ready";
+  // "done" too: the match is over but the room is not, and a rematch offer
+  // lands on that screen.
+  const restoringDraft = cachedPhase === "draft" || cachedPhase === "ready" || cachedPhase === "done";
 
   if (!restoringDraft) {
     showView("viewLobby");

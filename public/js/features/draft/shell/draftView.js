@@ -13,19 +13,28 @@ import { renderBanBoard } from '@/features/draft/ban/banView.js';
 import { renderPickBoard } from '@/features/draft/pick/pickView.js';
 import { renderReadyBoard } from '@/features/draft/ready/readyView.js';
 import { updateStageTabs } from './stageTabs.js';
+import { allowLeave } from './leaveGuard.js';
+
+/** Phases with a board to draw. `done` is one of them — see `enterMatchLive`. */
+const RENDERED_PHASES = new Set(["draft", "ready", "done"]);
 
 export function renderDraftUi() {
   const room = state.room;
-  if (!room || (state.phase !== "draft" && state.phase !== "ready")) return;
+  if (!room || !RENDERED_PHASES.has(state.phase)) return;
 
   const mySide = state.mySide;
   const theirSide = mySide === "host" ? "guest" : "host";
   renderLeaveLabel(mySide);
   const turn = state.schedule[room.turnIndex];
-  const readyPhase = isReadyPhase(room);
+  /* Both players have pressed READY: the match is on and the Start Match screen
+     stays up, having swapped its footer for the three ways out. It is the same
+     board, so everything below treats `done` as a ready phase. */
+  const matchLive = state.phase === "done";
+  const readyPhase = matchLive || isReadyPhase(room);
   // The server flips `status` to "await-ready" once both squads are confirmed;
-  // this is where that becomes the client's phase too.
-  if (readyPhase) enterReadyPhase();
+  // this is where that becomes the client's phase too. Not once the match is
+  // live, or it would walk the phase back out of `done` on the next poll.
+  if (readyPhase && !matchLive) enterReadyPhase();
   const isBanPhase = turn?.action === "ban";
   // Both stages are simultaneous, so side "both" always means it's your turn.
   const isMyTurn = String(turn?.side || "") === "both" || turn?.side === mySide;
@@ -46,9 +55,30 @@ export function renderDraftUi() {
   }
 
   renderPickBoard({ room, mySide, theirSide, visible: !showBanBoard && !readyPhase });
-  renderReadyBoard({ room, mySide, theirSide, visible: readyPhase });
+  renderReadyBoard({ room, mySide, theirSide, matchLive, visible: readyPhase });
 
   updateStageTabs();
+}
+
+/**
+ * Both sides are ready — move into the match-live stage of Start Match.
+ *
+ * Deliberately **not** a view change: the squads on screen are the squads the
+ * match is being played with, and re-listing them on a second screen was the
+ * whole complaint against `#viewDone`. Only the footer changes.
+ *
+ * The room is over as far as the exit guard is concerned, so the guard stands
+ * down — a finished match should not raise "are you sure you want to leave?".
+ *
+ * The cached phase is deliberately **left alone**. It is what lets a reload skip
+ * the lobby flash, and a reload from here should come back to this screen: the
+ * room is still live, and a rematch offer may be waiting on it.
+ */
+export function enterMatchLive() {
+  if (state.phase === "done") return;
+  state.phase = "done";
+  allowLeave();
+  renderDraftUi();
 }
 
 /**

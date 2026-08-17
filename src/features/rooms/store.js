@@ -19,6 +19,21 @@ export const roomPresence = new Map();
 
 const MAX_CHAT_MESSAGES = 150;
 
+/**
+ * Each side's pitch shape, so the Start Match screen can draw the opponent's
+ * lineup in the formation they actually built rather than assuming this one.
+ * Picks are slot-addressed and the slot numbers come from the formation's rows,
+ * so guessing it does not just mislabel the shape — it lays their players out
+ * in the wrong rows.
+ *
+ * **Not validated against a whitelist here.** The client runs every formation
+ * it receives through `normalizeFormation`, which answers with this default for
+ * anything outside its fifteen-row table, so an unknown string can never reach
+ * a pitch or a stat cell. A third copy of the list (there are already two — see
+ * CLAUDE.md) would be one more thing to keep in step for no added safety.
+ */
+const DEFAULT_FORMATION = "4-3-3";
+
 export const ROOM_STATUS = {
   LOBBY: "lobby",
   DRAFTING: "drafting",
@@ -51,9 +66,11 @@ function createRoomEntry() {
     stagedBans: { host: [], guest: [] },
     bansConfirmed: { host: false, guest: false },
     picksConfirmed: { host: false, guest: false },
+    formations: { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     bannedPlayerIds: [],
     ready: { guest: false },
     matchReady: { host: false, guest: false },
+    rematch: null,
     chat: [],
     closed: false,
     closeReason: "",
@@ -80,9 +97,11 @@ export function ensureRoomEntry(code) {
   if (!entry.picks) entry.picks = { host: [], guest: [] };
   if (!entry.ready) entry.ready = { guest: false };
   if (!entry.matchReady) entry.matchReady = { host: false, guest: false };
+  if (entry.rematch === undefined) entry.rematch = null;
   if (!entry.stagedBans) entry.stagedBans = { host: [], guest: [] };
   if (!entry.bansConfirmed) entry.bansConfirmed = { host: false, guest: false };
   if (!entry.picksConfirmed) entry.picksConfirmed = { host: false, guest: false };
+  if (!entry.formations) entry.formations = { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION };
   if (!Array.isArray(entry.bannedPlayerIds)) entry.bannedPlayerIds = [];
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
@@ -144,6 +163,7 @@ export function serializeRoomEntry(entry) {
     stagedBans: entry.stagedBans || { host: [], guest: [] },
     bansConfirmed: entry.bansConfirmed || { host: false, guest: false },
     picksConfirmed: entry.picksConfirmed || { host: false, guest: false },
+    formations: entry.formations || { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     guest: serializeParticipant(entry.guest),
     status: String(entry.status || ROOM_STATUS.LOBBY),
     turnIndex: Number.isFinite(Number(entry.turnIndex)) ? Number(entry.turnIndex) : 0,
@@ -152,6 +172,7 @@ export function serializeRoomEntry(entry) {
     config: entry.config,
     ready: entry.ready,
     matchReady: entry.matchReady,
+    rematch: entry.rematch || null,
     chat: entry.chat,
     closed: Boolean(entry.closed),
     closeReason: entry.closeReason || "",
@@ -168,8 +189,10 @@ export function emptyRoomSnapshot() {
     turnIndex: 0,
     turnEndsAt: null,
     config: createDefaultRoomConfig(),
+    formations: { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
     ready: { guest: false },
     matchReady: { host: false, guest: false },
+    rematch: null,
     chat: [],
     closed: false,
     closeReason: "",
@@ -239,8 +262,10 @@ export function resetDraftToLobby(entry) {
   entry.stagedBans = { host: [], guest: [] };
   entry.bansConfirmed = { host: false, guest: false };
   entry.picksConfirmed = { host: false, guest: false };
+  entry.formations = { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION };
   entry.bannedPlayerIds = [];
   entry.matchReady = { host: false, guest: false };
+  entry.rematch = null;
   entry.ready.guest = false;
 
   return wasDrafting;

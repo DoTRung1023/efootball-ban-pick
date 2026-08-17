@@ -15,10 +15,11 @@ import {
   flushAndSubmitStagedBans,
   confirmPicks,
   renderDraftUi,
+  enterMatchLive,
   initDraftControls,
   startDraftFromLobby,
   tryEnterDraftFromRoomSnapshot,
-  showDone,
+  onRematchAccepted,
   showRoomClosed,
   updateStageTabs,
   initLobby,
@@ -54,7 +55,8 @@ window.addEventListener("error", (ev) => {
 cb.renderDraftUi = renderDraftUi;
 cb.tryEnterDraftFromRoomSnapshot = tryEnterDraftFromRoomSnapshot;
 cb.isBothMatchReady = isBothMatchReady;
-cb.showDone = showDone;
+cb.enterMatchLive = enterMatchLive;
+cb.onRematchAccepted = onRematchAccepted;
 cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;

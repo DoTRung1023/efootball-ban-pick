@@ -16,8 +16,10 @@ export const cb = {
   tryEnterDraftFromRoomSnapshot: () => false,
   /** True when both sides have confirmed the post-draft ready flag. */
   isBothMatchReady: () => false,
-  /** Show the final squad summary. */
-  showDone: () => {},
+  /** Both sides pressed READY: swap Start Match into its match-live stage. */
+  enterMatchLive: () => {},
+  /** The other side accepted a rematch: the room is back in the lobby. */
+  onRematchAccepted: () => {},
   /** Show the "room closed" countdown screen. */
   showRoomClosed: (_msg) => {},
   /** Host START action (guest ready toggle for the guest). */

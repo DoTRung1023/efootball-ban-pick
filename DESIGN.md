@@ -70,25 +70,39 @@ rest of this document says **`draft.css`** it means that set. The component map 
 
 ### 3.1 The palette
 
+Taken from efhub.com's own stylesheets, not approximated by eye.
+
 ```css
 :root {
-  /* surfaces — near-black, slightly cool */
-  --bg:          #0A0B0D;
-  --bg-elevated: #141619;
-  --bg-input:    #232629;
-  --border:      #26292E;
+  /* surfaces — navy-black, cool. NOT neutral grey. */
+  --bg:          #0F1118;
+  --bg-elevated: #171922;
+  --bg-input:    #262A3A;
+  --border:      #31364B;
 
-  /* accent — volt green, one element per screen */
-  --accent:       #C9F73C;
-  --accent-hover: #D6FF55;
-  --on-accent:    #0A0B0D;
+  /* accent — volt lime, one element per screen */
+  --accent:       #C6F135;
+  --accent-hover: #D0FE05;
+  --on-accent:    #0F1118;
 
   /* status */
-  --danger:     #FF4D4F;
+  --danger:     #FF6467;
   --text:       #FFFFFF;
-  --text-muted: #9AA0A6;
+  --text-muted: #8B91A8;
 }
 ```
+
+**The blue cast is the whole point.** Every surface rung carries the same navy
+tint, which is what makes a panel read as one material at two depths instead of
+grey sitting on black. An earlier pass used neutral near-black (`#0A0B0D`) with
+the right accent on top and still did not look like the reference — the accent
+was never what was off. If you find yourself reaching for a grey, you want the
+navy rung at that lightness.
+
+`--danger` is deliberately **one rung lighter than efhub's `#FB2C36`**. That value
+is what `--danger-line` / `--danger-fill` are mixed from, so borders and washes
+carry the brand red — but as text it only reaches 3.74:1 on `--bg-input`, and an
+invalid form field puts danger-coloured text on exactly that surface.
 
 ### 3.2 Hue meaning — hard rule
 
@@ -153,13 +167,17 @@ Every pair below was computed from the hex values, not eyeballed. The floor is 4
 
 | on → | `--bg` | `--bg-elevated` | `--bg-input` |
 | --- | --- | --- | --- |
-| `--text` | 19.69 | 18.13 | 15.21 |
-| `--text-muted` | 7.46 | 6.86 | 5.76 |
-| `--danger` | 6.03 | 5.55 | 4.65 |
-| `--accent` | 15.80 | 14.55 | 12.21 |
+| `--text` | 18.86 | 17.52 | 14.24 |
+| `--text-muted` | 6.03 | 5.60 | 4.55 |
+| `--danger` | 6.53 | 6.07 | 4.93 |
+| `--accent` | 14.40 | 13.38 | 10.87 |
 
-Worst body-text pair in the system: **5.76:1**. Do not lighten a background or darken
-`--text-muted` without re-running the numbers.
+`--on-accent` on `--accent` — the one pair that is not text-on-surface — is **14.40:1**.
+White on `--accent` would be 1.31:1, which is why the rule against it is absolute.
+
+Worst body-text pair in the system: **4.55:1**, `--text-muted` on `--bg-input`. That is
+close to the floor, so do not lighten a background or darken `--text-muted` without
+re-running the numbers.
 
 ---
 
@@ -189,7 +207,8 @@ converted and snapped to the nearest rung.
 | 20 | page and section headings |
 | 22 | logo / app name (weight 800, `letter-spacing: -0.02em`) |
 
-Above 22px is **display numerals only** — the turn clock at 32px, the Start Match stats.
+Above 22px is **display numerals only** — the turn clock at 32px. (The Start Match stat
+row used to be the other one; it is gone.)
 Those are deliberate one-offs, not a sixth rung; do not size body text there.
 
 **Weights.** 400 body · 500 nav links and captions · 600 emphasis and player names ·
