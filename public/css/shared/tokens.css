@@ -68,9 +68,15 @@
      The two faint rungs stay white-alpha on purpose — laid over a navy
      surface they pick up its hue for free, which is how efhub does its
      own hairlines. The two solid rungs are navy outright, because a
-     border has to hold its colour against whatever sits behind it.       */
+     border has to hold its colour against whatever sits behind it.
+
+     **--line-hover has to stay strictly between --border and --line-active.**
+     It was set to #31364B, the same value as --border, which made every
+     `border-color: var(--line-hover)` hover in the app a no-op — the rung
+     existed in the file and not on screen. Both pitches' empty slots, their
+     placing state, and every hovered card border were affected.            */
   --line-faint:  rgba(255, 255, 255, 0.06);  /* dividers, panel edges     */
-  --line-hover:  #31364B;                    /* hover borders             */
+  --line-hover:  #454B66;                    /* hover borders             */
   --line-active: #596080;                    /* selected / focused        */
   --fill-faint:  rgba(255, 255, 255, 0.02);  /* tint washes               */
   --fill:        rgba(255, 255, 255, 0.04);  /* hover fills               */

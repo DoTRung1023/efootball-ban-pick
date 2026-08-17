@@ -540,8 +540,8 @@
 }
 
 .pitch-slot.empty:hover .pitch-slot-placeholder {
-  border-color: var(--line-hover);
-  background: var(--fill);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 .pitch-slot.active {
@@ -549,8 +549,12 @@
   background: transparent;
 }
 
+/* Chosen. `--accent`, matching `.pick-slot--empty.is-active` on the room board —
+   with hover now at `--line-active`, a chosen slot needs a rung of its own or
+   hovering any slot makes it look selected. This is the one accent element in
+   the plan modal, and while a slot is chosen it is the thing to act on. */
 .pitch-slot.active .pitch-slot-placeholder {
-  border-color: var(--line-active);
+  border-color: var(--accent);
 }
 
 /* Shared card size — used by both placeholder and filled card, so an empty box
@@ -572,8 +576,13 @@
   overflow: hidden;
 }
 
+/* Not the pitch's own colours — `shared/pitchField.css` draws its markings with
+   `--pf-line: var(--border)`, so a `--border` box on the turf read as another
+   line on the field. One rung up, plus a fill twice the mow stripe, lifts it off
+   the pitch. Mirrors `.pick-slot--empty` on the room's board. */
 .pitch-slot-placeholder {
-  border: 2px dashed var(--border);
+  border: 2px dashed var(--line-hover);
+  background: var(--fill);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -615,8 +624,8 @@
    .pick-slot--empty` on the pick board. */
 .plan-detail-cols.is-placing .pitch-slot-placeholder {
   border-style: solid;
-  border-color: var(--line-hover);
-  background: var(--fill);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 .plan-detail-cols.is-placing .pitch-slot-plus,

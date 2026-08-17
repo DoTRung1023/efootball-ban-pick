@@ -670,9 +670,18 @@
    a second to exchange them, click a card in the pool to drop it into the
    selection, or use the × to empty it. Both the pitch and the bench use these. */
 
+/* **An empty slot must not be drawn in the pitch's own colours.** It was
+   `--border` on `--fill-faint`, and `shared/pitchField.css` paints its markings
+   with `--pf-line: var(--border)` and its mow stripes with
+   `--pf-mow: var(--fill-faint)` — so the placeholder was, to the pixel, the two
+   values of the field behind it, and read as another penalty box rather than as
+   a slot waiting for a player. One rung up on both puts it above the art:
+   `--line-hover` against `--border` markings, `--fill` against a `--fill-faint`
+   stripe. Every state above this one moves up with it — see the ladder in
+   room/css.md. */
 .pick-slot--empty {
-  border: 1.5px dashed var(--border);
-  background: var(--fill-faint);
+  border: 1.5px dashed var(--line-hover);
+  background: var(--fill);
   gap: 4px;
   transition: background var(--transition), border-color var(--transition);
 }
@@ -711,8 +720,8 @@
 
 .is-placing .pick-slot--empty {
   border-style: solid;
-  border-color: var(--line-hover);
-  background: var(--fill);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 /* The selected slot. Deliberately loud — until you click a second slot the
@@ -754,8 +763,8 @@
    being chosen?". */
 
 :where(.draft-panel:not(.is-locked)) .pick-slot--empty:hover {
-  border-color: var(--line-hover);
-  background: var(--fill);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 /* Solid `--red` with a white glyph and a drop shadow, matching

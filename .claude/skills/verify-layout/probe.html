@@ -1,0 +1,163 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>layout probe</title>
+<style>
+  html, body { margin: 0; background: #111; color: #eee; font: 12px monospace; }
+  iframe { border: 0; display: block; }
+</style>
+<pre id="probe-out">PENDING</pre>
+<script>
+/* Loads a real page in an iframe of an exact CSS width — headless Chrome will not
+   size its own window below 500px, but an iframe gets a true viewport, so media
+   queries fire correctly. Same origin, so identity can be seeded first and the
+   iframe document can be measured directly. Results are base64'd so --dump-dom's
+   HTML escaping cannot corrupt them. */
+(async () => {
+  const out = document.getElementById("probe-out");
+  const q = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
+  const w = Number(q.w || 390);
+  const h = Number(q.h || 844);
+  const path = q.path || "/players";
+  const settle = Number(q.settle || 1500);
+
+  const report = (obj) => {
+    const json = JSON.stringify(obj, null, 2);
+    out.textContent = "PROBE_B64_START" + btoa(unescape(encodeURIComponent(json))) + "PROBE_B64_END";
+  };
+
+  try {
+    if (q.user) localStorage.setItem("efb_user", decodeURIComponent(q.user));
+    else localStorage.removeItem("efb_user");
+    if (q.anon) localStorage.setItem("efb_room_anon_id", q.anon);
+  } catch (err) { /* storage disabled */ }
+
+  const R = { path, viewport: { asked: w, actual: null }, fail: [], warn: [], info: {} };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  try {
+    const frame = document.createElement("iframe");
+    frame.width = String(w);
+    frame.height = String(h);
+    frame.src = path;
+    document.body.appendChild(frame);
+
+    await new Promise((res) => {
+      frame.addEventListener("load", res, { once: true });
+      setTimeout(res, 15000);
+    });
+    await sleep(settle);
+
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow;
+    if (!doc || !win) throw new Error("iframe document unreachable (cross-origin or blocked)");
+
+    /* 1. The viewport is the measurement. Assert it before trusting anything else. */
+    R.viewport.actual = win.innerWidth;
+    if (win.innerWidth !== w) R.fail.push(`viewport is ${win.innerWidth}px, asked for ${w}px — the rung under test may never apply`);
+
+    /* 2. Prove the stylesheets actually loaded; without this every check passes vacuously. */
+    const token = getComputedStyle(doc.documentElement).getPropertyValue("--bg").trim();
+    R.info.tokenBg = token || "(none)";
+    if (!token) R.fail.push("--bg does not resolve — stylesheets did not load; every measurement below is meaningless");
+
+    /* 3. Transitions return mid-flight values under --virtual-time-budget. */
+    const kill = doc.createElement("style");
+    kill.textContent = "*,*::before,*::after{transition:none !important;animation:none !important}";
+    doc.head.appendChild(kill);
+    await sleep(120);
+
+    R.info.title = doc.title;
+    R.info.visibleView = [...doc.querySelectorAll(".view, [id^=view]")]
+      .filter((el) => el.offsetParent !== null || getComputedStyle(el).display !== "none")
+      .map((el) => el.id || el.className).slice(0, 4);
+
+    /* 4. Horizontal overflow. Skip legitimate horizontal scrollers, but NEVER skip
+          because html/body clips — body{overflow:hidden} hiding a 20px overrun off a
+          320px viewport is exactly the bug class this exists to catch. */
+    const inScroller = (el) => {
+      for (let p = el.parentElement; p && p !== doc.body && p !== doc.documentElement; p = p.parentElement) {
+        const ox = getComputedStyle(p).overflowX;
+        if (ox === "auto" || ox === "scroll") return true;
+      }
+      return false;
+    };
+    const label = (el) => (el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+      (typeof el.className === "string" && el.className ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".") : ""));
+
+    const over = [];
+    for (const el of doc.querySelectorAll("body *")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.position === "fixed") continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      if (inScroller(el)) continue;
+      if (r.right > w + 1 || r.left < -1) {
+        over.push(`${label(el)} → left ${Math.round(r.left)} right ${Math.round(r.right)} (viewport ${w})`);
+      }
+    }
+    if (over.length) R.fail.push(`${over.length} element(s) overflow horizontally`);
+    R.info.overflow = over.slice(0, 12);
+
+    /* 5. Squeezed, not overflowing: content taller than a box that cannot scroll.
+          Reported as a warning — ellipsised text and images legitimately trip it. */
+    const squeezed = [];
+    for (const el of doc.querySelectorAll("body *")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.overflowY === "auto" || cs.overflowY === "scroll") continue;
+      if (el.scrollHeight - el.clientHeight > 4 && el.clientHeight > 0) {
+        squeezed.push(`${label(el)} → content ${el.scrollHeight} in ${el.clientHeight}`);
+      }
+    }
+    R.warn.push(...(squeezed.length ? [`${squeezed.length} box(es) shorter than their content`] : []));
+    R.info.squeezed = squeezed.slice(0, 10);
+
+    /* 6. Reachability — a page that renders everything but cannot scroll to it is
+          the failure users actually report. */
+    const scrollSel = q.scroll || ".content-scroll, .view--draft, #viewLobby, .plan-detail-cols, body";
+    const scroller = doc.querySelector(scrollSel);
+    if (scroller) {
+      scroller.scrollTop = 99999;
+      await sleep(60);
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      R.info.scroll = { sel: scrollSel, landed: scroller.scrollTop, max };
+      if (max > 0 && Math.abs(scroller.scrollTop - max) > 2) {
+        R.fail.push(`${scrollSel} cannot reach its bottom (${scroller.scrollTop} of ${max})`);
+      }
+    } else {
+      R.info.scroll = { sel: scrollSel, found: false };
+    }
+
+    /* 7. The primary action must still be on screen after that scroll. */
+    if (q.cta) {
+      const cta = doc.querySelector(q.cta);
+      if (!cta) R.fail.push(`cta ${q.cta} not found`);
+      else {
+        const r = cta.getBoundingClientRect();
+        R.info.cta = { sel: q.cta, top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) };
+        if (r.bottom > h + 1 || r.top < -1 || r.right > w + 1 || r.left < -1) {
+          R.fail.push(`cta ${q.cta} is off screen`);
+        }
+      }
+    }
+
+    /* 8. Ad-hoc measurements: rects for selectors, and a custom property's value. */
+    if (q.sel) {
+      R.info.rects = {};
+      for (const sel of decodeURIComponent(q.sel).split("|")) {
+        const el = doc.querySelector(sel);
+        R.info.rects[sel] = el
+          ? (({ x, y, width, height }) => ({ x: Math.round(x), y: Math.round(y), w: Math.round(width), h: Math.round(height) }))(el.getBoundingClientRect())
+          : null;
+      }
+    }
+    if (q.var) {
+      const host = q.varOn ? doc.querySelector(decodeURIComponent(q.varOn)) : doc.documentElement;
+      R.info.cssVar = { name: q.var, on: q.varOn || ":root", value: host ? getComputedStyle(host).getPropertyValue(q.var).trim() : "(host not found)" };
+    }
+  } catch (err) {
+    R.fail.push("probe threw: " + (err && err.message ? err.message : String(err)));
+  }
+
+  report(R);
+})();
+</script>

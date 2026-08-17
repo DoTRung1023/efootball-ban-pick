@@ -875,15 +875,31 @@ side by side, every state of an empty box, on both:
 
 | | `.pitch-slot.empty` (home) | `.pick-slot--empty` (room) |
 | --- | --- | --- |
-| rest | dashed, `.22` border, no fill | dashed, `--border`, `--fill-faint` |
-| hover | dashed, `.45`, `.05` fill | dashed, `--line-hover`, `--fill` |
-| chosen | dashed **full green** + glow | dashed **full green** + glow |
-| chosen + hover | dashed `.45`, **glow stays** | dashed `--line-hover`, **glow stays** |
-| placing | **solid** `.45`, glyphs `.7` | **solid** `--line-hover`, glyphs `--text` |
+| rest | dashed `--line-hover`, `--fill` | dashed `--line-hover`, `--fill` |
+| hover | dashed `--line-active`, `--fill-strong` | dashed `--line-active`, `--fill-strong` |
+| chosen | dashed `--accent` | dashed `--accent` |
+| placing | **solid** `--line-active`, glyphs `--text` | **solid** `--line-active`, glyphs `--text` |
 
-Only the rungs differ, and they have to: the home sheet writes raw alphas, the
-room sheet may only use the ladder. The **transitions** are identical, and those
-are what you see.
+Both pitches now run the same rungs; the home sheet's raw alphas went with the
+re-skin. The **transitions** are identical too, and those are what you see.
+
+**An empty slot must never be drawn in the pitch's own two colours.**
+`shared/pitchField.css` paints markings with `--pf-line: var(--border)` and mow
+stripes with `--pf-mow: var(--fill-faint)`, and the rest state used to be exactly
+`--border` on `--fill-faint` — so a placeholder read as one more penalty box
+rather than as a slot waiting for a player. Rest sits one rung above the art now:
+measured RGB distance from the marking line **40, previously 0**.
+
+That move needed the `--line-hover` token fixed first — see the note on it in
+`shared/tokens.css`. It had been set to the same value as `--border`, so the
+whole hover rung was a no-op app-wide. Measured after, with transitions
+disabled: rest → hover **39**, hover → chosen **196**, all four states distinct.
+
+**Measure these with `transition: none` injected.** `border-color` is
+transitioned on both slots and `border-style` is not, so a computed read taken
+right after a class flip reports the *new* style beside the *old* colour — which
+looks exactly like a rule that half-applied. That mismatch is the tell; see
+`responsive-testing.md`.
 
 Three things hold that up, all of which were once wrong on the room side:
 
