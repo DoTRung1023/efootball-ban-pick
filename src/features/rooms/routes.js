@@ -200,6 +200,23 @@ function syncStagedBans(entry, role, stagedBans) {
  * Declared **before** `/:code` — Express matches in order, and "mine" is a
  * valid room code as far as that route is concerned.
  */
+/**
+ * The room this user is currently *in*, if any. The home page asks on boot and
+ * sends them straight back to it (`redirectToActiveRoom`), so anything answered
+ * here is somewhere the user cannot get out of by going home.
+ *
+ * Two kinds of room are therefore not an answer, and both are seats that still
+ * exist:
+ *
+ * - `closed` — the seat outlives the close so the *other* player gets told;
+ * - **left for a new match.** `new-match` deliberately does not clear the
+ *   initiator's seat: the room stays open for the player left behind, and their
+ *   screen still needs the departed player's name on it. But the departed
+ *   player has gone somewhere else, and without this they would be dragged back
+ *   into the room they just left the moment they went home from the new one —
+ *   which is exactly what "close room takes you to My Players" stops being true
+ *   for.
+ */
 router.get("/mine", (req, res) => {
   const userId = String(req.query?.userId || "");
   if (!userId) return res.json({ room: null });
@@ -207,7 +224,9 @@ router.get("/mine", (req, res) => {
   for (const [code, entry] of roomPresence.entries()) {
     if (entry.closed) continue;
     const side = resolveSide(entry, userId);
-    if (side) return res.json({ room: { code, side, phase: roomPhase(entry) } });
+    if (!side) continue;
+    if (entry.newMatch?.by === side) continue;
+    return res.json({ room: { code, side, phase: roomPhase(entry) } });
   }
   return res.json({ room: null });
 });

@@ -1,4 +1,5 @@
 import { getUser } from '@/shared/lib/session.js';
+import { readingTimeMs } from '@/shared/ui/readingTime.js';
 import { state } from './state.js';
 
 /* Shared with the home bundle — see @/shared/players/playerMeta.js and
@@ -7,16 +8,19 @@ import { state } from './state.js';
 export { escapeHtml } from "@/shared/players/playerMeta.js";
 export { getUser } from "@/shared/lib/session.js";
 
-/* Two lifetimes, because there are two kinds of message here.
-   `TOAST_MS` answers something the user just did — they are already looking at
-   the thing they clicked, and a reply that outstays its welcome is noise.
-   `ANNOUNCE_MS` reports something that happened *to* them: the room changed
-   under their hands, they did not ask for it, and the message is the only
-   explanation of why the screen they were working in is gone. */
-const TOAST_MS = 2400;
-const ANNOUNCE_MS = 6000;
+/* How long a message stays up is `readingTime.js`'s answer, derived from the
+   message. It was two flat numbers — 2400ms for a toast, 6000ms for an
+   announcement — which meant "Rematch on." and "test1 started a different
+   match. This room is still yours." got the same 2.4 seconds. The second one
+   needs 4.5s to read and was gone before it could be.
 
-export function showToast(message, variant = "default", ms = TOAST_MS) {
+   The *announcement* extra survives, as a surcharge rather than a replacement.
+   These arrive while the user is mid-action and looking somewhere else
+   entirely, often alongside a whole view being swapped out from under them, so
+   they cost more to notice before any reading starts. */
+const ANNOUNCE_EXTRA_MS = 2000;
+
+export function showToast(message, variant = "default", ms = readingTimeMs(message)) {
   const el = document.getElementById("toast");
   if (!el) return;
   el.textContent = message;
@@ -34,13 +38,11 @@ export function showToast(message, variant = "default", ms = TOAST_MS) {
  * An unprompted report of a room-state change — the opponent leaving, a draft
  * cancelled mid-turn, an error nobody asked for.
  *
- * Held two and a half times as long as an ordinary toast. These arrive while
- * the user is mid-action and looking somewhere else entirely, often alongside a
- * whole view being swapped out from under them, so the reading clock does not
- * start until they have noticed the screen changed at all.
+ * Its own reading time plus a flat surcharge for noticing: see
+ * `ANNOUNCE_EXTRA_MS` above.
  */
 export function announce(message, variant = "default") {
-  showToast(message, variant, ANNOUNCE_MS);
+  showToast(message, variant, readingTimeMs(message) + ANNOUNCE_EXTRA_MS);
 }
 
 export function askConfirm({ title = "Confirm", message = "Are you sure?", okText = "OK", cancelText = "Cancel" }) {
