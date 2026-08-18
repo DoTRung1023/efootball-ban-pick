@@ -25,8 +25,19 @@ paths:
   The 13px of head-room above the rail is load-bearing: stage labels hang below their
   dots, so the dots need pushing down to sit optically centred. On the lobby it comes from
   the base `.stage-progress-container` padding — which that view's own `--lobby` modifier,
-  declared earlier in the file, never manages to override — so the draft asks for it
-  explicitly on the bar.
+  declared earlier in the file, never manages to override — applied to a wrapper around
+  the bar. The draft has no wrapper, so it asks for the same 13px on the bar itself, as a
+  **`margin`**.
+
+  **Never as padding.** `.stage-progress-line` is absolutely positioned against the bar's
+  *padding box*, so padding-top moves the dots down and leaves the connector behind: 13px
+  of padding put the line 14px above the centres it runs through. A margin moves the box
+  and the line with it. Both rails measure 0px offset at every dot, active one included.
+
+  `.stage-progress-line`'s own `top: 20px` is the dot's arithmetic — 4px of dot padding
+  above a 34px circle (30px plus 2px of border a side) puts the centre at 21, and a 2px
+  line centred there starts at 20. It was 19px, which rested the line's *bottom edge* on
+  the centre rather than its middle. Re-derive it if the circle or the padding changes.
 
   Below **480 px** the container wraps: left + right on row 1, the bar full width on
   row 2 — see the responsive ladder in the room CSS rule. Side by side the three parts

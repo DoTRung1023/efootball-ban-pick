@@ -297,9 +297,15 @@
   box-shadow: none;
 }
 
+/* 20px is the dot's own arithmetic: `.stage-progress-dot` has 4px of padding
+   above a 34px circle (30px + 2px of border each side), so the centre sits at
+   4 + 17 = 21 — and a 2px line centred on 21 starts at 20. At 19px its *bottom
+   edge* rested on the circle centre instead of its middle, which is a 1px
+   misalignment across the full width of the rail. Re-derive this if the circle
+   size or the dot padding changes. */
 .stage-progress-line {
   position: absolute;
-  top: 19px;
+  top: 20px;
   left: 15%;
   right: 15%;
   height: 2px;
@@ -721,15 +727,22 @@
 /* The 13px of head-room is the lobby's, and it is not decorative: the stage
    labels hang below their dots, so the rail needs the dots pushed down to sit
    optically centred in the row. On the lobby it comes from the base
-   `.stage-progress-container` padding, which the `--lobby` modifier's own
-   `padding` (declared earlier in this file) never manages to override; the draft
-   sets its container padding outright, so it has to be asked for here. */
+   `.stage-progress-container` padding — which the `--lobby` modifier's own
+   `padding`, declared earlier in this file, never manages to override — applied
+   to a wrapper around the bar. The draft has no such wrapper, so it asks here.
+
+   **`margin`, not `padding`, and that is the whole point.** `.stage-progress-line`
+   is absolutely positioned against this element's *padding box*, so padding-top
+   pushes the dots down and leaves the line where it was: 13px of padding put the
+   connector 14px above the dot centres it is supposed to run through. A margin
+   moves the box itself, and the line goes with it. */
 #viewDraft > .stage-progress-container .stage-progress-bar {
   flex: 1;
   width: min(520px, 100%);
   min-width: 280px;
   max-width: 520px;
-  padding: 13px 14px 0;
+  margin-top: 13px;
+  padding: 0 14px;
 }
 
 /* Holds the way out, exactly as `.lobby-leave` does on the lobby screen. It used

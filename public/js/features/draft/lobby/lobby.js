@@ -75,7 +75,6 @@ import {
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
-import { getJson } from '@/features/draft/api.js';
 
 import { renderAllowanceList } from './allowanceView.js';
 import { renderLobbyChat, sendLobbyChatMessage } from './chat.js';
@@ -301,25 +300,11 @@ function renderLobby() {
   cb.updateStageTabs?.();
 }
 
-const pluralize = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
-
-/** "24 players · 6 plans" under the host's name. */
-async function loadLobbyStats(userId) {
-  const el = document.getElementById("lobbyHostStats");
-  if (!userId || !el) return;
-
-  const [squad, plans] = await Promise.all([
-    getJson(`/api/my-players?userId=${encodeURIComponent(userId)}`),
-    getJson(`/api/game-plans?userId=${encodeURIComponent(userId)}`),
-  ]);
-
-  // Both endpoints wrap their rows — { players: [...] } and { plans: [...] }.
-  const playerCount = Array.isArray(squad.players) ? squad.players.length : 0;
-  const planCount = Array.isArray(plans.plans) ? plans.plans.length : 0;
-
-  el.innerHTML =
-    `${pluralize(playerCount, "player")}<span class="ls-dot"> · </span>${pluralize(planCount, "plan")}`;
-}
+/* The host's card prints the name and the connection dot, and nothing else. It
+   used to carry "34 players · 4 plans" under the name, which cost two API calls
+   on every lobby load to tell the host the size of their own collection — on the
+   screen where they are configuring bans, about a squad they cannot change from
+   here. The guest's card never had it, so the two cards now match as well. */
 
 export function initLobby() {
   const q = parseQuery();
@@ -391,7 +376,6 @@ export function initLobby() {
     renderLobby();
   }
 
-  if (user?.id) void loadLobbyStats(user.id);
 
   void registerAndPollPresence();
 
