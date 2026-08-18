@@ -151,6 +151,18 @@
   text-align: inherit;
 }
 
+/* Squad size under the name. `is-short` is the only red in this band: a squad
+   that cannot field a draft is the one thing here that blocks START. */
+.ls-squad {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+}
+.ls-squad.is-short {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .ls-conn {
   font-size: 12px;
   font-weight: 600;
@@ -237,6 +249,10 @@
   color: var(--text-dim);
   text-transform: uppercase;
 }
+
+/* A start that cannot happen — the squads are short, or the ban count is. */
+.ls-waiting.is-blocked { color: var(--danger); }
+.ls-waiting.is-blocked .ls-pulse { background: var(--danger); }
 
 .ls-pulse {
   width: 7px;

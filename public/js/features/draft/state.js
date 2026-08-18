@@ -240,6 +240,10 @@ const participantFromSnapshot = (p) => ({
   username: p.username,
   lastSeenAt: Number(p.lastSeenAt) || 0,
   hidden: Boolean(p.hidden),
+  /* Squad size, or null for a seat with no account behind it. The lobby prints
+     it and the START gate reads it — and, like `lastSeenAt` above, it is dropped
+     unless this whitelist names it. */
+  playerCount: p.playerCount == null ? null : Number(p.playerCount),
 });
 
 /** Merge server-reported host/guest/config/chat into local room. */
@@ -287,6 +291,9 @@ export function applyPresenceSnapshot(sr) {
   room.newMatch = sr.newMatch?.by === "host" || sr.newMatch?.by === "guest"
     ? { by: sr.newMatch.by }
     : null;
+  /* The ban ceiling both squads can absorb, computed server-side so the lobby
+     needs no copy of the arithmetic. Null while the sizes are unknown. */
+  room.maxBanCountPerSide = sr.maxBanCountPerSide == null ? null : Number(sr.maxBanCountPerSide);
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);

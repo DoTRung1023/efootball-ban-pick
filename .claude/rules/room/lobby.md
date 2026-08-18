@@ -79,6 +79,66 @@ Layout:
   is blocked) on the left, `.lobby-actions` on the right. `.lobby-actions` carries
   `margin-left: auto` so the button stays right when the status is hidden.
 
+## Squad size gates START
+
+A draft deals a full squad to each side, so the lobby refuses to start one it
+cannot finish. Two conditions, and they are the same arithmetic seen twice:
+
+- every seat needs at least `PICK_COUNT_PER_SIDE` (23) players, and
+- `banCountPerSide` may not exceed `smaller squad − 23`, because you pick out of
+  your **own** squad and your opponent bans out of it.
+
+**The rule lives on the server** (`squadStartProblem` / `maxBansForSquads` in
+`rooms/config.js`) and is enforced in `POST /:code/start`, which re-counts both
+squads at that moment — a squad can change in another tab while its owner sits in
+the lobby, so the lobby's numbers are for display and the start-time count is the
+one that decides.
+
+The lobby holds **no copy of that arithmetic**. The snapshot carries
+`maxBanCountPerSide`, already computed, plus a `playerCount` per participant;
+`renderLobby` only compares a count against `FIXED_PICKS_PER_SIDE` — which it has
+to print anyway — and reads the ceiling off the room. What it does with them:
+
+- **`#lobbyWaiting` is the announcement**, and the only one. It sits in the CTA
+  bar beside the button it is explaining, and turns red (`.ls-waiting.is-blocked`,
+  dot included) whenever START cannot run. It began as a full-width red banner
+  between the band and the settings; that was one warning too many next to a
+  status line already saying the same thing, and the status line is where a
+  reader looks for the reason a button is dead.
+  - **Worded from where the reader sits**: `You have 10 of 23 players` to the one
+    who has to fix it, `Minh has 10 of 23 players` — by name — to the one waiting,
+    `Both squads need 23 players` when neither can field a draft. It read
+    "Guest needs 23 players" to *the guest* before that.
+  - It is 12 px uppercase mono in a bar it shares with the button, so **keep new
+    strings short**; the banner's two-sentence copy does not fit here.
+  - Red is spent only on a blocked start. The other things this pill says are
+    ordinary waiting, and colouring those would spend the signal.
+- `#lobbyHostSquad` / `#lobbyGuestSquad` (`.ls-squad`) print "35 players", or
+  "10 of 23 players" with `.is-short` when the squad cannot field a draft. **The
+  only red in the matchup band**, because it is the only thing there that blocks
+  START.
+- `#banCountPlus` disables at the ceiling and `_stepBans` clamps to it.
+- `#banCountCapHint` reads "max 11 with these squads", and only when there is a
+  ceiling to state (`maxBanCountPerSide >= 0`). It is **not** the old
+  `#banCountHint`, which restated the number above it; this number comes from the
+  squads and appears nowhere else. Below zero the squad line already says it.
+- START is disabled and `#lobbyWaiting` carries the reason. The pill's
+  `hidden = bothReady` had to become `bothReady && !squadBlockReason`, or the
+  host reads "Opponent ready" beside a dead button.
+
+**The counts refresh themselves, or the announcement would be a lie.** Squads are
+counted when a seat is claimed and again at START, but a player fixing a short
+squad does it in *another tab* — nothing about that reaches the room. So a lobby
+heartbeat also tops the counts up, throttled to once every `RECHECK_MS` (10 s)
+per room in `squads.js`. Measured: a guest going 10 → 23 in the database cleared
+at t+12 s with no rejoin. Without it the banner would tell people to do something
+that changes nothing they can see.
+
+**An anonymous seat counts as unknown, not zero** — `null` playerCount, skipped by
+the rule. There is no account behind it and so no squad, and the draft falls back
+to a demo pool; counting it as 0 would stop every room in `draft-testing` from
+ever starting.
+
 ## Matchup band (`.lobby-summary`)
 
 Three columns: `.ls-player--host` | `.ls-center` | `.ls-player--guest`. Each `.ls-player`

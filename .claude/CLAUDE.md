@@ -127,6 +127,11 @@ where there is no shared module to extract into:
   must escape the clamp — both copies test for it before the `|| DEFAULT`, which would
   otherwise read it as "absent". The sentinel itself is `UNLIMITED_DURATION_SEC`, declared
   in both files
+- the full-squad size — `PICK_COUNT_PER_SIDE` in `src/features/rooms/config.js`
+  and `FIXED_PICKS_PER_SIDE` in `public/js/features/draft/constants.js`. Both are
+  `23`, and it is now also the minimum squad a room will start with. The **rule**
+  built on it is not duplicated: the server publishes `maxBanCountPerSide` on the
+  room snapshot so the lobby caps its stepper without re-deriving anything
 - `DEFAULT_FORMATION` (`"4-3-3"`) **and the formation whitelist** — `ALLOWED_FORMATIONS`
   in `src/features/gamePlans/routes.js` against `FORMATION_ROWS` in
   `public/js/shared/players/formations.js`. There is deliberately **no third copy** in

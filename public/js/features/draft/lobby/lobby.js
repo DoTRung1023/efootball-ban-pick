@@ -136,6 +136,28 @@ function bindUnlimitedToggle(which) {
   });
 }
 
+/**
+ * The "N players" line under a name in the matchup band.
+ *
+ * Hidden for a seat with no account behind it — there is no squad to report,
+ * and a blank line is quieter than "unknown". A squad below a full
+ * FIXED_PICKS_PER_SIDE prints as a fraction, because the number that matters
+ * there is how far short it falls.
+ */
+function paintSquadLine(id, size) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (size == null) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  const short = size < FIXED_PICKS_PER_SIDE;
+  el.hidden = false;
+  el.textContent = short ? `${size} of ${FIXED_PICKS_PER_SIDE} players` : `${size} players`;
+  el.classList.toggle("is-short", short);
+}
+
 function renderLobby() {
   const room = state.room;
   const isHost = state.mySide === "host";
@@ -180,15 +202,64 @@ function renderLobby() {
     guestStatusEl.classList.toggle("player-slot-status--ok", Boolean(room.guest) && guestHere);
   }
 
+  /* What the two squads allow. `maxBanCountPerSide` is computed by the server
+     (`maxBansForSquads` in rooms/config.js) and published on the snapshot, so
+     this file keeps no copy of that arithmetic — the only comparison here is
+     against FIXED_PICKS_PER_SIDE, which the squad lines have to print anyway.
+     A null count is a seat with no account behind it: nothing to check. */
+  const squadSizes = {
+    host: room.host?.playerCount ?? null,
+    guest: room.guest?.playerCount ?? null,
+  };
+  const maxBans = room.maxBanCountPerSide ?? null;
+  const banCountNow = Number(room.config?.banCountPerSide ?? 0);
+
+  paintSquadLine("lobbyHostSquad", squadSizes.host);
+  paintSquadLine("lobbyGuestSquad", squadSizes.guest);
+
+  const shortSides = ["host", "guest"].filter(
+    (side) => squadSizes[side] != null && squadSizes[side] < FIXED_PICKS_PER_SIDE,
+  );
+  const shortSide = shortSides[0];
+  /* The one place a blocked start is announced, in the CTA bar beside the button
+     it blocks. Uppercase 12px mono, so it has to stay short — and worded from
+     where the reader sits, because "guest needs 23 players" read as a note about
+     somebody else to the very person who had to go and fix it. */
+  const squadBlockReason = shortSides.length === 2
+    ? `Both squads need ${FIXED_PICKS_PER_SIDE} players`
+    : shortSide
+      ? shortSide === state.mySide
+        ? `You have ${squadSizes[shortSide]} of ${FIXED_PICKS_PER_SIDE} players`
+        : `${room[shortSide]?.username || shortSide} has ${squadSizes[shortSide]} of ${FIXED_PICKS_PER_SIDE} players`
+      : maxBans != null && banCountNow > maxBans
+        ? `Too many bans — max ${maxBans} per side`
+        : "";
+
+  const capHintEl = document.getElementById("banCountCapHint");
+  if (capHintEl) {
+    /* Only when there is a real ceiling to state. Below zero a squad is simply
+       too small, which the line under the name already says. */
+    const showCap = maxBans != null && maxBans >= 0;
+    capHintEl.hidden = !showCap;
+    if (showCap) capHintEl.textContent = `max ${maxBans} with these squads`;
+  }
+
   // Waiting pill in center
   const waitingEl = document.getElementById("lobbyWaiting");
   const waitingTextEl = document.getElementById("lobbyWaitingText");
   if (waitingEl) {
     const bothReady = room.ready?.host && room.ready?.guest;
-    waitingEl.hidden = bothReady;
+    /* A squad problem outlives readiness, so the pill has to stay up to say so —
+       otherwise the host reads "Opponent ready" beside a dead START button. */
+    waitingEl.hidden = bothReady && !squadBlockReason;
+    /* Red is reserved for a reason START cannot run: the other states this pill
+       shows are ordinary waiting, and colouring those would spend the signal. */
+    waitingEl.classList.toggle("is-blocked", Boolean(squadBlockReason));
     if (waitingTextEl) {
       if (!room.guest) {
         waitingTextEl.textContent = "Waiting for opponent";
+      } else if (squadBlockReason) {
+        waitingTextEl.textContent = squadBlockReason;
       } else if (isHost) {
         waitingTextEl.textContent = room.ready?.guest ? "Opponent ready" : "Waiting for opponent ready";
       } else {
@@ -217,6 +288,8 @@ function renderLobby() {
   const banCountValEl = document.getElementById("banCountVal");
   const banCount = Number(cfg.banCountPerSide ?? 0);
   if (banCountValEl) banCountValEl.textContent = String(banCount);
+  const banPlusEl = document.getElementById("banCountPlus");
+  if (banPlusEl) banPlusEl.disabled = maxBans != null && banCount >= maxBans;
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   // The cards are always visible; selection is the only state they carry. Their
   // disabled look comes from the .is-readonly rule on the settings panel.
@@ -246,14 +319,14 @@ function renderLobby() {
 
     // The reason it is disabled is spelled out by #lobbyWaiting beside it in
     // .lobby-cta-bar, so the label stays a label.
-    const canStart = room.guest && guestReady;
+    const canStart = room.guest && guestReady && !squadBlockReason;
     startBtn.disabled = !canStart;
     startBtn.textContent = "START DRAFT";
     startBtn.title = canStart
       ? ""
       : !room.guest
         ? "Waiting for an opponent to join"
-        : "Waiting for the opponent to be ready";
+        : squadBlockReason || "Waiting for the opponent to be ready";
     startBtn.classList.toggle("btn--primary", canStart);
     startBtn.classList.toggle("btn--ghost", !canStart);
     if (kickGuestBtn) {
@@ -468,7 +541,10 @@ function bindDraftSettings(user) {
     if (state.mySide !== "host") return;
     const bansEl = document.getElementById("lobbyBansInput");
     if (!bansEl) return;
-    const next = Math.max(0, Math.floor(Number(bansEl.value) || 0) + delta);
+    /* The ceiling is the server's, off the snapshot; unknown squads impose none. */
+    const cap = state.room?.maxBanCountPerSide;
+    let next = Math.max(0, Math.floor(Number(bansEl.value) || 0) + delta);
+    if (cap != null) next = Math.min(next, Math.max(0, cap));
     bansEl.value = String(next);
     state.room.config.banCountPerSide = next;
     renderLobby();

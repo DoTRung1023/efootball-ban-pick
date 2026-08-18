@@ -1,7 +1,10 @@
 import { Router } from "express";
+import { asyncHandler } from "#lib/http.js";
+import { maybeRefreshSquadSizes, refreshSquadSizes } from "./squads.js";
 import {
   ALLOWANCE_FIELDS,
   PICK_COUNT_PER_SIDE,
+  squadStartProblem,
   normalizeBanDurationSec,
   normalizeCapForField,
   normalizePickDurationSec,
@@ -94,7 +97,7 @@ const usernameOf = (entry, side) => entry[side]?.username || "User";
 // ── Presence ─────────────────────────────────────────────────
 
 /** POST body: { role: "host"|"guest", userId?, username?, stagedBans?, hidden? } */
-router.post("/:code/presence", withRoomCode, (req, res) => {
+router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
   const { role, userId, username, stagedBans, hidden } = req.body || {};
   if (!["host", "guest"].includes(role)) {
     return res.status(400).json({ error: "role must be host or guest." });
@@ -135,12 +138,20 @@ router.post("/:code/presence", withRoomCode, (req, res) => {
 
   if (result.changed) {
     entry.updatedAt = Date.now();
+    /* Awaited, but only on the beat that claims a seat — once per join, not on
+       the 500 ms heartbeat behind it. Fired and forgotten, the lobby rendered a
+       seat with no squad line until the count landed a poll or two later. */
+    await refreshSquadSizes(entry);
+  } else if (entry.status === ROOM_STATUS.LOBBY) {
+    /* Not awaited and heavily throttled: this only has to notice a squad that
+       changed somewhere else, and the lobby is the only phase it can matter in. */
+    maybeRefreshSquadSizes(entry);
   }
 
   syncStagedBans(entry, role, stagedBans);
   roomPresence.set(req.roomCode, entry);
   sendRoom(res, entry);
-});
+}));
 
 /** Host re-entering a closed room reopens it under the same code. */
 function reopenRoom(entry) {
@@ -160,6 +171,10 @@ function claimHostSeat(entry, participant) {
 
   const changed = activeHostId !== participant.id;
   if (changed) pushSystemChat(entry, `${participant.username} joined as host.`);
+  /* The heartbeat rebuilds this object every 500 ms, so anything cached on the
+     seat rather than sent with the beat has to be carried across — the squad
+     size was being wiped a beat after it was looked up. */
+  participant.playerCount = changed ? null : (entry.host?.playerCount ?? null);
   entry.host = participant;
   return { changed };
 }
@@ -171,6 +186,7 @@ function claimGuestSeat(entry, participant) {
   }
 
   const changed = activeGuestId !== participant.id;
+  participant.playerCount = changed ? null : (entry.guest?.playerCount ?? null);
   if (changed) {
     pushSystemChat(entry, `${participant.username} joined the room.`);
     entry.ready.guest = false;
@@ -339,7 +355,7 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
 // ── Draft lifecycle ──────────────────────────────────────────
 
 /** POST body: { requesterId } — host starts the draft once the guest is ready. */
-router.post("/:code/start", withRoomCode, requireRequesterId, (req, res) => {
+router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async (req, res) => {
   const entry = ensureRoomEntry(req.roomCode);
 
   if (resolveSide(entry, req.requesterId) !== "host") {
@@ -351,6 +367,15 @@ router.post("/:code/start", withRoomCode, requireRequesterId, (req, res) => {
   if (!entry.ready?.guest) {
     return res.status(409).json({ error: "Guest must be ready before starting." });
   }
+
+  /* Counted here rather than trusted from the lobby: a squad can change in
+     another tab while its owner waits, and this is the moment it has to be
+     right. Anonymous seats count as unknown and are skipped — see squads.js. */
+  const problem = squadStartProblem(
+    await refreshSquadSizes(entry),
+    entry.config?.banCountPerSide,
+  );
+  if (problem) return res.status(409).json({ error: problem, room: serializeRoomEntry(entry) });
 
   // With zero bans configured the draft opens straight into the pick phase.
   const startsWithBans = asCount(entry.config?.banCountPerSide) > 0;
@@ -369,7 +394,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, (req, res) => {
   entry.bansConfirmed = { host: false, guest: false };
   entry.updatedAt = Date.now();
   sendRoom(res, entry);
-});
+}));
 
 /**
  * POST body: { requesterId, player }

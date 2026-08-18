@@ -47,6 +47,9 @@ Supporting modules:
   admin session tokens. It lives with the one feature that uses it rather than in
   `lib/http.js`, where the shared-key gate it replaced used to sit. See
   `admin-dashboard.md`.
+- `features/rooms/squads.js` — the one place a room reads a squad from the
+  database. `store.js` is pure in-memory state and stays that way. An anonymous
+  seat answers `null`, not 0: no account, no squad, nothing to check.
 - `features/admin/scrapeRunner.js` — spawns, tracks and stops the ingestion
   scripts as child processes. The only place in the server that starts one.
 - `features/admin/bootstrap.js` — `ensureConsoleAdmin()`, called from `server.js`

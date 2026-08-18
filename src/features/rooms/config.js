@@ -48,6 +48,58 @@ const REVEAL_MODES = new Set([REVEAL_MODE_INSTANT, REVEAL_MODE_BLUR, REVEAL_MODE
 /** Picks are fixed at a full squad. */
 export const PICK_COUNT_PER_SIDE = 23;
 
+/** A seat with no account behind it has no squad to count; `null` says so. */
+const isUnknownSize = (size) => size == null;
+
+/**
+ * The most bans per side these two squads can absorb, or `null` when neither
+ * size is known.
+ *
+ * You pick from your **own** squad and your opponent bans out of it, so a side
+ * ends the ban phase with `size - banCountPerSide` players and still owes a full
+ * `PICK_COUNT_PER_SIDE`. The binding constraint is therefore the smaller squad,
+ * and the answer is the same number for both sides. Negative means the smaller
+ * squad cannot field a draft at all — the caller reports that as its own
+ * problem rather than as a ban count.
+ *
+ * Published on the room snapshot as `maxBanCountPerSide` so the lobby can cap
+ * its stepper without a second copy of this arithmetic.
+ */
+export function maxBansForSquads(sizes) {
+  const known = Object.values(sizes || {}).filter((size) => !isUnknownSize(size));
+  if (!known.length) return null;
+  return Math.min(...known) - PICK_COUNT_PER_SIDE;
+}
+
+const ROLE_LABEL = { host: "Host", guest: "Guest" };
+
+/**
+ * Why a draft cannot start with these squad sizes and this ban count, or `""`.
+ *
+ * Checked at START rather than on every config write: a squad can grow or shrink
+ * in another tab while its owner sits in the lobby, so the only count that can
+ * be trusted is the one taken at the moment the draft begins.
+ */
+export function squadStartProblem(sizes, banCountPerSide) {
+  for (const [role, size] of Object.entries(sizes || {})) {
+    if (isUnknownSize(size)) continue;
+    if (size < PICK_COUNT_PER_SIDE) {
+      return `${ROLE_LABEL[role] || role} has ${size} player${size === 1 ? "" : "s"}.`
+        + ` A draft needs a full squad of ${PICK_COUNT_PER_SIDE} on both sides.`;
+    }
+  }
+
+  const allowed = maxBansForSquads(sizes);
+  if (allowed == null) return "";
+
+  const bans = Math.max(0, Math.floor(Number(banCountPerSide) || 0));
+  if (bans > allowed) {
+    return `${bans} ban${bans === 1 ? "" : "s"} per side would leave fewer than ${PICK_COUNT_PER_SIDE} players to pick from.`
+      + ` The smaller squad allows at most ${allowed} ban${allowed === 1 ? "" : "s"} per side.`;
+  }
+  return "";
+}
+
 export const POSITION_OPTIONS = new Set([
   "GK", "CB", "LB", "RB", "DMF", "CMF", "LMF", "RMF", "AMF", "LWF", "RWF", "SS", "CF",
 ]);

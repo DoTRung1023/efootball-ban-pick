@@ -356,3 +356,17 @@ Two placement rules worth keeping:
   so a sliver of "Welcome back" could be read before the page was replaced — a second of
   dead time to half-show a message. The message now arrives whole on the other side and
   the redirect is immediate.
+
+## The participant object is rebuilt on every heartbeat
+
+`claimHostSeat` / `claimGuestSeat` assign `entry.host = participant` on **every**
+presence POST — twice a second per client — from a fresh object built out of the
+request body. Anything cached on a seat rather than sent with the beat is
+therefore wiped a beat after it is written, and `playerCount` was: looked up on
+join, gone 500 ms later, so the lobby never rendered a squad line. Both claim
+functions now carry it across when the id has not changed.
+
+The lookup itself is **awaited on the claim beat only** (`result.changed`), not on
+the heartbeat behind it — one query per join. Fired and forgotten instead, the
+seat rendered with no squad line until the count landed a poll or two later,
+which a screenshot caught and a DOM assertion did not.

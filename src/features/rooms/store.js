@@ -11,6 +11,7 @@
 import {
   ROOM_LIST_QUIET_MS,
   createDefaultRoomConfig,
+  maxBansForSquads,
   normalizeRoomConfig,
 } from "./config.js";
 
@@ -195,7 +196,15 @@ export function pushUserChat(entry, { senderId, username, message }) {
 }
 
 const serializeParticipant = (p) =>
-  p ? { id: p.id, username: p.username, lastSeenAt: p.lastSeenAt, hidden: Boolean(p.hidden) } : null;
+  p ? {
+    id: p.id,
+    username: p.username,
+    lastSeenAt: p.lastSeenAt,
+    hidden: Boolean(p.hidden),
+    /* Squad size, or null for a seat with no account behind it. Written by
+       `refreshSquadSizes` when the seat changes hands and again at START. */
+    playerCount: p.playerCount ?? null,
+  } : null;
 
 export function serializeRoomEntry(entry) {
   return {
@@ -212,6 +221,12 @@ export function serializeRoomEntry(entry) {
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
     bannedPlayerIds: Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : [],
     config: entry.config,
+    /* The cap the lobby stepper obeys, derived here so the client needs no copy
+       of the arithmetic. Null while both squad sizes are unknown. */
+    maxBanCountPerSide: maxBansForSquads({
+      host: entry.host?.playerCount ?? null,
+      guest: entry.guest?.playerCount ?? null,
+    }),
     ready: entry.ready,
     matchReady: entry.matchReady,
     matchStarted: entry.matchStarted,
