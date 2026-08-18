@@ -38,11 +38,15 @@ too, or a reload on it 404s.
 Supporting modules:
 
 - `lib/db.js` — mysql2 connection pool, exported as default.
-- `lib/http.js` — `asyncHandler`, `requireAdminKey`, `requireUserIdQuery`,
+- `lib/http.js` — `asyncHandler`, `requireUserIdQuery`,
   `duplicateUserField`, `describeError`, `errorHandler`, `notFoundHandler`.
   **Log with `describeError(err)`, never bare `err.message`** — mysql2 connection
   failures have an empty message and put the cause in `err.code`, so `err.message`
   alone prints nothing and hides outages like `ECONNREFUSED`.
+- `features/admin/adminSession.js` — the console gate: signs, verifies and throttles
+  admin session tokens. It lives with the one feature that uses it rather than in
+  `lib/http.js`, where the shared-key gate it replaced used to sit. See
+  `admin-dashboard.md`.
 - `lib/paths.js` — `PUBLIC_DIR` (`ROOT_DIR` backs it and is module-private).
 - `lib/cli.js` — `isMainModule(import.meta.url)`, the guard that lets a file be both a
   script and an importable module.

@@ -1,42 +1,76 @@
 /* ============================================================
-   OVERVIEW · SCRAPES · PLAYERS · USERS · ROOMS
+   OVERVIEW · ROOMS · USERS · CATALOG
 
-   Each tab loads its data on activation rather than up front; only the
-   OVERVIEW panels are fetched at boot.
+   One registry drives everything: which panel is shown, what each tab fetches
+   on activation, and how often — if at all — it refetches while it is the tab
+   on screen. A tab with no `refreshMs` is loaded once per activation.
+
+   The URL hash follows the active tab, so a reload lands back where you were.
    ============================================================ */
 
-import { loadCatalog } from "./catalogTable.js";
-import { loadRoomsFull } from "./roomPanels.js";
-import { loadScrapesFull } from "./scrapePanels.js";
-import { loadUsers } from "./userPanels.js";
+import { loadCatalog } from "./catalogTab.js";
+import { loadOverview } from "./overviewTab.js";
+import { loadRooms } from "./roomsTab.js";
+import { loadUsers } from "./usersTab.js";
 
-const TABS = ["overview", "scrapes", "players", "users", "rooms"];
+/* Rooms are in-memory and cheap to read, so they poll fast. The overview costs
+   six COUNT queries, so it does not. */
+const TABS = {
+  overview: { load: loadOverview, refreshMs: 60000 },
+  rooms:    { load: loadRooms,    refreshMs: 10000 },
+  users:    { load: loadUsers },
+  catalog:  { load: loadCatalog },
+};
 
-let activeTab = "overview";
+const DEFAULT_TAB = "overview";
+const TICK_MS = 5000;
 
-/** The auto-refresh loop only touches whichever tab is on screen. */
-export function getActiveTab() {
-  return activeTab;
+let activeTab = DEFAULT_TAB;
+let loadedAt = 0;
+
+/** Marks the tab button and shows only that tab's panel. */
+function paint(tab) {
+  document.querySelectorAll(".admin-tab").forEach((btn) => {
+    btn.classList.toggle("is-active", btn.dataset.tab === tab);
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== tab;
+  });
+}
+
+function show(tab) {
+  activeTab = tab;
+  loadedAt = Date.now();
+  paint(tab);
+  TABS[tab].load();
 }
 
 function switchTab(tab) {
-  if (!TABS.includes(tab)) return;
-  activeTab = tab;
-  TABS.forEach((t) => {
-    document.querySelector(`.admin-tab[data-tab="${t}"]`).classList.toggle("is-active", t === tab);
-    document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1)).hidden = t !== tab;
-  });
-  if (tab === "scrapes") loadScrapesFull();
-  if (tab === "players") loadCatalog();
-  if (tab === "users") loadUsers();
-  if (tab === "rooms") loadRoomsFull();
+  if (!TABS[tab] || tab === activeTab) return;
+  history.replaceState(null, "", `#${tab}`);
+  show(tab);
 }
 
-export function initAdminTabs() {
+/** Refetches the visible tab on its own cadence, and never in a background tab. */
+function startRefreshLoop() {
+  setInterval(() => {
+    const { refreshMs, load } = TABS[activeTab];
+    if (document.hidden || !refreshMs) return;
+    if (Date.now() - loadedAt < refreshMs) return;
+    loadedAt = Date.now();
+    load();
+  }, TICK_MS);
+}
+
+/** Called once the console session is open — shows and loads the first tab. */
+export function startTabs() {
+  const fromHash = location.hash.slice(1);
+  show(TABS[fromHash] ? fromHash : DEFAULT_TAB);
+  startRefreshLoop();
+}
+
+export function initTabs() {
   document.querySelectorAll(".admin-tab").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
-  });
-  document.querySelectorAll("[data-tab-switch]").forEach((btn) => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.tabSwitch));
   });
 }

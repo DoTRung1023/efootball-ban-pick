@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Resolves the @/ alias natively (no bundler). Must precede any module script. -->
+    <script type="importmap">
+      { "imports": { "@/": "/js/" } }
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Console · eFOOTBALL Ban &amp; Pick</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/shared/tokens.css" />
+    <link rel="stylesheet" href="/css/features/admin/admin.css" />
+    <link rel="stylesheet" href="/css/shared/controls.css" />
+  </head>
+  <body>
+
+    <!-- Step-up gate: you are already signed in, this re-confirms it is you. -->
+    <div id="gateOverlay" class="gate-overlay">
+      <div class="gate-card">
+        <div class="gate-logo">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK · CONSOLE</span>
+        </div>
+        <p class="gate-identity" id="gateIdentity"></p>
+        <form id="gateForm">
+          <input id="gatePassword" type="password" class="gate-input" placeholder="Confirm your password" autocomplete="current-password" />
+          <button type="submit" id="gateSubmit" class="btn btn--primary gate-btn">UNLOCK CONSOLE</button>
+        </form>
+        <p id="gateError" class="gate-error"></p>
+        <a href="/" class="gate-back">← Back to the app</a>
+      </div>
+    </div>
+
+    <!-- Dashboard (hidden until the console session is open) -->
+    <div id="dashboard" class="dashboard" hidden>
+
+      <nav class="admin-nav">
+        <div class="admin-nav-brand">
+          <img src="/logo/logo.png" alt="logo" class="admin-nav-logo" />
+          <div>
+            <span class="brand-game">eFOOTBALL</span>
+            <span class="brand-sub">CONSOLE</span>
+          </div>
+        </div>
+        <div class="admin-nav-tabs">
+          <button class="admin-tab is-active" data-tab="overview">OVERVIEW</button>
+          <button class="admin-tab" data-tab="rooms">ROOMS</button>
+          <button class="admin-tab" data-tab="users">USERS</button>
+          <button class="admin-tab" data-tab="catalog">CATALOG</button>
+        </div>
+        <div class="admin-nav-right">
+          <span class="admin-badge">
+            <span class="admin-dot"></span>
+            <span id="adminUser">ADMIN</span>
+          </span>
+          <button id="exitConsoleBtn" class="btn btn--ghost btn--sm">EXIT</button>
+        </div>
+      </nav>
+
+      <!-- ── OVERVIEW ────────────────────────────────────────── -->
+      <section class="tab-panel" data-panel="overview">
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">PLAYERS IN CATALOG</div>
+            <div id="statCatalog" class="stat-value">—</div>
+            <div id="statCatalogSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">REGISTERED USERS</div>
+            <div id="statUsers" class="stat-value">—</div>
+            <div id="statUsersSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">LIVE ROOMS</div>
+            <div id="statRooms" class="stat-value">—</div>
+            <div id="statRoomsSub" class="stat-sub"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">LAST SCRAPE</div>
+            <div id="statScrape" class="stat-value">—</div>
+            <div id="statScrapeSub" class="stat-sub"></div>
+          </div>
+        </div>
+
+        <div class="panel-grid-2">
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">CATALOG HEALTH</span>
+              <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
+            </div>
+            <div id="dataQualityBody" class="dq-list">
+              <div class="dq-row dq-empty">Loading…</div>
+            </div>
+            <div class="panel-footer-hint">
+              Run <code>npm run scrape:missing</code> to refetch detail pages for players with empty fields.
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">SCRAPE RUNS</span>
+            </div>
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>RUN</th>
+                    <th>MODE</th>
+                    <th>PLAYERS</th>
+                    <th>DURATION</th>
+                    <th>STARTED</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="scrapeLogsBody">
+                  <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ROOMS ───────────────────────────────────────────── -->
+      <section class="tab-panel" data-panel="rooms" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">LIVE ROOMS <span id="roomsCount" class="live-badge">0 LIVE</span></span>
+            <button id="refreshRooms" class="btn btn--ghost btn--sm">REFRESH</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>CODE</th>
+                  <th>HOST</th>
+                  <th>GUEST</th>
+                  <th>PHASE</th>
+                  <th>IDLE</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="roomsBody">
+                <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-footer-hint">
+            Rooms live in server memory — this list empties on a restart, and hides a room
+            that has been quiet for 90 seconds without ending it.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── USERS ───────────────────────────────────────────── -->
+      <section class="tab-panel" data-panel="users" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">USERS <span id="usersCount" class="live-badge">0</span></span>
+            <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>USER</th>
+                  <th>EMAIL</th>
+                  <th>SQUAD</th>
+                  <th>PLANS</th>
+                  <th>JOINED</th>
+                </tr>
+              </thead>
+              <tbody id="usersBody">
+                <tr><td colspan="5" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── CATALOG ─────────────────────────────────────────── -->
+      <section class="tab-panel" data-panel="catalog" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">PLAYER CATALOG</span>
+            <div class="panel-actions">
+              <input id="catalogSearch" type="text" class="search-input" placeholder="Find by name…" />
+              <button id="catalogSortBtn" class="btn btn--ghost btn--sm sort-btn">
+                <span id="catalogSortLabel">OVERALL MAX ↓</span>
+              </button>
+              <button id="exportCsvBtn" class="btn btn--ghost btn--sm">EXPORT CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table catalog-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>PLAYER</th>
+                  <th>POS</th>
+                  <th>OVR</th>
+                  <th>MAX</th>
+                  <th>CARD TYPE</th>
+                  <th>CLUB</th>
+                  <th>PESDB ID</th>
+                </tr>
+              </thead>
+              <tbody id="catalogBody">
+                <tr><td colspan="8" class="td-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <button id="catalogPrev" class="btn btn--ghost btn--sm" disabled>‹ PREV</button>
+            <span id="catalogPageInfo" class="page-info">—</span>
+            <button id="catalogNext" class="btn btn--ghost btn--sm">NEXT ›</button>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /dashboard -->
+
+    <script type="module" src="/js/pages/console.js"></script>
+  </body>
+</html>

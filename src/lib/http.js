@@ -10,16 +10,6 @@ export function asyncHandler(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-/** Admin gate for /api/admin/*. Falls back to a dev key when ADMIN_KEY is unset. */
-export function requireAdminKey(req, res, next) {
-  const key = req.headers["x-admin-key"] || req.query.adminKey;
-  const expected = process.env.ADMIN_KEY || "admin-dev";
-  if (!key || key !== expected) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-}
-
 /** Reads `userId` from the query string, or responds 400 and returns null. */
 export function requireUserIdQuery(req, res, extra = {}) {
   const userId = Number(req.query.userId);

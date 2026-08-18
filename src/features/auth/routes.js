@@ -40,7 +40,7 @@ router.post("/signin", asyncHandler(async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      "SELECT id, username, email, password FROM users WHERE username = ? OR email = ?",
+      "SELECT id, username, email, password, is_admin FROM users WHERE username = ? OR email = ?",
       [username.trim(), username.trim().toLowerCase()],
     );
 
@@ -54,7 +54,15 @@ router.post("/signin", asyncHandler(async (req, res) => {
       return res.status(401).json({ error: INVALID_CREDENTIALS });
     }
 
-    res.json({ id: user.id, username: user.username, email: user.email });
+    /* `isAdmin` rides along in the session so the account menu knows whether to
+       offer the console. It is display only — the console re-checks the column
+       and the password before it hands out a token. */
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      isAdmin: Boolean(user.is_admin),
+    });
   } catch (err) {
     console.error("signin error:", describeError(err));
     res.status(500).json({ error: GENERIC_ERROR });

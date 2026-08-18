@@ -18,12 +18,44 @@ export const summary = "resolution, path casing and named exports";
 const IMPORT_RE =
   /(?:^|\n)\s*import\s+(?:([\s\S]*?)\s+from\s*)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
 
+/**
+ * The URL paths `src/pages.js` serves a page for.
+ *
+ * A link to one of these is a route, not a file: nothing called `console`
+ * exists under `public/`, and `/console` is still a valid href. Reading the
+ * router keeps the two in step — a link to a page URL that was renamed or
+ * never existed still fails.
+ */
+function readPageRoutes(root) {
+  let src;
+  try {
+    src = readFileSync(join(root, "src", "pages.js"), "utf8");
+  } catch {
+    return []; // no router: every href is a file, as it was before
+  }
+  return [...src.matchAll(/["'](\/[^"']*)["']\s*:\s*["'][^"']+\.html["']/g)].map((m) => m[1]);
+}
+
+/** `/room/:code` matches `/room/ABCD`; every other segment is literal. */
+function matchesRoute(url, routes) {
+  const parts = url.split("/");
+  return routes.some((route) => {
+    const segments = route.split("/");
+    return (
+      segments.length === parts.length &&
+      segments.every((seg, i) => (seg.startsWith(":") ? parts[i] !== "" : seg === parts[i]))
+    );
+  });
+}
+
 export function run(ctx) {
   const { root, publicDir, jsFiles, resolveSpec, existsExact, collectExports } = ctx;
   const failures = [];
   const rel = (p) => relPath(root, p);
+  const pageRoutes = readPageRoutes(root);
   let importsChecked = 0;
   let htmlAssets = 0;
+  let pageLinks = 0;
 
   for (const file of jsFiles) {
     const src = readFileSync(file, "utf8");
@@ -75,6 +107,7 @@ export function run(ctx) {
     for (const m of src.matchAll(/(?:href|src)\s*=\s*["'](\/[^"']+)["']/g)) {
       const url = m[1].split("?")[0].split("#")[0];
       if (url.startsWith("//") || /^https?:/.test(url)) continue;
+      if (matchesRoute(url, pageRoutes)) { pageLinks++; continue; }
       htmlAssets++;
       if (!existsExact(join(publicDir, url))) {
         failures.push(`${html}: asset "${url}" is missing, or its casing differs from disk`);
@@ -100,6 +133,6 @@ export function run(ctx) {
 
   return {
     failures,
-    detail: `${importsChecked} imports, ${htmlAssets} html assets, ${jsFiles.length} modules`,
+    detail: `${importsChecked} imports, ${htmlAssets} html assets, ${pageLinks} page links, ${jsFiles.length} modules`,
   };
 }

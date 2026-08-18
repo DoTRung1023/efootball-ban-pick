@@ -16,6 +16,14 @@ export function initUserMenu(user) {
   if (dropUser) dropUser.textContent = user.username;
   if (dropMail) dropMail.textContent = user.email;
 
+  /* The console has no URL to memorise — this is how you reach it. Revealing
+     the link is cosmetic: /console re-checks `is_admin` and the password
+     server-side before it hands out a session. */
+  if (user.isAdmin) {
+    const adminGroup = document.getElementById("adminConsoleGroup");
+    if (adminGroup) adminGroup.hidden = false;
+  }
+
   trigger?.addEventListener("click", (e) => {
     e.stopPropagation();
     const open = menu.classList.toggle("open");

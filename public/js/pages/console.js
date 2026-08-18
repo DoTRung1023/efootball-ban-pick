@@ -1,7 +1,7 @@
 /* ============================================================
-   eFootball Ban & Pick — Admin dashboard entry
+   eFootball Ban & Pick — Admin console entry
    ============================================================ */
 
-import { initAdminApp } from '@/features/admin/index.js';
+import { initConsole } from '@/features/admin/index.js';
 
-initAdminApp();
+initConsole();

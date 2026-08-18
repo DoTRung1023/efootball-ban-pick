@@ -1,23 +1,85 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
-import { asyncHandler, describeError, requireAdminKey } from "#lib/http.js";
+import { asyncHandler, describeError } from "#lib/http.js";
 import { isActiveDraft, listActiveRooms, roomPhase } from "#features/rooms/index.js";
+import {
+  clearFailures,
+  lockoutSeconds,
+  mintAdminToken,
+  recordFailure,
+  requireAdmin,
+} from "./adminSession.js";
 
 const router = Router();
 
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 10;
 
-/** Admin key is required for every route in this router. */
-router.use(requireAdminKey);
-
-const readLimit = (raw) => Math.min(Number(raw) || DEFAULT_LIMIT, MAX_LIMIT);
+/** At least 1, at most MAX_LIMIT — a negative or NaN limit is a SQL error. */
+const readLimit = (raw) => {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, MAX_LIMIT) : DEFAULT_LIMIT;
+};
 
 /** Reports the underlying error to the client — these routes are admin-only. */
 function sendAdminError(res, err) {
   console.error("admin route error:", describeError(err));
   res.status(500).json({ error: describeError(err) });
 }
+
+// ── Opening a session ────────────────────────────────────────
+// The one route in this router that is not behind `requireAdmin`: it is what
+// hands out the token the others require.
+
+router.post("/session", asyncHandler(async (req, res) => {
+  const userId = Number(req.body?.userId);
+  const password = String(req.body?.password || "");
+  if (!userId || !password) {
+    return res.status(400).json({ error: "Sign in again to open the console." });
+  }
+
+  try {
+    const [[user]] = await db.query(
+      "SELECT id, username, password, is_admin FROM users WHERE id = ?",
+      [userId],
+    );
+
+    /* A non-admin is told the same thing as a missing account: whether a given
+       user id is an admin is not something an unauthenticated caller learns. */
+    if (!user || !user.is_admin) {
+      return res.status(403).json({ error: "This account does not have console access." });
+    }
+
+    const locked = lockoutSeconds(user.id);
+    if (locked) {
+      return res.status(429).json({
+        error: `Too many attempts. Try again in ${Math.ceil(locked / 60)} min.`,
+      });
+    }
+
+    if (!(await bcrypt.compare(password, user.password ?? ""))) {
+      recordFailure(user.id);
+      return res.status(401).json({ error: "Incorrect password." });
+    }
+
+    clearFailures(user.id);
+    res.json({ token: mintAdminToken(user), username: user.username });
+  } catch (err) {
+    console.error("admin session error:", describeError(err));
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+}));
+
+/** Every route below needs a valid token. */
+router.use(requireAdmin);
+
+/** Silent re-auth on load: proves the stored token is still good. */
+router.get("/me", (req, res) => {
+  res.json({ username: req.admin.username, expiresAt: req.admin.exp });
+});
+
+// ── Dashboard data ───────────────────────────────────────────
 
 router.get("/stats", asyncHandler(async (_req, res) => {
   try {
@@ -50,6 +112,7 @@ router.get("/stats", asyncHandler(async (_req, res) => {
   }
 }));
 
+/** `idleSec` is time since the room's last heartbeat, not the room's age. */
 router.get("/rooms", (_req, res) => {
   const now = Date.now();
   const rooms = listActiveRooms(now).map(([code, entry]) => ({
@@ -57,17 +120,16 @@ router.get("/rooms", (_req, res) => {
     host: entry.host?.username || null,
     guest: entry.guest?.username || null,
     phase: roomPhase(entry),
-    ageSec: Math.floor((now - entry.updatedAt) / 1000),
-    startedAt: entry.updatedAt,
+    idleSec: Math.floor((now - entry.updatedAt) / 1000),
   }));
-  rooms.sort((a, b) => a.ageSec - b.ageSec);
+  rooms.sort((a, b) => a.idleSec - b.idleSec);
   res.json({ rooms });
 });
 
 router.get("/scrape-logs", asyncHandler(async (req, res) => {
   try {
     const [logs] = await db.query(
-      `SELECT id, scrape_type, started_at, finished_at, players_upserted, max_pesdb_id
+      `SELECT id, scrape_type, started_at, finished_at, players_upserted
        FROM scrape_logs ORDER BY id DESC LIMIT ?`,
       [readLimit(req.query.limit)],
     );
@@ -77,10 +139,10 @@ router.get("/scrape-logs", asyncHandler(async (req, res) => {
   }
 }));
 
-router.get("/recent-users", asyncHandler(async (req, res) => {
+router.get("/users", asyncHandler(async (req, res) => {
   try {
     const [users] = await db.query(
-      `SELECT u.id, u.username, u.email, u.created_at,
+      `SELECT u.id, u.username, u.email, u.created_at, u.is_admin,
               COUNT(DISTINCT p.id) AS playerCount,
               COUNT(DISTINCT gp.id) AS planCount
        FROM users u

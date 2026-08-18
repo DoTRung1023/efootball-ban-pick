@@ -242,6 +242,15 @@ body {
   transition: background var(--transition), color var(--transition);
 }
 
+/* The dropdown item is an <a> here, so it needs the reset a <button> gets. */
+.dropdown-item.admin-console {
+  text-decoration: none;
+}
+.dropdown-item.admin-console:hover {
+  background: var(--fill);
+  color: var(--text);
+}
+
 .dropdown-item.sign-out:hover {
   background: var(--danger-fill);
   color: var(--danger);

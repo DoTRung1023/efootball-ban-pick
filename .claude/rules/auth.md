@@ -20,6 +20,13 @@ the query string.
 `requireAuth()` redirects to `/signin` and returns `null`; callers must bail on `null`
 rather than continuing with an undefined user.
 
+The stored object carries `isAdmin`, which `initUserMenu` uses to reveal the **Admin
+Console** link in the account dropdown. Nothing is signed here, so that flag is a
+display hint and never an authorisation: `/console` re-checks `users.is_admin` and the
+password server-side before it issues a session. See `admin-dashboard.md`. Anything
+that rewrites `efb_user` must merge rather than replace — `editProfile.js` spreads the
+old object precisely so the flag survives a profile save.
+
 ## Frontend (`public/js/features/auth/`)
 
 | Module | Role |
@@ -29,7 +36,7 @@ rather than continuing with an undefined user.
 | `signInBackdrop.js` | Floating card art + particles. Purely decorative |
 | `passwordToggle.js` | `bindPasswordToggle(btnId, inputId)` — the eye-icon swap, used by both forms |
 | `editProfile.js` | `/api/profile` (PUT). An empty password field means "leave it alone" |
-| `userMenu.js` | Nav account dropdown: identity, sign out, opens edit-profile |
+| `userMenu.js` | Nav account dropdown: identity, sign out, opens edit-profile, reveals the console link for an admin |
 | `index.js` | Barrel — exports **only** `initUserMenu` + the edit-profile functions |
 
 The barrel deliberately does not re-export the sign-in page's own modules. There is no

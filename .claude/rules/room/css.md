@@ -249,7 +249,7 @@ both pages.
 
 `public/css/shared/numberInput.css` hides the spinner arrows on **every**
 `input[type="number"]` in the app, and is linked by `home.html` and `room.html`
-right after each page's base sheet. `admin.html` and `signin.html` have no
+right after each page's base sheet. `console.html` and `signin.html` have no
 number inputs and do not link it.
 
 There is nothing to do when you add a number input — it is covered. Do not

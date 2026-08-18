@@ -41,9 +41,16 @@ the same idea as a champion draft in League of Legends, applied to football card
   over-capacity guests are rejected server-side with distinct error screens, and if your
   opponent disappears you get a countdown popup rather than a frozen room.
 
-**Admin** (`/admin`) — password-protected: catalog and user stats, live active-room
-monitor, recent signups, data-quality panel, paginated catalog browser with CSV export,
-and scrape history.
+**Console** (`/console`) — reached from **Admin Console** in your account menu, which
+only appears for an account with `users.is_admin = 1`; opening it re-confirms your
+password. Four tabs: OVERVIEW (catalog / user / room counts, catalog health, scrape
+history), ROOMS (live rooms), USERS, and CATALOG (paginated browser with CSV export).
+
+Grant yourself access once, in MySQL — there is deliberately no UI for it:
+
+```sql
+UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
+```
 
 Both pages are responsive down to 320 px.
 
@@ -83,7 +90,7 @@ DB_USER=banpick
 DB_PASSWORD=
 DB_NAME=ban_pick_efb
 PORT=3000
-ADMIN_KEY=admin-dev        # /admin password; set a real secret in production
+ADMIN_SECRET=              # signs console session tokens; random per boot if unset
 ```
 
 Optional Cloudflare R2 card-image cache. Without it the server redirects
@@ -155,7 +162,7 @@ src/
 └── lib/                   # http.js (handlers, error middleware), paths.js
 
 public/
-├── home.html   room.html   signin.html   admin.html
+├── home.html   room.html   signin.html   console.html
 ├── css/home/              # 8 files: base, player-card, squad, plans, catalog,
 │                          #   modals, rooms, responsive
 ├── css/room.css           # the whole draft page
@@ -184,7 +191,7 @@ hardened for untrusted public deployment**.
 | Squad | `GET`/`POST`/`DELETE /api/my-players` |
 | Game plans | `GET`/`POST /api/game-plans` · `PUT`/`DELETE /api/game-plans/:id` · `GET`/`PUT /api/game-plans/:id/players[/:slot]` · `PUT /api/game-plans/:id/swap` |
 | Room | `GET /api/rooms/:code` · `POST /api/rooms/:code/` + `presence` `leave` `ready` `start` `config` `chat` `kick-guest` `ban` `ban-confirm` `pick` `match-ready` |
-| Admin | `GET /api/admin/` + `stats` `rooms` `scrape-logs` `recent-users` `data-quality` — all require `ADMIN_KEY` |
+| Console | `POST /api/admin/session` (password → token) · `GET /api/admin/` + `me` `stats` `rooms` `scrape-logs` `users` `data-quality` — all but `session` require `x-admin-token` |
 | Images | `GET /img/card/:id.png` |
 
 **`GET /api/players`** takes `q`, `positions` (comma-separated), `club`, `nationality`,

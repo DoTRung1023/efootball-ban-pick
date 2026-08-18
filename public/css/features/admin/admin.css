@@ -24,27 +24,28 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Login overlay ─────────────────────────────────────────── */
-.login-overlay {
+/* ── Console gate ──────────────────────────────────────────── */
+.gate-overlay {
   position: fixed;
   inset: 0;
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
   z-index: 999;
 }
 
-.login-card {
+.gate-card {
   background: var(--bg-card);
   border: 1px solid var(--line-active);
   border-radius: var(--radius);
   padding: 40px 36px;
-  width: 360px;
+  width: min(360px, 100%);
   text-align: center;
 }
 
-.login-logo {
+.gate-logo {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -52,14 +53,14 @@ body {
   margin-bottom: 20px;
 }
 
-.login-hint {
+.gate-identity {
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 20px;
   letter-spacing: 0.03em;
 }
 
-.login-input {
+.gate-input {
   width: 100%;
   background: var(--fill);
   border: 1px solid var(--border);
@@ -72,16 +73,26 @@ body {
   transition: border-color var(--transition);
   outline: none;
 }
-.login-input:focus { border-color: var(--line-active); }
+.gate-input:focus { border-color: var(--line-active); }
 
-.login-btn { width: 100%; }
+.gate-btn { width: 100%; justify-content: center; }
 
-.login-error {
+.gate-error {
   margin-top: 10px;
   font-size: 12px;
   color: var(--danger);
   min-height: 18px;
 }
+
+.gate-back {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.gate-back:hover { color: var(--text); }
 
 /* ── Brand ─────────────────────────────────────────────────── */
 .brand-game {
@@ -348,43 +359,6 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* ── Running banner ─────────────────────────────────────────── */
-.running-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: var(--fill);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text);
-  font-weight: 600;
-}
-
-.running-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text);
-  flex-shrink: 0;
-  animation: dotPulse 1.2s ease-in-out infinite;
-}
-
-.running-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--fill);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-
-.running-fill {
-  height: 100%;
-  background: var(--text);
-  border-radius: var(--radius-pill);
-  transition: width 1s linear;
-}
-
 /* ── Table ──────────────────────────────────────────────────── */
 .table-wrap {
   overflow-x: auto;
@@ -473,7 +447,8 @@ body {
   border-radius: var(--radius-sm);
 }
 .status-pill.is-running  { background: var(--fill-strong); color: var(--text); border: 1px solid var(--line-hover); }
-.status-pill.is-success  { background: var(--fill); color: var(--text); border: 1px solid var(--border); }
+.status-pill.is-done     { background: var(--fill); color: var(--text-dim); border: 1px solid var(--border); }
+.status-pill.is-stalled  { background: var(--danger-fill); color: var(--danger); border: 1px solid var(--danger-line); }
 
 /* ── Card type badge ────────────────────────────────────────── */
 .card-type-badge {
@@ -491,9 +466,20 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.card-type-badge.is-iconic    { background: var(--fill-strong); color: var(--text-muted); border-color: var(--border); }
-.card-type-badge.is-highlight { background: var(--fill); color: var(--text); border-color: var(--border); }
-.card-type-badge.is-epic      { background: var(--fill-strong); color: var(--text-muted); border-color: var(--border); }
+
+/* ── Role pill ──────────────────────────────────────────────── */
+.role-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  margin-left: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--fill-strong);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
 
 /* ── Data quality list ──────────────────────────────────────── */
 .dq-list { padding: 4px 0; }
@@ -526,6 +512,7 @@ body {
 }
 
 .dq-bar-wrap {
+  display: block;
   width: 80px;
   height: 4px;
   background: var(--fill);
@@ -535,6 +522,7 @@ body {
 }
 
 .dq-bar {
+  display: block;
   height: 100%;
   border-radius: var(--radius-pill);
   background: var(--text-muted);
@@ -544,7 +532,7 @@ body {
 .dq-bar.is-warn { background: var(--text-muted); }
 .dq-bar.is-bad  { background: var(--danger); }
 
-.dq-skeleton { color: var(--text-dim); justify-content: center; }
+.dq-empty { color: var(--text-dim); justify-content: center; }
 
 /* ── Catalog table ──────────────────────────────────────────── */
 .catalog-table .td-rank {
@@ -555,11 +543,6 @@ body {
 }
 
 .catalog-table .td-ovr {
-  font-weight: 700;
-  color: var(--text);
-}
-
-.catalog-table .td-max {
   font-weight: 700;
   color: var(--text);
 }
@@ -579,8 +562,7 @@ body {
 .search-input:focus { border-color: var(--line-active); }
 .search-input::placeholder { color: var(--text-dim); }
 
-.sort-btn { gap: 4px; }
-.sort-arrow { font-size: 12px; opacity: 0.7; }
+.sort-btn { min-width: 124px; justify-content: center; }
 
 /* ── Pagination ─────────────────────────────────────────────── */
 .pagination-bar {
@@ -599,8 +581,8 @@ body {
   text-align: center;
 }
 
-/* ── Watch button ───────────────────────────────────────────── */
-.watch-btn {
+/* ── Link button (WATCH, pesdb id) ──────────────────────────── */
+.link-btn {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -614,7 +596,7 @@ body {
   display: inline-block;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
-.watch-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
+.link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {
@@ -623,12 +605,35 @@ body {
 
 @media (max-width: 860px) {
   .panel-grid-2 { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
   .search-input { width: 140px; }
 }
 
+@media (max-width: 700px) {
+  .admin-nav { gap: 12px; padding: 0 12px; }
+  .admin-nav-brand div { display: none; }
+  .panel-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .search-input { width: 100%; }
+}
+
+/* Below this the three nav blocks no longer fit on one line, so the tab strip
+   takes a row of its own and scrolls sideways. It used to be `display: none`,
+   which left the console unnavigable on a phone. */
 @media (max-width: 600px) {
+  .admin-nav {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    row-gap: 10px;
+  }
+  .admin-nav-tabs {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .admin-nav-tabs::-webkit-scrollbar { display: none; }
+  .admin-nav-right { margin-left: auto; }
   .stats-row { grid-template-columns: 1fr 1fr; }
-  .admin-nav-tabs { display: none; }
   .tab-panel { padding: 12px; gap: 12px; }
+  .stat-value { font-size: 28px; }
 }

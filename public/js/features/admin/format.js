@@ -1,5 +1,5 @@
 /* ============================================================
-   Table cell formatting — numbers, durations, and the coloured pills
+   Table cell formatting — numbers, durations, and the pills
    ============================================================ */
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
@@ -8,8 +8,9 @@ export function fmtNum(n) {
   return n == null ? "—" : Number(n).toLocaleString();
 }
 
-export function fmtAge(ms) {
-  const s = Math.floor(ms / 1000);
+/** Compact elapsed time from a count of seconds. */
+export function fmtSeconds(sec) {
+  const s = Math.max(0, Math.floor(sec));
   if (s < 60) return s + "s";
   if (s < 3600) return Math.floor(s / 60) + "m " + (s % 60) + "s";
   return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m";
@@ -24,15 +25,13 @@ export function fmtRelative(ts) {
   return Math.floor(s / 86400) + "d ago";
 }
 
+/** A finished run's wall time; an unfinished one is measured against now. */
 export function fmtDuration(start, end) {
   if (!start) return "—";
   const endTs = end ? new Date(end).getTime() : Date.now();
-  const ms = endTs - new Date(start).getTime();
-  const s = Math.floor(ms / 1000);
+  const s = Math.floor((endTs - new Date(start).getTime()) / 1000);
   if (s < 60) return s + "s";
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return m + ":" + String(rem).padStart(2, "0");
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 }
 
 export function fmtDate(ts) {
@@ -43,31 +42,44 @@ export function fmtDate(ts) {
   });
 }
 
+/* `live` = a match being played. It borrows the ready pill rather than earning a
+   colour of its own: the palette here marks *attention*, and a room mid-match
+   needs none. An unknown or missing phase falls back to the lobby pill. */
+const PHASE_CLASS = {
+  ban: "is-ban", pick: "is-pick", lobby: "is-lobby",
+  ready: "is-ready", live: "is-ready", done: "is-done",
+};
+
 export function phasePill(phase) {
-  /* `live` = a match being played. It borrows the ready pill rather than
-     earning a colour of its own: the dashboard's palette marks *attention*, and
-     a room mid-match needs none. */
-  const cls = { ban: "is-ban", pick: "is-pick", lobby: "is-lobby", ready: "is-ready", live: "is-ready", done: "is-done" };
-  return `<span class="phase-pill ${cls[phase] || "is-lobby"}">${escapeHtml(phase.toUpperCase())}</span>`;
+  const label = String(phase || "lobby");
+  return `<span class="phase-pill ${PHASE_CLASS[label] || "is-lobby"}">${escapeHtml(label.toUpperCase())}</span>`;
 }
 
-export function statusPill(log) {
-  if (!log.finished_at) return `<span class="status-pill is-running">RUNNING</span>`;
-  if (log.players_upserted > 0) return `<span class="status-pill is-success">SUCCESS</span>`;
-  return `<span class="status-pill is-success">DONE</span>`;
+const STALE_RUN_MS = 60 * 60 * 1000;
+
+/**
+ * `done` · `running` · `stalled`.
+ *
+ * `scrape_logs` has no status column and a crashed run never writes
+ * `finished_at`, so the dashboard reported a run that died in April as still
+ * running, forever. An hour is far longer than any real run takes.
+ */
+export function scrapeRunState(log) {
+  if (log.finished_at) return "done";
+  return Date.now() - new Date(log.started_at).getTime() > STALE_RUN_MS ? "stalled" : "running";
+}
+
+export function scrapeStatusPill(log) {
+  const state = scrapeRunState(log);
+  return `<span class="status-pill is-${state}">${state.toUpperCase()}</span>`;
 }
 
 export function cardTypeBadge(type) {
-  if (!type) return "";
-  const t = type.toLowerCase();
-  let cls = "";
-  if (t.includes("iconic")) cls = "is-iconic";
-  else if (t.includes("highlight")) cls = "is-highlight";
-  else if (t.includes("epic")) cls = "is-epic";
-  return `<span class="card-type-badge ${cls}" title="${escapeHtml(type)}">${escapeHtml(type)}</span>`;
+  if (!type) return "—";
+  return `<span class="card-type-badge" title="${escapeHtml(type)}">${escapeHtml(type)}</span>`;
 }
 
-/** Shown in a table body when a panel's fetch rejects. */
+/** Shown in a table body while it loads, when it is empty, or when it fails. */
 export function tableMessage(colspan, text) {
-  return `<tr><td colspan="${colspan}" class="td-empty">${text}</td></tr>`;
+  return `<tr><td colspan="${colspan}" class="td-empty">${escapeHtml(text)}</td></tr>`;
 }

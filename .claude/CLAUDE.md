@@ -42,7 +42,8 @@ Code is grouped **by feature, not by file type**.
   outside `features/` — it maps every page URL to one of four static HTML files and
   belongs to the composition root.
 - `public/` — four pages: `home.html` (squad / game plans / rooms), `room.html` (the
-  ban-pick draft), `admin.html`, `signin.html`. Each has an ESM entry file in
+  ban-pick draft), `console.html` (the admin console), `signin.html`. Each has an ESM
+  entry file in
   `public/js/pages/`; the behaviour lives in `public/js/features/<name>/`.
 - `public/js/shared/` — helpers **two or more features import today**; nothing goes here
   speculatively — and when a module drops back to one consumer it moves out again
@@ -165,7 +166,7 @@ automatically when a matching file is read:
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
 | `allowance.md` | allowance caps (client + server) |
-| `admin-dashboard.md` | `/admin` page and its API |
+| `admin-dashboard.md` | `/console` page, its access model and its API |
 | `home/modules.md`, `home/css.md` | home page JS modules and CSS |
 | `room/modules.md` | room page module map |
 | `room/presence-and-reconnect.md` | presence TTLs, 409 room security, reload cache |

@@ -21,7 +21,7 @@ Exit codes: `0` clean, `1` a check failed, `2` the name you passed matches nothi
 
 | Check | Catches |
 | --- | --- |
-| `imports` | a specifier that does not resolve, **path casing that differs from disk**, a named import the target does not export, a missing HTML asset, an import map that no longer maps `@/` to `/js/` |
+| `imports` | a specifier that does not resolve, **path casing that differs from disk**, a named import the target does not export, a missing HTML asset, a link to a page URL `src/pages.js` does not serve, an import map that no longer maps `@/` to `/js/` |
 | `bindings` | a symbol that is used but never bound — what a move or split leaves behind when it rewrites an import away |
 | `unused-imports` | an imported name nothing references |
 | `cycles` | import cycles in the module graph |
@@ -61,6 +61,11 @@ self-test will not tell you so.
   forever — the throw aborts `renderDraftUi` before the grid is written, and it
   happens again on every 500 ms poll. **Deleting a variable is exactly the edit
   this gate cannot see; re-read the whole function afterwards.**
+- `imports` splits `href="/…"` into two kinds: a path the router declares in
+  `src/pages.js` is a **route** (`/console` is valid with no `public/console` on
+  disk), anything else must exist as a file. A project with no `src/pages.js` —
+  the self-test fixture used to be one — falls back to treating every href as a
+  file, so the router is read defensively.
 - `dead-css` treats a class as used if its token appears in **any** HTML or JS
   file, and treats any class starting with a literal prefix that precedes a `${`
   as possibly interpolated. Both are the safe direction: what it reports is a

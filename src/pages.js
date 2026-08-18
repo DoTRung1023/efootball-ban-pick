@@ -14,7 +14,7 @@ const PAGES = {
   "/game-plans": "home.html",
   "/rooms": "home.html",
   "/signin": "signin.html",
-  "/admin": "admin.html",
+  "/console": "console.html",
   "/room": "room.html",
   "/room/:code": "room.html",
 };

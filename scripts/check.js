@@ -101,6 +101,7 @@ const FIXTURE = {
 <script type="module" src="/js/pages/home.js"></script>
 </head><body>
 <div id="grid" class="thing-card"></div>
+<a href="/about">about</a>
 <div class="player-grid info-hidden"><div class="pc-footer"></div></div>
 </body></html>`,
 
@@ -119,6 +120,8 @@ const FIXTURE = {
     `}\n`,
 
   "public/js/shared/helper.js": `export function helper(el) { return el; }\n`,
+
+  "src/pages.js": `const PAGES = { "/": "home.html", "/about": "home.html" };\nexport default PAGES;\n`,
 
   "src/lib/db.js": `export function connect() { return null; }\n`,
   "src/server.js": `import { connect } from '#lib/db.js';\nconnect();\n`,
@@ -140,6 +143,13 @@ const DEFECTS = [
     file: "public/js/features/thing/thing.js",
     from: "@/shared/helper.js",
     to: "@/shared/Helper.js",
+  },
+  {
+    expect: "imports",
+    what: "a link to a page URL the router does not serve",
+    file: "public/home.html",
+    from: '<a href="/about">about</a>',
+    to: '<a href="/abuot">about</a>',
   },
   {
     expect: "bindings",

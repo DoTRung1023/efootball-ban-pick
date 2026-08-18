@@ -80,12 +80,19 @@ CREATE TABLE IF NOT EXISTS users (
   email        VARCHAR(255)    NOT NULL,
   -- NULL when the account was created via Google OAuth
   password     VARCHAR(255)    NULL,
+  -- grants the /console dashboard; the console still re-checks the password
+  is_admin     TINYINT(1)      NOT NULL DEFAULT 0,
   created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username),
   UNIQUE KEY uq_users_email    (email)
 ) ENGINE=InnoDB;
+
+-- Existing DBs created before the console moved off the shared ADMIN_KEY:
+--   ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER password;
+-- Grant yourself access (there is no UI for this — it is a deliberate one-liner):
+--   UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
 
 -- ------------------------------------------------------------
 -- 2. PLAYERS  (user's personal squad roster)

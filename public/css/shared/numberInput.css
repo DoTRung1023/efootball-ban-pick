@@ -11,7 +11,7 @@
    two were missing the standard `appearance`, two were missing `margin: 0`, and
    one carried an unprefixed `appearance: none` that does nothing.
 
-   Linked by home.html and room.html. admin.html and signin.html have no number
+   Linked by home.html and room.html. console.html and signin.html have no number
    inputs, so they do not link it.
    ============================================================ */
 

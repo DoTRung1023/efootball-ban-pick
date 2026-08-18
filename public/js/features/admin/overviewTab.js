@@ -1,0 +1,124 @@
+/* ============================================================
+   OVERVIEW — the four tiles, catalog health, and the scrape log
+
+   Everything here answers "is the system healthy right now". The room and user
+   tables it used to duplicate live on their own tabs; this tab shows each
+   number once.
+   ============================================================ */
+
+import { escapeHtml } from "@/shared/players/playerMeta.js";
+import { apiFetch } from "./adminApi.js";
+import { fmtDate, fmtDuration, fmtNum, fmtRelative, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
+
+const SCRAPE_ROWS = 8;
+const SCRAPE_COLS = 6;
+
+/** The four COUNT queries behind /data-quality, in the order they are shown. */
+const QUALITY_ROWS = [
+  { key: "missingStyle",      label: "Missing playing style" },
+  { key: "missingRegion",     label: "Missing region" },
+  { key: "missingOverallMax", label: "Missing overall max" },
+  { key: "dupPesdbId",        label: "Duplicate pesdb_id" },
+];
+
+const BAD_PCT = 10;
+
+const setText = (id, text) => { document.getElementById(id).textContent = text; };
+
+function setSub(id, text, variant = "") {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = variant ? `stat-sub ${variant}` : "stat-sub";
+}
+
+async function loadStats() {
+  try {
+    const d = await apiFetch("/api/admin/stats");
+
+    setText("statCatalog", fmtNum(d.catalogCount));
+    setText("statUsers", fmtNum(d.userCount));
+    setSub("statUsersSub",
+      d.newUsersThisWeek > 0 ? `+${fmtNum(d.newUsersThisWeek)} this week` : "none this week",
+      d.newUsersThisWeek > 0 ? "is-pos" : "");
+
+    setText("statRooms", fmtNum(d.activeRoomCount));
+    setSub("statRoomsSub",
+      d.draftRoomCount > 0 ? `${d.draftRoomCount} in draft` : "none in draft",
+      d.draftRoomCount > 0 ? "is-pos" : "");
+
+    if (d.lastScrape) {
+      const state = scrapeRunState(d.lastScrape);
+      setText("statScrape", fmtRelative(d.lastScrape.started_at));
+      setSub("statScrapeSub", `${d.lastScrape.scrape_type} · ${state}`, state === "done" ? "" : "is-warn");
+    } else {
+      setText("statScrape", "never");
+      setSub("statScrapeSub", "run npm run scrape", "is-warn");
+    }
+  } catch {
+    setSub("statUsersSub", "stats unavailable", "is-warn");
+  }
+}
+
+async function loadDataQuality() {
+  const body = document.getElementById("dataQualityBody");
+  try {
+    const d = await apiFetch("/api/admin/data-quality");
+    const total = d.total || 1;
+    let flagged = 0;
+
+    body.innerHTML = QUALITY_ROWS.map(({ key, label }) => {
+      const count = d[key] || 0;
+      flagged += count;
+      const pct = (count / total) * 100;
+      const barClass = count === 0 ? "is-ok" : pct >= BAD_PCT ? "is-bad" : "is-warn";
+      /* A real percentage, with a 3% floor so a handful of rows is still a mark
+         rather than an invisible sliver. */
+      const width = count === 0 ? 100 : Math.max(3, Math.min(100, pct));
+      return `
+        <div class="dq-row">
+          <span class="dq-label">${escapeHtml(label)}</span>
+          <span class="dq-count">${fmtNum(count)}</span>
+          <span class="dq-pct">${pct.toFixed(2)}%</span>
+          <span class="dq-bar-wrap"><span class="dq-bar ${barClass}" style="width:${width.toFixed(1)}%"></span></span>
+        </div>`;
+    }).join("");
+
+    setSub("statCatalogSub",
+      flagged > 0 ? `${fmtNum(flagged)} fields need attention` : "no gaps found",
+      flagged > 0 ? "is-warn" : "is-pos");
+  } catch {
+    body.innerHTML = `<div class="dq-row dq-empty">Failed to load</div>`;
+  }
+}
+
+async function loadScrapeRuns() {
+  const tbody = document.getElementById("scrapeLogsBody");
+  try {
+    const d = await apiFetch(`/api/admin/scrape-logs?limit=${SCRAPE_ROWS}`);
+    if (!d.logs.length) {
+      tbody.innerHTML = tableMessage(SCRAPE_COLS, "No scrape runs yet");
+      return;
+    }
+    tbody.innerHTML = d.logs.map((l) => `
+      <tr>
+        <td class="td-mono">#${l.id}</td>
+        <td class="td-dim">${escapeHtml(String(l.scrape_type || "—").toUpperCase())}</td>
+        <td>${fmtNum(l.players_upserted)}</td>
+        <td class="td-dim">${fmtDuration(l.started_at, l.finished_at)}</td>
+        <td class="td-dim">${fmtDate(l.started_at)}</td>
+        <td>${scrapeStatusPill(l)}</td>
+      </tr>`).join("");
+  } catch {
+    tbody.innerHTML = tableMessage(SCRAPE_COLS, "Failed to load");
+  }
+}
+
+export function loadOverview() {
+  loadStats();
+  loadDataQuality();
+  loadScrapeRuns();
+}
+
+export function initOverviewTab() {
+  document.getElementById("refreshOverview").addEventListener("click", loadOverview);
+}

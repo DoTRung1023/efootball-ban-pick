@@ -1,24 +1,33 @@
 /* ============================================================
-   admin — the /admin dashboard
+   admin — the /console dashboard
 
-   `initAdminApp` wires every panel first and only then attempts the stored-key
-   re-auth, so a valid key can never reveal a half-wired dashboard.
+   `initConsole` wires every tab **before** anything can reveal the dashboard,
+   so neither the gate form nor a stored token can show a half-wired one. Panel
+   wiring lives in the `init*` functions rather than at module top level; keep
+   it that way, or that ordering guarantee is lost.
    ============================================================ */
 
-import { initCatalogTable } from "./catalogTable.js";
-import { initDashboard } from "./dashboard.js";
-import { initLoginGate, tryStoredKey } from "./loginGate.js";
-import { initRoomPanels } from "./roomPanels.js";
-import { initScrapePanels } from "./scrapePanels.js";
-import { initAdminTabs } from "./tabs.js";
-import { initUserPanels } from "./userPanels.js";
+import { requireAuth } from "@/shared/lib/session.js";
+import { initCatalogTab } from "./catalogTab.js";
+import { initGate, resume } from "./authGate.js";
+import { initOverviewTab } from "./overviewTab.js";
+import { initRoomsTab } from "./roomsTab.js";
+import { initTabs, startTabs } from "./tabs.js";
+import { initUsersTab } from "./usersTab.js";
 
-export function initAdminApp() {
-  initLoginGate(initDashboard);
-  initAdminTabs();
-  initScrapePanels();
-  initRoomPanels();
-  initUserPanels();
-  initCatalogTable();
-  tryStoredKey(initDashboard);
+export function initConsole() {
+  /* No session at all is a sign-in problem, not a console one: `requireAuth`
+     has already redirected to /signin and nothing below would be seen. */
+  const user = requireAuth();
+  if (!user) return;
+
+  initTabs();
+  initOverviewTab();
+  initRoomsTab();
+  initUsersTab();
+  initCatalogTab();
+
+  /* Only now can the dashboard open — by the form, or by the stored token. */
+  initGate(user, startTabs);
+  resume(startTabs);
 }
