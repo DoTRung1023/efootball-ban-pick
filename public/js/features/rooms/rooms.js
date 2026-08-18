@@ -88,11 +88,9 @@ export function initRoomHost(user) {
   const setCode = (code) => { codeEl.textContent = code; };
   setCode(genRoomCode());
 
-  const avatar = document.getElementById("roomHostAvatar");
-  const name   = document.getElementById("roomHostName");
-  const label  = (user?.display_name || user?.username || "").trim();
-  if (name)   name.textContent = label || "—";
-  if (avatar) avatar.textContent = (label[0] || "?").toUpperCase();
+  const name  = document.getElementById("roomHostName");
+  const label = (user?.display_name || user?.username || "").trim();
+  if (name) name.textContent = label || "—";
 
   document.getElementById("regenCode")?.addEventListener("click", () => setCode(genRoomCode()));
 

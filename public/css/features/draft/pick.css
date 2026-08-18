@@ -354,22 +354,27 @@
   height: auto;
 }
 
-/* The footer carries the two *identity* rows — region · nationality, then
-   league · club — and stops there. `playerDetailSublineHtml` emits four; the
-   other two (foot · style, height · weight · age) wrapped to four lines in a
-   ~104px column and took **89px of a 235px card, 38% of it**, on the one grid
-   whose job is to let you recognise a player by his art. Nothing is lost:
-   `bindCardGridHover` floats all four rows for this grid on hover, and the
-   hidden two are the ones you go looking for rather than scan. */
-.pick-phase-grid .player-card .pmeta-row:nth-child(n + 3) {
-  display: none;
-}
-
 /* SHOW INFO / HIDE INFO. `bindGridInfoToggle` puts `info-hidden` on the grid;
    without this rule the pick button toggled a class nothing styled. */
 
 .pick-phase-grid.info-hidden .pc-footer {
   display: none !important;
+}
+
+/* Showing the info widens the cards, and that is the whole point of the rule.
+   The pool is a 380px side column, so its default floor gives three cards of
+   109px — and the four metadata rows need 124–173px, so every one of them wrapped
+   to two or three lines: 170px of footer under 153px of art, measured at 1440.
+   At a 150px floor the column holds two cards of ~171px, three of the four rows
+   fit on one line, and the footer comes back to ~105px — the shape My Players
+   has, which is what this grid is being asked to match.
+
+   It beats every `.pick-phase-grid` rung in `responsive.css` on specificity
+   rather than order, deliberately: the narrow rungs exist to pack *art* in, and
+   76px cards carrying four wrapped rows would be the same problem again. With
+   info off, they all still apply. */
+.pick-phase-grid:not(.info-hidden) {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
 .pick-phase-grid .player-card {

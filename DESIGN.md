@@ -125,24 +125,42 @@ here. **Never write a raw `rgba()`** — pick the closest rung.
 
 ```css
 :root {
-  --line-faint:  rgba(255, 255, 255, 0.05);  /* dividers, panel edges     */
-  --border:      #26292E;                    /* control borders           */
-  --line-hover:  #33373D;                    /* hover borders             */
-  --line-active: #4A4F55;                    /* selected / focused        */
+  --line-faint:  rgba(255, 255, 255, 0.06);  /* dividers, panel edges     */
+  --border:      #31364B;                    /* control borders           */
+  --line-hover:  #454B66;                    /* hover borders             */
+  --line-active: #596080;                    /* selected / focused        */
 
   --fill-faint:  rgba(255, 255, 255, 0.02);  /* tint washes               */
   --fill:        rgba(255, 255, 255, 0.04);  /* hover fills               */
   --fill-strong: rgba(255, 255, 255, 0.08);  /* selected fills            */
 
-  --danger-line: rgba(255, 77, 79, 0.45);
-  --danger-fill: rgba(255, 77, 79, 0.12);
+  --danger-line: rgba(251, 44, 54, 0.45);
+  --danger-fill: rgba(251, 44, 54, 0.12);
   --scrim:       rgba(0, 0, 0, 0.72);        /* modal / overlay backdrops */
 }
 ```
 
+The two solid rungs are navy, not grey — same reason the surfaces are. The two faint
+rungs stay white-alpha so they pick up whatever they are laid over. The danger washes are
+mixed from efhub's own `#FB2C36`, not from `--danger`: see §3.1.
+
 State convention on an interactive surface: rest `--border` + no fill → hover
 `--line-hover` + `--fill` → selected `--line-active` + `--fill-strong`. No glow at any
 step.
+
+**A small control's outline is the exception, and it is a legibility floor, not a new
+rung.** A 14px checkbox at `--border` measures **1.47:1** on `--bg-elevated`, so an
+unticked box is not faint, it is *absent* — and because `--fill` lightens the row without
+touching the border, hovering made it worse (1.33:1), which is backwards. Those boxes
+start at `--line-hover` and go to `--line-active` + `--fill-strong` when hovered
+(2.57:1). Same ladder, shifted up one rung, because 1.5px of a 14px square has to carry
+what a whole panel edge carries elsewhere.
+
+**A hover state must not outrank a selected one.** `.item:hover .box` and
+`.item.checked .box` weigh the same, so the later one wins — and written in that order,
+hovering a ticked box emptied it, which is the box saying the opposite of what it means.
+Scope hover with `:not(.checked)`: a selected control is already at the top of the ladder
+and has nowhere to go.
 
 ### 3.4 Role aliases
 
@@ -151,7 +169,7 @@ Names the feature sheets already speak, pointed at the palette. They survive bec
 
 ```css
 --bg-card / --bg-card-solid / --surface-card / --surface-popover  →  --bg-elevated
---bg-card-hover                                                  →  #1A1D22
+--bg-card-hover                                                  →  #1A1D27
 --bg-input / --bg-field / --surface-control                      →  --bg-input
 --surface-sunken                                                 →  --bg
 --text-dim                                                       →  --text-muted

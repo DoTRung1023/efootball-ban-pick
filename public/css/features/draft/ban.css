@@ -605,10 +605,13 @@
   color: var(--text);
 }
 
+/* `--line-hover`, not `--border`: at #31364B the box measured barely over 1:1
+   against the panel behind it, so an *unticked* option showed no box at all —
+   the one bit of the row that says it is a checkbox. */
 .pos-ms-check {
   width: 14px;
   height: 14px;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--line-hover);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
   position: relative;
@@ -623,6 +626,23 @@
 .pos-ms-item.checked .pos-ms-check {
   background: var(--text);
   border-color: var(--text);
+}
+
+/* The row you are on gets the selected pairing — `--line-active` + `--fill-strong`,
+   straight off the ladder in DESIGN.md §3.3. The row's own background lifts by
+   `--fill` (0.04 white), which moved the *text* and not the box, so hovering
+   made the box harder to see than at rest (1.33:1 against 1.47:1) — backwards
+   for the one element on the row you are about to click. Now 2.57:1, with the
+   interior lift carrying the rest.
+
+   **`:not(.checked)` is the whole rule.** A ticked box is solid `--text`, and
+   the two selectors weigh the same (0,3,0), so without it the later one won and
+   hovering a *selected* option emptied it — the box said unticked while the
+   button above still listed it. A ticked box needs no hover state: it is
+   already the strongest mark on the row. */
+.pos-ms-item:not(.checked):hover .pos-ms-check {
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 .filter-clear-btn {
@@ -720,8 +740,13 @@
   background: transparent;
 }
 
+/* `2px` of side padding, not 8px, and that is a deliberate match: the home
+   page's card footer (`shared/playerCard.css`) uses 2px, and every 1px of
+   padding here is 1px the metadata does not get. At the pool's 109px card the
+   old 8px was eating 16px — a seventh of the card — off lines that were already
+   being clipped. Same rows, same treatment, on both pages. */
 .pc-footer {
-  padding: 8px 8px 9px;
+  padding: 8px 2px 9px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -762,6 +787,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* …except in the room's two SHOW INFO grids, where a row is allowed to wrap.
+   Both sheets' cards are a third of the width of the home page's (109px and
+   138px against 213px measured at 1440), and the home page can hold the line
+   because at 213px nothing reaches it — all four rows fit unclipped. Here the
+   same four rows need 124–173px, so `nowrap` was not keeping them on one line,
+   it was **hiding most of two of them**: `Brasileirão Betano · Santos FC` came
+   out as `Brasileirão B…`. This rule is a no-op at any width where the row
+   fits, so it only ever fires where the alternative was losing the text.
+
+   Lives beside `.pc-footer` because that is where the room's card footer is
+   defined; the two grids are named rather than the room's cards in general so
+   the pitch slots and Start Match keep the tight single-line treatment. */
+.ban-phase-grid .player-card .pc-footer .pmeta-row,
+.pick-phase-grid .player-card .pc-footer .pmeta-row {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .pc-footer-meta.pc-footer-detail-only {

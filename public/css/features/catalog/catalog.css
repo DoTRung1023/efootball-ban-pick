@@ -333,10 +333,13 @@
 
 .pos-ms-item.checked { color: var(--text); }
 
+/* `--line-hover`, not `--border`: at #31364B the box measured barely over 1:1
+   against the panel behind it, so an *unticked* option showed no box at all —
+   the one bit of the row that says it is a checkbox. */
 .pos-ms-check {
   width: 14px;
   height: 14px;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--line-hover);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
   position: relative;
@@ -351,6 +354,23 @@
 .pos-ms-item.checked .pos-ms-check {
   background: var(--text);
   border-color: var(--text);
+}
+
+/* The row you are on gets the selected pairing — `--line-active` + `--fill-strong`,
+   straight off the ladder in DESIGN.md §3.3. The row's own background lifts by
+   `--fill` (0.04 white), which moved the *text* and not the box, so hovering
+   made the box harder to see than at rest (1.33:1 against 1.47:1) — backwards
+   for the one element on the row you are about to click. Now 2.57:1, with the
+   interior lift carrying the rest.
+
+   **`:not(.checked)` is the whole rule.** A ticked box is solid `--text`, and
+   the two selectors weigh the same (0,3,0), so without it the later one won and
+   hovering a *selected* option emptied it — the box said unticked while the
+   button above still listed it. A ticked box needs no hover state: it is
+   already the strongest mark on the row. */
+.pos-ms-item:not(.checked):hover .pos-ms-check {
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 /* Autocomplete */
