@@ -14,6 +14,9 @@ import {
   FOOT_OPTIONS,
   TEXT_ALLOWANCE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
+  UNLIMITED_DURATION_SEC,
+  DEFAULT_BAN_DURATION_SECONDS,
+  DEFAULT_PICK_DURATION_SECONDS,
 } from '@/features/draft/constants.js';
 
 import {
@@ -49,6 +52,7 @@ import {
   defaultRoomConfig,
   applyPresenceSnapshot,
   emptyRoom,
+  isUnlimitedDuration,
   normalizeBanDurationSec,
   normalizePickDurationSec,
   normalizeRevealMode,
@@ -85,6 +89,53 @@ import {
 
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
+
+/* ── Unlimited durations ──────────────────────────────────────
+   `0` is the sentinel (see `constants.js`). The number input keeps carrying it,
+   so `readLobbyConfigFromDom` needs no special case; the field just stops
+   *showing* a number, because a box reading "0 sec" says the opposite of what
+   it means. */
+
+const DURATION_FIELDS = {
+  ban:  { input: "lobbyBanDurationInput",  field: "banDurationField",  btn: "lobbyBanUnlimitedBtn",  cfgKey: "banDurationSec",  fallback: DEFAULT_BAN_DURATION_SECONDS },
+  pick: { input: "lobbyPickDurationInput", field: "pickDurationField", btn: "lobbyPickUnlimitedBtn", cfgKey: "pickDurationSec", fallback: DEFAULT_PICK_DURATION_SECONDS },
+};
+
+/** Reflects one duration's value into its field and its button. */
+function paintDurationField(which, seconds) {
+  const ids = DURATION_FIELDS[which];
+  if (!ids) return;
+  const unlimited = isUnlimitedDuration(seconds);
+  document.getElementById(ids.field)?.classList.toggle("is-unlimited", unlimited);
+  document.getElementById(ids.btn)?.setAttribute("aria-pressed", unlimited ? "true" : "false");
+}
+
+/**
+ * The toggle. Off → on stores 0; on → off restores the number that was there
+ * before, which is why the input keeps carrying it — losing the host's 90s and
+ * handing back the default would punish a mis-click.
+ */
+function bindUnlimitedToggle(which) {
+  const ids = DURATION_FIELDS[which];
+  const btn = document.getElementById(ids.btn);
+  const input = document.getElementById(ids.input);
+  if (!btn || !input) return;
+
+  btn.addEventListener("click", () => {
+    if (state.mySide !== "host" || !state.room) return;  // read-only for the guest
+    const wasUnlimited = btn.getAttribute("aria-pressed") === "true";
+    if (!wasUnlimited && Number(input.value) > 0) input.dataset.lastFinite = input.value;
+    const next = wasUnlimited
+      ? Number(input.dataset.lastFinite || ids.fallback)
+      : UNLIMITED_DURATION_SEC;
+
+    input.dataset.touched = "1";
+    input.value = String(next);
+    state.room.config[ids.cfgKey] = next;
+    paintDurationField(which, next);
+    scheduleLobbyConfigPush();
+  });
+}
 
 function renderLobby() {
   const room = state.room;
@@ -157,14 +208,16 @@ function renderLobby() {
   if (bansEl && !bansEl.dataset.touched) bansEl.value = String(cfg.banCountPerSide ?? 0);
   if (banDurationEl && !banDurationEl.dataset.touched) banDurationEl.value = String(normalizeBanDurationSec(cfg.banDurationSec));
   if (pickDurationEl && !pickDurationEl.dataset.touched) pickDurationEl.value = String(normalizePickDurationSec(cfg.pickDurationSec));
+  /* The guest sees this too — the settings panel is read-only for them but it
+     still has to say what the host chose. */
+  paintDurationField("ban", normalizeBanDurationSec(cfg.banDurationSec));
+  paintDurationField("pick", normalizePickDurationSec(cfg.pickDurationSec));
   if (revealModeEl && !revealModeEl.dataset.touched) revealModeEl.value = normalizeRevealMode(cfg.revealMode);
 
   // Sync lv-settings-panel visual controls from config
   const banCountValEl = document.getElementById("banCountVal");
   const banCount = Number(cfg.banCountPerSide ?? 0);
   if (banCountValEl) banCountValEl.textContent = String(banCount);
-  const banCountHintEl = document.getElementById("banCountHint");
-  if (banCountHintEl) banCountHintEl.textContent = `${pluralize(banCount * 2, "ban")} in total`;
   const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
   // The cards are always visible; selection is the only state they carry. Their
   // disabled look comes from the .is-readonly rule on the settings panel.
@@ -390,6 +443,9 @@ function bindDraftSettings(user) {
     renderLobby();
     scheduleLobbyConfigPush();
   });
+  bindUnlimitedToggle("ban");
+  bindUnlimitedToggle("pick");
+
   document.getElementById("lobbyBanDurationInput")?.addEventListener("input", (e) => {
     e.target.dataset.touched = "1";
     const typed = String(e.target.value ?? "").trim();

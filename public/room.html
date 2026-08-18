@@ -132,27 +132,46 @@
                             <button type="button" class="lv-stepper-btn" id="banCountPlus" aria-label="Increase bans">+</button>
                           </div>
                           <input type="number" id="lobbyBansInput" min="0" value="3" hidden>
-                          <div class="lv-field-hint" id="banCountHint">6 bans in total</div>
                         </div>
 
                         <div class="lv-field-group">
                           <div class="lv-field-label">BAN DURATION</div>
-                          <div class="lv-duration-field">
+                          <!-- `min="0"` because 0 is the unlimited sentinel. The ∞ is a
+                               segment of the field, like the unit beside it, so the three
+                               settings columns stay the same shape: label, one control,
+                               one line of hint. When it is on, `.is-unlimited` swaps the
+                               number and its unit for "No limit" — a box reading "0 sec"
+                               says the opposite of what it means. -->
+                          <div class="lv-duration-field" id="banDurationField">
                             <input type="number" class="lv-duration-input" id="lobbyBanDurationInput"
-                                   min="5" max="900" step="1" value="120"
+                                   min="0" max="900" step="1" value="120"
                                    inputmode="numeric" aria-describedby="banDurationHint">
                             <span class="lv-duration-unit">sec</span>
+                            <span class="lv-duration-nolimit">No limit</span>
+                            <button type="button" class="lv-unlimited-btn" id="lobbyBanUnlimitedBtn"
+                                    aria-pressed="false" title="No time limit for this phase"
+                                    aria-label="Unlimited ban time">&#8734;</button>
                           </div>
                           <div class="lv-field-hint" id="banDurationHint">5–900 seconds</div>
                         </div>
 
                         <div class="lv-field-group">
                           <div class="lv-field-label">PICK DURATION</div>
-                          <div class="lv-duration-field">
+                          <!-- `min="0"` because 0 is the unlimited sentinel. The ∞ is a
+                               segment of the field, like the unit beside it, so the three
+                               settings columns stay the same shape: label, one control,
+                               one line of hint. When it is on, `.is-unlimited` swaps the
+                               number and its unit for "No limit" — a box reading "0 sec"
+                               says the opposite of what it means. -->
+                          <div class="lv-duration-field" id="pickDurationField">
                             <input type="number" class="lv-duration-input" id="lobbyPickDurationInput"
-                                   min="5" max="1200" step="1" value="300"
+                                   min="0" max="1200" step="1" value="300"
                                    inputmode="numeric" aria-describedby="pickDurationHint">
                             <span class="lv-duration-unit">sec</span>
+                            <span class="lv-duration-nolimit">No limit</span>
+                            <button type="button" class="lv-unlimited-btn" id="lobbyPickUnlimitedBtn"
+                                    aria-pressed="false" title="No time limit for this phase"
+                                    aria-label="Unlimited pick time">&#8734;</button>
                           </div>
                           <div class="lv-field-hint" id="pickDurationHint">5–1200 seconds</div>
                         </div>

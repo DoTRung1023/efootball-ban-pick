@@ -122,7 +122,10 @@ where there is no shared module to extract into:
 - allowance-cap normalisation — `src/features/rooms/config.js` and
   `public/js/features/draft/allowance.js`
 - ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and
-  `public/js/features/draft/state.js`
+  `public/js/features/draft/state.js`. **`0` means unlimited** and is the one value that
+  must escape the clamp — both copies test for it before the `|| DEFAULT`, which would
+  otherwise read it as "absent". The sentinel itself is `UNLIMITED_DURATION_SEC`, declared
+  in both files
 - `DEFAULT_FORMATION` (`"4-3-3"`) **and the formation whitelist** — `ALLOWED_FORMATIONS`
   in `src/features/gamePlans/routes.js` against `FORMATION_ROWS` in
   `public/js/shared/players/formations.js`. There is deliberately **no third copy** in

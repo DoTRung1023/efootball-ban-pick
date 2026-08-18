@@ -5,6 +5,7 @@ import {
   normalizeBanDurationSec,
   normalizeCapForField,
   normalizePickDurationSec,
+  turnDeadline,
   normalizeRevealMode,
 } from "./config.js";
 import {
@@ -359,7 +360,10 @@ router.post("/:code/start", withRoomCode, requireRequesterId, (req, res) => {
 
   entry.status = ROOM_STATUS.DRAFTING;
   entry.turnIndex = 0;
-  entry.turnEndsAt = Date.now() + durationSec * 1000;
+  /* `null` when the host set this phase to unlimited — no deadline, so nothing
+     expires and the phase ends the way it otherwise would, on both sides
+     confirming. */
+  entry.turnEndsAt = turnDeadline(durationSec);
   resetMatchSteps(entry);
   entry.stagedBans = { host: [], guest: [] };
   entry.bansConfirmed = { host: false, guest: false };
@@ -440,7 +444,7 @@ router.post(
 
     if (entry.bansConfirmed.host && entry.bansConfirmed.guest) {
       entry.turnIndex = 1; // advance to pick phase
-      entry.turnEndsAt = Date.now() + normalizePickDurationSec(entry.config?.pickDurationSec) * 1000;
+      entry.turnEndsAt = turnDeadline(normalizePickDurationSec(entry.config?.pickDurationSec));
       entry.bansConfirmed = { host: false, guest: false };
       entry.stagedBans = { host: [], guest: [] };
       pushSystemChat(entry, "Both players confirmed bans — pick phase starting!");

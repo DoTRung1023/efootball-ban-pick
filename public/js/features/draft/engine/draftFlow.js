@@ -17,6 +17,7 @@ import {
 } from '@/features/draft/state.js';
 import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQuery.js';
 import { START_MATCH_STATUSES } from '@/features/draft/constants.js';
+import { isUnlimitedDuration } from '@/features/draft/state.js';
 
 const FALLBACK_TURN_SECONDS = 60;
 const TIMER_TICK_MS = 250;
@@ -55,6 +56,10 @@ function getDraftStage(room = state.room) {
 export function ensureDraftTimer(room = state.room) {
   if (!room || room.turnEndsAt) return;
   const durationSec = getTurnDurationSec({ action: getDraftStage(room) }, room.config);
+  /* Unlimited stays `null`. Inventing a deadline here would give this client a
+     countdown the server never set and the opponent never sees — and it would
+     expire, taking the player's turn with it. */
+  if (isUnlimitedDuration(durationSec)) return;
   room.turnEndsAt = Date.now() + durationSec * 1000;
 }
 
@@ -150,6 +155,17 @@ function paintTimer(secondsLeft, durationSec) {
   }
 }
 
+/** The clock for a phase with no deadline: full bar, never low, never counts. */
+function paintUnlimitedTimer() {
+  const inner = document.getElementById("timerInner");
+  const ring = document.getElementById("timerRing");
+  if (inner && inner.textContent !== "∞") inner.textContent = "∞";
+  if (ring) {
+    ring.classList.remove("is-low");
+    ring.style.setProperty("--timer-progress", "100%");
+  }
+}
+
 /** Time-up: submit whatever the user staged, then move to the next stage. */
 function handleTurnExpiry() {
   clearTurnTimer();
@@ -175,7 +191,16 @@ export function startTurnTimer() {
   clearTurnTimer();
   const tick = () => {
     const room = state.room;
-    if (!room?.turnEndsAt || state.phase !== "draft") return;
+    if (!room || state.phase !== "draft") return;
+
+    /* No deadline during a live draft means the host turned this phase's clock
+       off. `turnEndsAt` is null in other phases too, which is why the phase is
+       tested first — this branch only ever runs for a turn that is genuinely
+       untimed. */
+    if (!room.turnEndsAt) {
+      paintUnlimitedTimer();
+      return;
+    }
 
     const left = Math.max(0, Math.ceil((room.turnEndsAt - Date.now()) / 1000));
     paintTimer(left, getTurnDurationSec(state.schedule[room.turnIndex], room.config));

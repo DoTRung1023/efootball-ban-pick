@@ -15,7 +15,7 @@ import {
   START_MATCH_STATUSES,
 } from '@/features/draft/constants.js';
 import { showToast, showView } from '@/features/draft/utils.js';
-import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot } from '@/features/draft/state.js';
+import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot, isUnlimitedDuration } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
 import { loadOpponentBanPlayers, resetOpponentBanPlayers } from '@/features/draft/ban/opponentSquad.js';
 import { loadDraftPlayers } from '@/features/draft/pick/pick.js';
@@ -96,13 +96,18 @@ export function tryEnterDraftFromRoomSnapshot() {
   return true;
 }
 
-/** Reads a duration input and reports whether it is inside the allowed range. */
+/**
+ * Reads a duration input and reports whether it is inside the allowed range —
+ * **or is the unlimited sentinel**, which is deliberately outside it. Without
+ * that case the UNLIMITED button set a value START then refused to accept.
+ */
 function validateDuration(inputId, min, max, label) {
   const input = document.getElementById(inputId);
   const value = Number(input?.value);
+  if (isUnlimitedDuration(input?.value)) return true;
   if (Number.isFinite(value) && value >= min && value <= max) return true;
 
-  showToast(`${label} duration must be between ${min} and ${max} seconds.`, "warn");
+  showToast(`${label} duration must be between ${min} and ${max} seconds, or unlimited.`, "warn");
   input?.focus();
   return false;
 }

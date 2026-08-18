@@ -137,3 +137,51 @@ clamped value back into the field, and schedules the config push. `startDraftFro
 > on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
 > history and the structural claims as current.
 re-validates both fields and refuses to start on an out-of-range value.
+## Unlimited ban / pick time
+
+The host can turn either clock off. **`0` is the sentinel** (`UNLIMITED_DURATION_SEC`,
+declared in `src/features/rooms/config.js` and `public/js/features/draft/constants.js`);
+that phase then runs with no deadline and ends the only other way a phase ever ends — both
+sides confirming.
+
+Four places had to learn it, and each was a real trap:
+
+- **Both normalisers test for it first.** They are written `Number(raw) || DEFAULT`, which
+  reads `0` as absent and hands back 120 / 300 — the one value that must not be clamped is
+  the one that means "do not clamp me". `isUnlimitedDuration` is deliberately strict: `""`,
+  `null` and `undefined` are *not* unlimited, they are missing, and still fall back to the
+  default. Verified in a browser against the client copy and over the API against the
+  server's: `0` and `"0"` → 0; `""`, `null`, `undefined` → the default; `2` → 5; `9999` →
+  the max.
+- **`turnDeadline(sec)` on the server** is the single place a live turn's `turnEndsAt` is
+  computed, and it answers `null` for unlimited. Every reader already handled a null
+  deadline, so nothing downstream needed a second case.
+- **`ensureDraftTimer` must not invent one.** It fills in a missing `turnEndsAt` on
+  reconnect; left alone it would have given this client a countdown the server never set,
+  the opponent never sees, and that expires — taking the player's turn with it.
+- **`validateDuration` accepts it.** It gates START on `min ≤ value ≤ max`, so without the
+  case the UNLIMITED button set a value START then refused.
+
+In the draft, a `draft`-phase room with `turnEndsAt === null` is *by definition* untimed —
+the server writes null there for no other reason — so `startTurnTimer`'s tick paints `∞`
+with a full bar and returns without scheduling an expiry.
+
+The field swaps rather than dims: `.lv-duration-field.is-unlimited` hides the number and
+its `sec` unit and shows "No limit". A disabled box reading `0 sec` says the opposite of
+what it means. Measured: normal → input/unit `block`, no-limit `none`; unlimited → the
+reverse. The input keeps carrying the 0 (so `readLobbyConfigFromDom` needs no special
+case) and remembers the last real number in `dataset.lastFinite`, so turning unlimited off
+gives the host their 90s back instead of the default.
+
+**The ∞ toggle is a segment of the field**, mirroring `.lv-duration-unit` on the other side
+of the number — same height, same divider, no radius of its own. It began as a pill on its
+own row underneath, which gave the two duration columns a row the ban-count column did not
+have; the settings row is three columns of *label · one control · one line of hint*, and
+anything that only modifies the value beside it has to sit beside it.
+
+`.lv-duration-field` carries `min-height: 38px` for the same reason: that is what
+`.lv-stepper` measures (36px buttons plus its own borders), and the three controls share a
+row. Measured at 1440: all three tops at y=303, all three 38px tall, all three groups 78px.
+
+`#banCountHint` is gone — it read "6 bans in total" under a stepper showing 3, beside a
+label reading BAN PER SIDE. Doubling a number the user just set is not information.

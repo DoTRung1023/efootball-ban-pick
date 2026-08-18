@@ -15,6 +15,19 @@
    dashboard, and it ends nothing. */
 export const ROOM_LIST_QUIET_MS = 90000;
 
+/**
+ * **0 means unlimited**, and it is the only value outside the range below that
+ * survives normalisation. The host can turn either clock off entirely from the
+ * lobby; the room then runs that phase with no deadline and it ends when both
+ * players confirm, which is the only other way a phase has ever ended.
+ *
+ * A sentinel rather than `null` because this value round-trips through a
+ * `<input type="number">`, a JSON body and a `Number()` on the way back, and
+ * `null` comes out of that chain as 0 anyway. Naming it stops the 0 reading as
+ * "no time at all" at its call sites.
+ */
+export const UNLIMITED_DURATION_SEC = 0;
+
 export const DEFAULT_BAN_DURATION_SECONDS = 120;
 export const MIN_BAN_DURATION_SECONDS = 5;
 export const MAX_BAN_DURATION_SECONDS = 900;
@@ -79,14 +92,34 @@ export function normalizeAllowanceCapValue(raw) {
   return Number.isFinite(n) && n > 0 ? String(Math.min(23, Math.floor(n))) : "";
 }
 
+/** True for the sentinel, and only for it — not for null, "" or nonsense. */
+export function isUnlimitedDuration(raw) {
+  return Number(raw) === UNLIMITED_DURATION_SEC && String(raw ?? "").trim() !== "";
+}
+
+/* `0` has to be caught before the `||`, which reads it as "absent" and hands
+   back the default — the one value that must not be clamped is the one that
+   means "do not clamp me". */
 export function normalizeBanDurationSec(raw) {
+  if (isUnlimitedDuration(raw)) return UNLIMITED_DURATION_SEC;
   const n = Math.floor(Number(raw) || DEFAULT_BAN_DURATION_SECONDS);
   return clamp(n, MIN_BAN_DURATION_SECONDS, MAX_BAN_DURATION_SECONDS);
 }
 
 export function normalizePickDurationSec(raw) {
+  if (isUnlimitedDuration(raw)) return UNLIMITED_DURATION_SEC;
   const n = Math.floor(Number(raw) || DEFAULT_PICK_DURATION_SECONDS);
   return clamp(n, MIN_PICK_DURATION_SECONDS, MAX_PICK_DURATION_SECONDS);
+}
+
+/**
+ * When a turn of `sec` seconds, started now, runs out — or `null` if it never
+ * does. Every `turnEndsAt` the server writes for a live turn goes through here,
+ * so "unlimited" is expressed once, as the absence of a deadline, and every
+ * reader already handles a null `turnEndsAt`.
+ */
+export function turnDeadline(sec) {
+  return isUnlimitedDuration(sec) ? null : Date.now() + Number(sec) * 1000;
 }
 
 export function normalizeRevealMode(raw) {

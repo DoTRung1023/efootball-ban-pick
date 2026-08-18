@@ -1,4 +1,5 @@
 import {
+  UNLIMITED_DURATION_SEC,
   DEFAULT_BAN_DURATION_SECONDS,
   MIN_BAN_DURATION_SECONDS,
   MAX_BAN_DURATION_SECONDS,
@@ -90,12 +91,20 @@ export const state = {
   presenceError: false,
 };
 
+/* Mirrors `src/features/rooms/config.js`, 0 case included: it has to be caught
+   before the `||` reads it as absent and returns the default. */
+export function isUnlimitedDuration(raw) {
+  return Number(raw) === UNLIMITED_DURATION_SEC && String(raw ?? "").trim() !== "";
+}
+
 export function normalizeBanDurationSec(raw) {
+  if (isUnlimitedDuration(raw)) return UNLIMITED_DURATION_SEC;
   const n = Math.floor(Number(raw) || DEFAULT_BAN_DURATION_SECONDS);
   return Math.max(MIN_BAN_DURATION_SECONDS, Math.min(MAX_BAN_DURATION_SECONDS, n));
 }
 
 export function normalizePickDurationSec(raw) {
+  if (isUnlimitedDuration(raw)) return UNLIMITED_DURATION_SEC;
   const n = Math.floor(Number(raw) || DEFAULT_PICK_DURATION_SECONDS);
   return Math.max(MIN_PICK_DURATION_SECONDS, Math.min(MAX_PICK_DURATION_SECONDS, n));
 }

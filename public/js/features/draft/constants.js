@@ -1,5 +1,18 @@
 // ── Draft config ─────────────────────────────────────────────────
 export const FIXED_PICKS_PER_SIDE = 23;
+/**
+ * **0 means unlimited**, and it is the only value outside the ranges below that
+ * survives normalisation. The host can turn either clock off from the lobby;
+ * that phase then runs with no deadline and ends when both players confirm,
+ * which is the only other way a phase has ever ended.
+ *
+ * A sentinel rather than `null` because the value round-trips through an
+ * `<input type="number">`, a JSON body and a `Number()` on the way back, and
+ * `null` comes out of that chain as 0 anyway. Naming it stops the 0 reading as
+ * "no time at all" at its call sites. Kept in step with
+ * `src/features/rooms/config.js`.
+ */
+export const UNLIMITED_DURATION_SEC = 0;
 export const DEFAULT_BAN_DURATION_SECONDS = 120;
 export const MIN_BAN_DURATION_SECONDS = 5;
 export const MAX_BAN_DURATION_SECONDS = 900;

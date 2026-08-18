@@ -529,10 +529,15 @@
 /* Free-entry duration field. Mirrors .lv-stepper's framing so the ban count
    and the two durations read as one control family. */
 
+/* 38px, which is what `.lv-stepper` measures — its 36px buttons plus its own
+   1px borders. The stepper and the two duration fields sit in one row and were
+   38px against 33px, exactly the kind of five-pixel difference that reads as
+   "not quite right" without being obviously wrong. */
 .lv-duration-field {
   display: flex;
   align-items: center;
   align-self: stretch;
+  min-height: 38px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -590,6 +595,59 @@
 
 .lv-duration-field:has(.lv-duration-input:out-of-range) {
   border-color: var(--danger);
+}
+
+/* ── Unlimited ────────────────────────────────────────────────
+   0 seconds is the sentinel for "no clock at all", so the field stops showing a
+   number: a disabled box reading `0 sec` says the opposite of what it means. */
+
+.lv-duration-nolimit {
+  display: none;
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+}
+
+.lv-duration-field.is-unlimited .lv-duration-input,
+.lv-duration-field.is-unlimited .lv-duration-unit {
+  display: none;
+}
+
+.lv-duration-field.is-unlimited .lv-duration-nolimit {
+  display: block;
+}
+
+/* A segment of the field, mirroring `.lv-duration-unit` on the other side of
+   the number — same height, same divider, no radius of its own. It used to be a
+   pill on a row of its own under the field, which gave the two duration columns
+   an extra row the ban-count column did not have and left the whole settings row
+   ragged. A control that only modifies the value beside it belongs beside it. */
+.lv-unlimited-btn {
+  align-self: stretch;
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.lv-unlimited-btn:hover:not(:disabled) {
+  background: var(--fill);
+  color: var(--text);
+}
+
+/* On: it is the field's current answer, so it reads as selected rather than as
+   a button waiting to be pressed. */
+.lv-unlimited-btn[aria-pressed="true"] {
+  background: var(--fill-strong);
+  color: var(--text);
 }
 
 /* Three modes, and `auto-fit` rather than a fixed count: at 250px a card holds
