@@ -138,6 +138,14 @@ blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column gri
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, and the pagination bar.
 
+**`[hidden] { display: none !important }` is load-bearing**, and is the first rule in
+the sheet. Tabs are switched by setting `hidden` on `.tab-panel`, and the browser
+applies that attribute as an ordinary `display: none` that **any** `display` rule
+here outranks — `.tab-panel { display: flex }` did, so all four panels rendered at
+once and the console was one long scroll with a tab bar that appeared to do
+nothing. `features/draft/base.css` carries the same rule for the same reason.
+Never style a panel's `display` without checking which of the two wins.
+
 Breakpoints: `1100 → 860 → 700 → 600`. At 600 the nav wraps and **the tab strip
 takes a row of its own and scrolls sideways** — it used to be `display: none`,
 which left the console with no navigation at all on a phone.

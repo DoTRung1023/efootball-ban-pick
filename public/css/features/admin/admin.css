@@ -6,6 +6,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 
+/* `hidden` is how every panel on this page is switched off, and the browser
+   applies it as a plain `display: none` that ANY display rule in this sheet
+   outranks — `.tab-panel { display: flex }` did, so all four tabs rendered at
+   once and the console read as one long scroll. Same rule, same reason, as
+   `features/draft/base.css`. */
+[hidden] { display: none !important; }
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--text-muted) transparent;

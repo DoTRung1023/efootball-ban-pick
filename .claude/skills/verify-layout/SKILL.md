@@ -52,6 +52,13 @@ Need the room in a particular phase first? `draft-testing` — `node
   reports `innerWidth === 500` without complaint, so the `≤480` rung never
   applies and the run comes back clean. The probe uses an iframe for exactly
   this reason, and **asserts `innerWidth` equals what you asked for**.
+- **`el.hidden` is not "is it hidden".** It reads the attribute, and the attribute
+  only wins if no `display` rule outranks it. A console probe reported
+  `visiblePanels: ['overview']` for a page that was rendering all four panels
+  stacked down the screen, and every tab switch "passed". Measure
+  `getComputedStyle(el).display !== "none"` and a non-zero
+  `getBoundingClientRect().height` — or take a screenshot and *look*, which is
+  what actually caught it.
 - **Assert the stylesheets loaded.** The probe fails the run if `--bg` does not
   resolve. On `file://`, root-absolute `href="/css/…"` resolves against the
   filesystem root and `<base href>` does **not** rescue it — the page loads with

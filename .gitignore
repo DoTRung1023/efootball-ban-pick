@@ -5,3 +5,8 @@ node_modules/
 .DS_Store
 .scrape-state.json
 database/backups/
+
+# Test harnesses are written into the served directory and deleted afterwards —
+# `verify-layout`'s probe, the smoke page in `checks.md`. One survived a crashed
+# run and got committed; this makes that impossible.
+public/__*.html
