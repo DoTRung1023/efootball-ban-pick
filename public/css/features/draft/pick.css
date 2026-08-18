@@ -203,21 +203,17 @@
   background: var(--bg-elevated);
 }
 
-.pick-squad-header { line-height: 1.2; }
-
-.pick-squad-kicker {
+/* The panel's whole heading, in one line. It was a kicker plus a subtitle on a
+   second line; the subtitle said "Pick from your roster" on the pick page, under
+   a label that already reads MY SQUAD POOL. */
+.pick-squad-header {
+  line-height: 1.2;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
-}
-
-.pick-squad-sub {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
 }
 
 /* Two rows, and which control sits on which is fixed rather than left to flex.
