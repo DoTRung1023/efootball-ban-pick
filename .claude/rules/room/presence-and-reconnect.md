@@ -308,6 +308,25 @@ just made.
 the `sessionStorage` phase cache makes reloading safe. Reloading *is* safe — that
 is why the guard never posts the leave. What is not safe is closing the tab,
 which the cache does nothing for.)
+## The guest leaving is not a page change, and it beats every other branch
+
+The host stays in the room and drops to the lobby (`returnToLobby` — clears the phase
+cache, resets staged bans, announces *"Your opponent left…"*, shows `#viewLobby`). No
+navigation, so the announcement is an ordinary toast rather than a stashed one.
+
+**It fires from `draft`, `ready` *and* `done`** — the whole life of the room. `done` was
+missing, and the Start Match screen is the one place that mattered: it spans `ready` while
+the match is being set up and played and `done` once it is over, so a guest leaving from
+the post-match footer fell past this branch into the rematch one below it, whose test is
+"we were in `done` and the status is no longer `done`". A departing guest satisfies that
+too — the server resets the room to `lobby` either way. The host was told *"Rematch with
+X — back to ban settings"* about an opponent who had just walked out.
+
+The two events are **indistinguishable by status**: verified across pick, await-ready,
+live and done, a guest leaving produces exactly the same snapshot every time — status
+`lobby`, guest seat empty, host seat kept. Only the empty seat separates them, so the
+empty-seat test has to come first. Keep it above the `state.phase === "done"` branch.
+
 ## Leaving a room says so on the page you land on
 
 A toast cannot outlive the page that fires it, so a button that navigates has to hand its

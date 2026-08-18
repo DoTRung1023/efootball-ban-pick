@@ -291,8 +291,19 @@ export async function pollPresence() {
        here the same way.
 
        Only the guest slot can empty like this: the host leaving closes the room,
-       which the `state.room.closed` branch above catches first. */
-    if ((state.phase === "draft" || state.phase === "ready") && prevGuestId && !nextGuestId && !state.room?.closed) {
+       which the `state.room.closed` branch above catches first.
+
+       **`done` is in the list, and leaving it out was a real bug.** The Start
+       Match screen spans two phases — `ready` while the match is being set up
+       and played, `done` once it is over — and only the first was here. So a
+       guest leaving from the post-match footer fell through to the rematch
+       branch below, whose test is "we were in `done` and the status is no longer
+       `done`". A guest walking out satisfies that too: the host was told
+       *"Rematch with X — back to ban settings"* and reloaded, for an opponent
+       who had just left. The two events look identical from the status alone;
+       the empty seat is what tells them apart, so it has to be tested first. */
+    const onStartMatch = state.phase === "ready" || state.phase === "done";
+    if ((state.phase === "draft" || onStartMatch) && prevGuestId && !nextGuestId && !state.room?.closed) {
       returnToLobby();
       return;
     }
@@ -315,11 +326,14 @@ export async function pollPresence() {
       return;
     }
 
-    /* We were in the finished room and it is no longer finished: the only way
-       out of `done` is a rematch being accepted, which puts the room back in the
-       lobby under us. (A close arrives as `closed` and is caught above; FINISH
+    /* We were in the finished room, it is no longer finished, and both seats
+       are still filled: the only way out of `done` that looks like this is a
+       rematch being accepted, which puts the room back in the lobby under us.
+       (A close arrives as `closed` and is caught above; a guest *leaving* is
+       caught by the empty-seat branch further up, which has to come first
+       because it is indistinguishable from this one by status; and FINISH
        deliberately cannot be undone once the room is `done`, precisely so it
-       cannot be mistaken for this.) */
+       cannot be mistaken for this either.) */
     if (state.phase === "done") {
       cb.onRematchAccepted();
       return;
