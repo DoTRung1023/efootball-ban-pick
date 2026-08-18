@@ -400,15 +400,19 @@
 .timer-ring {
   position: relative;
   flex-shrink: 0;
-  min-width: 72px;
-  padding-bottom: 9px;
+  min-width: 52px;
+  padding-bottom: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* 20px, down from 32px. At its old size it was the biggest thing on the page,
+   which was defensible when it sat alone in the top-left corner and is not now
+   that it shares a slot with a 12px identity chip. It is still the only
+   tabular-nums element in the header, and still the only one that turns red. */
 .timer-inner {
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -698,30 +702,42 @@
 
 /* ── Draft stage progress: integrated left/right controls ───────── */
 
+/* Every metric here is the lobby's `.lobby-stage-row`, deliberately. The two are
+   the same header on different screens of the same room, and they were drifting:
+   16px of padding against 20px, a 520px rail against 620px, an 80px button
+   against 68px. Nothing about a draft justifies a different header from the
+   lobby it started in — change one, change both. */
 #viewDraft > .stage-progress-container {
   justify-content: space-between;
   gap: 14px;
-  padding: 7px 20px;
+  min-height: 60px;
+  padding: 8px 16px 6px;
   width: 100%;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--line-faint);
   flex-shrink: 0;
 }
 
+/* The 13px of head-room is the lobby's, and it is not decorative: the stage
+   labels hang below their dots, so the rail needs the dots pushed down to sit
+   optically centred in the row. On the lobby it comes from the base
+   `.stage-progress-container` padding, which the `--lobby` modifier's own
+   `padding` (declared earlier in this file) never manages to override; the draft
+   sets its container padding outright, so it has to be asked for here. */
 #viewDraft > .stage-progress-container .stage-progress-bar {
   flex: 1;
-  max-width: 620px;
-  padding: 0 8px;
+  width: min(520px, 100%);
+  min-width: 280px;
+  max-width: 520px;
+  padding: 13px 14px 0;
 }
 
-/* `min-width` holds the slot open when the clock is not in it. The container is
-   `space-between`, so a column that collapsed to zero would drag the stage rail
-   sideways the moment Start Match hid the clock — the rail is the one element
-   on screen for every phase, and it should not move between them. 72px is the
-   clock's own min-width, so this changes nothing while the clock is there. */
+/* Holds the way out, exactly as `.lobby-leave` does on the lobby screen. It used
+   to hold the turn clock, and carried a `min-width` so the rail would not shift
+   when the clock was hidden; the button is always there, so the prop went with
+   the clock. */
 .stage-header-left {
   flex: 0 0 auto;
-  min-width: 72px;
   display: flex;
   align-items: center;
 }
@@ -736,23 +752,23 @@
 
 /* Leave button */
 
-#viewDraft > .stage-progress-container #draftLeaveBtn {
+/* The room's way out, on both screens. It had two rules with two paddings and
+   two widths; it is one button doing one thing. */
+#lobbyLeaveBtn,
+#draftLeaveBtn {
+  min-width: 80px;
+  border-color: var(--danger-line);
   background: var(--danger-fill);
-  border: 1px solid var(--danger-line);
   color: var(--danger);
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 6px 14px;
-  border-radius: var(--radius);
-  box-shadow: none;
-  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
-#viewDraft > .stage-progress-container #draftLeaveBtn:hover {
-  background: var(--danger-fill);
+#lobbyLeaveBtn:hover:not(:disabled),
+#lobbyLeaveBtn:focus-visible,
+#draftLeaveBtn:hover:not(:disabled),
+#draftLeaveBtn:focus-visible {
   border-color: var(--danger);
+  background: var(--danger-fill);
+  color: var(--text);
 }
 
 /* ── The read-only banner over a confirmed board ──────────────

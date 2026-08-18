@@ -264,11 +264,14 @@
     <!-- Draft -->
     <div id="viewDraft" class="view view--draft" hidden>
       <!-- Stage progress with integrated controls -->
+      <!-- Same three slots as the lobby's `.lobby-stage-row`, in the same order:
+           the way out, where you are, who you are. The only thing that differs
+           between any two screens of a room is which stage dot is lit — and the
+           turn clock, which joins the identity on the right for as long as there
+           is a deadline to show. -->
       <div class="stage-progress-container">
         <div class="stage-header-left">
-          <div class="timer-ring" id="timerRing" title="Turn timer">
-            <div class="timer-inner" id="timerInner">30</div>
-          </div>
+          <button type="button" class="btn btn--small btn--ghost draft-leave" id="draftLeaveBtn">Leave</button>
         </div>
         <div class="stage-progress-bar">
           <div class="stage-progress-line"></div>
@@ -286,7 +289,13 @@
           </div>
         </div>
         <div class="stage-header-right">
-          <button type="button" class="btn btn--small btn--ghost draft-leave" id="draftLeaveBtn">Leave</button>
+          <!-- Hidden whenever there is no deadline: the ready phase, and any phase
+               the host set to unlimited. A clock with nothing to count is noise. -->
+          <div class="timer-ring" id="timerRing" title="Time left this turn" hidden>
+            <div class="timer-inner" id="timerInner">30</div>
+          </div>
+          <button type="button" class="btn btn--small btn--ghost lobby-identity-btn" id="draftIdentityBtn"
+                  tabindex="-1" aria-label="Current username"></button>
         </div>
       </div>
       <div class="draft-shell">

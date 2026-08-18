@@ -14,6 +14,7 @@ import { renderPickBoard } from '@/features/draft/pick/pickView.js';
 import { renderReadyBoard } from '@/features/draft/ready/readyView.js';
 import { updateStageTabs } from './stageTabs.js';
 import { allowLeave } from './leaveGuard.js';
+import { getCurrentIdentity } from '@/features/draft/utils.js';
 
 /** Phases with a board to draw. `done` is one of them — see `enterPostMatch`. */
 const RENDERED_PHASES = new Set(["draft", "ready", "done"]);
@@ -44,7 +45,8 @@ export function renderDraftUi() {
   }
 
   renderActionError();
-  renderTurnClock(readyPhase);
+  renderTurnClock(readyPhase, room);
+  renderIdentity(mySide, room);
 
   const showBanBoard = isBanPhase && !readyPhase;
   renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, visible: showBanBoard });
@@ -106,20 +108,38 @@ function renderLeaveLabel(mySide) {
 }
 
 /**
- * The clock is a *turn* clock, and the Start Match screen has no turn.
+ * The clock is on screen only while there is something to count.
  *
- * `startTurnTimer`'s tick already returns early outside the draft phase, which
- * stopped the countdown but left the last digits it painted frozen in the top
- * corner — on the final screen the room showed a number like "275" with a
- * half-full accent bar under it, which reads as time left to do something.
- * Nothing on that screen is timed.
+ * Two ways there is not, and they are the same absence: the Start Match screen
+ * has no turn, and a phase the host set to **unlimited** has no deadline. Both
+ * show up as `turnEndsAt == null`, so one test covers them — and it is the same
+ * value `startTurnTimer` keys on, which is what stops the two disagreeing.
  *
- * The column it sits in keeps its width (`shell.css`), so the stage rail does
- * not jump sideways when the clock goes.
+ * `startTurnTimer` returning early was never enough on its own: stopping a
+ * countdown is not clearing it, and the last digits it painted stayed frozen in
+ * the corner. On Start Match the room showed something like "275" under a
+ * half-full accent bar, which reads as time left to do something.
  */
-function renderTurnClock(readyPhase) {
+function renderTurnClock(readyPhase, room) {
   const ring = document.getElementById("timerRing");
-  if (ring && ring.hidden !== readyPhase) ring.hidden = readyPhase;
+  if (!ring) return;
+  const hide = readyPhase || !room?.turnEndsAt;
+  if (ring.hidden !== hide) ring.hidden = hide;
+}
+
+/**
+ * The name chip on the right of the header, mirroring the lobby's. The header is
+ * the same three slots on every screen of a room — the way out, where you are,
+ * who you are — so this one has to be filled in here too.
+ */
+function renderIdentity(mySide, room) {
+  const btn = document.getElementById("draftIdentityBtn");
+  if (!btn) return;
+  const name = room?.[mySide]?.username || getCurrentIdentity().username;
+  if (btn.textContent !== name) {
+    btn.textContent = name;
+    btn.title = name;
+  }
 }
 
 function renderActionError() {

@@ -10,26 +10,50 @@ paths:
 
 - There is no topbar and no turn pill (`#turnPill` / `.turn-pill-*` fully removed from
   HTML, CSS, and JS). Phase context comes from the stage dots alone.
-- The `.stage-progress-container` is `justify-content: space-between` with the timer ring
-  (`#timerRing`) in `.stage-header-left` on the left and the Leave button
-  (`#draftLeaveBtn`) in `.stage-header-right` on the right. The `.stage-progress-bar`
-  sits between them with `flex: 1; max-width: 620px`. Below **480 px** the container
-  wraps: timer + Leave on row 1, the bar full width on row 2 — see the responsive ladder
-  in the room CSS rule. Side by side the three parts need ~455 px, and since `.view` has
-  no horizontal scroll that width leaks down into every panel of the draft.
-- `.stage-header-left` carries `min-width: 72px` so it holds its slot when the clock is
-  not in it. The container is `space-between`, so a column collapsing to zero would drag
-  the stage rail sideways — and the rail is the one element on screen in every phase.
+- **The header is the same on every screen of a room**, lobby included: three slots in
+  one order — the way out, where you are, who you are. `.lobby-stage-row` and
+  `#viewDraft > .stage-progress-container` are two markups for one component, so every
+  metric is shared and **changing one means changing both**. Verified equal at 1440:
+  row 95px, leave button at x=16, rail at x=460 × 520px, right edge at 1424, first dot
+  21px below the row top.
+
+  They had drifted — 16px of padding against 20px, a 520px rail against 620px, an 80px
+  button against 68px, and the draft header carried the turn clock on the left where the
+  lobby carries the way out. The clock has moved (below), and `#lobbyLeaveBtn` and
+  `#draftLeaveBtn` now share one rule instead of two with different paddings.
+
+  The 13px of head-room above the rail is load-bearing: stage labels hang below their
+  dots, so the dots need pushing down to sit optically centred. On the lobby it comes from
+  the base `.stage-progress-container` padding — which that view's own `--lobby` modifier,
+  declared earlier in the file, never manages to override — so the draft asks for it
+  explicitly on the bar.
+
+  Below **480 px** the container wraps: left + right on row 1, the bar full width on
+  row 2 — see the responsive ladder in the room CSS rule. Side by side the three parts
+  need ~455 px, and since `.view` has no horizontal scroll that width leaks down into
+  every panel of the draft.
+- `.stage-header-right` holds the turn clock **and** the identity chip
+  (`#draftIdentityBtn`, painted by `renderIdentity`, mirroring `#lobbyIdentityBtn`).
 - The clock is digits over a **3px bar** that empties as the turn runs down. JS writes
   `--timer-progress` and the `is-low` class and nothing else; `shell.css` decides both
   colours. (It was a conic-gradient ring painted from `ring.style.background`, which put
   two hex literals in JS.) There is a single canonical `.timer-ring` / `.timer-inner`
   definition — no context-specific overrides. There is no READY button in the topbar —
   `#draftTopReadyBtn` has been removed from HTML (JS already null-guards it).
-- **`renderDraftUi` hides the clock for the whole ready phase** (`renderTurnClock`).
-  `startTurnTimer`'s tick returns early outside the `draft` phase, so the countdown
-  stops — but stopping is not clearing, and the last digits it painted stayed frozen on
-  the Start Match screen with a half-full accent bar under them. Nothing there is timed.
+- **The clock is on screen only when there is something to count** (`renderTurnClock`).
+  Two ways there is not, and they are the same absence: the Start Match screen has no
+  turn, and a phase the host set to **unlimited** has no deadline. Both are
+  `turnEndsAt == null`, so one test covers them — and it is the value `startTurnTimer`
+  keys on too, which is what stops the two disagreeing.
+
+  `startTurnTimer` returning early was never enough by itself: stopping a countdown is not
+  clearing it, and the last digits it painted stayed frozen in the corner. Start Match
+  showed something like "275" under a half-full accent bar, which reads as time left to do
+  something.
+
+  The digits are **20px**, down from 32px. At the old size it was the largest thing on the
+  page, which was defensible alone in the top-left corner and is not now that it shares a
+  slot with a 12px identity chip.
 - The draft schedule (`buildTurnSchedule`) always returns exactly two entries:
   `{ side: "both", action: "ban" }` then `{ side: "both", action: "pick" }`. Both phases
   are simultaneous — **there are no per-player turns.**

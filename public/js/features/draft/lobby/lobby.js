@@ -237,7 +237,10 @@ function renderLobby() {
   if (isHost) {
     if (lobbyLeaveBtn) {
       lobbyLeaveBtn.textContent = "Close room";
-      lobbyLeaveBtn.classList.add("is-close-room");
+      /* No class swap: `#lobbyLeaveBtn` is red on both screens because the
+         button *is* the way out of the room, not because of the label it wears.
+         There used to be an `is-close-room` class toggled here that no
+         stylesheet ever matched. */
     }
     startBtn.hidden = false;
     settings.hidden = false;
@@ -263,7 +266,6 @@ function renderLobby() {
   } else {
     if (lobbyLeaveBtn) {
       lobbyLeaveBtn.textContent = "Leave";
-      lobbyLeaveBtn.classList.remove("is-close-room");
     }
     startBtn.hidden = false;
     startBtn.disabled = !room.host || !room.guest;

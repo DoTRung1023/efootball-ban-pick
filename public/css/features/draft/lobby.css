@@ -58,20 +58,6 @@
   color: var(--text);
 }
 
-#lobbyLeaveBtn {
-  min-width: 80px;
-  border-color: var(--danger-line);
-  background: var(--danger-fill);
-  color: var(--danger);
-}
-
-#lobbyLeaveBtn:hover:not(:disabled),
-#lobbyLeaveBtn:focus-visible {
-  border-color: var(--danger);
-  background: var(--danger-fill);
-  color: var(--text);
-}
-
 /* ── Lobby board + layout ────────────────────────────────── */
 
 .lobby-board {
