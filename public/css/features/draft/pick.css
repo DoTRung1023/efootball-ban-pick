@@ -326,7 +326,12 @@
 
 .pick-phase-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  /* 150px, not the 108px this used to be, and the difference is the metadata:
+     the four rows need 124–173px to read, so a 109px card clipped every one of
+     them. One width has to serve both toggle states (see the note above), so it
+     is sized for the state that needs more. HIDE INFO still buys the 89px of
+     footer per card — it just no longer buys a column. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 7px;
   overflow-y: auto;
   flex: 1;
@@ -361,21 +366,15 @@
   display: none !important;
 }
 
-/* Showing the info widens the cards, and that is the whole point of the rule.
-   The pool is a 380px side column, so its default floor gives three cards of
-   109px — and the four metadata rows need 124–173px, so every one of them wrapped
-   to two or three lines: 170px of footer under 153px of art, measured at 1440.
-   At a 150px floor the column holds two cards of ~171px, three of the four rows
-   fit on one line, and the footer comes back to ~105px — the shape My Players
-   has, which is what this grid is being asked to match.
+/* **The info toggle must not change the card's width.** It is a footer that
+   shows and hides — the same thing HIDE INFO means on My Players, where the
+   grid is six fixed columns and nothing but `.pc-footer` moves.
 
-   It beats every `.pick-phase-grid` rung in `responsive.css` on specificity
-   rather than order, deliberately: the narrow rungs exist to pack *art* in, and
-   76px cards carrying four wrapped rows would be the same problem again. With
-   info off, they all still apply. */
-.pick-phase-grid:not(.info-hidden) {
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-}
+   This grid briefly widened its columns when info was on, which read as the
+   cards growing and shrinking under the button. The floor below is now sized
+   once, for the harder of the two jobs (carrying the metadata), and the art-only
+   state simply uses it too. `scripts/checks/infoToggle.js` fails the build if
+   any `.info-hidden` selector grows a width or a column track again. */
 
 .pick-phase-grid .player-card {
   width: 100%;
@@ -1211,9 +1210,12 @@
   /* The pitch column is the one that must not starve, so the pool gives back
      first — 320px still holds two ~150px cards per row. */
   .pick-phase-layout { grid-template-columns: 360px minmax(0, 1fr) 220px; }
-  /* Drop the floor with the column, or `auto-fill` falls to two tracks and the
-     cards get *bigger* on the narrower screen — 114px at 1440, 144px here. */
-  .pick-phase-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  /* The pool's floor is **not** dropped here, and no longer anywhere. It used to
+     step down with the column (100px here, 76px on a phone) to keep three tracks
+     of art — but the floor now exists to fit the metadata rows, which need the
+     same 150px at every width. A rung that shrank the card would put back, one
+     breakpoint at a time, the clipping the single floor was set to avoid. 320px
+     of pool still holds two of them. */
   .pick-opp-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
 }
 

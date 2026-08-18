@@ -32,8 +32,9 @@ import * as cycles from "./checks/cycles.js";
 import * as domIds from "./checks/domIds.js";
 import * as debugLeftovers from "./checks/debugLeftovers.js";
 import * as deadCss from "./checks/deadCss.js";
+import * as infoToggle from "./checks/infoToggle.js";
 
-const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss];
+const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle];
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Everything the checks share, gathered once. */
@@ -100,9 +101,12 @@ const FIXTURE = {
 <script type="module" src="/js/pages/home.js"></script>
 </head><body>
 <div id="grid" class="thing-card"></div>
+<div class="player-grid info-hidden"><div class="pc-footer"></div></div>
 </body></html>`,
 
-  "public/css/app.css": `.thing-card { color: red; }\n`,
+  "public/css/app.css":
+    `.thing-card { color: red; }\n` +
+    `.player-grid.info-hidden .pc-footer { display: none; }\n`,
 
   "public/js/pages/home.js":
     `import { initThing } from '@/features/thing/thing.js';\ninitThing();\n`,
@@ -122,6 +126,14 @@ const FIXTURE = {
 
 // One planted defect per check. `expect` names the check that must catch it.
 const DEFECTS = [
+  {
+    expect: "info-toggle",
+    what: "the info toggle resizing the card instead of just hiding the footer",
+    file: "public/css/app.css",
+    from: ".player-grid.info-hidden .pc-footer { display: none; }",
+    to: ".player-grid.info-hidden .pc-footer { display: none; }\n"
+      + ".player-grid:not(.info-hidden) { grid-template-columns: repeat(2, 1fr); }",
+  },
   {
     expect: "imports",
     what: "an import whose casing does not match the file on disk",

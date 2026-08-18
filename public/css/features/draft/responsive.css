@@ -170,8 +170,9 @@
     padding: 8px;
   }
 
-  .pick-phase-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
-
+  /* No `.pick-phase-grid` floor here either — see the note in `pick.css`. At
+     this width the pool has the screen to itself, so one 150px floor still
+     gives two columns on a 360px phone. */
   .pick-opp-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
 
   .ban-phase-left,

@@ -482,34 +482,42 @@ Key blocks:
     above its neighbours when scaled (`z-index` needs the `position: relative`
     that rule already sets).
 
-  **SHOW INFO prints all four metadata rows, in both room grids and on My
-  Players, and it widens the pool to fit them.** Three rules do it, and they
-  come as a set — any one alone is worse than none:
+  **SHOW INFO prints all four metadata rows, and it may not change the card's
+  size doing it.** The toggle means one thing, the thing it means on My Players:
+  `.pc-footer` shows or hides. The card's *height* follows, because an element
+  appeared; its width must not move at all.
 
-  1. `.pick-phase-grid:not(.info-hidden)` raises the column floor to **150px**,
-     beating every `.pick-phase-grid` rung in `responsive.css` on specificity
-     rather than order. The narrow rungs exist to pack *art* in, and 76px cards
-     carrying four wrapped rows are the same problem the floor is fixing.
-  2. `.pc-footer` uses **2px** of side padding, matching the home page's card;
-     8px was eating a seventh of a 109px card off lines already being clipped.
-  3. The two info grids let a `.pmeta-row` **wrap** — `nowrap` + ellipsis is
-     right on My Players, where every row fits at 213px, and wrong here, where
-     the rows need 124–173px. It was not keeping them on one line, it was hiding
-     most of two of them.
+  `scripts/checks/infoToggle.js` enforces that — any `.info-hidden` selector
+  declaring a width, a track, padding, a gap or a font-size fails the build.
+  The pool had earned it: its columns were widened while info was on, so the
+  cards visibly grew and shrank under the button.
 
-  Measured at 1440, pool card / footer: **109px wide with a 170px footer**
-  (53% of the card) with wrapping alone → **168px with a 105px footer** (31%)
-  with the floor, against My Players' 213px / 79px. Nothing is clipped at any
-  width in either grid. With info *off* every narrow rung applies again and the
-  grid goes back to packing art.
+  Which leaves **one** floor to serve both states, and it is sized for the
+  harder one: `.pick-phase-grid` is `minmax(150px, 1fr)`, up from 108px, because
+  the four rows need 124–173px to read. Two consequences worth not undoing:
+
+  1. **There is no per-breakpoint floor for this grid any more.** The 100px rung
+     at ≤1100 and the 76px rung at ≤480 both went. They existed to pack art, and
+     each one would have put the clipping back a breakpoint at a time.
+  2. `.pc-footer` uses **2px** of side padding, matching the home page's card.
+     8px was eating a seventh of the old 109px card off lines already clipped.
+
+  A `.pmeta-row` stays `nowrap` here, and that is what makes every card the same
+  height — four rows is four lines whatever the club is called. Letting them wrap
+  loses nothing to clipping and costs a ragged grid; `ban.css` records the
+  measurements and why neither `align-items: stretch` nor `grid-auto-rows: 1fr`
+  can level it back out.
+
+  Measured across 1440 / 1216 / 1000 / 400 px, info on → off: card width
+  identical at every one (168 / 168 / 158 / 206), column count identical, and
+  only the height changes (325 → 236 at 1440 — the 89px footer).
 
   This replaced a two-row cap (`.pmeta-row:nth-child(n + 3) { display: none }`)
   that kept the pool dense by hiding foot · style and height · weight · age.
   The hover panel still floats all four rows, but a row you cannot read on a
   card you are choosing from is not information you have.
 
-  Note the horizontal padding costs 4px, which is what lets `auto-fill` hold
-  three tracks at the 108px info-off floor. Overlay CSS:
+  Overlay CSS:
   `.is-pick-taken .pc-img-wrap::after { content: "PICKED" }` and
   `.is-ban-taken::after { content: "BANNED" }`.
 - **`grid-auto-rows: max-content` is load-bearing on every grid holding a

@@ -28,6 +28,7 @@ Exit codes: `0` clean, `1` a check failed, `2` the name you passed matches nothi
 | `dom-ids` | `getElementById` / `querySelector("#…")` for an id no page that loads the module provides |
 | `debug-leftovers` | `debugger` and `console.log` in **client** code (`src/` prints legitimately) |
 | `dead-css` | class selectors no markup can match |
+| `info-toggle` | a SHOW INFO / HIDE INFO selector that resizes the card instead of just showing and hiding its footer |
 
 **Casing is the one that matters most.** macOS is case-insensitive and deployment
 is not, so `@/shared/ui/Toast.js` works on the dev machine and 404s in production.
@@ -68,6 +69,13 @@ self-test will not tell you so.
 - `dom-ids` credits ids created at runtime (`panel.id =`, a `panelId:` option, or
   `id="…"` inside a template string). Without that, seven live dropdown panels
   read as dangling.
+- `info-toggle` is the one check here that guards a *design* rule rather than a
+  broken reference, and it exists because that rule was broken twice by edits
+  that each looked local and correct. It reads declarations only: a width
+  smuggled in through a custom property, or applied from JS, would pass. Neither
+  exists, and both would be deliberate rather than the drift this catches.
+  `display` is deliberately allowed — `display: none` on the footer *is* the
+  mechanism.
 - None of this checks behaviour. It cannot tell you the draft still works — for
   that, run one.
 
