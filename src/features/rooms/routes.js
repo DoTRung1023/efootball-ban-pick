@@ -264,6 +264,20 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
   const side = resolveSide(entry, req.requesterId);
   if (!side) return sendRoom(res, entry);
 
+  /* The other side already left for a new match. Their seat was kept only so
+     this player's screen could keep their name on it — and this player is now
+     leaving too, so there is nobody left to read it. Vacating it here is what
+     lets everything below see the room as it really is: the host branch finds
+     no heir and takes the lone-host path, and the "last one out" delete at the
+     bottom fires instead of leaving a lobby with a seat nobody is sitting in.
+     Without this the departed player was handed their old seat back by
+     `resetDraftToLobby` and dragged into it the next time they went home. */
+  const other = side === "host" ? "guest" : "host";
+  if (entry.newMatch?.by === other) {
+    entry[other] = null;
+    entry.newMatch = null;
+  }
+
   if (side === "host") {
     const heir = entry.guest;
     pushSystemChat(entry, `${entry.host.username || "Host"} left the room.`);

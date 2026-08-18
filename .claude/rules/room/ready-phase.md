@@ -244,6 +244,18 @@ same as being thrown out, and only one of those is a thing the other player did 
 Nothing clears the flag but `resetDraftToLobby`. There is no way back into a room whose
 other seat has walked out, and pretending otherwise would be the offer failing silently.
 
+**The leaver keeps their seat, and two routes have to know that.** The seat is held so the
+player left behind still has their opponent's *name* on screen — but its owner is not in
+the room any more, so:
+
+- `GET /rooms/mine` skips a room whose `newMatch.by` is this user's side. The home page
+  redirects into whatever that route answers, so without the skip the leaver was pulled
+  back into the room they had just left the moment they went home from the new one.
+- `POST /:code/leave` vacates the *other* side's seat first when that side has left for a
+  new match. The name has no reader once this player goes too, and leaving the seat there
+  meant `resetDraftToLobby` handed it back to an absent player: the room survived as a
+  lobby nobody was in, and claimed its old host forever after.
+
 ## An offer can be withdrawn, and every answer is announced
 
 `pending` used to leave REMATCH on screen at half opacity: legible, and a dead end — once
