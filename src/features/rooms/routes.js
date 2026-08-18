@@ -855,6 +855,19 @@ router.post("/:code/config", withRoomCode, (req, res) => {
     }
   }
 
+  /* A floor above its ceiling — "at least 23, at most 22" — is a rule no squad
+     can satisfy, so the pair is stored in order whoever sent it. Only the
+     single-count categories are touched: a per-value cap is a JSON map, which
+     `Number()` reads as NaN and this skips. */
+  for (const key of Object.keys(config.allowanceMins)) {
+    const min = Number(config.allowanceMins[key]);
+    const cap = Number(config.allowanceCaps[key]);
+    if (Number.isFinite(min) && Number.isFinite(cap) && min > 0 && cap > 0 && min > cap) {
+      config.allowanceMins[key] = String(cap);
+      config.allowanceCaps[key] = String(min);
+    }
+  }
+
   if (Array.isArray(allowanceEnabled)) {
     config.allowanceEnabled = allowanceEnabled
       .map((k) => String(k))

@@ -893,6 +893,29 @@ function bindAllowanceListClick() {
 }
 
 /** Allowance list: select / checkbox commits. */
+/**
+ * Writes a category's player-count pair back, in order.
+ *
+ * A floor above its ceiling is a rule nobody can satisfy — "at least 23, at most
+ * 22" refuses every squad — so an inverted pair is swapped, the same way the
+ * value range beside it is. On `change` only: doing this per keystroke is what
+ * made the range fields impossible to type in.
+ */
+function commitAllowanceCountPair(item, key) {
+  const minEl = item?.querySelector(`.allowance-item-min[data-allowance-min-key="${key}"]`);
+  const capEl = item?.querySelector(`.allowance-item-cap[data-allowance-cap-key="${key}"]`);
+
+  let min = normalizeAllowanceCapValue(minEl?.value);
+  let cap = normalizeAllowanceCapValue(capEl?.value);
+  if (min && cap && Number(min) > Number(cap)) [min, cap] = [cap, min];
+
+  if (minEl) minEl.value = min;
+  if (capEl) capEl.value = cap;
+  state.room.config.allowanceMins[key] = min;
+  state.room.config.allowanceCaps[key] = cap;
+  scheduleLobbyConfigPush();
+}
+
 function bindAllowanceListChange() {
   document.getElementById("allowanceList")?.addEventListener("change", (e) => {
     const capInput = e.target.closest(".allowance-cap-input");
@@ -1028,27 +1051,15 @@ function bindAllowanceCapInputs() {
       return;
     }
 
-    const capInput = e.target.closest(".allowance-item-cap");
-    if (capInput && state.mySide === "host") {
-      const key = capInput.dataset.allowanceCapKey;
+    /* Both ends of a player count commit together: read on its own, a minimum
+       cannot tell whether it now exceeds its maximum. Same normaliser for each,
+       so 0 and blank both come back as "" — a minimum of zero is the absence of
+       a rule, not a rule. */
+    const countInput = e.target.closest(".allowance-item-min, .allowance-item-cap");
+    if (countInput && state.mySide === "host") {
+      const key = countInput.dataset.allowanceMinKey || countInput.dataset.allowanceCapKey;
       if (!key) return;
-      const normalizedCap = normalizeAllowanceCapValue(capInput.value);
-      capInput.value = normalizedCap;
-      state.room.config.allowanceCaps[key] = normalizedCap;
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    /* The floor beside that ceiling. Same normaliser, so 0 and blank both come
-       back as "" — a minimum of zero is the absence of a rule, not a rule. */
-    const minInput = e.target.closest(".allowance-item-min");
-    if (minInput && state.mySide === "host") {
-      const key = minInput.dataset.allowanceMinKey;
-      if (!key) return;
-      const normalizedMin = normalizeAllowanceCapValue(minInput.value);
-      minInput.value = normalizedMin;
-      state.room.config.allowanceMins[key] = normalizedMin;
-      scheduleLobbyConfigPush();
+      commitAllowanceCountPair(countInput.closest(".allowance-item"), key);
       return;
     }
     const input = e.target.closest(".allowance-item-input");

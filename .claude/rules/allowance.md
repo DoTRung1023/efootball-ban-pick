@@ -18,6 +18,13 @@ of them** a squad may hold.
 | `allowanceCaps` | the ceiling — a count, or a `{value: cap}` JSON map |
 | `allowanceMins` | the floor — always a plain count, never a map |
 
+**A minimum may never exceed its maximum.** "At least 23, at most 22" refuses
+every possible squad, so an inverted pair is stored in order — swapped, the same
+way the value range beside it is. Enforced in **both** places: `commitAllowanceCountPair`
+in the lobby (on `change`, never per keystroke) and again in `POST /:code/config`,
+so no client can store an unsatisfiable rule. The server pass skips per-value
+caps, which are JSON maps and read as `NaN`.
+
 `0` and `""` mean the same thing in both count fields: no rule. A minimum of zero
 asks for nothing, which is why `normalizeAllowanceMinValue` is
 `normalizeAllowanceCapValue` and both collapse to `""`.
