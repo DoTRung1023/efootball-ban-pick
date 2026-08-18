@@ -715,10 +715,19 @@
    column, so a shrinkable basis-0 item collapses to zero content height and its
    children paint outside the border box. Grow to fill spare space, never shrink. */
 
+/* Shrinkable, and `min-height: 0` so it actually can — a flex item's floor is
+   its content otherwise. `.allowance-list` inside it is the scroller
+   (`overflow-y: auto`), and with `flex-shrink: 0` here that scroller was inert:
+   the section grew to fit every row instead, pushing `.prep-scroll` into
+   scrolling and the whole lobby into growing past the viewport. Scrolling the
+   settings column then slid BAN PER SIDE and the durations up under the panel
+   header. The guest never saw it because their `#lobbySettings` is hidden, so
+   the section had the column to itself and fitted. */
 .prep-section--allowance {
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .prep-section-title {
@@ -871,6 +880,15 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
 
+  /* Closed means gone from layout, not merely invisible. Hidden with opacity
+     alone it stayed laid out at up to 280px, absolutely positioned inside
+     `.prep-scroll` — and an abspos box still extends its scroll container's
+     scrollable area. That is where the settings column's phantom scroll came
+     from: dragging it slid BAN PER SIDE and the durations up under the panel
+     header to reveal nothing but an invisible dropdown. Every sibling panel
+     (`.allowance-pos-panel`, `.allowance-multi-panel`, `.allowance-cap-panel`)
+     already toggles `display`; this one was the outlier. */
+  display: none;
   opacity: 0;
   pointer-events: none;
   transform: translateY(5px) scale(0.97);
@@ -879,6 +897,7 @@
 }
 
 .allowance-category-panel.is-open {
+  display: block;
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0) scale(1);

@@ -7,9 +7,32 @@ paths:
 # Lobby settings UI (`room.html` + `lobby.js` + `css/features/draft/lobby.css`)
 
 - `.prep-col--settings` is a three-part card: `.prep-title` → `.prep-scroll` →
-  `.lobby-cta-bar`. **Only `.prep-scroll` scrolls**, so the "BAN SETTING" heading and the
-  START/READY footer stay pinned when the settings overflow. Do not move `overflow-y`
-  back onto `.prep-col--settings` — that is what let the header scroll out of view.
+  `.lobby-cta-bar`, so the "BAN SETTING" heading and the START/READY footer stay pinned.
+  Do not move `overflow-y` back onto `.prep-col--settings` — that is what let the header
+  scroll out of view.
+
+**`.allowance-list` is the scroller, not `.prep-scroll`.** Above the `max-width: 1200px`
+rung the lobby is `100vh` with `overflow: hidden`, so the settings column is bounded and
+something inside it has to absorb a long category list. That must be the list: scrolling
+`.prep-scroll` instead slides BAN PER SIDE, the durations and MODE up underneath the
+panel header, which is what "the host scrolls wrong, the guest is fine" looks like — the
+guest's `#lobbySettings` is hidden, so their column had nothing above the list to lose.
+
+Two separate causes, both needed fixing:
+
+- **`.prep-section--allowance` was `flex: 1 0 auto`.** `flex-shrink: 0` meant it could
+  never give up height, so `.allowance-list`'s `overflow-y: auto` was inert — the section
+  grew to fit every row and pushed the overflow outward. It is `flex: 1 1 auto` with
+  `min-height: 0` now; without the `min-height` a flex item still floors at its content.
+- **`.allowance-category-panel` was hidden with `opacity: 0` alone.** An absolutely
+  positioned box still extends its scroll container's scrollable area, so the closed
+  "Choose a category" dropdown — up to 280px of it — added phantom scroll to the settings
+  column that revealed nothing. It toggles `display` now, like every sibling panel
+  (`.allowance-pos-panel`, `.allowance-multi-panel`, `.allowance-cap-panel`) already did.
+
+Measured at 1600×900 with five categories: `.prep-scroll` scrollable **341 → 0**, and
+`.allowance-list` became the scroller (529px of rows in 188px). The guest was 0 both
+before and after.
 - `#lobbySettings` (`.lv-settings-panel`) and `.prep-section--allowance` are siblings
   inside `.prep-scroll` — no `.prep-section` wrapper around the settings panel.
 
