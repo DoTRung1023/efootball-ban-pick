@@ -273,6 +273,11 @@ export function applyPresenceSnapshot(sr) {
   room.rematch = sr.rematch?.by === "host" || sr.rematch?.by === "guest"
     ? { by: sr.rematch.by }
     : null;
+  /* Which side, if either, has left this room for a different one. Same
+     every-snapshot rule as `rematch` above. */
+  room.newMatch = sr.newMatch?.by === "host" || sr.newMatch?.by === "guest"
+    ? { by: sr.newMatch.by }
+    : null;
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);

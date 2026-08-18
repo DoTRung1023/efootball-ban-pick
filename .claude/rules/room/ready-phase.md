@@ -216,10 +216,56 @@ All three actions go to `POST /api/rooms/:code/post-match`, and the route **409s
 
 | Action | Server effect | Where each client ends up |
 | --- | --- | --- |
-| `new-match` | `closed = true`, both seats cleared, reason "X started a new match." | initiator → `/room/<fresh code>?mode=host`; other side's poll hits `closed` → `showRoomClosed` countdown |
+| `new-match` | `entry.newMatch = { by: side }`, any offer cleared. **Nothing else** | initiator → `/room/<fresh code>?mode=host`; other side **stays on this screen** with REMATCH disabled |
 | `rematch-propose` | `entry.rematch = { by: side }` | offer appears in the other side's next poll |
+| `rematch-cancel` | clears the offer; **proposer only** | offer disappears from both screens |
 | `rematch-accept` | `resetDraftToLobby(entry)`, seats kept | both reload into the lobby (ban settings) |
 | `rematch-decline` | clears the offer | footer returns to its resting state |
+
+## NEW MATCH does not end the room
+
+It sets a flag and stops. The room stays open, the status stays `done`, both seats stay
+put, the squads stay on screen — the player who did not press it keeps looking at the
+match they just played, now told that nobody is coming back.
+
+It used to set `closed`, clear both seats and reset the draft, which put the other player
+on the "Room closed" countdown and then on the home page. Being left behind is not the
+same as being thrown out, and only one of those is a thing the other player did to you.
+
+`newMatch.by` is read off **every** snapshot (`applyPresenceSnapshot`), same rule as
+`rematch`. When it names the *other* side, `renderPostMatch`:
+
+- toasts `X started a different match.` — **once**, guarded by `announcedNewMatch`,
+  because the render runs twice a second;
+- sets `disabled` on `#pmRematchBtn`. The attribute, not a class: it has to stop the
+  click as well as look spent. `[data-opponent="gone"]` on the row carries the look;
+- moves the accent to NEW MATCH, which with nobody to play is the only thing left to do.
+  DESIGN.md §3.2 still holds — one accent, it has just changed hands.
+
+Nothing clears the flag but `resetDraftToLobby`. There is no way back into a room whose
+other seat has walked out, and pretending otherwise would be the offer failing silently.
+
+## An offer can be withdrawn, and every answer is announced
+
+`pending` used to leave REMATCH on screen at half opacity: legible, and a dead end — once
+offered, the only way out was leaving the room. **CANCEL REMATCH** takes that slot, and
+the server allows it only for the side that made the offer (`entry.rematch?.by !== side`
+→ 409). Cancelling somebody else's offer is declining it, and decline already exists.
+
+Every answer reaches the other player as the offer **disappearing**, which on its own is
+silent — you would be left looking at a button with no idea anybody had responded. So
+`renderPostMatch` compares against the shape it last painted:
+
+| transition | announcement |
+| --- | --- |
+| `pending → none` | `X declined the rematch.` |
+| `incoming → none` | `X cancelled the rematch offer.` |
+
+Both are suppressed by `iAnswered`, set just before I decline or cancel myself — those
+clear the offer exactly like the other side's answer does, and without the flag the
+screen would tell me my own news. An **accept** never reaches this comparison at all: it
+puts the room back in the lobby, and the poll routes a non-`done` status to
+`onRematchAccepted` before any of this runs.
 
 `new-match` asks first (`askConfirm`) — it ends the room for the *other* player too and
 cannot be taken back, the same reason Leave and Close room ask everywhere else.

@@ -3,8 +3,10 @@
  * `post` stage.
  *
  *   REMATCH     same two players, back to ban settings — needs the other side
- *               to accept, so it is an offer rather than an action
- *   NEW MATCH   this room ends; you land in a fresh one as host
+ *               to accept, so it is an offer rather than an action, and an offer
+ *               can be withdrawn (CANCEL REMATCH) as well as answered
+ *   NEW MATCH   *you* leave for a fresh room. The room you are in stays open and
+ *               the other player stays on this screen — see `newMatch` below
  *
  * **There is no CLOSE ROOM button.** The stage header carries Close room (host)
  * / Leave (guest) on every screen of the room including this one, so the footer
@@ -30,6 +32,27 @@ import { genRoomCode } from '@/shared/lib/roomCode.js';
    presence poll, and binding in there would stack a listener per tick. */
 let bound = false;
 
+/* The last footer shape this client painted. A decline reaches the player who
+   offered only as their offer *disappearing* — the server clears `rematch` and
+   the footer drops back to its resting state, which on its own is silent: you
+   would be left looking at a REMATCH button with no idea anybody had answered.
+   Comparing against the previous shape is what turns that into news.
+
+   `pending → none` is the only transition that means it. `incoming → none` is
+   me declining, and I do not need telling; an accept never reaches here at all,
+   because it puts the room back in the lobby and the poll routes it to
+   `onRematchAccepted`. */
+let lastStage = null;
+
+/* Set just before I answer or withdraw an offer myself, and consumed by the
+   next render. Both of those clear `rematch` exactly like the other side's
+   answer does, and the announcement below reads the clearing — without this it
+   would tell me my own news. */
+let iAnswered = false;
+
+/* One announcement per departure, not one per poll (~2 Hz). */
+let announcedNewMatch = false;
+
 const on = (id, handler) => document.getElementById(id)?.addEventListener("click", handler);
 
 export function bindPostMatchOnce() {
@@ -47,7 +70,16 @@ export function bindPostMatchOnce() {
   });
 
   on("pmDeclineBtn", async () => {
+    iAnswered = true;
     if (await postMatchAction("rematch-decline")) renderPostMatch();
+  });
+
+  /* Withdrawing is not declining: it takes back an offer the other side has not
+     answered, and only the proposer may do it. Waiting with no way out was the
+     one state on this screen you could not leave without leaving the room. */
+  on("pmCancelBtn", async () => {
+    iAnswered = true;
+    if (await postMatchAction("rematch-cancel")) renderPostMatch();
   });
 
   /* This ends the room for the *other* player too and cannot be taken back —
@@ -55,7 +87,7 @@ export function bindPostMatchOnce() {
   on("pmNewMatchBtn", async () => {
     const ok = await askConfirm({
       title: "New match",
-      message: "This closes the room for both of you and opens a fresh one with you as host.",
+      message: "You leave for a fresh room as host. This room stays open for your opponent.",
       okText: "New match",
     });
     if (!ok) return;
@@ -93,12 +125,45 @@ export function renderPostMatch() {
   if (row.dataset.rematch !== stage) row.dataset.rematch = stage;
 
   const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username || "Your opponent";
+
+  /* The other player has left for a room of their own. They are not coming
+     back, so there is nobody to offer a rematch to — but the room is still here
+     and so is this screen, which is the point: being left behind should not
+     take the match you just played off your screen. */
+  const gone = Boolean(state.room?.newMatch) && state.room.newMatch.by !== state.mySide;
+  if (gone && !announcedNewMatch) {
+    announcedNewMatch = true;
+    showToast(`${them} started a different match.`);
+  }
+  if (!gone) announcedNewMatch = false;
+
+  /* An answer to my offer arrives as the offer disappearing, so the transition
+     is the news. `iAnswered` covers the case where the one who cleared it was
+     me — my own decline, or my own cancel. */
+  if (!iAnswered && lastStage === "pending" && stage === "none" && !gone) {
+    showToast(`${them} declined the rematch.`);
+  }
+  if (!iAnswered && lastStage === "incoming" && stage === "none" && !gone) {
+    showToast(`${them} cancelled the rematch offer.`);
+  }
+  iAnswered = false;
+  lastStage = stage;
+
+  /* `disabled`, not a class: it has to stop the click as well as look spent. */
+  const rematchBtn = document.getElementById("pmRematchBtn");
+  if (rematchBtn) rematchBtn.disabled = gone;
+  if (row.dataset.opponent !== (gone ? "gone" : "here")) {
+    row.dataset.opponent = gone ? "gone" : "here";
+  }
+
   const status = document.getElementById("pmStatus");
-  const text = theirs
-    ? `${them} wants a rematch — same players, back to ban settings.`
-    : mine
-      ? `Rematch offered. Waiting for ${them} to accept…`
-      : "Played it out? Pick what happens next.";
+  const text = gone
+    ? `${them} started a different match. This room is still yours.`
+    : theirs
+      ? `${them} wants a rematch — same players, back to ban settings.`
+      : mine
+        ? `Rematch offered. Waiting for ${them} to accept…`
+        : "Played it out? Pick what happens next.";
   if (status && status.textContent !== text) status.textContent = text;
 }
 

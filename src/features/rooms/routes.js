@@ -625,21 +625,29 @@ router.post(
 /**
  * POST body: { requesterId, action } — what happens once the match is over.
  *
- * Two ways out of a finished room, and they differ in who they affect:
+ * Two ways out of a finished room. **Neither ends it for the other player** —
+ * that is what the header's Close room / Leave is for, and it is on screen here
+ * like everywhere else:
  *
- * - `new-match` ends the room for **both** sides and the initiator's client
- *   opens a fresh one; the server does not care where it goes.
+ * - `new-match` says "I have gone to play someone else". It records
+ *   `newMatch = { by }` and nothing more: the room stays open, the status stays
+ *   `done`, both seats stay put, and the other player stays exactly where they
+ *   were — on Start Match, looking at the squads, now told that nobody is coming
+ *   back and with REMATCH disabled because there is no longer anyone to offer it
+ *   to. It used to set `closed` and clear both seats, which threw the other
+ *   player onto a "Room closed" countdown and out to the home page for the
+ *   crime of having been left behind.
  *
  *   There used to be a `close` action beside it — the same transition with a
  *   different chat line. Its button is gone from the post-match footer, because
- *   the stage header already carries Close room (host) / Leave (guest) on every
- *   screen of the room including this one, so the footer was offering a second
- *   door into the same room. With no caller left the branch went too.
- * - `rematch-propose` / `-accept` / `-decline` keep both seats. An offer is
- *   held on the entry so the other side's next poll finds it; accepting is the
- *   only thing that resets the draft, and **only the other side can accept**.
- *   Without that check a player could propose and accept their own rematch and
- *   drag the opponent back into a ban phase they never agreed to.
+ *   the header already carries that action. With no caller left the branch went.
+ * - `rematch-propose` / `-cancel` / `-accept` / `-decline` keep both seats. An
+ *   offer is held on the entry so the other side's next poll finds it; accepting
+ *   is the only thing that resets the draft, and **only the other side can
+ *   accept** — without that check a player could propose and accept their own
+ *   rematch and drag the opponent back into a ban phase they never agreed to.
+ *   By the same logic **only the proposer can cancel**: cancelling somebody
+ *   else's offer is declining it, and that is what decline is for.
  *
  * Restricted to a finished room. Mid-draft these would be a way to wipe the
  * other player's picks.
@@ -660,16 +668,13 @@ router.post(
     }
 
     if (action === "new-match") {
-      /* Same shape as a host's deliberate close in `/leave`: the entry has to
-         outlive both seats so the other player's poll finds `closed` and gets
-         the room-closed screen rather than an empty snapshot. */
-      entry.closed = true;
-      entry.closeReason = `${who} started a new match.`;
-      entry.host = null;
-      entry.guest = null;
-      entry.ready.guest = false;
+      /* A flag, and that is deliberately all. Closing the room, clearing the
+         seats or resetting the draft would each take the screen out from under
+         the other player; they are staying on it. Any pending offer goes,
+         because the side it was aimed at has just left. */
+      entry.newMatch = { by: side };
       entry.rematch = null;
-      resetDraftToLobby(entry);
+      pushSystemChat(entry, `${who} started a different match.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
@@ -677,6 +682,16 @@ router.post(
     if (action === "rematch-propose") {
       entry.rematch = { by: side };
       pushSystemChat(entry, `${who} wants a rematch.`);
+      entry.updatedAt = Date.now();
+      return sendRoom(res, entry);
+    }
+
+    if (action === "rematch-cancel") {
+      if (entry.rematch?.by !== side) {
+        return res.status(409).json({ error: "You have no rematch offer to cancel." });
+      }
+      entry.rematch = null;
+      pushSystemChat(entry, `${who} cancelled the rematch offer.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }

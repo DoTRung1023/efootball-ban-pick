@@ -19,8 +19,10 @@
 
    Accent budget (DESIGN.md §3.2 — one accent per screen):
      confirm/start/live   the step button, until it is pressed
-     post                 whichever action is the primary next step for the
-                          rematch state
+     post                 whichever action is the primary next step: REMATCH
+                          while nothing is pending, ACCEPT once something is,
+                          and NEW MATCH once the opponent has left for a room
+                          of their own and REMATCH has nobody to ask
    Never two at once, because the two footers are never on screen together.
    ============================================================ */
 
@@ -419,7 +421,7 @@
 /* Which buttons exist depends on whether a rematch is on the table:
 
      none      REMATCH · NEW MATCH
-     pending   (you asked, waiting)  NEW MATCH
+     pending   (you asked)  CANCEL REMATCH · NEW MATCH
      incoming  (they asked)  ACCEPT · DECLINE · NEW MATCH
 
    Accept/decline only while there is something to answer, and REMATCH only
@@ -427,17 +429,43 @@
    been offered, and both sides would sit waiting on each other. */
 .sm-foot--post[data-rematch="none"] .pm-btn--accept,
 .sm-foot--post[data-rematch="none"] .pm-btn--decline,
+.sm-foot--post[data-rematch="none"] .pm-btn--cancel,
 .sm-foot--post[data-rematch="pending"] .pm-btn--accept,
 .sm-foot--post[data-rematch="pending"] .pm-btn--decline,
-.sm-foot--post[data-rematch="incoming"] .pm-btn--rematch {
+.sm-foot--post[data-rematch="pending"] .pm-btn--rematch,
+.sm-foot--post[data-rematch="incoming"] .pm-btn--rematch,
+.sm-foot--post[data-rematch="incoming"] .pm-btn--cancel {
   display: none;
 }
 
-/* Asked and waiting: the button stays on screen so the state is legible, but it
-   is spent. */
-.sm-foot--post[data-rematch="pending"] .pm-btn--rematch {
-  opacity: 0.5;
-  pointer-events: none;
+/* Waiting used to leave REMATCH on screen at half opacity — legible, and a dead
+   end: an offer could be made and then only escaped by leaving the room. CANCEL
+   REMATCH takes its place, so the slot still says "you asked" and now answers
+   the obvious next question. */
+
+/* The opponent has left for a room of their own. REMATCH is `disabled` from JS
+   as well, so this is the look and not the mechanism, and the accent moves to
+   NEW MATCH — with nobody to play, that is the only thing left to do. */
+.sm-foot--post[data-opponent="gone"] .pm-btn--rematch {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sm-foot--post[data-opponent="gone"][data-rematch="none"] .pm-btn--rematch {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.sm-foot--post[data-opponent="gone"] .pm-btn--new {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.sm-foot--post[data-opponent="gone"] .pm-btn--new:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 /* The accent goes to the primary next step, and there is exactly one at a time:
@@ -456,6 +484,7 @@
 }
 
 .pm-btn--decline,
+.pm-btn--cancel,
 .pm-btn--new {
   background: var(--fill);
 }

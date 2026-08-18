@@ -106,6 +106,10 @@ function createRoomEntry() {
     matchStarted: { host: false, guest: false },
     matchFinished: { host: false, guest: false },
     rematch: null,
+    /* `{ by }` once a side has left this room for a different one. The room
+       stays open and the other player stays on Start Match — this is the flag
+       that tells them nobody is coming back, so REMATCH has nothing to offer. */
+    newMatch: null,
     chat: [],
     closed: false,
     closeReason: "",
@@ -135,6 +139,7 @@ export function ensureRoomEntry(code) {
     if (!entry[key]) entry[key] = { host: false, guest: false };
   }
   if (entry.rematch === undefined) entry.rematch = null;
+  if (entry.newMatch === undefined) entry.newMatch = null;
   if (!entry.stagedBans) entry.stagedBans = { host: [], guest: [] };
   if (!entry.bansConfirmed) entry.bansConfirmed = { host: false, guest: false };
   if (!entry.picksConfirmed) entry.picksConfirmed = { host: false, guest: false };
@@ -212,6 +217,7 @@ export function serializeRoomEntry(entry) {
     matchStarted: entry.matchStarted,
     matchFinished: entry.matchFinished,
     rematch: entry.rematch || null,
+    newMatch: entry.newMatch || null,
     chat: entry.chat,
     closed: Boolean(entry.closed),
     closeReason: entry.closeReason || "",
@@ -234,6 +240,7 @@ export function emptyRoomSnapshot() {
     matchStarted: { host: false, guest: false },
     matchFinished: { host: false, guest: false },
     rematch: null,
+    newMatch: null,
     chat: [],
     closed: false,
     closeReason: "",
@@ -309,6 +316,7 @@ export function resetDraftToLobby(entry) {
   entry.bannedPlayerIds = [];
   resetMatchSteps(entry);
   entry.rematch = null;
+  entry.newMatch = null;
   entry.ready.guest = false;
 
   return wasDrafting;

@@ -789,25 +789,23 @@
   text-overflow: ellipsis;
 }
 
-/* …except in the room's two SHOW INFO grids, where a row is allowed to wrap.
-   Both sheets' cards are a third of the width of the home page's (109px and
-   138px against 213px measured at 1440), and the home page can hold the line
-   because at 213px nothing reaches it — all four rows fit unclipped. Here the
-   same four rows need 124–173px, so `nowrap` was not keeping them on one line,
-   it was **hiding most of two of them**: `Brasileirão Betano · Santos FC` came
-   out as `Brasileirão B…`. This rule is a no-op at any width where the row
-   fits, so it only ever fires where the alternative was losing the text.
+/* The room's two SHOW INFO grids keep `nowrap`, and that is what makes every
+   card in them the same height: four rows is four lines, on every card, whatever
+   the club is called.
 
-   Lives beside `.pc-footer` because that is where the room's card footer is
-   defined; the two grids are named rather than the room's cards in general so
-   the pitch slots and Start Match keep the tight single-line treatment. */
-.ban-phase-grid .player-card .pc-footer .pmeta-row,
-.pick-phase-grid .player-card .pc-footer .pmeta-row {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-}
+   Letting them wrap was tried, to stop the longest row being clipped. It works
+   and it costs too much: row heights then follow the text, so a Messi card
+   (`Spanish League · FC Barcelona` and `Left foot · Creative Playmaker` both
+   over two lines) came out 343px beside a 310px neighbour, and the pool went
+   ragged. `align-items: stretch` only levels a card against its own row, and
+   `grid-auto-rows: 1fr` — the one thing that would level every row — collapses
+   `.pc-img-wrap` to **zero** and takes the artwork with it (measured: 0–18px
+   against 220px).
 
+   So the widths do the work instead: the 150px floor in `pick.css` and the 2px
+   footer padding leave ~162px of text, which fits three of the four rows
+   outright. Only `league · club` runs long, and `bindCardGridHover` floats the
+   full four rows for both grids anyway. */
 .pc-footer-meta.pc-footer-detail-only {
   margin-top: 0;
 }
