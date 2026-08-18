@@ -102,13 +102,15 @@ function updateSquadCountBadge() {
 
   const empty = squad.players.length === 0;
 
-  document.getElementById("selectModeBtn").disabled   = empty;
-  document.getElementById("teamSearch").disabled      = empty;
-  document.getElementById("teamSortBtn").disabled     = empty;
-  document.getElementById("teamSortDirBtn").disabled  = empty;
-  document.getElementById("teamFilterBtn").disabled   = empty;
+  /* Nothing to select, search, sort, filter — or show info about. */
+  document.getElementById("selectModeBtn").disabled      = empty;
+  document.getElementById("toggleSquadInfoBtn").disabled = empty;
+  document.getElementById("teamSearch").disabled         = empty;
+  document.getElementById("teamSortBtn").disabled        = empty;
+  document.getElementById("teamSortDirBtn").disabled     = empty;
+  document.getElementById("teamFilterBtn").disabled      = empty;
 
-  document.getElementById("teamSearch").placeholder   = empty ? "No players yet…" : "Search players...";
+  document.getElementById("teamSearch").placeholder      = empty ? "No players yet…" : "Search players...";
   document.querySelector(".team-search-bar")?.classList.toggle("disabled", empty);
 }
 
