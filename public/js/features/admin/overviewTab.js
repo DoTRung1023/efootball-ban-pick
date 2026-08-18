@@ -91,7 +91,7 @@ async function loadDataQuality() {
   }
 }
 
-async function loadScrapeRuns() {
+export async function loadScrapeRuns() {
   const tbody = document.getElementById("scrapeLogsBody");
   try {
     const d = await apiFetch(`/api/admin/scrape-logs?limit=${SCRAPE_ROWS}`);

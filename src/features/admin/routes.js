@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
 import { asyncHandler, describeError } from "#lib/http.js";
 import { isActiveDraft, listActiveRooms, roomPhase } from "#features/rooms/index.js";
+import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
   clearFailures,
   lockoutSeconds,
@@ -194,6 +195,27 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
     sendAdminError(res, err);
   }
 }));
+
+// ── Running a scrape ─────────────────────────────────────────
+// The runner owns the concurrency rule; these routes only report its answer.
+
+router.post("/scrape", asyncHandler(async (req, res) => {
+  const mode = String(req.body?.mode || "");
+  if (!SCRAPE_MODES.includes(mode)) {
+    return res.status(400).json({ error: "Unknown scrape mode." });
+  }
+  const result = await startScrape(mode);
+  if (!result.ok) return res.status(409).json({ error: result.error });
+  res.status(202).json({ mode });
+}));
+
+router.post("/scrape/stop", (_req, res) => {
+  const result = stopScrape();
+  if (!result.ok) return res.status(409).json({ error: result.error });
+  res.json({ stopped: true });
+});
+
+router.get("/scrape/status", (_req, res) => res.json(scrapeStatus()));
 
 router.get("/data-quality", asyncHandler(async (_req, res) => {
   try {

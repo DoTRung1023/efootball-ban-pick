@@ -12,6 +12,7 @@ import { initCatalogTab } from "./catalogTab.js";
 import { initGate, resume } from "./authGate.js";
 import { initOverviewTab } from "./overviewTab.js";
 import { initRoomsTab } from "./roomsTab.js";
+import { initScrapeControl, resumeScrapeWatch } from "./scrapeControl.js";
 import { initTabs, startTabs } from "./tabs.js";
 import { initUsersTab } from "./usersTab.js";
 
@@ -23,11 +24,12 @@ export function initConsole() {
 
   initTabs();
   initOverviewTab();
+  initScrapeControl();
   initRoomsTab();
   initUsersTab();
   initCatalogTab();
 
   /* Only now can the dashboard open — by the form, or by the stored token. */
-  initGate(user, startTabs);
-  resume(startTabs);
+  initGate(user, () => { startTabs(); resumeScrapeWatch(); });
+  resume(() => { startTabs(); resumeScrapeWatch(); });
 }

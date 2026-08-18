@@ -366,6 +366,54 @@ body {
   letter-spacing: 0.05em;
 }
 
+/* ── Scrape run panel ───────────────────────────────────────── */
+.scrape-status {
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+}
+
+.scrape-status-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+}
+
+.scrape-status-label {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.running-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+/* The child process's own stdout: monospace, and it keeps its own line breaks. */
+.scrape-output {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.scrape-output:empty { display: none; }
+
 /* ── Table ──────────────────────────────────────────────────── */
 .table-wrap {
   overflow-x: auto;

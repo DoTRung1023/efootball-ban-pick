@@ -47,10 +47,15 @@ Supporting modules:
   admin session tokens. It lives with the one feature that uses it rather than in
   `lib/http.js`, where the shared-key gate it replaced used to sit. See
   `admin-dashboard.md`.
+- `features/admin/scrapeRunner.js` — spawns, tracks and stops the ingestion
+  scripts as child processes. The only place in the server that starts one.
 - `features/admin/bootstrap.js` — `ensureConsoleAdmin()`, called from `server.js`
   inside the `listen` callback and **deliberately not awaited**: the app must boot
   with or without a database. It is the reason a fresh install has an admin at all.
-- `lib/paths.js` — `PUBLIC_DIR` (`ROOT_DIR` backs it and is module-private).
+- `lib/paths.js` — `ROOT_DIR` and `PUBLIC_DIR`. `ROOT_DIR` was module-private until
+  the scraper's resume file needed it; deriving the root anywhere else is how that
+  file ended up being written to a percent-encoded directory that did not exist.
+  See `database.md`.
 - `lib/cli.js` — `isMainModule(import.meta.url)`, the guard that lets a file be both a
   script and an importable module.
 - `features/rooms/store.js` — the in-memory `roomPresence` Map plus every helper that

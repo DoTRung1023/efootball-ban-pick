@@ -105,6 +105,18 @@
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">SCRAPE RUNS</span>
+              <div class="panel-actions">
+                <button id="scrapeUpdateBtn" class="btn btn--ghost btn--sm">UPDATE</button>
+                <button id="scrapeMissingBtn" class="btn btn--ghost btn--sm">REPAIR GAPS</button>
+              </div>
+            </div>
+            <div id="scrapeStatus" class="scrape-status" hidden>
+              <div class="scrape-status-head">
+                <span id="scrapeDot" class="running-dot"></span>
+                <span id="scrapeStatusLabel" class="scrape-status-label"></span>
+                <button id="scrapeStopBtn" class="btn btn--ghost btn--sm" hidden>STOP</button>
+              </div>
+              <pre id="scrapeOutput" class="scrape-output"></pre>
             </div>
             <div class="table-wrap">
               <table class="admin-table">

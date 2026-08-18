@@ -99,6 +99,36 @@ CATALOG reads the **public** `/api/players`, so those are the only two fetches o
 the page that carry no token. The endpoint returns a page and never a count, so
 there is no total and no last page: a full page means NEXT stays enabled.
 
+## Running a scrape from the console
+
+`scrapeRunner.js` (server) + `scrapeControl.js` (client). The OVERVIEW tab's
+SCRAPE RUNS panel gains UPDATE and REPAIR GAPS buttons, a live output pane and a
+STOP button.
+
+- **Child processes, never in-process.** Both scrapers finish with
+  `await db.end()`; importing and calling them would close the server's pool.
+  Spawning also means a scrape that crashes cannot take the server with it.
+- **Mode is a fixed table**, `SCRIPTS` in `scrapeRunner.js`. Nothing from the
+  request ever reaches a path, and `spawn` is called with an argv array (no shell).
+- **One run at a time**, enforced twice: the module's own `current` run, and a
+  `scrape_logs` row that is unfinished *and* younger than an hour — which catches
+  a run someone started in a terminal. Two at once would fight over
+  `.scrape-state.json`.
+- **The output pane is the child's real stdout**, kept in a 200-line ring buffer.
+  The scrapers draw progress with `\r` and no newline, so `consume()` keeps only
+  the last segment of each line and tracks the unterminated one separately — a
+  progress bar would otherwise fill the buffer with its own frames, and the pane
+  would sit blank for minutes. There is deliberately **no percentage**: the
+  hardcoded one this page used to draw is exactly what this replaced.
+- **The client polls only while a run is going** (2 s), not on the tab's 60 s
+  cadence, and stops as soon as the run ends — then reloads the table, since the
+  row is only complete once the child exits.
+- **Stopping is safe**, and is why the button exists: `.scrape-state.json` is
+  written per row, and `getLastLog` ignores unfinished rows when choosing the
+  cutoff, so the next run resumes incrementally rather than rebuilding.
+- A stopped run leaves an unfinished row, so the table shows RUNNING for an hour
+  and STALLED after. The panel above it is the live truth; the table is history.
+
 ## Admin API routes
 
 All in `src/features/admin/routes.js`. `POST /session` is public — it is what hands
@@ -120,6 +150,10 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   demoting the last admin. The second is not theoretical — a token stays valid for
   up to 8 hours after the account behind it is demoted, so a revoked admin can
   still reach this route, and without the check could take the last one with them.
+- `POST /scrape` — `{ mode: "update" | "missing" }`. 202 started, 409 one is
+  already running, 400 unknown mode.
+- `POST /scrape/stop` · `GET /scrape/status` — the runner's own state, including
+  the captured output. The routes hold no policy; the runner decides.
 - `GET /data-quality` — four COUNTs on `players_catalog`: missing `playing_style`,
   `region`, `overall_max`, duplicate `pesdb_id`.
 

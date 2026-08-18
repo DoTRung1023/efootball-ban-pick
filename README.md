@@ -59,6 +59,10 @@ in it and it creates one, printing the generated password to the log exactly onc
 └─────────────────────────────────────────────────────────┘
 ```
 
+The console can also **run a scrape**: UPDATE (new cards since the last cutoff) and
+REPAIR GAPS (diff every site id against the DB) on the OVERVIEW tab, with the script's
+live output and a STOP button. Stopping is safe — the run resumes where it left off.
+
 Sign in with it, change the password under Edit Profile, and promote anyone else from
 the console's USERS tab. Set `ADMIN_EMAIL` + `ADMIN_PASSWORD` in `.env` to name that
 account yourself — that pair is enforced on every boot, which is also how you get back

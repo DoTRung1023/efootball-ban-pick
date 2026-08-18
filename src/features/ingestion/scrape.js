@@ -27,10 +27,12 @@ import "dotenv/config";
 import * as cheerio from "cheerio";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import db from "#lib/db.js";
+import path from "node:path";
 import { isMainModule } from "#lib/cli.js";
+import { ROOT_DIR } from "#lib/paths.js";
 
 const BASE       = "https://pesdb.net/efootball/";
-const STATE_FILE = new URL("../.scrape-state.json", import.meta.url).pathname;
+const STATE_FILE = path.join(ROOT_DIR, ".scrape-state.json");
 
 /** Minimum ms between each enrichPlayer start (shared across concurrent tasks via slot reservation). */
 const MIN_MS_BETWEEN_PLAYERS       = 400;
