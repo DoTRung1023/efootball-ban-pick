@@ -144,6 +144,15 @@ export function normalizeAllowanceCapValue(raw) {
   return Number.isFinite(n) && n > 0 ? String(Math.min(23, Math.floor(n))) : "";
 }
 
+/**
+ * A minimum is the same 1..23 count, and clears the same way.
+ *
+ * `0` and `""` both mean "no requirement", which is why they collapse to the
+ * same empty string: a minimum of zero is not a rule, it is the absence of one.
+ * Kept as its own name so the call sites read as what they check.
+ */
+export const normalizeAllowanceMinValue = normalizeAllowanceCapValue;
+
 /** True for the sentinel, and only for it — not for null, "" or nonsense. */
 export function isUnlimitedDuration(raw) {
   return Number(raw) === UNLIMITED_DURATION_SEC && String(raw ?? "").trim() !== "";
@@ -250,6 +259,11 @@ export function createDefaultRoomConfig() {
     pickCountPerSide: PICK_COUNT_PER_SIDE,
     allowanceEnabled: [],
     allowanceCaps: emptyAllowanceMap(),
+    /* How few of a category a squad may contain — the floor to `allowanceCaps`'
+       ceiling. Only the single-count categories use it; the per-value ones
+       (position, club, card type, …) carry their caps as a map and have no
+       minimum. See `allowance.md`. */
+    allowanceMins: emptyAllowanceMap(),
     allowance: emptyAllowanceMap(),
   };
 }
@@ -261,6 +275,7 @@ export function normalizeRoomConfig(config) {
     ...defaults,
     ...(config || {}),
     allowanceCaps: { ...defaults.allowanceCaps, ...(config?.allowanceCaps || {}) },
+    allowanceMins: { ...defaults.allowanceMins, ...(config?.allowanceMins || {}) },
     allowance: { ...defaults.allowance, ...(config?.allowance || {}) },
   };
   merged.banDurationSec = normalizeBanDurationSec(merged.banDurationSec);

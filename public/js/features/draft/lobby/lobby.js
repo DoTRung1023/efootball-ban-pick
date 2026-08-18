@@ -42,6 +42,7 @@ import {
   parseTextAllowanceCapMap,
   stringifyTextAllowanceCapMap,
   normalizeAllowanceRangeValue,
+  rawAllowanceRangeValue,
   parseAllowanceRangeValue,
 } from '@/features/draft/allowance.js';
 
@@ -996,14 +997,14 @@ function bindAllowanceCapInputs() {
     const key = input.dataset.allowanceKey;
     if (!key) return;
     if (input.classList.contains("allowance-item-range")) {
+      /* Typing only records what is in the two boxes. Clamping and the
+         inverted-pair swap happen on `change` below, because both rewrite the
+         fields — under the cursor, if they ran per keystroke. Same split the
+         duration fields use. */
       const item = input.closest(".allowance-item");
       const minInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="min"]`);
       const maxInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="max"]`);
-      const normalizedRange = normalizeAllowanceRangeValue(minInput?.value, maxInput?.value);
-      const parsedRange = parseAllowanceRangeValue(normalizedRange);
-      if (minInput) minInput.value = parsedRange.min;
-      if (maxInput) maxInput.value = parsedRange.max;
-      state.room.config.allowance[key] = normalizedRange;
+      state.room.config.allowance[key] = rawAllowanceRangeValue(minInput?.value, maxInput?.value);
     } else {
       state.room.config.allowance[key] = readAllowanceFieldValue(input);
     }
@@ -1034,6 +1035,19 @@ function bindAllowanceCapInputs() {
       const normalizedCap = normalizeAllowanceCapValue(capInput.value);
       capInput.value = normalizedCap;
       state.room.config.allowanceCaps[key] = normalizedCap;
+      scheduleLobbyConfigPush();
+      return;
+    }
+
+    /* The floor beside that ceiling. Same normaliser, so 0 and blank both come
+       back as "" — a minimum of zero is the absence of a rule, not a rule. */
+    const minInput = e.target.closest(".allowance-item-min");
+    if (minInput && state.mySide === "host") {
+      const key = minInput.dataset.allowanceMinKey;
+      if (!key) return;
+      const normalizedMin = normalizeAllowanceCapValue(minInput.value);
+      minInput.value = normalizedMin;
+      state.room.config.allowanceMins[key] = normalizedMin;
       scheduleLobbyConfigPush();
       return;
     }

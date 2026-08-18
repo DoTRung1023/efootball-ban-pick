@@ -10,6 +10,7 @@
  */
 
 import {
+  ALLOWANCE_SIMPLE_COUNT_KEYS,
   FIXED_PICKS_PER_SIDE,
   FORMATION_LAYOUTS,
   REVEAL_MODE_BLUR,
@@ -384,13 +385,19 @@ function renderPickAllowanceBar(room, myPicks, maxPicks) {
   if (!bar) return;
 
   const pills = buildAllowancePills(room?.config || {}, myPicks);
-  const key = pills.map((p) => `${p.label}:${p.used}/${p.cap}`).join("|") + `|${pickCount(myPicks)}`;
+  const key = pills.map((p) => `${p.label}:${p.used}/${p.cap}/${p.min}`).join("|") + `|${pickCount(myPicks)}`;
 
   if (bar.dataset.barKey !== key) {
     bar.dataset.barKey = key;
+    /* A pill carries the minimum only while it is unmet — once it is satisfied
+       the number stops being news, and the counter says the rest. */
     bar.innerHTML = pills.length
       ? `<span class="pick-allowance-label">ALLOWANCE</span>` +
-        pills.map((p) => `<span class="pick-allowance-pill ${p.used >= p.cap ? "is-maxed" : ""}">${escapeHtml(p.label)} ${p.used}/${p.cap}</span>`).join("")
+        pills.map((p) => {
+          const cls = p.unmet ? "is-unmet" : p.used >= p.cap ? "is-maxed" : "";
+          const need = p.unmet ? ` · need ${p.min}` : "";
+          return `<span class="pick-allowance-pill ${cls}">${escapeHtml(p.label)} ${p.used}/${p.cap}${need}</span>`;
+        }).join("")
       : "";
   }
 
@@ -447,20 +454,40 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
   hint.classList.toggle("is-waiting", confirmed && !theirConfirmed);
 }
 
+/**
+ * The used/allowed counters above the pick board.
+ *
+ * Only the single-count categories can be shown this way: the rest store their
+ * caps as a `{value: cap}` JSON map, and this used to run `Number()` over that
+ * map, get `NaN`, and skip every category — including the ones it could have
+ * drawn. It is scoped explicitly now rather than by accident.
+ *
+ * `allowAllPlayers` turns the whole system off, so there is nothing to count.
+ */
 function buildAllowancePills(cfg, myPicks) {
+  if (cfg.allowAllPlayers) return [];
   const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
   const caps = cfg.allowanceCaps || {};
+  const mins = cfg.allowanceMins || {};
   const allowance = cfg.allowance || {};
 
   const pills = [];
   for (const key of enabled) {
+    if (!ALLOWANCE_SIMPLE_COUNT_KEYS.has(key)) continue;
     const cap = Math.max(0, Math.floor(Number(caps[key]) || 0));
+    const min = Math.max(0, Math.floor(Number(mins[key]) || 0));
     const value = String(allowance[key] || "").trim();
-    if (!cap || !value) continue;
+    if ((!cap && !min) || !value) continue;
+
+    const used = myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, value)).length;
     pills.push({
       label: value.length <= 12 ? value.toUpperCase() : key.toUpperCase(),
-      used: myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, value)).length,
-      cap,
+      used,
+      cap: cap || FIXED_PICKS_PER_SIDE,
+      min,
+      /* Short of a minimum reads the same as over a maximum: the squad cannot
+         be confirmed as it stands. */
+      unmet: min > 0 && used < min,
     });
   }
   return pills;

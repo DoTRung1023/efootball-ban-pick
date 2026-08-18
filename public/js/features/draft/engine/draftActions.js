@@ -10,7 +10,7 @@ import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
-import { getAllowanceCapViolation } from '@/features/draft/allowance.js';
+import { getAllowanceCapViolation, getAllowanceMinViolations } from '@/features/draft/allowance.js';
 import { normalizeFormation, pickCount } from '@/features/draft/players.js';
 import {
   applyLocalBan,
@@ -184,6 +184,22 @@ export async function unconfirmBans() {
  */
 export async function confirmPicks(confirmed) {
   if (!state.room) return;
+
+  /* Minimums are checked here and nowhere else: an empty board breaks every one
+     of them, so they can only be judged against a finished squad — and this is
+     the last moment the player can still fix it. Taking a confirmation *back*
+     is never blocked. */
+  if (confirmed) {
+    const unmet = getAllowanceMinViolations(state.room, state.mySide);
+    if (unmet.length) {
+      const [first] = unmet;
+      state.actionError = `${first.label}: pick at least ${first.min} — you have ${first.have}.`;
+      showToast(state.actionError);
+      cb.renderDraftUi();
+      return;
+    }
+  }
+
   /* The formation goes with the confirmation, not with the lineup: picking a
      shape re-renders the pitch locally and posts nothing, so `/picks` can be
      several changes stale by the time a side confirms. Start Match draws the

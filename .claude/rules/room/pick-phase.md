@@ -381,3 +381,15 @@ add a `title` back to a card, in this file or `playerCards.js`.
 > now, and the only accent left on this page is the turn clock and the pick slot waiting
 > on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
 > history and the structural claims as current.
+
+## CONFIRM PICKS can be refused
+
+A squad that is full is not automatically legal. `confirmPicks` runs
+`getAllowanceMinViolations` before posting, and refuses with
+`"Age: pick at least 5 — you have 0."` when a category's **minimum** is unmet.
+That check lives here and nowhere else: an empty board breaks every minimum, so
+it can only be judged against a finished squad — and CONFIRM is the last moment
+the player can still act on it. **Un-confirming is never blocked.**
+
+Maximums are enforced earlier, as the card is placed. See `allowance.md` for
+which categories carry which end.

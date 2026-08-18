@@ -73,14 +73,14 @@ export { DEFAULT_FORMATION, FORMATION_LAYOUTS } from "@/shared/players/formation
 // ── Allowance definitions ─────────────────────────────────────────
 export const ALLOWANCE_CATEGORY_DEFS = [
   { key: "position",     label: "Position",      placeholder: "CF,SS,RWF",      type: "text" },
-  { key: "overall",      label: "Overall",       type: "range", minPlaceholder: "", maxPlaceholder: "" },
-  { key: "overallMax",   label: "Overall max",   type: "range", minPlaceholder: "", maxPlaceholder: "" },
+  { key: "overall",      label: "Overall",       type: "range", unit: "Rating",  minPlaceholder: "", maxPlaceholder: "" },
+  { key: "overallMax",   label: "Overall max",   type: "range", unit: "Rating",  minPlaceholder: "", maxPlaceholder: "" },
   { key: "club",         label: "Club",          placeholder: "Barcelona",       type: "text" },
   { key: "league",       label: "League",        placeholder: "La Liga",         type: "text" },
   { key: "nationality",  label: "Nationality",   placeholder: "France",          type: "text" },
-  { key: "height",       label: "Height",        type: "range", minPlaceholder: "", maxPlaceholder: "" },
-  { key: "weight",       label: "Weight",        type: "range", minPlaceholder: "", maxPlaceholder: "" },
-  { key: "age",          label: "Age",           type: "range", minPlaceholder: "", maxPlaceholder: "" },
+  { key: "height",       label: "Height",        type: "range", unit: "cm",      minPlaceholder: "", maxPlaceholder: "" },
+  { key: "weight",       label: "Weight",        type: "range", unit: "kg",      minPlaceholder: "", maxPlaceholder: "" },
+  { key: "age",          label: "Age",           type: "range", unit: "Years",   minPlaceholder: "", maxPlaceholder: "" },
   { key: "cardType",     label: "Card type",     placeholder: "Epic,Highlight",  type: "text" },
   { key: "region",       label: "Region",        placeholder: "Europe",          type: "text" },
   { key: "foot",         label: "Foot",          placeholder: "Left,Right",      type: "text" },
@@ -100,6 +100,18 @@ export const LEGACY_ALLOWANCE_KEY_MAP = {
 export const POSITION_OPTIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 export const FOOT_OPTIONS = ["Left", "Right"];
 export const TEXT_ALLOWANCE_LIST_KEYS = new Set(["club", "league", "nationality"]);
+
+/**
+ * Categories whose player count is a single min/max pair rather than a cap per
+ * value. Everything else (position, club, league, nationality, card type,
+ * region, playing style) caps each selected value on its own.
+ *
+ * These six had **no count control at all** and were skipped by the pick-time
+ * check, so setting "Age 30-40" changed nothing about the draft.
+ */
+export const ALLOWANCE_SIMPLE_COUNT_KEYS = new Set([
+  "overall", "overallMax", "height", "weight", "age", "foot",
+]);
 
 // Mutable: populated at runtime by fetchFilterOptions() in room.js.
 // Use .length = 0 + push() to update — never reassign the binding.

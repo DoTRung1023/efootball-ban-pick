@@ -20,6 +20,7 @@ import {
   REGION_OPTIONS,
   PLAYING_STYLE_OPTIONS,
   TEXT_ALLOWANCE_LIST_KEYS,
+  ALLOWANCE_SIMPLE_COUNT_KEYS,
 } from '@/features/draft/constants.js';
 
 import {
@@ -330,10 +331,16 @@ function rangeInputHtml({ key, value, def, canEdit }) {
           />
         </label>`;
 
+  /* The heading answers "min what?" — this pair and the player-count pair beside
+     it are both Min/Max boxes, and without a unit over each they read as the
+     same question asked twice. */
   return `
-      <div class="allowance-item-range-grid">
-        ${bound("min", "Min", def.minPlaceholder, range.min)}
-        ${bound("max", "Max", def.maxPlaceholder, range.max)}
+      <div class="allowance-range-block">
+        <span class="allowance-count-title">${escapeHtml(def.unit || def.label)}</span>
+        <div class="allowance-item-range-grid">
+          ${bound("min", "Min", def.minPlaceholder, range.min)}
+          ${bound("max", "Max", def.maxPlaceholder, range.max)}
+        </div>
       </div>
     `;
 }
@@ -444,23 +451,44 @@ function textListRowHtml(item, cap, canEdit) {
             `;
 }
 
-/** Simple single-number cap used by categories without a per-value breakdown. */
-function simpleCapHtml({ key, capValue, canEdit }) {
+/**
+ * How many players of this category a squad may hold — the pair of counts that
+ * the range categories and Foot were missing entirely.
+ *
+ * Both are blank by default and blank means "no rule": a minimum of 0 asks for
+ * nothing and a maximum of 23 is the whole squad, which is why those two
+ * numbers are the placeholders rather than pre-filled values. Filling either in
+ * is the only way to get a constraint, and an empty field can never be one by
+ * accident.
+ */
+function countPairHtml({ key, minValue, capValue, canEdit }) {
+  const field = (cls, dataAttr, value, placeholder, label, title) => `
+            <label class="allowance-count-col" title="${escapeHtml(title)}">
+              <span class="allowance-cap-label">${label}</span>
+              <input
+                class="allowance-item-input ${cls}"
+                ${dataAttr}="${key}"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="${MAX_CAP}"
+                step="1"
+                placeholder="${placeholder}"
+                value="${escapeHtml(value)}"
+                ${disabledAttr(canEdit)}
+              />
+            </label>`;
+
   return `
-          <label class="allowance-cap-wrap" title="Maximum cards per side for this category">
-            <span class="allowance-cap-label">Max cards</span>
-            <input
-              class="allowance-item-cap"
-              data-allowance-cap-key="${key}"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              max="${MAX_CAP}"
-              step="1"
-              value="${escapeHtml(capValue)}"
-              ${disabledAttr(canEdit)}
-            />
-          </label>
+          <div class="allowance-count-pair">
+            <span class="allowance-count-title">Players</span>
+            <div class="allowance-count-grid">
+              ${field("allowance-item-min", "data-allowance-min-key", minValue, "0", "Min",
+                      "Fewest cards of this category the squad must contain")}
+              ${field("allowance-item-cap", "data-allowance-cap-key", capValue, String(MAX_CAP), "Max",
+                      "Most cards of this category the squad may contain")}
+            </div>
+          </div>
           `;
 }
 
@@ -489,13 +517,21 @@ function allowanceItemHtml(key, { cfg, canEdit }) {
     : isMulti ? capPanelHtml(key, ctx)
     : null;
 
-  // Ranges, foot, and the rich-cap categories manage their own caps (or have none).
-  const showSimpleCap = !isRange && !isFoot && !isMulti && !isTextList && !isPosition;
-  const hasCapColumn = !isTextList && Boolean(richCapHtml || showSimpleCap);
+  /* Position and the multi-selects cap each value on its own; the text lists
+     carry theirs inside the value builder. Everything else — the five ranges
+     and Foot — takes one min/max pair, which is exactly the set that used to
+     render no count control at all and be skipped by the pick-time check. */
+  const showCountPair = ALLOWANCE_SIMPLE_COUNT_KEYS.has(key);
+  const hasCapColumn = !isTextList && Boolean(richCapHtml || showCountPair);
 
   const capColumn = richCapHtml
-    ?? (showSimpleCap
-      ? simpleCapHtml({ key, capValue: normalizeAllowanceCapValue(cfg.allowanceCaps?.[key]), canEdit })
+    ?? (showCountPair
+      ? countPairHtml({
+          key,
+          minValue: normalizeAllowanceCapValue(cfg.allowanceMins?.[key]),
+          capValue: normalizeAllowanceCapValue(cfg.allowanceCaps?.[key]),
+          canEdit,
+        })
       : "");
 
   return `
@@ -597,6 +633,29 @@ export function renderAllowanceList({ isHost, cfg }) {
     return;
   }
 
+  /**
+   * Never rebuild the rows out from under someone typing in them.
+   *
+   * This list is rebuilt from `innerHTML` on every render, and a render follows
+   * every config echo — so about a second after a keystroke the host's field was
+   * destroyed and recreated: focus went to `<body>`, and the forced blur fired
+   * `change`, which clamps and swaps an inverted pair. Typing "35" into a max
+   * with 30 in the min came back as 30, and the next character made it 305.
+   *
+   * A focused **button** is not typing — Remove has to be able to rebuild the
+   * list it lives in — and a changed category set rebuilds regardless, so
+   * adding and removing still work. The guest never holds focus here: their
+   * inputs are disabled, so their view keeps updating live.
+   */
+  const active = document.activeElement;
+  const isTypingInList = Boolean(
+    active && els.list.contains(active) && active.tagName === "INPUT" && active.type !== "hidden",
+  );
+  const signature = `${enabled.join("|")}|${canEdit}`;
+
+  if (isTypingInList && els.list.dataset.signature === signature) return;
+
+  els.list.dataset.signature = signature;
   els.list.innerHTML = enabled.map((key) => allowanceItemHtml(key, { cfg, canEdit })).join("");
 
   if (openPosKey) {

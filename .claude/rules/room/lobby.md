@@ -139,6 +139,36 @@ the rule. There is no account behind it and so no squad, and the draft falls bac
 to a demo pool; counting it as 0 would stop every room in `draft-testing` from
 ever starting.
 
+## Typing in the allowance list
+
+Two separate bugs made the range fields almost unusable, and both came from
+work happening while the user was still typing.
+
+**1. The inverted-pair swap belongs on `change`, not on `input`.**
+`normalizeAllowanceRangeValue` reorders a pair whose min exceeds its max. Run per
+keystroke, that fires *mid-number*: with 30 in the min, the "3" of "35" made
+`30 > 3` true, the two swapped, both boxes were rewritten under the cursor, and
+the rest of the number landed in the wrong field. The `input` handler now stores
+what is in the boxes verbatim (`rawAllowanceRangeValue`) and the `change` handler
+clamps, swaps and writes back — **the same split the duration fields already
+used**.
+
+**2. `renderAllowanceList` rebuilds `#allowanceList` from `innerHTML` on every
+render**, and a render follows every config echo. So about a second after a
+keystroke the focused field was destroyed and recreated: focus went to `<body>`,
+and that forced blur fired `change` — which ran the swap on a half-typed number.
+Fixing the first bug alone did **not** fix the symptom; both were producing it.
+
+The rebuild is now skipped while an `<input>` inside the list holds focus and the
+category set is unchanged (`els.list.dataset.signature`). Deliberately narrow:
+
+- a focused **button** is not typing, so Remove can still rebuild the list it
+  sits in;
+- a changed category set rebuilds regardless, so Add and Remove both work — both
+  verified with focus held in a field, and a half-typed value survived the add;
+- the **guest** never holds focus here (their inputs are disabled), so their
+  view keeps updating live.
+
 ## Matchup band (`.lobby-summary`)
 
 Three columns: `.ls-player--host` | `.ls-center` | `.ls-player--guest`. Each `.ls-player`

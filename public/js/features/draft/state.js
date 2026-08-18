@@ -125,6 +125,7 @@ export function defaultRoomConfig() {
     revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: FIXED_PICKS_PER_SIDE,
     allowanceEnabled: [],
+    allowanceMins: {},
     allowanceCaps: {
       position: "",
       overall: "",
@@ -228,6 +229,9 @@ export function normalizeRoomConfig(raw) {
     revealMode: normalizeRevealMode(rawCfg.revealMode),
     allowanceEnabled: normalizedEnabled,
     allowanceCaps: incomingCaps,
+    /* Plain counts, so unlike the caps above they need no per-value parsing —
+       but they still have to be named here or the spread drops them. */
+    allowanceMins: { ...defaults.allowanceMins, ...((rawCfg && rawCfg.allowanceMins) || {}) },
     allowance: {
       ...defaults.allowance,
       ...incomingAllowance,

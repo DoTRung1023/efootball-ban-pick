@@ -1298,6 +1298,7 @@
 .allowance-cap-input,
 .allowance-pos-cap-input,
 .allowance-club-cap-input,
+.allowance-item-min,
 .allowance-item-cap {
   width: 100%;
   padding: 6px 8px;
@@ -1312,12 +1313,48 @@
 }
 
 .allowance-cap-input:focus, .allowance-pos-cap-input:focus,
-.allowance-club-cap-input:focus, .allowance-item-cap:focus {
+.allowance-club-cap-input:focus, .allowance-item-min:focus, .allowance-item-cap:focus {
   border-color: var(--line-hover);
 }
 
 .allowance-cap-input:disabled, .allowance-pos-cap-input:disabled,
-.allowance-club-cap-input:disabled, .allowance-item-cap:disabled { opacity: 0.38; cursor: not-allowed; }
+.allowance-club-cap-input:disabled, .allowance-item-min:disabled,
+.allowance-item-cap:disabled { opacity: 0.38; cursor: not-allowed; }
+
+/* Player-count pair (the five ranges + Foot) — how many of this category a
+   squad must and may contain. Two boxes under one heading, because they are one
+   rule with two ends; the value control beside them says *which* players. */
+
+/* The named `cap` cell. Without this the block auto-places into the empty first
+   cell and lands on a row of its own, above the value control. */
+.allowance-count-pair { grid-area: cap; min-width: 0; align-self: end; }
+
+.allowance-range-block { min-width: 0; }
+
+.allowance-count-title {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.allowance-count-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.allowance-count-col { min-width: 0; }
+
+/* Min/Max sit under the shared heading, so they are quieter than it. */
+.allowance-count-col .allowance-cap-label {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
 
 /* Remove button */
 

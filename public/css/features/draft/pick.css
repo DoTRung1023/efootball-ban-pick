@@ -925,6 +925,14 @@
   background: var(--fill);
 }
 
+/* Short of a minimum: the squad cannot be confirmed as it stands, which is the
+   same class of problem as a blocked start, so it takes the same colour. */
+.pick-allowance-pill.is-unmet {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+}
+
 /* Wraps, and may shrink. It was `flex-shrink: 0` with no `flex-wrap`, so once
    the hint and the button needed more room than the bar had they simply ran off
    the right-hand edge — measured 367px of content in 350px at a 1000px viewport,

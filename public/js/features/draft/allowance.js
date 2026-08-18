@@ -5,7 +5,7 @@ import {
   REGION_OPTIONS,
   PLAYING_STYLE_OPTIONS,
   ALLOWANCE_DEF_MAP,
-  ALLOWANCE_RANGE_KEYS,
+  ALLOWANCE_SIMPLE_COUNT_KEYS,
   TEXT_ALLOWANCE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
 } from './constants.js';
@@ -404,6 +404,22 @@ export function normalizeAllowanceRangeValue(minRaw, maxRaw) {
   return `${min},${max}`;
 }
 
+/**
+ * The two bounds exactly as typed, in the stored `"min,max"` shape.
+ *
+ * Deliberately does **not** clamp or reorder: this is what a keystroke writes,
+ * and `normalizeAllowanceRangeValue` — which swaps an inverted pair — cannot run
+ * until the field is left. With min 30 in place, typing the "3" of "35" into max
+ * made `30 > 3` true, so the two swapped, both boxes were rewritten under the
+ * cursor, and the rest of the number landed in the wrong field.
+ */
+export function rawAllowanceRangeValue(minRaw, maxRaw) {
+  const min = String(minRaw ?? "").trim();
+  const max = String(maxRaw ?? "").trim();
+  if (!min && !max) return "";
+  return `${min},${max}`;
+}
+
 export function parseAllowanceRangeValue(raw) {
   const [minRaw = "", maxRaw = ""] = String(raw || "").split(",");
   return {
@@ -553,6 +569,9 @@ export function playerMatchesAllowanceCategory(player, key, valueRaw) {
 
 export function getAllowanceCapViolation(room, side, player) {
   const cfg = room?.config || {};
+  /* The checkbox reads "ignore category filters" and now does: it used to grey
+     out the editor and leave every previously-set cap in force. */
+  if (cfg.allowAllPlayers) return null;
   const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
   const allowance = cfg.allowance || {};
   const caps = cfg.allowanceCaps || {};
@@ -578,7 +597,6 @@ export function getAllowanceCapViolation(room, side, player) {
       continue;
     }
 
-    if (ALLOWANCE_RANGE_KEYS.has(key) || key === "foot") continue;
     if (TEXT_ALLOWANCE_LIST_KEYS.has(key)) {
       const values = normalizeTextAllowanceListValue(allowance[key] || "");
       if (!values.length) continue;
@@ -614,4 +632,43 @@ export function getAllowanceCapViolation(room, side, player) {
     }
   }
   return null;
+}
+
+/**
+ * Which minimums a squad falls short of, as an array (empty when it is fine).
+ *
+ * A minimum is the one allowance rule that **cannot** be checked while picking:
+ * an empty board breaks every one of them, and a half-full board breaks most.
+ * So it is checked once, against the finished squad, at CONFIRM — which is also
+ * the last moment the player can still do anything about it.
+ *
+ * Only the single-count categories carry a minimum. The per-value ones cap each
+ * selected value separately and have no floor; see `allowance.md`.
+ */
+export function getAllowanceMinViolations(room, side) {
+  const cfg = room?.config || {};
+  if (cfg.allowAllPlayers) return [];
+
+  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
+  const mins = cfg.allowanceMins || {};
+  const allowance = cfg.allowance || {};
+  const sidePicks = (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
+
+  const violations = [];
+  for (const key of enabled) {
+    if (!ALLOWANCE_SIMPLE_COUNT_KEYS.has(key)) continue;
+    const min = Number(normalizeAllowanceCapValue(mins[key]));
+    if (!Number.isFinite(min) || min <= 0) continue;
+    const value = String(allowance[key] || "").trim();
+    if (!value) continue;
+
+    const have = sidePicks.reduce(
+      (acc, p) => acc + (playerMatchesAllowanceCategory(p, key, value) ? 1 : 0),
+      0,
+    );
+    if (have < min) {
+      violations.push({ key, label: ALLOWANCE_DEF_MAP.get(key)?.label || key, min, have });
+    }
+  }
+  return violations;
 }

@@ -6,6 +6,7 @@ import {
   PICK_COUNT_PER_SIDE,
   squadStartProblem,
   normalizeBanDurationSec,
+  normalizeAllowanceMinValue,
   normalizeCapForField,
   normalizePickDurationSec,
   turnDeadline,
@@ -806,6 +807,7 @@ router.post("/:code/config", withRoomCode, (req, res) => {
     allowanceEnabled,
     allowance,
     allowanceCaps,
+    allowanceMins,
   } = req.body || {};
 
   const entry = ensureRoomEntry(req.roomCode);
@@ -841,6 +843,15 @@ router.post("/:code/config", withRoomCode, (req, res) => {
     for (const [key, value] of Object.entries(allowanceCaps)) {
       if (!ALLOWANCE_FIELDS.has(key)) continue;
       config.allowanceCaps[key] = normalizeCapForField(key, value);
+    }
+  }
+
+  /* Minimums are a plain count for every category that has one — never a map,
+     because the categories with per-value caps do not carry a minimum. */
+  if (allowanceMins && typeof allowanceMins === "object") {
+    for (const [key, value] of Object.entries(allowanceMins)) {
+      if (!ALLOWANCE_FIELDS.has(key)) continue;
+      config.allowanceMins[key] = normalizeAllowanceMinValue(value);
     }
   }
 

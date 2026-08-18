@@ -67,6 +67,17 @@ function readAllowanceFromDom() {
 }
 
 /** Collects per-category caps: simple numbers, the position map, and text-list maps. */
+/** The `Players min` boxes: a plain count per category, never a map. */
+function readAllowanceMinsFromDom() {
+  const mins = {};
+  for (const input of queryAll(".allowance-item-min")) {
+    const key = input.dataset.allowanceMinKey;
+    if (!key) continue;
+    mins[key] = normalizeAllowanceCapValue(input.value);
+  }
+  return mins;
+}
+
 function readAllowanceCapsFromDom(allowance) {
   const caps = {};
 
@@ -113,6 +124,7 @@ function buildConfigPayload() {
 
   const allowance = readAllowanceFromDom();
   const allowanceCaps = readAllowanceCapsFromDom(allowance);
+  const allowanceMins = readAllowanceMinsFromDom();
   const allowanceEnabled = distinctDataKeys(allowanceInputs, "allowanceKey");
 
   return {
@@ -129,6 +141,7 @@ function buildConfigPayload() {
       : (Array.isArray(cfg.allowanceEnabled) ? [...cfg.allowanceEnabled] : []),
     allowance: Object.keys(allowance).length ? allowance : { ...(cfg.allowance || {}) },
     allowanceCaps: Object.keys(allowanceCaps).length ? allowanceCaps : { ...(cfg.allowanceCaps || {}) },
+    allowanceMins: Object.keys(allowanceMins).length ? allowanceMins : { ...(cfg.allowanceMins || {}) },
   };
 }
 
