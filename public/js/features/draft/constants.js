@@ -83,7 +83,7 @@ export const ALLOWANCE_CATEGORY_DEFS = [
   { key: "age",          label: "Age",           type: "range", unit: "Years",   minPlaceholder: "", maxPlaceholder: "" },
   { key: "cardType",     label: "Card type",     placeholder: "Epic,Highlight",  type: "text" },
   { key: "region",       label: "Region",        placeholder: "Europe",          type: "text" },
-  { key: "foot",         label: "Foot",          placeholder: "Left,Right",      type: "text" },
+  { key: "foot",         label: "Foot",          placeholder: "Left,Right",      type: "text", unit: "Side" },
   { key: "playingStyle", label: "Playing style", placeholder: "Goal Poacher",    type: "text" },
 ];
 export const ALLOWANCE_DEF_MAP = new Map(ALLOWANCE_CATEGORY_DEFS.map((d) => [d.key, d]));

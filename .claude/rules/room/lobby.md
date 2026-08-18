@@ -139,6 +139,28 @@ the rule. There is no account behind it and so no squad, and the draft falls bac
 to a demo pool; counting it as 0 would stop every room in `draft-testing` from
 ever starting.
 
+## An allowance row is two labelled halves
+
+`.allowance-item-row` is a grid of `main | cap | remove`, and **anything in the
+right-hand column must declare `grid-area: cap`**. Without it the block
+auto-places into the grid's empty first cell, landing *above* the control it
+belongs beside and leaving the right half of the row blank — which is how the
+card-type and position rows had always rendered, and how the new count pair
+rendered until it was given the area. `.allowance-count-pair`,
+`.allowance-cap-wrap` and `.allowance-pos-cap-wrap` all claim it.
+
+Both halves carry a small heading, so a row reads as two labelled questions —
+*which players* on the left, *how many* on the right:
+
+- ranges → the **unit** (`def.unit`: YEARS, cm, kg, Rating), never the category
+  name, which the row title already carries;
+- foot → SIDE, and its two options are a `1fr 1fr` grid so they fill the column
+  instead of sitting as small buttons against a wide empty track;
+- the count pair → PLAYERS.
+
+Measured at 320 / 480 / 620 / 900 / 1100: every row keeps both halves on one
+line, with no overflow on the page or inside `#allowanceList`.
+
 ## Typing in the allowance list
 
 Two separate bugs made the range fields almost unusable, and both came from

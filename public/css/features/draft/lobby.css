@@ -1125,17 +1125,20 @@
 
 /* Foot list */
 
+/* The two options split the column. They used to be content-width buttons in a
+   `1fr` track, which left most of the row empty next to them. */
 .allowance-foot-list {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
 .allowance-foot-option {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 5px 10px;
+  padding: 7px 10px;
   border: 1px solid var(--line-faint);
   border-radius: var(--radius-sm);
   background: var(--surface-control);
@@ -1433,6 +1436,12 @@
 .allowance-pos-cap-empty, .allowance-cap-empty { padding: 9px 12px; font-size: 12px; color: var(--text-muted); }
 
 /* Cap wrap (cardType, region, playingStyle) */
+
+/* Same named cell the count pair takes. Without it these blocks auto-placed
+   into the empty first cell, stacking above the control they belong beside and
+   leaving the right half of the row blank. */
+.allowance-cap-wrap,
+.allowance-pos-cap-wrap { grid-area: cap; align-self: end; }
 
 .allowance-cap-wrap { position: relative; }
 

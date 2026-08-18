@@ -287,10 +287,13 @@ function positionCapHtml({ key, value, cfg, canEdit }) {
     `;
 }
 
-function footChecklistHtml({ key, value, canEdit }) {
+function footChecklistHtml({ key, value, def, canEdit }) {
   const selected = normalizeFootValue(value, { defaultAll: true });
   const selectedSet = new Set(selected);
+  /* Headed like the range block opposite it, so the row reads as two labelled
+     halves rather than a pair of loose buttons and a gap. */
   return `
+      <span class="allowance-count-title">${escapeHtml(def?.unit || def?.label || "")}</span>
       <div class="allowance-foot-list" data-allowance-foot-list data-allowance-key="${key}">
         <input
           type="hidden"
