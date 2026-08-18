@@ -91,7 +91,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Existing DBs created before the console moved off the shared ADMIN_KEY:
 --   ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER password;
--- Grant yourself access (there is no UI for this — it is a deliberate one-liner):
+-- You do not have to set this by hand: the server seeds the first admin on boot
+-- (src/features/admin/bootstrap.js) and every admin after that is granted from
+-- the console's USERS tab. This still works as a last resort:
 --   UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
 
 -- ------------------------------------------------------------

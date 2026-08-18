@@ -1,0 +1,111 @@
+/**
+ * The built-in admin account.
+ *
+ * A fresh database has no admin, and an app whose only way in is a hand-written
+ * `UPDATE users SET is_admin = 1` has no setup story. This runs once per boot
+ * and makes sure a console account exists:
+ *
+ *   1. `ADMIN_EMAIL` + `ADMIN_PASSWORD` set → that account is created, or its
+ *      password reset and its flag restored, **on every boot**. This is also the
+ *      way back in after a forgotten password: set the pair, restart, sign in.
+ *   2. Otherwise, if no admin exists at all → one is created with a randomly
+ *      generated password, printed to the server log exactly once.
+ *   3. Otherwise → nothing. An existing admin is never touched.
+ *
+ * There is deliberately no default password baked into the repo: rule 2 mints a
+ * fresh one per installation, which is the one thing a shipped credential can
+ * never be.
+ */
+
+import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
+import db from "#lib/db.js";
+import { PASSWORD_MIN } from "#features/auth/index.js";
+import { describeError } from "#lib/http.js";
+
+const BCRYPT_ROUNDS = 12;
+const DEFAULT_USERNAME = "admin";
+const DEFAULT_EMAIL = "admin@localhost";
+
+/* No 0/O/1/I/l — this password gets read off a terminal and typed back in. */
+const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+const GROUPS = 4;
+const GROUP_LEN = 5;
+
+function generatePassword() {
+  const bytes = crypto.randomBytes(GROUPS * GROUP_LEN);
+  const chars = [...bytes].map((b) => ALPHABET[b % ALPHABET.length]);
+  return Array.from({ length: GROUPS }, (_, i) =>
+    chars.slice(i * GROUP_LEN, (i + 1) * GROUP_LEN).join(""),
+  ).join("-");
+}
+
+function banner(lines) {
+  const width = Math.max(...lines.map((l) => l.length));
+  const rule = "─".repeat(width + 2);
+  console.log(`┌${rule}┐`);
+  for (const line of lines) console.log(`│ ${line.padEnd(width)} │`);
+  console.log(`└${rule}┘`);
+}
+
+/** Creates the account, or promotes and re-passwords the one already there. */
+async function upsertAdmin({ username, email, password }) {
+  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+  const [[existing]] = await db.query(
+    "SELECT id FROM users WHERE email = ? OR username = ?",
+    [email, username],
+  );
+
+  if (existing) {
+    await db.query("UPDATE users SET password = ?, is_admin = 1 WHERE id = ?", [hash, existing.id]);
+    return { id: existing.id, created: false };
+  }
+  const [result] = await db.query(
+    "INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 1)",
+    [username, email, hash],
+  );
+  return { id: result.insertId, created: true };
+}
+
+export async function ensureConsoleAdmin() {
+  const envPassword = process.env.ADMIN_PASSWORD || "";
+  const envEmail = process.env.ADMIN_EMAIL || "";
+  const username = process.env.ADMIN_USERNAME || DEFAULT_USERNAME;
+
+  try {
+    // 1. An explicitly configured admin is enforced on every boot.
+    if (envEmail && envPassword) {
+      if (envPassword.length < PASSWORD_MIN) {
+        console.error(`admin bootstrap: ADMIN_PASSWORD must be at least ${PASSWORD_MIN} characters — skipped.`);
+        return;
+      }
+      const { created } = await upsertAdmin({ username, email: envEmail, password: envPassword });
+      console.log(`Console admin ${created ? "created" : "updated"} from ADMIN_EMAIL/ADMIN_PASSWORD: ${envEmail}`);
+      return;
+    }
+
+    // 2. No admin at all: mint one, and say so loudly and once.
+    const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
+    if (cnt > 0) return;
+
+    const password = generatePassword();
+    const email = envEmail || DEFAULT_EMAIL;
+    await upsertAdmin({ username, email, password });
+
+    banner([
+      "FIRST RUN — console admin created",
+      "",
+      `  username   ${username}`,
+      `  email      ${email}`,
+      `  password   ${password}`,
+      "",
+      "Sign in, then open Admin Console from the account menu.",
+      "This password is shown once and stored only as a hash —",
+      "change it under Edit Profile.",
+    ]);
+  } catch (err) {
+    /* A database that is down must not stop the server from starting: the rest
+       of the app reports its own outage, and the next boot tries again. */
+    console.error("admin bootstrap skipped:", describeError(err));
+  }
+}

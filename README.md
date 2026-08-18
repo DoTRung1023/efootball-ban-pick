@@ -46,11 +46,24 @@ only appears for an account with `users.is_admin = 1`; opening it re-confirms yo
 password. Four tabs: OVERVIEW (catalog / user / room counts, catalog health, scrape
 history), ROOMS (live rooms), USERS, and CATALOG (paginated browser with CSV export).
 
-Grant yourself access once, in MySQL — there is deliberately no UI for it:
+**The first admin is built in.** Start the server against a database with no admin
+in it and it creates one, printing the generated password to the log exactly once:
 
-```sql
-UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
 ```
+┌─────────────────────────────────────────────────────────┐
+│ FIRST RUN — console admin created                       │
+│                                                         │
+│   username   admin                                      │
+│   email      admin@localhost                            │
+│   password   jw7bx-qydte-9q7d2-tefs3                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+Sign in with it, change the password under Edit Profile, and promote anyone else from
+the console's USERS tab. Set `ADMIN_EMAIL` + `ADMIN_PASSWORD` in `.env` to name that
+account yourself — that pair is enforced on every boot, which is also how you get back
+in if you forget the password. No default password ships in this repo: the generated
+one is minted per installation.
 
 Both pages are responsive down to 320 px.
 

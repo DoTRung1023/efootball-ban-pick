@@ -39,6 +39,9 @@ old object precisely so the flag survives a profile save.
 | `userMenu.js` | Nav account dropdown: identity, sign out, opens edit-profile, reveals the console link for an admin |
 | `index.js` | Barrel — exports **only** `initUserMenu` + the edit-profile functions |
 
+The **server** barrel (`#features/auth/index.js`) additionally exports `PASSWORD_MIN`,
+so the admin seeder enforces the same minimum as sign-up instead of keeping its own copy.
+
 The barrel deliberately does not re-export the sign-in page's own modules. There is no
 bundler, so every name a barrel re-exports is a module the browser fetches on every page
 that imports it; the home page has no use for the sign-up modal.

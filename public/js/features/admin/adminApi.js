@@ -10,13 +10,16 @@
 const TOKEN_STORE = "efb_admin_token";
 
 let token = sessionStorage.getItem(TOKEN_STORE) || "";
+let sessionUserId = null;
 
-export function hasToken() {
-  return Boolean(token);
+/** Whose console session this is — the USERS tab refuses to demote that row. */
+export function getSessionUserId() {
+  return sessionUserId;
 }
 
 export function clearToken() {
   token = "";
+  sessionUserId = null;
   sessionStorage.removeItem(TOKEN_STORE);
 }
 
@@ -35,6 +38,7 @@ export async function openSession(userId, password) {
     const data = await r.json();
     if (!r.ok) return { ok: false, error: data.error || "Could not open the console." };
     token = data.token;
+    sessionUserId = userId;
     sessionStorage.setItem(TOKEN_STORE, token);
     return { ok: true, username: data.username };
   } catch {
@@ -42,31 +46,47 @@ export async function openSession(userId, password) {
   }
 }
 
-/** True when the stored token is still valid — the silent re-auth on load. */
+/** The session behind the stored token, or null — the silent re-auth on load. */
 export async function resumeSession() {
   if (!token) return null;
   try {
     const r = await fetch("/api/admin/me", { headers: { "x-admin-token": token } });
     if (!r.ok) { clearToken(); return null; }
-    return r.json();
+    const session = await r.json();
+    sessionUserId = session.userId;
+    return session;
   } catch {
     return null;
   }
 }
 
 /**
- * Every dashboard fetch goes through here.
+ * Every dashboard call goes through here.
  *
  * A 401 means the token expired mid-session; the page reloads back to the gate
  * rather than leaving every panel to print "Failed to load" at the same time.
  */
-export async function apiFetch(path) {
-  const r = await fetch(path, { headers: { "x-admin-token": token } });
+async function request(path, init) {
+  const r = await fetch(path, { ...init, headers: { ...init?.headers, "x-admin-token": token } });
   if (r.status === 401) {
     clearToken();
     location.reload();
     throw new Error("session expired");
   }
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+export function apiFetch(path) {
+  return request(path);
+}
+
+/** Writes carry the server's own error message, which the caller shows as-is. */
+export function apiSend(path, method, body) {
+  return request(path, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }

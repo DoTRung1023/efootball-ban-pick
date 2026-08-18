@@ -74,9 +74,10 @@ router.post("/session", asyncHandler(async (req, res) => {
 /** Every route below needs a valid token. */
 router.use(requireAdmin);
 
-/** Silent re-auth on load: proves the stored token is still good. */
+/** Silent re-auth on load: proves the stored token is still good. `userId` is
+    what lets the USERS tab know which row is you, and refuse to demote it. */
 router.get("/me", (req, res) => {
-  res.json({ username: req.admin.username, expiresAt: req.admin.exp });
+  res.json({ userId: req.admin.uid, username: req.admin.username, expiresAt: req.admin.exp });
 });
 
 // ── Dashboard data ───────────────────────────────────────────
@@ -154,6 +155,41 @@ router.get("/users", asyncHandler(async (req, res) => {
       [readLimit(req.query.limit)],
     );
     res.json({ users });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
+/**
+ * Grants or removes console access.
+ *
+ * Two ways to lock everyone out, both refused here: demoting yourself (you are
+ * standing on the page you would lose), and demoting the last admin left.
+ */
+router.patch("/users/:id/role", asyncHandler(async (req, res) => {
+  const targetId = Number(req.params.id);
+  const makeAdmin = Boolean(req.body?.isAdmin);
+  if (!targetId) return res.status(400).json({ error: "Unknown user." });
+
+  if (!makeAdmin && targetId === Number(req.admin.uid)) {
+    return res.status(400).json({ error: "You cannot remove your own console access." });
+  }
+
+  try {
+    if (!makeAdmin) {
+      const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
+      if (cnt <= 1) {
+        return res.status(400).json({ error: "The last admin cannot be removed." });
+      }
+    }
+
+    const [result] = await db.query(
+      "UPDATE users SET is_admin = ? WHERE id = ?",
+      [makeAdmin ? 1 : 0, targetId],
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
+
+    res.json({ userId: targetId, isAdmin: makeAdmin });
   } catch (err) {
     sendAdminError(res, err);
   }

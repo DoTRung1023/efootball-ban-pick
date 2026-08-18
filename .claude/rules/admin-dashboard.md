@@ -19,11 +19,10 @@ and they are checked in this order:
 
 1. **A session exists.** `initGate` calls `requireAuth()`; an anonymous visitor is
    redirected to `/signin` and none of the dashboard is wired.
-2. **The account is an admin.** `users.is_admin`, set by hand in MySQL — there is
-   deliberately no UI for granting it. `/api/signin` returns `isAdmin` in the
-   session, and `initUserMenu` uses it to reveal **Admin Console** in the account
-   dropdown on the home page. **That link is the entry point**; revealing it is
-   cosmetic, and the server never trusts it.
+2. **The account is an admin.** `users.is_admin`. `/api/signin` returns `isAdmin`
+   in the session, and `initUserMenu` uses it to reveal **Admin Console** in the
+   account dropdown on the home page. **That link is the entry point**; revealing
+   it is cosmetic, and the server never trusts it.
 3. **The password is re-entered here** (step-up auth). `efb_user` lives in
    localStorage and nothing signs it, so "I am user 7" is a claim, not a proof —
    without this step `?userId=1` would be the whole gate.
@@ -31,6 +30,28 @@ and they are checked in this order:
 `POST /api/admin/session` checks 2 and 3 against the database and answers with a
 token; five wrong passwords lock that account out for 15 minutes, and the lockout
 holds even against the right password.
+
+## Where the first admin comes from
+
+`bootstrap.js`, run once per boot from `server.js` — not awaited, so a slow or
+absent database delays the admin rather than the server, and it swallows its own
+errors for the same reason.
+
+1. `ADMIN_EMAIL` + `ADMIN_PASSWORD` both set → that account is created, or its
+   password reset and its flag restored, **on every boot**. This is the way back
+   in after a forgotten password: set the pair, restart, sign in.
+2. Otherwise, no admin exists at all → one is created and its generated password
+   printed to the log exactly once.
+3. Otherwise → nothing. An existing admin is never touched.
+
+**No default password is baked into the repo.** Rule 2 mints one per installation
+from `crypto.randomBytes` over an alphabet with no `0/O/1/I/l`, because it gets
+read off a terminal and typed back in. Rule 1 enforces `PASSWORD_MIN`, imported
+from the auth barrel rather than copied, and refuses (loudly) rather than seeding
+a weak account.
+
+Every admin after the first is granted from the USERS tab, so `UPDATE users SET
+is_admin = 1` is a last resort, not the setup instructions.
 
 **The token** (`adminSession.js`) is `base64url(claims).hmac-sha256`, signed with
 `ADMIN_SECRET` — or, when that is unset, a secret minted at boot, so there is no
@@ -67,7 +88,7 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | --- | --- | --- |
 | OVERVIEW | four tiles, catalog health, last 8 scrape runs | 60 s |
 | ROOMS | live rooms, phase pill, idle time, WATCH link | 10 s |
-| USERS | 50 newest accounts, squad/plan counts, ADMIN pill | on activation |
+| USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
 | CATALOG | paginated `/api/players` browser, search, cycling sort, CSV export | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
@@ -94,6 +115,11 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   them. See `room/presence-and-reconnect.md`.
 - `GET /scrape-logs?limit=N`, `GET /users?limit=N` — `readLimit` clamps to 1…50;
   a negative or NaN limit falls back to the default rather than reaching SQL.
+- `PATCH /users/:id/role` — `{ isAdmin }`. **Two ways to lock everyone out, both
+  refused**: demoting yourself (you are standing on the page you would lose), and
+  demoting the last admin. The second is not theoretical — a token stays valid for
+  up to 8 hours after the account behind it is demoted, so a revoked admin can
+  still reach this route, and without the check could take the last one with them.
 - `GET /data-quality` — four COUNTs on `players_catalog`: missing `playing_style`,
   `region`, `overall_max`, duplicate `pesdb_id`.
 
@@ -108,7 +134,8 @@ Self-contained; colours come from `shared/tokens.css` like every other page. Key
 blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
-(`.status-pill.is-running/done/stalled`), `.role-pill`, the data-quality bars
+(`.status-pill.is-running/done/stalled`), `.role-pill`, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
+second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, and the pagination bar.
 
 Breakpoints: `1100 → 860 → 700 → 600`. At 600 the nav wraps and **the tab strip

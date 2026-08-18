@@ -8,7 +8,7 @@ const router = Router();
 const BCRYPT_ROUNDS = 12;
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 50;
-const PASSWORD_MIN = 6;
+export const PASSWORD_MIN = 6;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const INVALID_CREDENTIALS = "Invalid username or password.";

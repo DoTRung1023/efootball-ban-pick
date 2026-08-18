@@ -3,7 +3,7 @@ import express from "express";
 import { handleCardImage } from "#features/media/index.js";
 import { PUBLIC_DIR } from "#lib/paths.js";
 import { errorHandler, notFoundHandler } from "#lib/http.js";
-import { adminRoutes } from "#features/admin/index.js";
+import { adminRoutes, ensureConsoleAdmin } from "#features/admin/index.js";
 import { authRoutes } from "#features/auth/index.js";
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
 import pageRoutes from "./pages.js";
@@ -35,4 +35,7 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  /* Not awaited: a database that is slow or down delays the console admin, not
+     the server. `ensureConsoleAdmin` handles its own failures. */
+  ensureConsoleAdmin();
 });
