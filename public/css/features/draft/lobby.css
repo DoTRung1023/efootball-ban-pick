@@ -774,9 +774,15 @@
   transition: opacity 0.12s ease;
 }
 
+/* Filled solid, the same as a ticked option in the filter panel. The tick is
+   drawn as a knockout in `--bg-elevated` (see `::after` above), which only works
+   over a solid fill — against the old `--fill-strong` box it measured **1.25:1**
+   and was invisible, and so was the box itself against the panel behind it. On
+   `--text` the tick is 17.5:1. A checkbox whose checked state you cannot see is
+   the one state it exists to show. */
 .prep-check input[type="checkbox"]:checked {
-  border-color: var(--line-active);
-  background: var(--fill-strong);
+  border-color: var(--text);
+  background: var(--text);
 }
 
 .prep-check input[type="checkbox"]:checked::after { opacity: 1; }

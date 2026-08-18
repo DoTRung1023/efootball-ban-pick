@@ -1011,8 +1011,14 @@
      used everywhere outside this panel. */
   --ban-slot-h: 96px;
   gap: 0;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
+  /* `--bg-elevated` + `--line-faint`, which is what every other panel in the
+     draft is made of — `.ban-phase-left`, `.pick-phase-left`, `.pick-phase-right`.
+     This one was `--bg-input` on `--border`: that pair is the *form control*
+     surface (inputs, steppers, the duration fields), two rungs lighter, so the
+     ban sidebar read as a giant text field sitting next to the panels rather
+     than as one of them. */
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-faint);
   border-radius: var(--radius);
   overflow: hidden;
 

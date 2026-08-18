@@ -183,6 +183,20 @@ Hue meanings, applied page-wide:
 | cyan | the opponent / incoming |
 | amber | pending, waiting on someone |
 | red | destructive only (close room, kick, leave) — and only in the stage header on the room's last screen, never a second time in a footer |
+
+**Every panel in the draft is `--bg-elevated` on a `--line-faint` border.** That is
+`.ban-phase-left`, `.ban-phase-right`, `.pick-phase-left` and `.pick-phase-right`;
+`.pick-phase-center` is `--bg` because it holds the pitch, which is a surface of its own.
+`--bg-input` on `--border` is the **form control** pair — inputs, steppers, the duration
+fields — and it is two rungs lighter: `.ban-phase-right` wore it and read as a giant text
+field standing beside the panels rather than as one of them (2.4× the luminance of the
+panel next to it). If a panel looks brighter than its neighbours, this is why.
+
+**A checked control has to be legible as checked.** `.prep-check`'s box drew its tick as a
+knockout in `--bg-elevated`, which only works over a *solid* fill — over its old
+`--fill-strong` box the tick measured **1.25:1**, and so did the box against the panel
+behind it. Filled with `--text` it is 17.5:1, matching a ticked option in the filter panel.
+Anything that draws a knockout mark must fill solid behind it.
 | gold | achievement (Start Match stats) |
 
 Ladders — `--g-*` (green) and `--c-*` (cyan) carry the same rungs, so an opponent-side
