@@ -1,11 +1,14 @@
 /**
  * The Start Match screen's three handshakes.
  *
- * One table, read by three modules: `readyView` paints the footer from it,
- * `draftControls` posts from it, and `stageTabs`/`cardGrid` ask it whether this
- * screen is up at all. Everything that differs between the three steps — the
- * button, the chip on each team head, what the hint says while you wait — is a
- * row here rather than a branch somewhere.
+ * One table, read by two modules: `readyView` paints the footer from it and
+ * `draftControls` posts from it. Everything that differs between the three
+ * steps — the button, the chip on each team head, what the hint says while you
+ * wait — is a row here rather than a branch somewhere.
+ *
+ * (Whether this screen is up at all is a different question, and `isReadyPhase`
+ * in `engine/draftFlow.js` answers it — that is what `stageTabs` and `cardGrid`
+ * ask.)
  *
  * Each step needs **both** sides before the room advances, which is the same
  * rule the draft already used for confirming squads. The server owns the
@@ -76,26 +79,8 @@ export function stepForStatus(status) {
   return MATCH_STEPS.find((s) => s.status === key) || null;
 }
 
-/**
- * Shown under the button while the match is being played, and only then.
- *
- * The line is chosen from the clock rather than from a timer, so it costs
- * nothing to keep: `renderDraftUi` already runs twice a second, and picking by
- * wall-clock slot means both players see the same line at the same time without
- * anything being synced.
- */
-const MATCH_TIPS = [
-  "Play the squad you drafted — you built it for exactly this.",
-  "The ball moves faster than any player. Keep it moving.",
-  "Patience in build-up beats a rushed shot every time.",
-  "Stay compact when you lose it. The counter is what hurts.",
-  "One more pass is usually the right call.",
-  "Set pieces decide the tight ones. Take your time over them.",
-  "Nothing left to ban. It is all on the pitch now.",
-];
-
-const TIP_ROTATE_MS = 15000;
-
-export function currentMatchTip() {
-  return MATCH_TIPS[Math.floor(Date.now() / TIP_ROTATE_MS) % MATCH_TIPS.length];
-}
+/* There is no tip line. A rotating row of encouragement sat under the button
+   during `live` — it said nothing about the room, nothing about the match, and
+   it was the only text on this screen that was not answering a question the
+   player had. The hint above the button says what the room is waiting for,
+   which is the whole job of this footer. */

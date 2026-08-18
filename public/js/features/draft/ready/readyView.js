@@ -34,7 +34,7 @@ import {
   normalizeFormation,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
-import { currentMatchTip, stepForStatus } from './matchSteps.js';
+import { stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
 const LINEUP_SIZE = 11;
@@ -298,10 +298,4 @@ function renderStepFooter(step, room, theirSide, mine, theirs) {
     mine ? step.hint.waiting(them)
     : theirs ? step.hint.prompted(them)
     : step.hint.idle(them));
-
-  /* Only the live stage carries a tip, and `ready.css` hides the element in the
-     other two — but it is still written here, because a stale line flashing on
-     the way into the stage is exactly the kind of thing a hidden element hides
-     until it is too late. */
-  setText("smMatchTip", currentMatchTip());
 }

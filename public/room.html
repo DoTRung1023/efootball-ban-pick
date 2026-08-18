@@ -601,11 +601,10 @@
                 <!-- The three handshakes — READY, START MATCH, FINISH MATCH — share
                      this footer. `data-stage` on the panel says which one is open and
                      `ready/matchSteps.js` holds the words; the markup does not change
-                     between them. The tip only shows while the match is being played. -->
+                     between them. -->
                 <footer class="sm-foot sm-foot--step">
                   <button type="button" class="btn sm-step-btn" id="draftStepBtn" data-pressed="0" aria-pressed="false">READY</button>
                   <p class="sm-foot-hint" id="smStepHint"></p>
-                  <p class="sm-foot-tip" id="smMatchTip"></p>
                 </footer>
 
                 <!-- Post-match stage. `data-rematch` decides which of these

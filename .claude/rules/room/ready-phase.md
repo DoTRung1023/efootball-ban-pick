@@ -17,7 +17,7 @@ footer and nothing else moves:
 | --- | --- | --- | --- |
 | `confirm` | `await-ready` | READY | my squad is set up in the game |
 | `start` | `await-start` | START MATCH | I have kicked off |
-| `live` | `live` | FINISH MATCH + tip | the match is being played |
+| `live` | `live` | FINISH MATCH | the match is being played |
 | `post` | `done` | rematch / new match (`.sm-foot--post`) | it is over |
 
 **The first three are one footer** (`.sm-foot--step`) reading its words out of a row of
@@ -62,15 +62,14 @@ it would walk the phase back out of `done` on the next poll.
 
 ## Layout
 
-- **The tip** (`#smMatchTip`) is only on screen in `live`, and its line is picked from
-  the wall clock (`currentMatchTip`) rather than from a timer — `renderDraftUi` already
-  runs twice a second, and a clock-derived slot means both players read the same line at
-  the same time without anything being synced. It is written in **every** stage even
-  though CSS hides it in three, so it can never flash a line left over from the last one.
+- **There is no tip line.** A rotating row of encouragement sat under the button during
+  `live`. It said nothing about the room and nothing about the match, and it was the only
+  text on the screen not answering a question the player had — the hint above the button
+  already says what the room is waiting for, which is the footer's whole job.
 - **In `live` the hint reads before the button** (`order: -1` on `.sm-foot-hint`, scoped
   to that stage). In the two stages before it the button *is* the message; once the match
   is on, "Match in progress" is, and the button answers it. Measured at 1440×900: hint at
-  y=859, button at 888, tip at 942 — against button 859 / hint 913 in the other stages.
+  y=859, button at 888 — against button 859 / hint 913 in the other stages.
 - **No header.** There was a `.sm-head` block (`FINAL STEP · START MATCH` and a line of
   instructions). It is gone: the stage rail across the top of the room already reads
   START MATCH, so the title said it twice and pushed the squads — the only thing on this

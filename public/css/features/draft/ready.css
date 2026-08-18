@@ -355,21 +355,6 @@
   color: var(--text);
 }
 
-/* Only on screen while the match is on. It is written in every stage — see
-   renderStepFooter — so it can never flash a line from a previous one. */
-.sm-foot-tip {
-  margin: 0;
-  max-width: 46ch;
-  text-align: center;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-muted);
-}
-
-.sm:not([data-stage="live"]) .sm-foot-tip {
-  display: none;
-}
-
 /* The accent, for as long as this is the one thing to act on. The rule
    reserving it for the turn clock does not bite here: the clock is not on
    screen in this phase and nothing is counting down. */
