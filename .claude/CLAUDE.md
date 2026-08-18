@@ -48,7 +48,8 @@ Code is grouped **by feature, not by file type**.
   speculatively — and when a module drops back to one consumer it moves out again
   (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
   (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js`),
-  `ui/` (`toast.js`, `confirm.js`, `dropdown.js`, `playerHoverCard.js`), `lib/`
+  `ui/` (`toast.js`, `readingTime.js`, `pendingToast.js`, `confirm.js`, `dropdown.js`,
+  `playerHoverCard.js`), `lib/`
   (`session.js`, `roomCode.js` — both bundles mint room codes: the Rooms tab for the
   host, the post-match screen for "new match"). `positions.js`
   is the one module with a single *feature* consumer: `shared/players/sort.js` is the

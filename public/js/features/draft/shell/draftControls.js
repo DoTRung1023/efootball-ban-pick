@@ -19,6 +19,7 @@ import {
 import { stepForStatus } from '@/features/draft/ready/matchSteps.js';
 import { renderDraftUi } from './draftView.js';
 import { allowLeave, initLeaveGuard } from './leaveGuard.js';
+import { setPendingToast } from '@/shared/ui/pendingToast.js';
 
 const on = (id, event, handler) =>
   document.getElementById(id)?.addEventListener(event, handler);
@@ -325,6 +326,9 @@ function initLeaveControl() {
     allowLeave();
     clearTurnTimer();
     await leavePresence();
+    /* My Players is a page away from anything this button did, so it says so
+       on arrival — a toast fired here would go down with this page. */
+    setPendingToast(isHost ? "Room closed." : "You left the room.");
     window.location.href = "/";
   });
 }

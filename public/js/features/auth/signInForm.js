@@ -6,6 +6,7 @@
    ============================================================ */
 
 import { showToast } from "@/shared/ui/toast.js";
+import { setPendingToast } from "@/shared/ui/pendingToast.js";
 import { bindPasswordToggle } from "./passwordToggle.js";
 
 function validateField(input) {
@@ -94,11 +95,13 @@ export function initForm() {
       }
 
       localStorage.setItem("efb_user", JSON.stringify(data));
-      showToast("Welcome back, " + data.username + "!", "success");
-
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+      /* The greeting belongs to the page it is greeting you *on*. It used to be
+         shown here behind a 1s `setTimeout` whose only job was to let a bit of
+         it be read before this page was replaced — a second of dead time to
+         half-show a message. Stashed, it arrives whole and the redirect can be
+         immediate. */
+      setPendingToast("Welcome back, " + data.username + "!", "success");
+      window.location.href = "/";
     } catch {
       showToast("Network error. Please try again.", "error");
       btn.classList.remove("loading");

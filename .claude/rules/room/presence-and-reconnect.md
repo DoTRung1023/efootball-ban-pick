@@ -308,3 +308,32 @@ just made.
 the `sessionStorage` phase cache makes reloading safe. Reloading *is* safe — that
 is why the guard never posts the leave. What is not safe is closing the tab,
 which the cache does nothing for.)
+## Leaving a room says so on the page you land on
+
+A toast cannot outlive the page that fires it, so a button that navigates has to hand its
+message forward. `shared/ui/pendingToast.js` puts one line in `sessionStorage`; the next
+page's boot takes it (read-once, so a reload cannot replay it) and shows it.
+
+Every exit from a room goes through it:
+
+| what the user did | lands on | line |
+| --- | --- | --- |
+| Close room (host) | `/` | `Room closed.` |
+| Leave (guest) | `/` | `You left the room.` |
+| the room-closed countdown | `/` | the close reason, as a `warn` |
+| NEW MATCH | the fresh room | `New room opened — you are the host. …` |
+| rematch accepted (**both** sides) | the same room, reloaded into the lobby | `Rematch with X — …` |
+| Sign out | `/signin` | `Signed out.` |
+| Sign in | `/` | `Welcome back, X!` |
+
+The room reads it with `announce` rather than `showToast`: you did not ask to be on this
+page and are not yet looking for the answer.
+
+Two placement rules worth keeping:
+
+- **Home reads it *after* `redirectToActiveRoom`.** A page the user only passes through
+  must not eat the note meant for the page they end up on.
+- **Sign-in no longer waits.** It used to `setTimeout(…, 1000)` before redirecting, purely
+  so a sliver of "Welcome back" could be read before the page was replaced — a second of
+  dead time to half-show a message. The message now arrives whole on the other side and
+  the redirect is immediate.

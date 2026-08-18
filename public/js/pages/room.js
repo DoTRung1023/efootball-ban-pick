@@ -23,6 +23,7 @@ import {
   updateStageTabs,
   initLobby,
 } from "@/features/draft/index.js";
+import { takePendingToast } from "@/shared/ui/pendingToast.js";
 
 // ── Global error surfacing ───────────────────────────────────
 
@@ -87,7 +88,16 @@ function initInviteControls(code) {
   });
 }
 
+/* A message left by whatever redirected us here — a rematch being accepted, a
+   NEW MATCH landing in a fresh room. `announce` rather than `showToast`: the
+   user did not ask to be on this page and is not looking for the answer yet. */
+function flushPendingToast() {
+  const pending = takePendingToast();
+  if (pending) announce(pending.message, pending.variant);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  flushPendingToast();
   initDraftControls();
   initInviteControls(getRoomCodeFromUrl());
   window.requestAnimationFrame(() => initLobby());

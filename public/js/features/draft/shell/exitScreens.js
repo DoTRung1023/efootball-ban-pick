@@ -5,6 +5,7 @@ import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
 import { updateStageTabs } from './stageTabs.js';
 import { allowLeave } from './leaveGuard.js';
+import { setPendingToast } from '@/shared/ui/pendingToast.js';
 
 const EXIT_COUNTDOWN_SECONDS = 10;
 
@@ -12,8 +13,10 @@ const EXIT_COUNTDOWN_SECONDS = 10;
  * Shows #viewError with a countdown that returns the user to the home page.
  * `message(secs)` renders the body text for each remaining second.
  * `icon` is a glyph, or `true` to keep whatever the markup already shows.
+ * `note` is repeated on the page the countdown lands on — this screen explains
+ * itself, the home page does not, and nobody chose to be sent there.
  */
-function showExitCountdown({ title, icon, message }) {
+function showExitCountdown({ title, icon, message, note }) {
   /* The room is over and the countdown is already walking the user out — both
      it and "Back to home" would otherwise trip the unload guard, which still
      sees the phase the room was in when it ended. */
@@ -39,6 +42,9 @@ function showExitCountdown({ title, icon, message }) {
     secs -= 1;
     if (secs <= 0) {
       clearInterval(timer);
+      /* The countdown screen said why; the page it lands on has not, and the
+         user did not choose to be here. */
+      setPendingToast(note, "warn");
       window.location.href = "/";
       return;
     }
@@ -51,6 +57,7 @@ export function showRoomClosed(message = "Room is closed.") {
     title: "Room closed",
     icon: true, // keep the glyph the markup already carries
     message: (secs) => `${message} Returning to home in ${secs}s…`,
+    note: message,
   });
 }
 

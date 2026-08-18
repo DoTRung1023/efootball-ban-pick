@@ -27,6 +27,7 @@ import { postMatchAction } from '@/features/draft/engine/draftActions.js';
 import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { genRoomCode } from '@/shared/lib/roomCode.js';
+import { setPendingToast } from '@/shared/ui/pendingToast.js';
 
 /* Bound once per page, not once per render: `renderPostMatch` runs on every
    presence poll, and binding in there would stack a listener per tick. */
@@ -94,14 +95,28 @@ export function bindPostMatchOnce() {
     /* The code is minted here for the same reason the Rooms tab mints one:
        there is no create-room endpoint, a room exists as soon as somebody sends
        presence for its code. */
-    if (await postMatchAction("new-match")) leaveTo(`/room/${genRoomCode()}?mode=host`);
+    const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username;
+    if (await postMatchAction("new-match")) {
+      leaveTo(
+        `/room/${genRoomCode()}?mode=host`,
+        `New room opened — you are the host.${them ? ` ${them} stays in the old one.` : ""} Share the code to invite someone.`,
+      );
+    }
   });
 }
 
-/** Leaves the room for `url` without tripping the unload guard on the way. */
-function leaveTo(url) {
+/**
+ * Leaves the room for `url` without tripping the unload guard on the way, and
+ * with a note for the page that comes up next.
+ *
+ * The note is the point: a button that swaps the whole page out from under you
+ * owes you a sentence about what it did, and a toast fired here would die with
+ * the page that fired it. See `shared/ui/pendingToast.js`.
+ */
+function leaveTo(url, note) {
   allowLeave();
   clearRoomPhaseCache(state.room?.code);
+  if (note) setPendingToast(note);
   window.location.href = url;
 }
 
@@ -167,9 +182,23 @@ export function renderPostMatch() {
   if (status && status.textContent !== text) status.textContent = text;
 }
 
-/** The room went back to the lobby under us — both sides return to ban settings. */
+/**
+ * The room went back to the lobby under us — both sides return to ban settings.
+ *
+ * **Both** sides arrive here: the one who accepted calls it directly, and the
+ * one who offered is routed to it by the poll when the status leaves `done`. So
+ * one line covers both, and both need it — a reload with no explanation looks
+ * like the room fell over.
+ *
+ * The message is stashed rather than shown. It used to call `showToast` and
+ * then `reload()` on the next line, which paints a toast into a document that
+ * is already being torn down: neither player ever saw it.
+ */
 export function onRematchAccepted() {
-  showToast("Rematch on — back to ban settings.");
+  const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username;
+  setPendingToast(them
+    ? `Rematch with ${them} — same players, back to ban settings.`
+    : "Rematch on — back to ban settings.");
   clearRoomPhaseCache(state.room?.code);
   window.location.reload();
 }

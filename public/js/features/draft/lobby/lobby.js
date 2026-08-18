@@ -43,6 +43,7 @@ import {
 } from '@/features/draft/allowance.js';
 
 import { cb } from '@/features/draft/callbacks.js';
+import { setPendingToast } from '@/shared/ui/pendingToast.js';
 import {
   state,
   defaultRoomConfig,
@@ -1134,6 +1135,7 @@ function bindLobbyChatAndExit() {
     allowLeave();
     stopPresencePolling();
     await leavePresence();
+    setPendingToast(state.mySide === "host" ? "Room closed." : "You left the room.");
     window.location.href = "/";
   });
   document.getElementById("kickGuestBtn")?.addEventListener("click", async () => {

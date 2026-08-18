@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { openEditProfile } from "./editProfile.js";
+import { setPendingToast } from "@/shared/ui/pendingToast.js";
 
 export function initUserMenu(user) {
   const name     = document.getElementById("userName");
@@ -30,6 +31,7 @@ export function initUserMenu(user) {
 
   document.getElementById("signOutBtn")?.addEventListener("click", () => {
     localStorage.removeItem("efb_user");
+    setPendingToast("Signed out.");
     window.location.href = "/signin";
   });
 

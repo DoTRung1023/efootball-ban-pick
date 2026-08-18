@@ -4,6 +4,8 @@ import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/featu
 import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
 import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
 import { initRoomHost, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
+import { showToast } from '@/shared/ui/toast.js';
+import { takePendingToast } from '@/shared/ui/pendingToast.js';
 
 /** Nav tab ↔ URL. `src/pages.js` serves `home.html` on all three, so a reload
     or a shared link lands on the tab named by the path rather than always on
@@ -65,6 +67,12 @@ document.addEventListener("DOMContentLoaded", async () => {
      boots, so a redirect does not first pay for the squad and game-plan
      fetches. */
   if (await redirectToActiveRoom(user.id)) return;
+
+  /* Why you are back here — left by whichever room button walked you out. Read
+     *after* the seated-room redirect, so a note is not consumed by a page the
+     user only passes through. */
+  const pending = takePendingToast();
+  if (pending) showToast(pending.message, pending.variant === "warn" ? "error" : "info");
 
   initUserMenu(user);
   initEditProfile();

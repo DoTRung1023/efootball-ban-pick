@@ -218,7 +218,7 @@ All three actions go to `POST /api/rooms/:code/post-match`, and the route **409s
 | `new-match` | `entry.newMatch = { by: side }`, any offer cleared. **Nothing else** | initiator → `/room/<fresh code>?mode=host`; other side **stays on this screen** with REMATCH disabled |
 | `rematch-propose` | `entry.rematch = { by: side }` | offer appears in the other side's next poll |
 | `rematch-cancel` | clears the offer; **proposer only** | offer disappears from both screens |
-| `rematch-accept` | `resetDraftToLobby(entry)`, seats kept | both reload into the lobby (ban settings) |
+| `rematch-accept` | `resetDraftToLobby(entry)`, seats kept | both reload into the lobby (ban settings), both told `Rematch with X` |
 | `rematch-decline` | clears the offer | footer returns to its resting state |
 
 ## NEW MATCH does not end the room
@@ -262,6 +262,14 @@ the room any more, so:
 offered, the only way out was leaving the room. **CANCEL REMATCH** takes that slot, and
 the server allows it only for the side that made the offer (`entry.rematch?.by !== side`
 → 409). Cancelling somebody else's offer is declining it, and decline already exists.
+
+**A redirect announces itself on the page it lands on, never on the page it leaves.**
+`onRematchAccepted` used to `showToast(...)` and `window.location.reload()` on the next
+line — a toast painted into a document already being torn down, which neither player ever
+saw. It now writes the line through `shared/ui/pendingToast.js` and the room's boot reads
+it back. Both sides reach `onRematchAccepted` (the accepter directly, the proposer through
+the poll), so one call covers both. Every other exit from a room does the same — see
+`presence-and-reconnect.md`.
 
 Every answer reaches the other player as the offer **disappearing**, which on its own is
 silent — you would be left looking at a button with no idea anybody had responded. So
