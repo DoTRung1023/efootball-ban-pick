@@ -969,18 +969,16 @@
    hold. */
 .room-chat {
   position: fixed;
+  /* The corner, and nothing is moved aside for it. Two earlier versions tried:
+     a 68px gutter reserved in `.lobby-cta-bar` / `.ban-side-actions` /
+     `.pick-live-footer` (which indented all three controls away from their panel
+     edge), and an 84px lift on the dock itself (which parked it on a category
+     row's Remove button in the lobby). Both traded one overlap for another. The
+     launcher does clip the right end of whichever bar is below it — ~39px of a
+     190px START DRAFT, label untouched — and that is the accepted cost, because
+     the dock drags anywhere and remembers where it was put. */
   right: 16px;
-  /* 84px, not 16: every phase puts its primary action in this corner — START
-     DRAFT / READY in `.lobby-cta-bar`, CONFIRM BANS in `.ban-side-actions`, the
-     opponent's live status in `.pick-live-footer` — and those bars are ~56px
-     tall. The dock used to sit on them and each sheet reserved a 68px gutter
-     for it, which indented all three buttons away from their panel edge; this
-     is the same clearance bought once, from the floating element, and the
-     buttons keep their full width. Measured at 1440×900: the launcher's centre
-     lands on `.allowance-empty` / an `.allowance-item` (lobby),
-     `#draftMyBansStrip` (ban) and `#pickOppGrid` (pick) — no control in any of
-     them. It is only the default; the dock is draggable. */
-  bottom: 84px;
+  bottom: 16px;
   width: 52px;
   height: 52px;
   z-index: 300;      /* over every phase (≤200), under menus (500) and modals */
@@ -1127,7 +1125,7 @@
 .room-chat-panel .chat-log { border-color: transparent; }
 
 @media (max-width: 620px) {
-  .room-chat { right: 12px; bottom: 78px; }
+  .room-chat { right: 12px; bottom: 12px; }
   .room-chat-panel { height: min(60vh, calc(100vh - 110px)); }
 }
 

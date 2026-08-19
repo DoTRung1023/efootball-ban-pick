@@ -175,27 +175,25 @@ Measured across both stage states, in the lobby and in the pick phase:
 the lobby, both draft boards and Start Match share one panel, one scroll position and one
 unread count.
 
-**Nothing may sit underneath it — and the dock is what moves, not the phases.** Every
-phase puts its primary action in the bottom-right: START DRAFT / READY (`.lobby-cta-bar`),
-CONFIRM BANS (`.ban-side-actions`), the opponent's live status (`.pick-live-footer`). The
-first version of this reserved a 68px `--chat-dock-gutter` in all three sheets, which
-indented all three controls away from their panel edge — visible, and the first thing
-anyone asks about. **That token is gone.** The dock defaults to `bottom: 84px` instead:
-the bars are ~56px tall, so one offset on the floating element buys the same clearance and
-the buttons keep their full width.
+**The default is the bottom-right corner, and nothing is moved aside for it.** Two earlier
+versions tried to keep that corner clear and both traded one overlap for another:
 
-Measured at 1440×900, sampling the launcher's four corners and centre with
-`elementFromPoint` and the dock hidden:
+1. a 68px `--chat-dock-gutter` reserved in `.lobby-cta-bar`, `.ban-side-actions` and
+   `.pick-live-footer` — which indented all three controls away from their panel edge, and
+   was the first thing anyone asked about;
+2. an 84px lift on the dock itself — which cleared the bars but parked the launcher on a
+   category row's `.allowance-remove-btn` in the lobby.
 
-| Phase | Under the launcher | Control? |
-| --- | --- | --- |
-| lobby | `.allowance-empty`, or an `.allowance-item` | none at the centre — but the **top-left corner clips a row's `.allowance-remove-btn`** when categories are added |
-| ban | `#draftMyBansStrip`, `.ban-side-actions` padding | none |
-| pick | `#pickOppGrid` | none |
+Neither token nor lift survives. The launcher sits at `right: 16px; bottom: 16px` and does
+clip the right end of whatever bar is under it — measured at 1440×900, **39px of the 190px
+START DRAFT (21%)** and **39px of the 290px CONFIRM BANS (13%)**, both labels centred and
+untouched. That is the accepted cost: the dock drags anywhere and remembers where it was
+put, so a player who minds moves it once. Do not reintroduce a gutter for it.
 
-That last overlap is the accepted residual: it is a secondary action, the list under it
-scrolls, and the dock is draggable. Do not fix it by indenting the rows — that is the
-gutter again, one level down.
+**A stage change never moves it.** `#roomChat` is outside every `.view` and nothing
+re-creates it, so the element (and its inline `left`/`top`, and the open panel's scroll)
+survives lobby → ban → pick → Start Match. Verified by dragging to (872, 532) and then
+driving two stage transitions under it: same coordinates, still visible, at each one.
 
 **The dock's box is the launcher, not the launcher plus the panel.** `.room-chat` is
 52×52 and `.room-chat-panel` hangs off it with `position: absolute`. That is what makes it
