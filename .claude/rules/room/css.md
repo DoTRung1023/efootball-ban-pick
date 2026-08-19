@@ -56,8 +56,8 @@ this order:
 | Sheet | Holds |
 | --- | --- |
 | `base.css` | resets and page scaffolding. The tokens live in `shared/tokens.css`; the pitch background and glow orbs were removed by the re-skin |
-| `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, header bars |
-| `lobby.css` | top bar, matchup, settings panel, allowance builder, chat |
+| `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, header bars, **the floating chat dock** |
+| `lobby.css` | top bar, matchup, settings panel, allowance builder |
 | `ban.css` | ban board, ported "My Players" toolbar, player cards, right sidebar |
 | `pick.css` | quick-load bar, squad pool, formation pitch, allowance bar, live feed |
 | `ready.css` | the Start Match screen — **both** its stages, `confirm` and `live`, switched by `data-stage` on `#draftReadyPhaseBoard` |
@@ -166,6 +166,32 @@ Measured across both stage states, in the lobby and in the pick phase:
 | upcoming | `--bg-elevated` | 5.60:1 |
 | completed (✓) | `--bg-elevated` | 17.52:1 |
 | active | `--text` | 18.86:1 |
+
+## The floating chat dock (`shell.css`)
+
+`#roomChat` is `position: fixed` in the bottom-right at `z-index: 300` — over every phase
+(the boards top out at 200) and under the menus (500) and modals (1000+). It lives in
+`shell.css` because it is part of the frame: the element sits outside every `.view`, so
+the lobby, both draft boards and Start Match share one panel, one scroll position and one
+unread count.
+
+**Nothing may sit underneath it.** `--chat-dock-gutter` (68px = the 52px launcher plus its
+margin) is declared on `:root` beside the dock and read by the three bars that put
+something in the same corner:
+
+| Sheet | Rule | What was underneath |
+| --- | --- | --- |
+| `lobby.css` | `.lobby-cta-bar` | START DRAFT — and it moved into that corner the moment the chat column left |
+| `ban.css` | `.ban-side-actions` | `#confirmBansBtn`, measured with `elementFromPoint` under the launcher's centre |
+| `pick.css` | `.pick-live-footer` | the opponent's live status line |
+
+The gutter is applied **from those sheets, not from `shell.css`** — `shell.css` loads
+first, so a rule there loses the cascade to their own blocks. `.pick-bottom-actions` does
+**not** need it: CONFIRM PICKS is in the centre column, which ends well short of the
+right edge. Start Match needs none either — `.sm-foot` and `.sm-foot-actions` are centred.
+
+Check any new bottom-right control the same way: hide `#roomChat`, then
+`document.elementFromPoint` at the launcher's centre.
 
 ## Colour system (hard rule)
 
@@ -797,8 +823,8 @@ cascade. Check where a selector is declared before adding a media rule for it.
 - **≤1200 px or ≤820 px tall — the lobby becomes one scrolling page.** Switching
   `#viewLobby` to `overflow-y: auto` is not enough on its own: `.centered-box--lobby`
   shrinks back to the viewport unless it is `flex: 0 0 auto`, and `.lobby-board` keeps
-  its desktop `overflow: hidden`, so everything past the fold (rest of BAN SETTING, the
-  chat column, START DRAFT) is clipped with no way to reach it. The settings panel's
+  its desktop `overflow: hidden`, so everything past the fold (rest of BAN SETTING,
+  START DRAFT) is clipped with no way to reach it. The settings panel's
   `.prep-scroll` also drops its inner scroll here so there is one scroll, not a nested
   pane.
   - Use **`flex: 1 0 auto`**, not `height: auto`, on `.lobby-board` / `.lobby-layout` /
@@ -806,16 +832,9 @@ cascade. Check where a selector is declared before adding a media rule for it.
     Plain `height: auto` scrolls correctly but collapses the panels to content, which
     on a tall viewport (iPad portrait) leaves ~600 px of dead space and unpins the
     `.lobby-cta-bar` from the panel bottom.
-  - `.chat-log`'s `45vh` cap belongs in the **≤900 px** block, where the layout is
-    stacked and the page scrolls. Applying it on wide-but-short viewports just leaves a
-    gap, because the chat column's grid already bounds the log there. Stacked, the log
-    also has no column height to fill, so it needs a floor:
-    `min(38vh, 260px)` at ≤900 px, `min(32vh, 200px)` in the `max-height: 820px` block
-    (which wins on short screens) — without one it collapses to ~140 px, four lines.
   - `.allowance-list` gets the opposite treatment here: a `max-height: 45vh` **cap**, so a
     long category list is not paid for by the page. Twelve categories are 1287px of rows;
-    uncapped they made BAN SETTING 1400px tall and pushed the chat column and START DRAFT
-    that far down. Capped, the list keeps its own scrollbar in this regime too, so the
+    uncapped they made BAN SETTING 1400px tall and pushed START DRAFT that far down. Capped, the list keeps its own scrollbar in this regime too, so the
     rule holds either side of the rung: inside the ban-setting box, only the category
     list scrolls. `.allowance-empty`'s 92px floor lives here for the same reason — the
     panel is auto-height, so the placeholder has nothing to stretch into.

@@ -1189,6 +1189,9 @@
   gap: 5px;
   flex-shrink: 0;
   padding-top: 4px;
+  /* The chat launcher is fixed to this corner and would sit on top of the
+     opponent's live status. See `--chat-dock-gutter` in shell.css. */
+  padding-right: var(--chat-dock-gutter);
   border-top: 1px solid var(--line-faint);
 }
 

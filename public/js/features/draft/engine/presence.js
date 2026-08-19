@@ -275,6 +275,9 @@ export async function pollPresence() {
     const nextClosed = Boolean(state.room?.closed);
     const nextChatLen = Array.isArray(state.room?.chat) ? state.room.chat.length : 0;
     const nextUpdatedAt = Number(state.lastRoomUpdatedAt || 0);
+    /* Ahead of every phase branch below, each of which returns. The dock spans
+       all four phases, so it cannot hang off any one of their renders. */
+    cb.renderRoomChat();
     const presenceChanged =
       prevHostId !== nextHostId ||
       prevGuestId !== nextGuestId ||

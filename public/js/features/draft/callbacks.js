@@ -12,6 +12,8 @@ export const cb = {
   renderDraftUi: () => {},
   /** Re-render the lobby view. */
   renderLobby: () => {},
+  /** Repaint the floating chat dock. Runs in every phase, off the same poll. */
+  renderRoomChat: () => {},
   /** Enter the draft if the room snapshot says it has started. */
   tryEnterDraftFromRoomSnapshot: () => false,
   /** Both sides pressed FINISH MATCH: swap Start Match into its post stage. */

@@ -29,3 +29,4 @@ export { showRoomClosed } from "@/features/draft/shell/exitScreens.js";
 export { onRematchAccepted } from "@/features/draft/ready/postMatch.js";
 
 export { initLobby } from "@/features/draft/lobby/lobby.js";
+export { initRoomChat, renderRoomChat } from "@/features/draft/chat.js";

@@ -1,0 +1,175 @@
+/**
+ * Room chat — one floating dock for every stage of the room.
+ *
+ * It used to be the lobby's right-hand column, which meant the players lost the
+ * only channel they had the moment the draft started. The dock lives outside
+ * every `.view`, so switching lobby → ban → pick → Start Match leaves it
+ * untouched, and `renderRoomChat` runs off the presence poll (which already
+ * covers all four phases) rather than off any one phase's render.
+ */
+
+import { cb } from '@/features/draft/callbacks.js';
+import { escapeHtml, showToast, getCurrentIdentity } from '@/features/draft/utils.js';
+import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
+import { postAsMe } from '@/features/draft/api.js';
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+/* How many messages had been rendered the last time the panel was open. Kept
+   here rather than on `state`: nothing outside this module reads it, and it is
+   a property of the widget, not of the room. */
+let seenCount = 0;
+let isOpen = false;
+
+const els = () => ({
+  dock: document.getElementById("roomChat"),
+  panel: document.getElementById("chatPanel"),
+  launcher: document.getElementById("chatLauncher"),
+  badge: document.getElementById("chatBadge"),
+  log: document.getElementById("chatLog"),
+  input: document.getElementById("chatInput"),
+  sendBtn: document.querySelector("#chatForm button[type='submit']"),
+});
+
+/** Binds the launcher, the close button and the composer. Called once, on boot. */
+export function initRoomChat() {
+  const { launcher, panel, input } = els();
+  launcher?.addEventListener("click", () => setOpen(!isOpen));
+  document.getElementById("chatCloseBtn")?.addEventListener("click", () => setOpen(false));
+
+  document.getElementById("chatForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const value = input?.value || "";
+    if (!value.trim()) return;
+    await sendRoomChatMessage(value);
+    if (input) input.value = "";
+  });
+
+  /* Escape closes it, the way every other overlay on the page behaves. Scoped
+     to the panel being open so it never swallows a key the phase wants. */
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isOpen && !panel?.hidden) setOpen(false);
+  });
+
+  renderRoomChat();
+}
+
+function setOpen(next) {
+  const { panel, launcher, input } = els();
+  isOpen = Boolean(next);
+  if (panel) panel.hidden = !isOpen;
+  launcher?.classList.toggle("is-open", isOpen);
+  launcher?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  if (isOpen) {
+    markRead();
+    if (input && !input.disabled) input.focus();
+    scrollToLatest();
+  }
+  paintBadge();
+}
+
+function messageCount() {
+  return Array.isArray(state.room?.chat) ? state.room.chat.length : 0;
+}
+
+function markRead() {
+  seenCount = messageCount();
+}
+
+function paintBadge() {
+  const { badge } = els();
+  if (!badge) return;
+  const unread = Math.max(0, messageCount() - seenCount);
+  const show = unread > 0 && !isOpen;
+  badge.hidden = !show;
+  /* Two digits is the whole width the dot has; past that the exact number does
+     not change what the player does about it. */
+  badge.textContent = show ? (unread > 99 ? "99+" : String(unread)) : "";
+}
+
+function scrollToLatest() {
+  const { log } = els();
+  if (log) log.scrollTop = log.scrollHeight;
+}
+
+/**
+ * Repaints the dock from `state.room`. Safe to call on every poll — it only
+ * touches the DOM the snapshot can have changed.
+ */
+export function renderRoomChat() {
+  const { dock, log, input, sendBtn } = els();
+  if (!dock) return;
+
+  /* Visible wherever there is a room to talk in. The two exit screens
+     (`#viewError`, `#viewAbandoned`) are not rooms any more, and the DOM is the
+     honest test — a phase name would have to be kept in step with them. */
+  const inRoom = Boolean(state.room?.code)
+    && !state.room?.closed
+    && [...document.querySelectorAll("#viewLobby, #viewDraft")].some((v) => !v.hidden);
+  dock.hidden = !inRoom;
+  if (!inRoom) return;
+
+  /* One seat filled is nobody to talk to. The lobby used to own this rule; it
+     lives here now because the dock outlives the lobby. */
+  const canChat = Boolean(state.room?.host && state.room?.guest);
+  if (input) {
+    input.disabled = !canChat;
+    input.placeholder = canChat ? "Type a message..." : "Chat unlocks when both users are connected...";
+  }
+  if (sendBtn) sendBtn.disabled = !canChat;
+
+  if (log) {
+    const messages = Array.isArray(state.room.chat) ? state.room.chat : [];
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    if (!messages.length) {
+      log.innerHTML = '<div class="chat-empty">No messages yet. Agree rules here before starting.</div>';
+    } else {
+      const myId = getCurrentIdentity().id;
+      log.innerHTML = messages.map((m) => messageHtml(m, myId)).join("");
+      /* Only follow the log when the reader was already at the bottom —
+         yanking it down mid-scroll is how a chat loses an argument. */
+      if (atBottom || isOpen) scrollToLatest();
+    }
+  }
+
+  if (isOpen) markRead();
+  paintBadge();
+}
+
+function messageHtml(message, myId) {
+  if (String(message.senderId || "") === "system") {
+    return `<div class="chat-announce">${escapeHtml(message.message || "")}</div>`;
+  }
+
+  const mine = String(message.senderId) === String(myId);
+  const at = new Date(message.createdAt || Date.now());
+  return `
+      <div class="chat-item ${mine ? "is-mine" : ""}">
+        <div class="chat-head">
+          <span class="chat-name">${escapeHtml(message.senderName || "User")}</span>
+          <span class="chat-time">${pad2(at.getHours())}:${pad2(at.getMinutes())}</span>
+        </div>
+        <div class="chat-msg">${escapeHtml(message.message || "")}</div>
+      </div>
+    `;
+}
+
+export async function sendRoomChatMessage(raw) {
+  const message = String(raw || "").trim();
+  if (!message || !state.room?.code) return;
+
+  const { ok, data } = await postAsMe("chat", {
+    username: getCurrentIdentity().username,
+    message,
+  });
+
+  if (!ok) {
+    showToast(data.error || "Could not send message.");
+    return;
+  }
+  if (data.room) {
+    applyPresenceSnapshot(data.room);
+    renderRoomChat();
+    cb.renderLobby();
+  }
+}

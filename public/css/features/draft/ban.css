@@ -1053,7 +1053,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 14px;
+  /* Right padding is the chat launcher's gutter: CONFIRM BANS sat exactly
+     under it, and a primary action you cannot click is worse than a narrower
+     button. See `--chat-dock-gutter` in shell.css. */
+  padding: 12px var(--chat-dock-gutter) 12px 14px;
 }
 
 /* Section header row */

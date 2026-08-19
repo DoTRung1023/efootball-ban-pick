@@ -120,16 +120,17 @@ Layout:
   `.lv-field-hint` and `.prep-section-title` floats centered above a left-aligned
   control.
 - `.prep-title` — `border-left: 2px solid var(--text); padding-left: 10px;
-  margin-bottom: 16px`. Shared by both "BAN SETTING" and "LOBBY CHAT" headings; do not
-  add a second rule for this selector.
-- `.prep-col--chat` — `display: grid; grid-template-rows: auto minmax(0, 1fr) auto`
-  (3 rows: title → chat-log → compose form). No `prep-sub` element in this panel.
-- `.lobby-bottom-row` — `grid-template-columns: minmax(0, 1fr) minmax(270px, 0.4fr)`
-  (settings left, chat right). The chat rail is deliberately narrow: the settings column
-  is the working surface.
+  margin-bottom: 16px`. The "BAN SETTING" heading; do not add a second rule for this
+  selector.
+- `.lobby-bottom-row` — one column. It was `minmax(0, 1fr) minmax(270px, 0.4fr)` with the
+  chat on the right until the chat became the floating dock (`shell.css` +
+  `features/draft/chat.js`); the settings panel now has the board to itself. It stays a
+  grid so the ≤900 rung has something to restate.
 - `.lobby-cta-bar` — settings-panel footer, `space-between`: `#lobbyWaiting` (why the CTA
   is blocked) on the left, `.lobby-actions` on the right. `.lobby-actions` carries
-  `margin-left: auto` so the button stays right when the status is hidden.
+  `margin-left: auto` so the button stays right when the status is hidden, and the bar
+  carries `padding-right: var(--chat-dock-gutter)` so START DRAFT is not underneath the
+  floating chat launcher — see `css.md`.
 
 ## Squad size gates START
 
@@ -280,10 +281,11 @@ click-guard in `initLobby()` skips `.lobby-cta-bar` for the same reason.
 
 ## Chat message accents
 
-`.chat-item:not(.is-mine)` is the **opponent** — cyan fill, cyan border, cyan name, and a
-`inset 3px 0 0` accent bar. `.is-mine` is the quieter green equivalent. The opponent is
-deliberately the louder of the two: a new message from the other side is what needs
-noticing. The bar is an inset shadow, not a border, so neither variant shifts layout.
+Chat itself has left this file — it is `features/draft/chat.js` plus the dock rules at the
+end of `shell.css`. The message styling is unchanged: `.chat-item:not(.is-mine)` is the
+**opponent** and is deliberately the louder of the two, because a new message from the
+other side is what needs noticing; `.is-mine` is the quieter equivalent. The accent bar is
+an `inset 3px 0 0` shadow, not a border, so neither variant shifts layout.
 
 ## Duration input ranges
 

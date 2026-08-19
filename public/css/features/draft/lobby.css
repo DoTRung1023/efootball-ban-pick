@@ -278,6 +278,9 @@
   flex-shrink: 0;
   margin-top: 12px;
   padding-top: 12px;
+  /* Keeps START DRAFT out from under the floating chat launcher, which is
+     fixed to the same corner. See `--chat-dock-gutter` in shell.css. */
+  padding-right: var(--chat-dock-gutter);
   border-top: 1px solid var(--line-faint);
 }
 
@@ -314,23 +317,20 @@
   color: var(--text);
 }
 
-/* ── Bottom row: settings + chat ─────────────────────────── */
+/* ── Bottom row: the settings panel ──────────────────────── */
 
+/* One column since the chat moved to the floating dock (`shell.css`). The row
+   is still a grid rather than a plain block so the ≤900 rung has something to
+   restate, and so a second lane can come back without re-deriving the sizing. */
 .lobby-bottom-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(270px, 0.4fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   flex: 1;
   min-height: 0;
 }
 
 .lobby-left-lane {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-}
-
-.lobby-right-lane {
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -438,12 +438,6 @@
   cursor: not-allowed !important;
 }
 
-.prep-col--chat {
-  height: 100%;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-}
 
 /* ── Ban settings (lv-* controls) ───────────────────────── */
 
@@ -1673,137 +1667,7 @@
 
 .allowance-club-remove-category:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ── Chat panel ─────────────────────────────────────────── */
-
-.chat-log {
-  min-height: 0;
-  overflow-y: auto;
-  padding: 10px 8px;
-  background: var(--surface-sunken);
-  border: 1px solid var(--line-faint);
-  border-radius: var(--radius);
-}
-
-.chat-empty {
-  color: var(--text-muted);
-  font-size: 14px;
-  text-align: center;
-  padding: 20px 8px;
-  font-style: italic;
-}
-
-.chat-item {
-  padding: 6px 8px 6px 11px;
-  border-radius: var(--radius);
-  background: var(--fill-faint);
-  border: 1px solid transparent;
-  margin-bottom: 5px;
-  text-align: left;
-}
-
-/* The opponent gets the loud treatment — cyan accent bar, cyan fill, cyan name.
-   A new message from the other side is the thing worth noticing; your own is
-   just a record of what you already typed, so it stays quiet in green. The bar
-   is an inset shadow rather than a border so neither variant shifts layout. */
-
-.chat-item:not(.is-mine) {
-  background: var(--fill-strong);
-  border-color: var(--border);
-}
-
-.chat-item.is-mine {
-  background: var(--fill);
-  border-color: var(--border);
-}
-
-.chat-announce {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-dim);
-  line-height: 1.4;
-  margin: 4px 0 7px;
-}
-
-.chat-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 5px;
-  margin-bottom: 1px;
-}
-
-.chat-name {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: 0.04em;
-}
-
-.chat-item:not(.is-mine) .chat-name { color: var(--text); }
-
-.chat-item.is-mine .chat-name { color: var(--text); }
-
-.chat-time {
-  font-size: 12px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.chat-msg {
-  font-size: 14px;
-  line-height: 1.3;
-  color: var(--text);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.chat-compose {
-  margin-top: 8px;
-  display: flex;
-  gap: 7px;
-  flex-shrink: 0;
-}
-
-.chat-compose input {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface-card);
-  color: var(--text);
-  font-size: 12px;
-  font-family: var(--font-body);
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.chat-compose input::placeholder { color: var(--text-muted); }
-
-.chat-compose input:focus {
-  border-color: var(--line-hover);
-}
-
-.chat-compose input:disabled { opacity: 0.42; cursor: not-allowed; }
-
-/* Send is flattened out of the .btn--primary gradient: START/READY should be
-   the only gradient-filled button on screen, so the eye lands on it first. */
-
-.chat-compose .btn--primary {
-  background: var(--fill-strong);
-  color: var(--text);
-  border-color: var(--line-hover);
-  box-shadow: none;
-}
-
-.chat-compose .btn--primary:hover:not(:disabled) {
-  border-color: var(--line-active);
-  box-shadow: none;
-}
-
 #viewLobby,
-.chat-log,
 .prep-scroll,
 .allowance-list{
   scrollbar-width: thin;
@@ -1811,17 +1675,14 @@
 }
 
 #viewLobby::-webkit-scrollbar,
-.chat-log::-webkit-scrollbar,
 .prep-scroll::-webkit-scrollbar,
 .allowance-list::-webkit-scrollbar{ width: 5px; height: 5px; }
 
 #viewLobby::-webkit-scrollbar-track,
-.chat-log::-webkit-scrollbar-track,
 .prep-scroll::-webkit-scrollbar-track,
 .allowance-list::-webkit-scrollbar-track{ background: transparent; }
 
 #viewLobby::-webkit-scrollbar-thumb,
-.chat-log::-webkit-scrollbar-thumb,
 .prep-scroll::-webkit-scrollbar-thumb,
 .allowance-list::-webkit-scrollbar-thumb{
   background: var(--fill-strong);
@@ -1829,7 +1690,6 @@
 }
 
 #viewLobby::-webkit-scrollbar-thumb:hover,
-.chat-log::-webkit-scrollbar-thumb:hover,
 .prep-scroll::-webkit-scrollbar-thumb:hover,
 .allowance-list::-webkit-scrollbar-thumb:hover{ background: var(--fill-strong); }
 
@@ -1860,15 +1720,6 @@
   .ls-player { padding: 12px 10px; gap: 10px; }
   .ls-center { min-width: 0; padding: 12px 14px; }
   .ls-name { font-size: 15px; }
-  .prep-col--chat { min-height: 240px; }
-
-  /* Stacked, the log has no column height to fill, so it collapses to ~140px —
-     four lines of chat. Give it a share of the screen instead, and keep the
-     ceiling so a long log does not stretch the (now scrolling) page. */
-  .chat-log {
-    min-height: min(38vh, 260px);
-    max-height: 45vh;
-  }
 }
 
 @media (max-width: 620px) {
@@ -1925,10 +1776,6 @@
   .lobby-board { height: auto; }
   .ls-player { padding: 11px 14px; }
   .room-code-big { font-size: 30px; }
-  .prep-col--chat { min-height: 220px; }
-  /* Same idea as the ≤900 floor, scaled down: a short viewport still wants a
-     readable log, but not one that adds 260px to the scroll. */
-  .chat-log { min-height: min(32vh, 200px); }
 }
 
 .draft-select {

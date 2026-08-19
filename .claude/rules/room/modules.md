@@ -16,7 +16,7 @@ its `index.js` barrel is deliberately broad where other features' barrels are na
 
 | Folder | Holds |
 | --- | --- |
-| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView` |
+| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView`, `chat` |
 | `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
 | `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens`, `leaveGuard` |
 | `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
@@ -143,6 +143,14 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   match-live stage of Start Match — it changes `state.phase`, not the view, because
   there is no screen after Start Match. `RENDERED_PHASES` is why it renders at all in
   the `done` phase.
+- `chat.js` — the floating chat dock: `initRoomChat()` binds it once on boot,
+  `renderRoomChat()` repaints it. **It is not a phase module.** `#roomChat` sits outside
+  every `.view`, so one panel and one scroll position serve the lobby, both draft boards
+  and Start Match — it was the lobby's right-hand column, which meant the players lost
+  their only channel the moment the draft began. Two callers, both deliberate:
+  `pollPresence` (ahead of its per-phase branches, each of which returns) and `showView`
+  (the exit screens are not rooms, and polling has usually stopped by the time one
+  appears). The unread count lives in the module, not in `state` — nothing else reads it.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
@@ -231,7 +239,6 @@ overlay — set the flag and let the board renderer show it.
   (club/league/nationality) have their own builders. The emitted class names and
   `data-` attributes are load-bearing: `lobby.css` styles them and `initLobby` delegates
   events off them.
-- `lobby/chat.js` — `renderLobbyChat`, `sendLobbyChatMessage`.
 - `lobby/config.js` — `scheduleLobbyConfigPush` / `readAllowanceFieldValue`.
   `pushLobbyConfig` is the writer behind the scheduler and is module-private. The payload
   is read from the DOM, not from `state.room.config`, so in-flight typing survives a

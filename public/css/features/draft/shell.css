@@ -822,3 +822,293 @@
   letter-spacing: 0.05em;
   color: var(--text);
 }
+
+/* ── Chat panel ─────────────────────────────────────────── */
+
+.chat-log {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-faint);
+  border-radius: var(--radius);
+}
+
+.chat-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 8px;
+  font-style: italic;
+}
+
+.chat-item {
+  padding: 6px 8px 6px 11px;
+  border-radius: var(--radius);
+  background: var(--fill-faint);
+  border: 1px solid transparent;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+/* The opponent gets the loud treatment — cyan accent bar, cyan fill, cyan name.
+   A new message from the other side is the thing worth noticing; your own is
+   just a record of what you already typed, so it stays quiet in green. The bar
+   is an inset shadow rather than a border so neither variant shifts layout. */
+
+.chat-item:not(.is-mine) {
+  background: var(--fill-strong);
+  border-color: var(--border);
+}
+
+.chat-item.is-mine {
+  background: var(--fill);
+  border-color: var(--border);
+}
+
+.chat-announce {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 4px 0 7px;
+}
+
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 1px;
+}
+
+.chat-name {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.chat-item:not(.is-mine) .chat-name { color: var(--text); }
+
+.chat-item.is-mine .chat-name { color: var(--text); }
+
+.chat-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chat-msg {
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-compose {
+  margin-top: 8px;
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.chat-compose input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chat-compose input::placeholder { color: var(--text-muted); }
+
+.chat-compose input:focus {
+  border-color: var(--line-hover);
+}
+
+.chat-compose input:disabled { opacity: 0.42; cursor: not-allowed; }
+
+/* Send is flattened out of the .btn--primary gradient: START/READY should be
+   the only gradient-filled button on screen, so the eye lands on it first. */
+
+.chat-compose .btn--primary {
+  background: var(--fill-strong);
+  color: var(--text);
+  border-color: var(--line-hover);
+  box-shadow: none;
+}
+
+.chat-compose .btn--primary:hover:not(:disabled) {
+  border-color: var(--line-active);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Floating chat dock
+
+   Lives in `shell.css`, not `lobby.css`, because it is part of the frame
+   rather than of one phase: `#roomChat` sits outside every `.view`, so the
+   lobby, both draft boards and Start Match share one panel and one scroll
+   position. It was the lobby's right-hand column before, which meant the
+   players lost their only channel the moment the draft began.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Space the phases have to keep clear in the bottom-right corner: the launcher
+   plus its margin. Declared here because the dock owns the number; the three
+   bars that put a control in the same corner read it from their own sheets
+   (`.lobby-cta-bar`, `.ban-side-actions`, `.pick-bottom-actions`), which load
+   after this one and would otherwise win the cascade against a rule here. */
+:root { --chat-dock-gutter: 68px; }
+
+.room-chat {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 300;      /* over every phase (≤200), under menus (500) and modals */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  /* The dock is only ever as wide as its panel, so the rest of the corner
+     stays clickable — a full-width wrapper here swallows the CTA behind it. */
+  pointer-events: none;
+}
+
+.room-chat > * { pointer-events: auto; }
+
+.room-chat-panel {
+  width: min(330px, calc(100vw - 32px));
+  height: min(420px, calc(100vh - 120px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.room-chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.room-chat-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.room-chat-close {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.room-chat-close:hover {
+  background: var(--fill);
+  border-color: var(--line-hover);
+  color: var(--text);
+}
+
+/* The launcher. A solid chip, because it floats over live content and a
+   translucent one would take the board's colours with it — so its states walk
+   the solid rungs (`--bg-elevated` → `--bg-card-hover` → `--bg-input`) rather
+   than the white-alpha fills. */
+.room-chat-launcher {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.room-chat-launcher:hover:not(.is-open) {
+  background: var(--bg-card-hover);
+  border-color: var(--line-hover);
+}
+
+.room-chat-launcher.is-open {
+  background: var(--bg-input);
+  border-color: var(--line-active);
+}
+
+.room-chat-icon { width: 26px; height: 26px; display: block; }
+
+/* Solid white bubble with the dots knocked out of it, like a checked box: a
+   knockout mark only works over a solid fill (DESIGN.md §3.3). The dots sit on
+   the bubble, never on the button, so they stay `--bg-elevated` through every
+   launcher state. */
+.room-chat-icon path { fill: var(--text); }
+.room-chat-icon circle { fill: var(--bg-elevated); }
+
+.room-chat-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* The panel is the chat's own card, so the log inside it drops the second
+   border it wore as a column and just takes the recessed surface. */
+.room-chat-panel .chat-log { border-color: transparent; }
+
+@media (max-width: 620px) {
+  .room-chat { right: 12px; bottom: 12px; }
+  .room-chat-panel { height: min(60vh, calc(100vh - 110px)); }
+}
+
+/* The log's scrollbar, same 5px treatment the rest of the page uses. It rode in
+   `lobby.css`'s selector group until the chat left the lobby; a sheet themes
+   its own scrollers. */
+.chat-log {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-hover) transparent;
+}
+
+.chat-log::-webkit-scrollbar { width: 5px; height: 5px; }
+.chat-log::-webkit-scrollbar-track { background: transparent; }
+
+.chat-log::-webkit-scrollbar-thumb {
+  background: var(--fill-strong);
+  border-radius: var(--radius-pill);
+}

@@ -1,6 +1,7 @@
 import { getUser } from '@/shared/lib/session.js';
 import { readingTimeMs } from '@/shared/ui/readingTime.js';
 import { state } from './state.js';
+import { cb } from './callbacks.js';
 
 /* Shared with the home bundle — see @/shared/players/playerMeta.js and
    @/shared/lib/session.js. Re-exported so room modules keep importing them
@@ -100,6 +101,13 @@ export function showView(id) {
       el.classList.remove("is-active");
     }
   });
+  /* The floating chat belongs to the room, not to a view, so it has to be told
+     when the room stops being one: `showRoomClosed` and the kick/409 screens all
+     land here, and polling has usually stopped by then — this is the last call
+     that runs. `renderRoomChat` reads the views back out of the DOM, so it needs
+     no argument and cannot disagree with what was just swapped. */
+  cb.renderRoomChat();
+
   // Update stage tabs when view changes — imported lazily to avoid circular dep
   // (updateStageTabs lives in room.js which imports utils.js; call via cb if needed)
   // For now we rely on room.js overriding showView after import, or call cb.

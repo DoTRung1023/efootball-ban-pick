@@ -22,6 +22,8 @@ import {
   showRoomClosed,
   updateStageTabs,
   initLobby,
+  initRoomChat,
+  renderRoomChat,
 } from "@/features/draft/index.js";
 import { takePendingToast } from "@/shared/ui/pendingToast.js";
 
@@ -61,6 +63,7 @@ cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;
 cb.flushAndSubmitStagedBans = flushAndSubmitStagedBans;
 cb.confirmPicks = confirmPicks;
+cb.renderRoomChat = renderRoomChat;
 
 // ── Boot ─────────────────────────────────────────────────────
 
@@ -99,6 +102,7 @@ function flushPendingToast() {
 document.addEventListener("DOMContentLoaded", () => {
   flushPendingToast();
   initDraftControls();
+  initRoomChat();
   initInviteControls(getRoomCodeFromUrl());
   window.requestAnimationFrame(() => initLobby());
 });

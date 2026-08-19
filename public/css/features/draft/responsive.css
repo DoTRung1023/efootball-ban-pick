@@ -38,8 +38,7 @@
   /* The settings panel's inner scroller becomes part of the page scroll
      instead of a nested pane the user has to discover. */
   .prep-col,
-  .prep-col--settings,
-  .prep-col--chat { height: auto; overflow: visible; }
+  .prep-col--settings { height: auto; overflow: visible; }
 
   /* Grows into spare space so `.lobby-cta-bar` stays pinned to the panel
      bottom, but never shrinks below its content, so nothing is cut off. */

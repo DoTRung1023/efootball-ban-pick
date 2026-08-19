@@ -78,7 +78,6 @@ import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 
 import { renderAllowanceList } from './allowanceView.js';
-import { renderLobbyChat, sendLobbyChatMessage } from './chat.js';
 import { readAllowanceFieldValue, scheduleLobbyConfigPush } from './config.js';
 import {
   clearClubSearchState,
@@ -360,17 +359,9 @@ function renderLobby() {
   if (pickDurationEl) pickDurationEl.disabled = !isHost;
   renderAllowanceList({ isHost, cfg });
 
-  const chatInput = document.getElementById("chatInput");
-  const chatFormBtn = document.querySelector("#chatForm button[type='submit']");
-  const canChat = Boolean(room.host && room.guest);
-  if (chatInput) chatInput.disabled = !canChat;
-  if (chatFormBtn) chatFormBtn.disabled = !canChat;
-  if (chatInput && !canChat) {
-    chatInput.placeholder = "Chat unlocks when both users are connected...";
-  }
-
   renderClubSuggestionPanel();
-  renderLobbyChat();
+  /* The chat dock is not part of the lobby any more — it renders off the
+     presence poll, which covers every phase. See features/draft/chat.js. */
   cb.updateStageTabs?.();
 }
 
@@ -464,7 +455,7 @@ export function initLobby() {
   bindAllowanceCategoryDropdown();
   bindAllowanceCapInputs();
   bindGlobalDropdownDismiss();
-  bindLobbyChatAndExit();
+  bindLobbyExit();
 }
 
 // Set the renderLobby callback so presence.js can call it
@@ -1276,17 +1267,8 @@ function bindGlobalDropdownDismiss() {
 
 }
 
-/** Chat submit, LEAVE / close room, KICK guest. */
-function bindLobbyChatAndExit() {
-  document.getElementById("chatForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("chatInput");
-    const value = input?.value || "";
-    if (!value.trim()) return;
-    await sendLobbyChatMessage(value);
-    input.value = "";
-  });
-
+/** LEAVE / close room, KICK guest. */
+function bindLobbyExit() {
   document.getElementById("lobbyLeaveBtn")?.addEventListener("click", async () => {
     if (state.mySide === "host") {
       const ok = await askConfirm({
