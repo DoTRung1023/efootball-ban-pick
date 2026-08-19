@@ -33,10 +33,17 @@ const els = () => ({
 
 /* ── Dragging ────────────────────────────────────────────────────────────────
    The dock can be put anywhere on screen. Position is the launcher's top-left
-   in viewport pixels, kept in localStorage so it survives the reload that
-   rejoining a room does — it is a preference about the window, not about the
-   room, so it is not keyed by code. Until it is dragged the CSS corner defaults
-   stand, which is what the phases' `--chat-dock-gutter` is measured against. */
+   in viewport pixels, and it lives in **sessionStorage**, so it belongs to the
+   window it was dragged in.
+
+   It was localStorage first, which is shared by every tab on the origin: drag
+   the bubble in the host's window and the guest's window — a second window of
+   the same browser, which is how a pair actually tests a room — opened with the
+   bubble already parked in the middle of the page, nowhere near the corner it
+   is supposed to default to. Per-window is also what "default bottom-right,
+   then keep where I put it" means: stage changes and the reload that a rematch
+   does are both inside one window, so the position survives exactly as far as
+   it should. */
 
 const DOCK_POS_KEY = "efb_chat_dock";
 const EDGE_MARGIN = 8;
@@ -80,14 +87,18 @@ function applyDockPos(x, y) {
 
 function storedDockPos() {
   try {
-    const raw = JSON.parse(localStorage.getItem(DOCK_POS_KEY) || "null");
+    /* Anyone who dragged the dock while it was still browser-wide has a stale
+       key sitting in localStorage; drop it rather than read it, or their next
+       window opens wherever it was left months ago. */
+    localStorage.removeItem(DOCK_POS_KEY);
+    const raw = JSON.parse(sessionStorage.getItem(DOCK_POS_KEY) || "null");
     if (!raw || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) return null;
     return raw;
   } catch { return null; }
 }
 
 function saveDockPos(pos) {
-  try { localStorage.setItem(DOCK_POS_KEY, JSON.stringify(pos)); } catch { /* private mode */ }
+  try { sessionStorage.setItem(DOCK_POS_KEY, JSON.stringify(pos)); } catch { /* private mode */ }
 }
 
 function initDockDrag() {

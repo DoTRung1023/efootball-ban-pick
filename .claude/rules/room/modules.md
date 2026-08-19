@@ -156,8 +156,12 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   gesture is still a click, and a one-shot `suppressClick` so the click that ends a drag
   does not toggle the panel. The position is the launcher's viewport top-left, clamped 8px
   inside the edges (again on `resize`, or a smaller window would strand it), and saved to
-  `localStorage` under `efb_chat_dock` — it is a preference about the window, not about
-  the room, so it is deliberately not keyed by room code.
+  **`sessionStorage`** under `efb_chat_dock`. Session, not local, and not keyed by room:
+  it belongs to the window. localStorage is shared by every tab on the origin, so dragging
+  the bubble in the host's window opened the guest's window — the second window of the
+  same browser, which is how a pair actually tests a room — with the bubble already parked
+  mid-page instead of in its default corner. `storedDockPos()` deletes the old localStorage
+  key on the way past, so a position saved by the earlier build cannot haunt a new window.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
