@@ -213,30 +213,6 @@
 
                     </div>
 
-                    <div class="prep-section prep-section--allowance">
-                      <div class="prep-section-title">CATEGORY ALLOWANCE</div>
-                      <div class="prep-section-sub">Add a filter, then say how many of those players a squad may hold — min 0, max 23. Leave a box empty for no limit.</div>
-                      <div class="prep-row">
-                        <label class="prep-check">
-                          <input type="checkbox" id="allowAllPlayersInput" />
-                          <span>Allow all players (ignore category filters)</span>
-                        </label>
-                      </div>
-                      <div class="allowance-controls" id="allowanceControls">
-                        <div class="allowance-category-dd" id="allowanceCategoryDd">
-                          <button type="button" class="draft-select allowance-category-trigger" id="allowanceCategoryTrigger" aria-haspopup="true" aria-expanded="false">
-                            <span id="allowanceCategoryLabel">Select category</span>
-                            <span class="allowance-category-caret" aria-hidden="true"></span>
-                          </button>
-                          <div class="allowance-category-panel" id="allowanceCategoryPanel"></div>
-                        </div>
-                        <button type="button" class="btn btn--small btn--ghost" id="addAllowanceBtn">Add category</button>
-                      </div>
-
-                      <div class="allowance-list" id="allowanceList">
-                        <div class="allowance-empty">No categories added. All players are allowed.</div>
-                      </div>
-                    </div>
                   </div>
 
                   <div class="lobby-cta-bar">
@@ -563,7 +539,6 @@
                       <div class="pick-bench" id="pickBench"></div>
                     </div>
                     <div class="pick-bottom-bar">
-                      <div class="pick-allowance-bar" id="pickAllowanceBar"></div>
                       <!-- The button is never hidden: an empty footer said
                            nothing about *why* you cannot confirm yet. It is
                            disabled until the squad is full, and #pickConfirmHint

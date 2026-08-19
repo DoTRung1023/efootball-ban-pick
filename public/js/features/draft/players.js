@@ -43,10 +43,9 @@ export function normalizeDraftPlayer(player) {
     height: player?.height ?? "",
     weight: player?.weight ?? "",
     age: player?.age ?? "",
-    /* Not shown anywhere, but carried: `allowance.js` reads these off a lineup
-       to count a squad against the ban settings, and a pick round-trips through
-       the room as whatever this function returns. Dropping them made the
-       Overall, Overall max and Card type categories unable to match a pick. */
+    /* Not printed on the card, but carried: the FILTER panel reads them
+       (`p?.card_type ?? p?._raw?.card_type`), and a pick round-trips through the
+       room as whatever this function returns. */
     overall: player?.overall ?? "",
     overall_max: player?.overall_max ?? "",
     card_type: player?.card_type ?? "",
@@ -75,7 +74,7 @@ export function normalizeMySquadPlayerForDraft(player) {
     height: player?.height ?? "",
     weight: player?.weight ?? "",
     age: player?.age ?? "",
-    // Same three as above: the ban settings count a squad on them.
+    // Same three as above: the FILTER panel reads them off a pool card.
     overall: player?.overall ?? "",
     overall_max: player?.overall_max ?? "",
     card_type: player?.card_type ?? "",

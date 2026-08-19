@@ -120,8 +120,6 @@ where there is no shared module to extract into:
   `ROOM_STATUS_*` constants in `public/js/features/draft/constants.js`. The server owns
   every transition between them; the client only ever compares, which is why there is no
   second copy of the transition table
-- allowance-cap normalisation — `src/features/rooms/config.js` and
-  `public/js/features/draft/allowance.js`
 - ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and
   `public/js/features/draft/state.js`. **`0` means unlimited** and is the one value that
   must escape the clamp — both copies test for it before the `|| DEFAULT`, which would
@@ -139,8 +137,8 @@ where there is no shared module to extract into:
   runs through `normalizeFormation` on the way in, so an unknown string can never reach
   a pitch. Length-cap it there and leave the whitelist where it guards a DB column.
 
-Within the client there should be **no** such pairs: the formation table, the draft sort
-categories and the allowance picker's panel markup each live in exactly one module.
+Within the client there should be **no** such pairs: the formation table and the draft
+sort categories each live in exactly one module.
 
 **Formations are eFootball's own fifteen presets**, and each digit in the name is a row
 on the pitch — so a formation is **four or five rows**, not always four, and each slot
@@ -170,7 +168,6 @@ automatically when a matching file is read:
 | `auth.md` | sign-in / sign-up / profile, and the `efb_user` session |
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
-| `allowance.md` | allowance categories, caps and minimums (client + server) |
 | `admin-dashboard.md` | `/console` page, its access model and its API |
 | `home/modules.md`, `home/css.md` | home page JS modules and CSS |
 | `room/modules.md` | room page module map |
@@ -178,6 +175,6 @@ automatically when a matching file is read:
 | `room/draft-shell.md` | `#viewDraft` shell, timer ring, turn schedule |
 | `room/lobby.md` | lobby settings UI + hidden-input pattern |
 | `room/ban-phase.md` | staged bans, state-key diff guard, filter/sort |
-| `room/pick-phase.md` | pick board, formation pitch, allowance enforcement |
+| `room/pick-phase.md` | pick board, formation pitch, the pick pool |
 | `room/ready-phase.md` | Start Match screen |
 | `room/css.md` | the seven room sheets: conventions and component map |

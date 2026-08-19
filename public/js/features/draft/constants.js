@@ -70,82 +70,15 @@ export { CARD_IMG, ANON_PLAYER_IMG } from "@/shared/players/playerMeta.js";
 // it from "./constants.js" as before.
 export { DEFAULT_FORMATION, FORMATION_LAYOUTS } from "@/shared/players/formations.js";
 
-// ── Allowance definitions ─────────────────────────────────────────
-/**
- * A ban-setting category takes one of **four shapes**, and `shape` says which.
- * The shape decides both what picks its values and where the player counts hang
- * off them:
- *
- * - `range` — a numeric span (`"30,40"`) plus **one** Min/Max player pair for
- *   the category as a whole. The five measurable attributes, and the only
- *   shape whose counts are a bare number.
- * - `fixed` — a closed set with no picker at all: every option is listed, each
- *   with its own Min/Max. Foot, and only foot — two options fit in the row.
- * - `list` — an option list short enough to read whole (5 regions … 36
- *   leagues). The picker shows all of it and its search box **filters** rather
- *   than fetches, so finding an option beats scrolling to it.
- * - `search` — hundreds of options (693 clubs, 183 nationalities). The picker
- *   shows nothing until something is typed, then asks the server; a list that
- *   long is not a list, it is a scroll.
- *
- * `fixed`, `list` and `search` all carry their counts the same way — a Min and
- * a Max **per selected value**, stored as a `{value: count}` JSON map in both
- * `allowanceCaps` and `allowanceMins`. A value nobody added carries no rule.
- *
- * `unit` heads the value control on a `range` row and the option column on the
- * `fixed` one; the row title already carries the category name, so the heading
- * has to answer "min *what*?" instead of repeating it.
- */
-export const ALLOWANCE_CATEGORY_DEFS = [
-  { key: "position",     label: "Position",      shape: "list" },
-  { key: "overall",      label: "Overall",       shape: "range",  unit: "Rating" },
-  { key: "overallMax",   label: "Overall max",   shape: "range",  unit: "Rating" },
-  { key: "club",         label: "Club",          shape: "search" },
-  { key: "league",       label: "League",        shape: "list" },
-  { key: "nationality",  label: "Nationality",   shape: "search" },
-  { key: "height",       label: "Height",        shape: "range",  unit: "cm" },
-  { key: "weight",       label: "Weight",        shape: "range",  unit: "kg" },
-  { key: "age",          label: "Age",           shape: "range",  unit: "Years" },
-  { key: "cardType",     label: "Card type",     shape: "list" },
-  { key: "region",       label: "Region",        shape: "list" },
-  { key: "foot",         label: "Foot",          shape: "fixed",  unit: "Side" },
-  { key: "playingStyle", label: "Playing style", shape: "list" },
-];
-export const ALLOWANCE_DEF_MAP = new Map(ALLOWANCE_CATEGORY_DEFS.map((d) => [d.key, d]));
-
-const keysWithShape = (shape) =>
-  new Set(ALLOWANCE_CATEGORY_DEFS.filter((d) => d.shape === shape).map((d) => d.key));
-
-/** One bare Min/Max for the whole category — the only shape that is not a map. */
-export const ALLOWANCE_RANGE_KEYS = keysWithShape("range");
-/** Everything else: a Min/Max per selected value. */
-export const ALLOWANCE_VALUE_LIST_KEYS = new Set(
-  ALLOWANCE_CATEGORY_DEFS.filter((d) => d.shape !== "range").map((d) => d.key),
-);
-/** Picker asks the server and shows nothing until it is typed into. */
-export const ALLOWANCE_SEARCH_KEYS = keysWithShape("search");
-/** No picker: every option is on the row from the moment it is added. */
-export const ALLOWANCE_FIXED_LIST_KEYS = keysWithShape("fixed");
-
-export const LEGACY_ALLOWANCE_KEY_MAP = {
-  overallMin:    "overall",
-  overallMaxMin: "overallMax",
-  heightMin:     "height",
-  weightMin:     "weight",
-  ageMin:        "age",
-};
-
 // ── Player attribute options ──────────────────────────────────────
 export const POSITION_OPTIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 /**
  * The catalog's own two values, verbatim — **not** `["Left", "Right"]`.
  *
- * `players_catalog.foot` holds "Left foot" / "Right foot", and every consumer
- * matches it by equality: the draft FILTER panel's FOOT multi-select
- * (`selected.has(read(p))`) and the foot allowance category
- * (`playerMatchesAllowanceValue`). Against the short forms both compared
- * "Left" to "Left foot" and matched nobody, so the filter silently returned an
- * empty list and a foot cap could never be reached.
+ * `players_catalog.foot` holds "Left foot" / "Right foot", and the draft FILTER
+ * panel's FOOT multi-select matches it by equality (`selected.has(read(p))`).
+ * Against the short forms it compared "Left" to "Left foot", matched nobody,
+ * and silently returned an empty list.
  */
 export const FOOT_OPTIONS = ["Left foot", "Right foot"];
 

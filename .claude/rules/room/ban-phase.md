@@ -32,11 +32,6 @@ in — `playerCardHtml`, `normalizeSortValue`, `toValidPosition`, `LEAGUE_OPTION
 `ban` prefix for things that really are ban-only.** `getBanListPlayers` and the staged-ban
 thumbnails earn theirs; a shared helper does not.
 
-One name to be careful with: `toValidPosition` (playerQuery.js) coerces a **single**
-value to a valid position or `""`. `normalizePositionValue` (allowance.js) is a different
-function — it takes a comma-separated list and returns an **array**. They were nearly
-merged during the rename; they are not interchangeable.
-
 ## Layout
 
 Ban phase left panel: a `.squad-pool-header` — "OPPONENT SQUAD" and
@@ -50,12 +45,6 @@ the grid is short.
 staged or confirmed — leaves it, and `#draftMyBansStrip` on the right is where
 you read your bans back. `renderPoolCount` writes `34 players`, or
 `33 of 34 · 1 banned` once you have started.
-
-**The ban settings hide nobody here, and cannot.** An allowance maximum only
-bites once a lineup has cards counting toward it, and during the ban phase
-neither side has picked anything — so every one of the opponent's players is
-still a legal pick for them. The pick board is where the settings filter; see
-`allowance.md`.
 
 Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks
 (bans-on-me / my-bans) and a `.ban-side-actions` footer. Each section header contains a
@@ -210,9 +199,7 @@ Two import constraints keep that module a leaf, and both matter:
   `utils.js`, because `utils.js` imports `state`.
 
 `toValidPosition` lives there too, next to the table that uses it. It coerces a
-*single* value to a valid position or `""` — not to be confused with
-`normalizePositionValue` in allowance.js, which takes a comma-separated list and
-returns an array.
+*single* value to a valid position or `""`.
 
 Per-phase pieces that remain:
 

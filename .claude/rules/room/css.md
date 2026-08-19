@@ -57,9 +57,9 @@ this order:
 | --- | --- |
 | `base.css` | resets and page scaffolding. The tokens live in `shared/tokens.css`; the pitch background and glow orbs were removed by the re-skin |
 | `shell.css` | the frame around whichever phase is live: view states, error/abandoned screens, spinner, buttons, stage progress, draft layout, side panel, mini cards, header bars, **the floating chat dock** |
-| `lobby.css` | top bar, matchup, settings panel, allowance builder |
+| `lobby.css` | top bar, matchup, settings panel |
 | `ban.css` | ban board, ported "My Players" toolbar, player cards, right sidebar |
-| `pick.css` | quick-load bar, squad pool, formation pitch, allowance bar, live feed |
+| `pick.css` | quick-load bar, squad pool, formation pitch, live feed |
 | `ready.css` | the Start Match screen — **both** its stages, `confirm` and `live`, switched by `data-stage` on `#draftReadyPhaseBoard` |
 | `responsive.css` | cross-cutting responsive rules |
 
@@ -94,25 +94,20 @@ consumers actually live in:
 
 | Rule | Was in | Now in | Why |
 | --- | --- | --- | --- |
-| `.draft-select` (+ `:focus`) | stage-progress span | `lobby.css` | used on exactly **one** element in the whole app — the allowance category trigger in the lobby |
 | `.lobby-stage-row` | draft-header span | `lobby.css` | the header bar of the lobby, used once inside `#viewLobby` |
 | `.stage-progress-container--lobby` (+ its ` .stage-progress-bar`) | lobby span | `shell.css` | a modifier of a shell component, and it must stay ahead of the generic `.stage-progress-container` |
 
 Each move keeps the original relative order inside its new sheet, so the winning
 rule is unchanged.
 
-**Two of these are latent dead CSS** — worth knowing before you "fix" what looks
-wrong:
+**One of these is latent dead CSS** — worth knowing before you "fix" what looks
+wrong: the base rule for `.lobby-stage-row` sits after the
+`@media (max-width: 900px)` override in the lobby responsive block, so that
+override never applies. It is preserved exactly as it was; changing it is a
+visual decision, not a refactor.
 
-- `.draft-select` overrides the purpose-built `.allowance-category-trigger`, so
-  that button renders as a purple 7px-radius box at 13px, **not** the green 18px
-  pill its own rule describes. The pill styling appears only on hover, where
-  `.allowance-category-trigger:hover` wins on specificity.
-- The base rule for `.lobby-stage-row` sits after the `@media (max-width: 900px)`
-  override in the lobby responsive block, so that override never applies.
-
-Both are preserved exactly as they were. Changing either is a visual decision,
-not a refactor.
+(`.draft-select` was the third row of this table. It styled exactly one element,
+the allowance category trigger, and went with it.)
 
 ### Verifying a change to these files
 
@@ -182,7 +177,7 @@ versions tried to keep that corner clear and both traded one overlap for another
    `.pick-live-footer` — which indented all three controls away from their panel edge, and
    was the first thing anyone asked about;
 2. an 84px lift on the dock itself — which cleared the bars but parked the launcher on a
-   category row's `.allowance-remove-btn` in the lobby.
+   control in the settings panel.
 
 Neither token nor lift survives. The launcher sits at `right: 16px; bottom: 16px` and does
 clip the right end of whatever bar is under it — measured at 1440×900, **39px of the 190px
@@ -251,18 +246,14 @@ panel next to it). If a panel looks brighter than its neighbours, this is why.
 last** (DESIGN.md §3.3). Two ways it has gone wrong in `lobby.css`, both fixed:
 
 - *A solid rest surface.* The fills are white-alpha; over a `--surface-control` chip they
-  replace the chip instead of lightening it, so `.lv-reveal-card.is-selected` and
-  `.allowance-foot-option.is-selected` came out **darker** than their unselected
-  neighbours. Both were made transparent at rest, with `--border` doing the separating;
-  the foot chips have since gone (foot is a value list with a Min/Max per side now), but
-  `.lv-reveal-card` still carries the fix and any new chip has to.
-- *Hover sharing a rule with the selected/open state.* `.allowance-category-option`,
-  the allowance option lists and every dropdown trigger had hover and selected on the
-  same `--fill`, so running the cursor down a menu made every row look chosen.
-  `.allowance-picker-option` keeps the split: hover is `--fill`, and `.is-active` — the
-  keyboard cursor — is `--fill-strong`, so it beats the mouse. Hover is `--fill` and scoped `:not(.is-selected)` / `:not(.is-open) &`; selected
-  and open go to `--fill-strong` + `--line-active`. `.lv-unlimited-btn` was the sharper
-  version of the same bug: its `:hover` rule carried one more compound than the
+  replace the chip instead of lightening it, so a selected chip came out **darker** than
+  its unselected neighbours. `.lv-reveal-card` is transparent at rest for that reason,
+  with `--border` doing the separating, and any new chip has to be.
+- *Hover sharing a rule with the selected/open state.* Menu rows and dropdown triggers
+  had hover and selected on the same `--fill`, so running the cursor down a menu made
+  every row look chosen. Hover is `--fill` and scoped `:not(.is-selected)` /
+  `:not(.is-open) &`; selected and open go to `--fill-strong` + `--line-active`.
+  `.lv-unlimited-btn` was the sharper version of the same bug: its `:hover` rule carried one more compound than the
   `[aria-pressed="true"]` rule below it, so hovering the ∞ button that was **on** dropped
   it a rung and the control said "off" under the cursor.
 
@@ -783,8 +774,7 @@ Key blocks:
   So: bounded pool, no strip, and the column stops above the pitch **only**
   where the pool really is capped. Changing either half without the other
   brings back one of the two failures above.
-- `.pick-bottom-bar` / `.pick-allowance-bar` / `.pick-allowance-pill` /
-  `.is-maxed`, plus `.pick-confirm-hint` and `.pick-confirm-btn.is-confirmed`.
+- `.pick-bottom-bar`, plus `.pick-confirm-hint` and `.pick-confirm-btn.is-confirmed`.
   **`.pick-bottom-actions` wraps and may shrink.** It was `flex-shrink: 0` with
   no `flex-wrap`, and the hint is `white-space: nowrap`, so once hint + button
   needed more room than the bar had they ran straight off its right edge rather
@@ -839,13 +829,11 @@ Widths `1200` → `1100` → `900` → `860` → `620` → `480`, plus a **heigh
 `max-height: 820px`, which pairs with `1200` for the lobby (`@media (max-width: 1200px),
 (max-height: 820px)`) — a short desktop window hits the same layout problems as a phone.
 
-**820 is measured, not chosen.** The fixed-height lobby hands the category list whatever
-is left after the labels, steppers, MODE cards and the allowance header — about
-`viewport - 712`. The rung used to be 760, where that arithmetic leaves a 48px list, so
-every window between 761 and ~804 got a fixed layout it could not actually fit: the
-allowance section clipped its own placeholder and `.prep-scroll` took the difference as
-scroll. Below 820 the lobby is better off as one scrolling page. Re-measure before moving
-it again — the number tracks the height of the furniture above the list.
+**820 was measured, not chosen** — back when the settings column also carried a
+scrolling category list and handed it `viewport - 712`. The rung used to be 760, where
+that arithmetic left a 48px list, so every window between 761 and ~804 got a fixed layout
+it could not fit. The list is gone and the column is much shorter now, so the rung has
+slack; re-measure before moving it.
 
 The last four blocks in the file are ordered `1200/820 → 900 → 620 → 480` and live **at
 the end on purpose**: several components they override (`.ban-phase-right`,
@@ -865,12 +853,6 @@ cascade. Check where a selector is declared before adding a media rule for it.
     Plain `height: auto` scrolls correctly but collapses the panels to content, which
     on a tall viewport (iPad portrait) leaves ~600 px of dead space and unpins the
     `.lobby-cta-bar` from the panel bottom.
-  - `.allowance-list` gets the opposite treatment here: a `max-height: 45vh` **cap**, so a
-    long category list is not paid for by the page. Twelve categories are 1287px of rows;
-    uncapped they made BAN SETTING 1400px tall and pushed START DRAFT that far down. Capped, the list keeps its own scrollbar in this regime too, so the
-    rule holds either side of the rung: inside the ban-setting box, only the category
-    list scrolls. `.allowance-empty`'s 92px floor lives here for the same reason — the
-    panel is auto-height, so the placeholder has nothing to stretch into.
 - **≤900 px — the draft view stops being a fixed-height app shell.** `.view--draft` gets
   `overflow-y: auto` and the panels (`.draft-shell`, `.draft-workspace`,
   `.ban-side-section`, `.pick-phase-center`) go to content height. Stacked, each region
@@ -878,9 +860,9 @@ cascade. Check where a selector is declared before adding a media rule for it.
   the section below. `.ban-phase-grid` / `.pick-phase-grid` keep a `vh` cap so the page
   does not grow by hundreds of cards, and `.pick-pitch-wrap` needs an explicit
   `min-height` or it collapses (it is `flex: 1` inside an auto-height column).
-- **≤620 px — lobby controls stack full width.** `.lobby-actions` and `#addAllowanceBtn`
-  both carry `margin-left: auto` (which pins them right on desktop); it has to be cleared
-  here or they stay at content width on the right edge of a stacked column. Stretch the
+- **≤620 px — lobby controls stack full width.** `.lobby-actions` carries
+  `margin-left: auto` (which pins it right on desktop); it has to be cleared here or it
+  stays at content width on the right edge of a stacked column. Stretch the
   CTA via `.lobby-actions .btn`, **not** `.lobby-bottom-row .btn--primary` — the latter
   also matches the chat Send button and squashes the message input to ~20 px.
   `.lv-field-row` also drops its 190 px track cap here (`minmax(136px, 1fr)`): the cap

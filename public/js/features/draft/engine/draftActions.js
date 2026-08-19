@@ -10,7 +10,6 @@ import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
-import { getAllowanceCapViolation, getAllowanceMinViolations } from '@/features/draft/allowance.js';
 import { normalizeFormation, pickCount } from '@/features/draft/players.js';
 import {
   applyLocalBan,
@@ -185,21 +184,6 @@ export async function unconfirmBans() {
 export async function confirmPicks(confirmed) {
   if (!state.room) return;
 
-  /* Minimums are checked here and nowhere else: an empty board breaks every one
-     of them, so they can only be judged against a finished squad — and this is
-     the last moment the player can still fix it. Taking a confirmation *back*
-     is never blocked. */
-  if (confirmed) {
-    const unmet = getAllowanceMinViolations(state.room, state.mySide);
-    if (unmet.length) {
-      const [first] = unmet;
-      state.actionError = `${first.label}: pick at least ${first.min} — you have ${first.have}.`;
-      showToast(state.actionError);
-      cb.renderDraftUi();
-      return;
-    }
-  }
-
   /* The formation goes with the confirmation, not with the lineup: picking a
      shape re-renders the pitch locally and posts nothing, so `/picks` can be
      several changes stale by the time a side confirms. Start Match draws the
@@ -284,19 +268,6 @@ export async function placePickInSlot(room, player, slot) {
   const picks = Array.isArray(room.picks?.[mySide]) ? [...room.picks[mySide]] : [];
   // Pad, or a write past the end of a short lineup lands nowhere.
   while (picks.length <= slot) picks.push(null);
-
-  /* Check the caps against the lineup this *produces*, not the current one —
-     overwriting a filled slot gives back whatever was in it, so replacing your
-     only Brazilian with another must not read as a second Brazilian. The
-     violation helper only ever looks at `config` and `picks[side]`. */
-  picks[slot] = null;
-  const violation = getAllowanceCapViolation({ config: room.config, picks: { [mySide]: picks } }, mySide, player);
-  if (violation) {
-    state.actionError = `${violation.label}: max ${violation.cap} card(s) allowed per side.`;
-    showToast(state.actionError);
-    cb.renderDraftUi();
-    return;
-  }
 
   picks[slot] = player;
   state.pickActiveSlot = null;

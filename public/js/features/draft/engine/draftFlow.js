@@ -103,7 +103,7 @@ export const pickLimit = (cfg) => asCount((cfg || defaultRoomConfig()).pickCount
  * `placePickInSlot` posts the whole lineup and takes the server's answer rather
  * than guessing where the player will land — see `pick-phase.md`. This used to
  * be `applyLocalAction`, with a second half that appended a pick to the first
- * free slot and an allowance check that went with it.
+ * free slot.
  */
 export function applyLocalBan(room, player) {
   const turn = state.schedule[room.turnIndex];

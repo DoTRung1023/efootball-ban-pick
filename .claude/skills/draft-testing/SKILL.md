@@ -1,6 +1,6 @@
 ---
 name: draft-testing
-description: Exercising the room end to end when clicking two browsers through a ban phase is the slow part — jump a room straight to the ban / pick / ready / done phase over the API with roomctl.mjs, then take either seat in a real browser. Use after any change to the draft (bans, picks, allowance, reveal modes, Start Match, presence, timers), or whenever you need a room in a specific state to look at.
+description: Exercising the room end to end when clicking two browsers through a ban phase is the slow part — jump a room straight to the ban / pick / ready / done phase over the API with roomctl.mjs, then take either seat in a real browser. Use after any change to the draft (bans, picks, reveal modes, Start Match, presence, timers), or whenever you need a room in a specific state to look at.
 ---
 
 # Testing the draft
@@ -64,7 +64,7 @@ UI:
 
 - **staged bans** live on the client until confirm (`state.stagedBans`) — the
   harness posts confirmed bans, so it never reproduces a staging bug;
-- **allowance caps** are enforced client-side in `getAllowanceCapViolation()`;
+- **the pool filter** (banned / picked cards leave the grid) is client-side;
 - **reveal modes** (`instant` / `blur` / `hidden`) are pure rendering;
 - **turn timers** run in the client's `draftFlow.js`;
 - **the pitch, hover cards and filter panels** are all render-path behaviour.

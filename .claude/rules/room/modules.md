@@ -16,7 +16,7 @@ its `index.js` barrel is deliberately broad where other features' barrels are na
 
 | Folder | Holds |
 | --- | --- |
-| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `allowance`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView`, `chat` |
+| (root) | what every phase needs: `state`, `api`, `callbacks`, `constants`, `players`, `gamePlans`, `utils`, `playerQuery`, `playerFilters`, `playerCards`, `filterOptions`, `sortPanel`, `errorView`, `chat` |
 | `engine/` | what the draft *does*: `draftFlow` (turn schedule, timers), `draftActions` (server writes), `draftSession` (join / enter), `presence` (the heartbeat) |
 | `shell/` | the frame around whichever phase is live: `draftView`, `draftControls`, `stageTabs`, `exitScreens`, `leaveGuard` |
 | `lobby/` `ban/` `pick/` `ready/` | one folder per phase |
@@ -103,13 +103,6 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   (`getFormationLayout`, `buildOrderedSlotMap`). It also re-exports
   `makePlayerImg` / `playerDetailSublineHtml` / `playerDetailTooltipText` from
   `public/js/shared/players/playerMeta.js` — see below.
-- `allowance.js` — the allowance model: what a category's stored value means, the
-  `{value: count}` maps behind its Min/Max, and whether a squad satisfies them
-  (`buildAllowanceGate`, `getAllowanceCapViolation`, `getAllowanceMinViolations`).
-  It reads a player attribute **flat-first, `_raw` second**, because only the
-  catalog normalisation has a `_raw` — reading `_raw` alone is what left the whole
-  system inert outside the ban board. The server normalises the same data
-  independently in `src/features/rooms/config.js`. See `allowance.md`.
 
 ## Draft flow
 
@@ -173,9 +166,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   The grid drops the cards you have already banned rather than greying them; see
   `ban-phase.md`.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
-  allowance pills, live opponent feed. The pool holds only cards you can act on —
-  banned, picked and over-a-maximum are all filtered out, not dimmed. See
-  `pick-phase.md`.
+  live opponent feed. The pool holds only cards you can act on — banned and
+  picked are filtered out, not dimmed. See `pick-phase.md`.
 - `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
   stages. See `ready-phase.md`.
 - `ready/matchSteps.js` — the table behind those stages: one row per handshake (READY,
@@ -251,39 +243,11 @@ overlay — set the flag and let the board renderer show it.
   `cb.renderLobby = renderLobby`, set during module init.
   - `initLobby()` is an **orchestrator only**: identity/state setup, then one call per
     concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`,
-    `bindAddAllowanceButton`, `bindAllowanceListClick`,
-    `bindAllowanceCategoryDropdown`, `bindAllowanceListInputs`,
-    `bindGlobalDropdownDismiss`, `bindLobbyExit`. Add new wiring as another
-    `bind*` function, not as more statements inside `initLobby`. Each is module-level
-    and closes over nothing but module state, so they can be read in isolation;
-    `closeAllLobbyDropdowns()` is shared by the dropdown binders.
-- `lobby/allowanceView.js` — `renderAllowanceList()`. One row builder per `def.shape`,
-  and three of the four shapes are the same row: `fixed`, `list` and `search` all render
-  a value list where each entry carries its own Min/Max, differing only in what puts
-  entries into it. `range` is the odd one — a numeric span with a single Min/Max pair.
-  Add a category by adding a line to `ALLOWANCE_CATEGORY_DEFS`, not by copying a
-  builder. The emitted class names and `data-` attributes are load-bearing: `lobby.css`
-  styles them and `initLobby` delegates events off them. See `allowance.md`.
-- `lobby/config.js` — `scheduleLobbyConfigPush` / `readAllowanceFieldValue`.
-  `readAllowanceCountsFromDom` builds both count maps off the **visible** Min/Max boxes,
-  not off `state.room.config`: the list is not rebuilt while a field has focus, so the
-  field is ahead of the config it will be written into.
-  `pushLobbyConfig` is the writer behind the scheduler and is module-private. The payload
-  is read from the DOM, not from `state.room.config`, so in-flight typing survives a
-  presence poll; writes are debounced and sequence-numbered, and stale responses are
-  dropped.
-- `lobby/valuePicker.js` — the one picker behind every per-value allowance category:
-  `updateAllowancePicker`, `renderAllowancePickerPanel`, `allowancePickerPanelHtml`,
-  `addAllowanceValue`, `removeAllowanceValue`, `clearAllowancePicker`,
-  `allowanceValueNoun`. Two sources, one panel — a `list`
-  category filters `LOCAL_OPTIONS` in memory, a `search` one asks
-  `/api/players/distinct` (`fetchRemoteOptions`, module-private, behind a debounce and a
-  request sequence). `LOCAL_OPTIONS` reads the runtime-filled option arrays **through
-  the table on every render**; a copy taken at module load would be permanently empty.
-  `allowancePickerPanelHtml` is the panel's contents for the current state (loading /
-  options / the empty line). `allowanceView.js` calls it when it rebuilds the whole
-  allowance list and this module calls it on every keystroke — the two had separate
-  copies that had already drifted in indentation, and they must agree or the panel
-  changes shape on the next re-render.
-  Only one picker is open at a time, which is why its state is a single set of
-  `allowancePicker*` fields on `state` rather than a map keyed by category.
+    `bindLobbyExit`. Add new wiring as another `bind*` function, not as more
+    statements inside `initLobby`. Each is module-level and closes over nothing but
+    module state, so they can be read in isolation.
+- `lobby/config.js` — `scheduleLobbyConfigPush`. `pushLobbyConfig` is the writer behind
+  the scheduler and is module-private. The payload — ban count, both durations, the
+  reveal mode — is read from the DOM, not from `state.room.config`, so in-flight typing
+  survives a presence poll; writes are debounced and sequence-numbered, and stale
+  responses are dropped.

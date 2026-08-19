@@ -36,8 +36,7 @@ into `pickManualFormation`, so the dropdown stays authoritative afterwards.
   and `#pickFormationBtn`/`#pickFormationPanel` — and CLEAR ALL on the right.
   Then `#pickPitch`, then `.pick-bench-wrap` (`#pickBench` draws **every** slot
   past the starting XI as a real rectangle, which is what the old "23 MORE"
-  label used to summarise), then the bottom bar with allowance pills and
-  `#confirmPicksBtn`. The bench header is the title alone — `#pickBenchCount`
+  label used to summarise), then the bottom bar with `#confirmPicksBtn`. The bench header is the title alone — `#pickBenchCount`
   is gone, because twelve visible rectangles already say what "1/12" said.
 
 ### The pitch sizes itself
@@ -61,9 +60,9 @@ window size. Four things it depends on:
   itself costs inside the measured wrap now that it is a drawn field with padding
   and a border — keep them in step with `pick.css`.
 - **It runs last in `renderPickBoard`.** Everything else in that function can
-  change the column's height — the bench wrapping to a second row, the allowance
-  pills, CONFIRM PICKS appearing — so measuring earlier sizes the slots against a
-  box that is about to change. This cost two window sizes a 3 px scrollbar
+  change the column's height — the bench wrapping to a second row, CONFIRM PICKS
+  appearing — so measuring earlier sizes the slots against a box that is about to
+  change. This cost two window sizes a 3 px scrollbar
   before the call was moved.
 - **It then verifies.** The arithmetic only knows the gaps and padding this
   module knows about, so after writing it shrinks 1 px at a time while
@@ -197,21 +196,11 @@ missing:
 
 ## The pool is filtered, not greyed
 
-`renderPickGrid` drops three kinds of card rather than dimming them: banned by
-the opponent, already in your lineup, and **over an allowance maximum**. The
-last one used to announce itself only after you clicked, as a toast.
-`renderPoolCount` writes `23 of 35 · 2 picked · 10 over limit` into
-`#pickPoolCount`, because a pool that silently shrank reads as a bug.
-
-`buildAllowanceGate` (`allowance.js`) is what makes this affordable: it walks the
-rules once, counting each against the lineup, so testing a card is a match plus
-a compare rather than a re-walk. It is measured against
-`lineupAfterArmedSlot(room, mySide)` — the lineup the **next write** would
-produce. With a slot armed that slot is emptied first, so the cards that would
-replace its occupant come back; with nothing armed a full rule hides every
-further card until a slot is freed. Measured with `Left foot` capped at 2 on a
-35-player squad: two placed → the other four vanish; click one of their slots →
-all four return; click away → gone again.
+`renderPickGrid` drops two kinds of card rather than dimming them: banned by the
+opponent, and already in your lineup. `renderPoolCount` writes
+`32 of 35 · 3 picked` into `#pickPoolCount`, because a pool that silently shrank
+reads as a bug. Clearing a slot puts its card straight back — measured
+`33 of 35 · 2 picked` on the next render.
 
 Two consequences worth knowing:
 
@@ -221,12 +210,6 @@ Two consequences worth knowing:
   cards.
 - The BANNED overlay was the only place during the pick phase that named which
   of your players the opponent took. The count line says *how many*, not which.
-
-`placePickInSlot` checks the allowance caps against the lineup the write
-**produces**, not the current one — overwriting a filled slot gives back
-whatever was in it, so swapping one Brazilian for another must not read as a
-second Brazilian. It passes `getAllowanceCapViolation` a throwaway
-`{ config, picks }` object for that; the helper reads nothing else.
 
 Every change posts the whole lineup through `replaceMyPicks`. A write past the
 end of a short lineup pads with holes first, or it would land nowhere.
@@ -238,8 +221,7 @@ appended one player into the first free slot — has been removed**, along with
 three things that existed only to serve it:
 
 - `applyLocalAction` is now `applyLocalBan`, ban-only. Its second half
-  (allowance check, `firstFreeSlot`, write) had no caller once picks stopped
-  being optimistic, and they stopped because `placePickInSlot` posts the whole
+  (`firstFreeSlot`, write) had no caller once picks stopped being optimistic, and they stopped because `placePickInSlot` posts the whole
   lineup and takes the server's answer.
 - `firstFreeSlot` is gone from `players.js`. Nothing anywhere decides where a
   pick goes any more — the client names the slot.
@@ -410,14 +392,12 @@ add a `title` back to a card, in this file or `playerCards.js`.
 > on you. Read `DESIGN.md` §3 and §12 for what replaced what; treat colour claims here as
 > history and the structural claims as current.
 
-## CONFIRM PICKS can be refused
+## CONFIRM PICKS
 
-A squad that is full is not automatically legal. `confirmPicks` runs
-`getAllowanceMinViolations` before posting, and refuses with
-`"Age: pick at least 5 — you have 0."` when a category's **minimum** is unmet.
-That check lives here and nowhere else: an empty board breaks every minimum, so
-it can only be judged against a finished squad — and CONFIRM is the last moment
-the player can still act on it. **Un-confirming is never blocked.**
+The only condition is a full squad: `#confirmPicksBtn` is disabled until the
+lineup holds `pickCountPerSide` players, and `#pickConfirmHint` carries the count
+(`Pick all 23 players to confirm · 3/23`). **Un-confirming is never blocked.**
 
-Maximums are enforced earlier, as the card is placed. See `allowance.md` for
-which categories carry which end.
+There used to be a second gate here — a per-category minimum, checked at CONFIRM
+because an empty board breaks every minimum. The category system is gone; see
+the note at the end of `lobby.md`.

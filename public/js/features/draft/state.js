@@ -10,17 +10,7 @@ import {
   REVEAL_MODE_HIDDEN,
   REVEAL_MODE_INSTANT,
   FIXED_PICKS_PER_SIDE,
-  LEGACY_ALLOWANCE_KEY_MAP,
-  ALLOWANCE_CATEGORY_DEFS,
-  ALLOWANCE_DEF_MAP,
-  ALLOWANCE_VALUE_LIST_KEYS,
 } from './constants.js';
-
-import {
-  normalizeAllowanceRangeValue,
-  normalizeAllowanceListValue,
-  stringifyAllowanceCountMap,
-} from './allowance.js';
 
 import { DEFAULT_FORMATION } from './constants.js';
 import { normalizeDraftPlayer, normalizeFormation } from './players.js';
@@ -40,15 +30,6 @@ export const state = {
   presencePollId: null,
   lastRoomUpdatedAt: 0,
   lobbyConfigDirty: false,
-  /* One allowance value-picker is open at a time — a click on any of them
-     closes the last — so this is one set of fields, not a map per category. */
-  allowancePickerKey: "",
-  allowancePickerQuery: "",
-  allowancePickerOptions: [],
-  allowancePickerOpen: false,
-  allowancePickerLoading: false,
-  allowancePickerActiveIndex: -1,
-  allowancePickerReqSeq: 0,
   opponentBanPlayers: [],
   loadingOpponentBanPlayers: false,
   opponentBanPlayersLoaded: false,
@@ -103,22 +84,13 @@ export function normalizeRevealMode(raw) {
   return REVEAL_MODES.has(mode) ? mode : REVEAL_MODE_INSTANT;
 }
 
-/** One blank slot per category, for each of the three allowance maps. */
-const emptyAllowanceMap = () =>
-  Object.fromEntries(ALLOWANCE_CATEGORY_DEFS.map((d) => [d.key, ""]));
-
 export function defaultRoomConfig() {
   return {
-    allowAllPlayers: true,
     banCountPerSide: 3,
     banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
     pickDurationSec: DEFAULT_PICK_DURATION_SECONDS,
     revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: FIXED_PICKS_PER_SIDE,
-    allowanceEnabled: [],
-    allowanceMins: emptyAllowanceMap(),
-    allowanceCaps: emptyAllowanceMap(),
-    allowance: emptyAllowanceMap(),
   };
 }
 
@@ -134,70 +106,13 @@ function defaultMatchReadyState() {
 }
 
 export function normalizeRoomConfig(raw) {
-  const defaults = defaultRoomConfig();
   const rawCfg = raw || {};
-  const incomingAllowance = { ...(rawCfg.allowance || {}) };
-
-  // Migrate legacy split min/max fields to range fields.
-  if (!String(incomingAllowance.overall || "").trim()) {
-    incomingAllowance.overall = normalizeAllowanceRangeValue(incomingAllowance.overallMin, incomingAllowance.overallMax);
-  }
-  if (
-    String(incomingAllowance.overallMaxMin || "").trim() ||
-    String(incomingAllowance.overallMaxMax || "").trim() ||
-    !String(incomingAllowance.overallMax || "").trim()
-  ) {
-    incomingAllowance.overallMax = normalizeAllowanceRangeValue(incomingAllowance.overallMaxMin, incomingAllowance.overallMaxMax);
-  }
-  // Legacy format used overallMax as overall upper-bound; move it into overall range if needed.
-  if (!String(incomingAllowance.overall || "").trim() && String(incomingAllowance.overallMax || "").trim() && !String(incomingAllowance.overallMax || "").includes(",")) {
-    incomingAllowance.overall = normalizeAllowanceRangeValue("", incomingAllowance.overallMax);
-    incomingAllowance.overallMax = "";
-  }
-  if (!String(incomingAllowance.height || "").trim()) {
-    incomingAllowance.height = normalizeAllowanceRangeValue(incomingAllowance.heightMin, incomingAllowance.heightMax);
-  }
-  if (!String(incomingAllowance.weight || "").trim()) {
-    incomingAllowance.weight = normalizeAllowanceRangeValue(incomingAllowance.weightMin, incomingAllowance.weightMax);
-  }
-  if (!String(incomingAllowance.age || "").trim()) {
-    incomingAllowance.age = normalizeAllowanceRangeValue(incomingAllowance.ageMin, incomingAllowance.ageMax);
-  }
-  for (const key of ALLOWANCE_VALUE_LIST_KEYS) {
-    incomingAllowance[key] = normalizeAllowanceListValue(key, incomingAllowance[key]).join(",");
-  }
-
-  const normalizedEnabled = Array.isArray(rawCfg.allowanceEnabled)
-    ? Array.from(new Set(rawCfg.allowanceEnabled.map((k) => {
-      const key = String(k || "").trim();
-      return LEGACY_ALLOWANCE_KEY_MAP[key] || key;
-    }).filter((k) => ALLOWANCE_DEF_MAP.has(k))))
-    : [];
-
-  /* Both count maps get the same pass, because both are one now: a per-value
-     category carries a Min per value as well as a Max, so `allowanceMins` is no
-     longer the plain-count-only field it started as. */
-  const incomingCaps = { ...defaults.allowanceCaps, ...(rawCfg.allowanceCaps || {}) };
-  const incomingMins = { ...defaults.allowanceMins, ...(rawCfg.allowanceMins || {}) };
-  for (const key of ALLOWANCE_VALUE_LIST_KEYS) {
-    const values = normalizeAllowanceListValue(key, incomingAllowance[key]);
-    incomingCaps[key] = stringifyAllowanceCountMap(incomingCaps[key], values);
-    incomingMins[key] = stringifyAllowanceCountMap(incomingMins[key], values);
-  }
-
   return {
-    ...defaults,
+    ...defaultRoomConfig(),
     ...rawCfg,
     banDurationSec: normalizeBanDurationSec(rawCfg.banDurationSec),
     pickDurationSec: normalizePickDurationSec(rawCfg.pickDurationSec),
     revealMode: normalizeRevealMode(rawCfg.revealMode),
-    allowanceEnabled: normalizedEnabled,
-    allowanceCaps: incomingCaps,
-    allowanceMins: incomingMins,
-    allowance: {
-      ...defaults.allowance,
-      ...incomingAllowance,
-    },
   };
 }
 

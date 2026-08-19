@@ -2,12 +2,9 @@ import { Router } from "express";
 import { asyncHandler } from "#lib/http.js";
 import { maybeRefreshSquadSizes, refreshSquadSizes } from "./squads.js";
 import {
-  ALLOWANCE_FIELDS,
   PICK_COUNT_PER_SIDE,
   squadStartProblem,
   normalizeBanDurationSec,
-  normalizeCountForField,
-  orderAllowanceCounts,
   normalizePickDurationSec,
   turnDeadline,
   normalizeRevealMode,
@@ -32,7 +29,6 @@ import {
 const router = Router({ mergeParams: true });
 
 const MAX_STAGED_BANS_FALLBACK = 10;
-const MAX_ALLOWANCE_VALUE_LENGTH = 120;
 
 const sendRoom = (res, entry) => res.json({ room: serializeRoomEntry(entry) });
 const sendEmptyRoom = (res) => res.json({ room: emptyRoomSnapshot() });
@@ -794,20 +790,15 @@ router.post("/:code/ready", withRoomCode, requireRequesterId, (req, res) => {
   sendRoom(res, entry);
 });
 
-/** POST body: { requesterId, clientSeq?, allowAllPlayers?, banCountPerSide?, allowance*, … } */
+/** POST body: { requesterId, clientSeq?, banCountPerSide?, banDurationSec?, … } */
 router.post("/:code/config", withRoomCode, (req, res) => {
   const {
     requesterId,
     clientSeq,
-    allowAllPlayers,
     banCountPerSide,
     banDurationSec,
     pickDurationSec,
     revealMode,
-    allowanceEnabled,
-    allowance,
-    allowanceCaps,
-    allowanceMins,
   } = req.body || {};
 
   const entry = ensureRoomEntry(req.roomCode);
@@ -823,7 +814,6 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   }
 
   const config = entry.config;
-  if (allowAllPlayers !== undefined) config.allowAllPlayers = Boolean(allowAllPlayers);
   if (banCountPerSide !== undefined) config.banCountPerSide = asCount(banCountPerSide);
   if (banDurationSec !== undefined) config.banDurationSec = normalizeBanDurationSec(banDurationSec);
   if (pickDurationSec !== undefined) config.pickDurationSec = normalizePickDurationSec(pickDurationSec);
@@ -831,37 +821,6 @@ router.post("/:code/config", withRoomCode, (req, res) => {
 
   // Picks are fixed for full squad completion.
   config.pickCountPerSide = PICK_COUNT_PER_SIDE;
-
-  if (allowance && typeof allowance === "object") {
-    for (const [key, value] of Object.entries(allowance)) {
-      if (!ALLOWANCE_FIELDS.has(key)) continue;
-      config.allowance[key] = String(value ?? "").trim().slice(0, MAX_ALLOWANCE_VALUE_LENGTH);
-    }
-  }
-
-  /* The floor and the ceiling take the same normaliser, because a per-value
-     category carries a Min per value exactly as it carries a Max. */
-  for (const [field, incoming] of [["allowanceCaps", allowanceCaps], ["allowanceMins", allowanceMins]]) {
-    if (!incoming || typeof incoming !== "object") continue;
-    for (const [key, value] of Object.entries(incoming)) {
-      if (!ALLOWANCE_FIELDS.has(key)) continue;
-      config[field][key] = normalizeCountForField(key, value);
-    }
-  }
-
-  /* A floor above its ceiling — "at least 23, at most 22" — is a rule no squad
-     can satisfy, so the pair is stored in order whoever sent it. */
-  for (const key of Object.keys(config.allowanceMins)) {
-    const ordered = orderAllowanceCounts(config.allowanceMins[key], config.allowanceCaps[key]);
-    config.allowanceMins[key] = ordered.min;
-    config.allowanceCaps[key] = ordered.cap;
-  }
-
-  if (Array.isArray(allowanceEnabled)) {
-    config.allowanceEnabled = allowanceEnabled
-      .map((k) => String(k))
-      .filter((k) => ALLOWANCE_FIELDS.has(k));
-  }
 
   entry.updatedAt = Date.now();
   sendRoom(res, entry);

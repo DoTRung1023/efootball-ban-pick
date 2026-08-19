@@ -36,13 +36,7 @@ import { LEAGUE_OPTIONS } from "./filterOptions.js";
 import { getPlayerCardValue } from "./players.js";
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 
-/**
- * Coerces a *single* value to a valid position, or "".
- *
- * Not to be confused with `normalizePositionValue` in allowance.js, which takes
- * a comma-separated list and returns an array. They were nearly merged once;
- * they are not interchangeable.
- */
+/** Coerces a *single* value to a valid position, or "". */
 export function toValidPosition(raw) {
   const v = String(raw || "").trim().toUpperCase();
   return POSITION_OPTIONS.includes(v) ? v : "";

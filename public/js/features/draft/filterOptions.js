@@ -1,10 +1,9 @@
 /* ============================================================
    Filter option lists, fetched once from the catalog
 
-   `constants.js` declares the option arrays; this fills the league list from
-   /api/players/filter-options at runtime. The lobby needs it for the allowance
-   pickers and the ban toolbar needs it for its league filter, so it sits at the
-   draft root rather than inside ban/.
+   `constants.js` declares the option arrays; this fills them from
+   /api/players/filter-options at runtime. Both boards' FILTER panels read them,
+   so it sits at the draft root rather than inside ban/.
    ============================================================ */
 
 import {

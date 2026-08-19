@@ -99,7 +99,6 @@ to extract into. Changing one and not the other is the classic silent break:
 
 | Concern | Client | Server |
 | --- | --- | --- |
-| allowance-cap normalisation | `features/draft/allowance.js` | `src/features/rooms/config.js` |
 | ban/pick duration + reveal mode | `features/draft/state.js` | `src/features/rooms/config.js` |
 | formation whitelist + `DEFAULT_FORMATION` | `shared/players/formations.js` | `src/features/gamePlans/routes.js` |
 
@@ -107,11 +106,9 @@ to extract into. Changing one and not the other is the classic silent break:
 room's `formations` field is display data the client normalises on the way in.
 Length-cap it there; do not "helpfully" add the whitelist.
 
-Inside the client there should be **no** such pairs. The formation table, the
-draft sort categories (`shared/players/sort.js`) and the allowance picker's panel
-markup (`allowancePickerPanelHtml`) each live in exactly one module — the sort
-categories because two copies drifted into two different orders, the panel markup
-because two copies drifted in shape and the panel changed on re-render.
+Inside the client there should be **no** such pairs. The formation table and the
+draft sort categories (`shared/players/sort.js`) each live in exactly one module —
+the sort categories because two copies drifted into two different orders.
 
 Also canonical in one order everywhere: **positions**, CF → SS → RWF → LWF → AMF
 → RMF → LMF → CMF → DMF → RB → LB → CB → GK.

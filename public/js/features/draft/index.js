@@ -4,7 +4,7 @@
    Folder layout:
 
      (root)   state, api, callbacks, constants, players, gamePlans,
-              allowance, utils — the things every phase needs
+              utils — the things every phase needs
      engine/  what the draft *does*: turn schedule and timers (draftFlow),
               the server writes (draftActions), joining and entering a draft
               (draftSession), the presence heartbeat (presence)

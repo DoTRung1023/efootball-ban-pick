@@ -10,20 +10,12 @@
  */
 
 import {
-  ALLOWANCE_VALUE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
   FORMATION_LAYOUTS,
   REVEAL_MODE_BLUR,
   REVEAL_MODE_HIDDEN,
   REVEAL_MODE_INSTANT,
 } from '@/features/draft/constants.js';
-import {
-  buildAllowanceGate,
-  normalizeAllowanceListValue,
-  parseAllowanceCountMap,
-  playerMatchesAllowanceCategory,
-  playerMatchesAllowanceValue,
-} from '@/features/draft/allowance.js';
 import { escapeHtml } from '@/features/draft/utils.js';
 import { state, normalizeRevealMode } from '@/features/draft/state.js';
 import {
@@ -107,9 +99,9 @@ function applyPitchSlotWidth(formation) {
 
   /* Then check, because the arithmetic above only knows the gaps and padding
      *this module* knows about. Anything else that moves the column — the
-     allowance pills wrapping to a second line, CONFIRM PICKS appearing, a gap
-     changed in the stylesheet — lands here as a few pixels of overflow, and a
-     few pixels is all it takes to put a scrollbar back. Measuring beats
+     the bench wrapping to a second row, CONFIRM PICKS appearing, a gap changed
+     in the stylesheet — lands here as a few pixels of overflow, and a few
+     pixels is all it takes to put a scrollbar back. Measuring beats
      predicting; this converges in one step and then costs a single read. */
   for (let i = 0; i < 8 && width > SLOT_MIN_W && wrap.scrollHeight > wrap.clientHeight + 1; i += 1) {
     width -= 1;
@@ -152,13 +144,13 @@ export function renderPickBoard({ room, mySide, theirSide, visible }) {
   renderPickPlanList();
   renderPickGrid(room, mySide, theirSide);
   renderPickPitch(myPicks, maxPicks);
-  renderPickAllowanceBar(room, myPicks, maxPicks);
+  renderConfirmPicks(room, myPicks, maxPicks);
   renderOpponentPicks(room, theirSide, theirPicks, maxPicks, normalizeRevealMode(room.config?.revealMode));
 
   /* Last, and that ordering is the point: every other write in this function can
      change the height of the pitch column — the bench wrapping to a second row,
-     the allowance pills, CONFIRM PICKS appearing — so measuring before them
-     sizes the slots against a box that is about to change. */
+     CONFIRM PICKS appearing — so measuring before them sizes the slots against
+     a box that is about to change. */
   applyPitchSlotWidth(getPickFormation());
 }
 
@@ -224,22 +216,12 @@ function renderPickPlanList() {
 /**
  * The pool lists what you can act on **now**, and nothing else.
  *
- * Three things take a card out of it, and all three are states you cannot pick
- * from: the opponent banned it, it is already in your lineup, or a maximum it
- * counts toward is full. Greying them out instead left a 38-card pool where
- * seven of the cards were decoration, and the allowance ones did not even
- * announce themselves until you clicked and got a toast.
+ * Two things take a card out of it, and both are states you cannot pick from:
+ * the opponent banned it, or it is already in your lineup. Greying them out
+ * instead left a pool where several of the cards were decoration.
  *
- * **The gate is evaluated against the lineup the next write would produce.**
- * With a slot armed, that slot is emptied first — overwriting a filled one
- * hands back whatever was in it, so swapping one CF for another must not read
- * as a third CF. Without a slot armed there is nothing to hand back, so a full
- * rule hides every further card until you free one. This is the same
- * arithmetic `placePickInSlot` does before it writes; here it just runs
- * earlier.
- *
- * There is still no pick-limit gate: a pick names its slot and landing on a
- * filled one replaces its occupant, so a full lineup stays editable.
+ * There is no pick-limit gate: a pick names its slot and landing on a filled
+ * one replaces its occupant, so a full lineup stays editable.
  */
 function renderPickGrid(room, mySide, theirSide) {
   const grid = document.getElementById("pickGrid");
@@ -248,14 +230,12 @@ function renderPickGrid(room, mySide, theirSide) {
   const pool = getPickListPlayers();
   const opponentBanIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b.id)));
   const myPickIds = new Set(filledPicks(room.picks?.[mySide]).map((p) => String(p.id)));
-  const blocks = buildAllowanceGate(lineupAfterArmedSlot(room, mySide), mySide);
 
-  const tally = { banned: 0, picked: 0, blocked: 0 };
+  const tally = { banned: 0, picked: 0 };
   const rows = pool.filter((p) => {
     const id = String(p.id || "");
     if (opponentBanIds.has(id)) { tally.banned += 1; return false; }
     if (myPickIds.has(id)) { tally.picked += 1; return false; }
-    if (blocks(p)) { tally.blocked += 1; return false; }
     return true;
   });
 
@@ -291,25 +271,13 @@ function renderPickGrid(room, mySide, theirSide) {
 }
 
 /**
- * The room to measure the allowance against: this one, with the armed slot
- * emptied. Nothing is armed most of the time, and then it is this room.
- */
-function lineupAfterArmedSlot(room, mySide) {
-  const slot = state.pickActiveSlot;
-  if (slot == null) return room;
-  const picks = [...(room.picks?.[mySide] || [])];
-  picks[slot] = null;
-  return { config: room.config, picks: { [mySide]: picks } };
-}
-
-/**
  * An empty pool means one of two very different things, and the difference is
  * the only thing worth saying: nothing loaded, or everything is spoken for.
  */
 function pickEmptyMessage(poolSize) {
   if (state.loadingPlayers) return "Loading your squad...";
   return poolSize
-    ? "Every remaining player is banned, picked, or over a ban-setting limit."
+    ? "Every remaining player is banned or already in your lineup."
     : "No players found.";
 }
 
@@ -425,31 +393,7 @@ function pickSlotHtml(player, slot, posLabel) {
   </div>`;
 }
 
-// ── Allowance pills + confirm ────────────────────────────────
-
-function renderPickAllowanceBar(room, myPicks, maxPicks) {
-  const bar = document.getElementById("pickAllowanceBar");
-  if (!bar) return;
-
-  const pills = buildAllowancePills(room?.config || {}, myPicks);
-  const key = pills.map((p) => `${p.label}:${p.used}/${p.cap}/${p.min}`).join("|") + `|${pickCount(myPicks)}`;
-
-  if (bar.dataset.barKey !== key) {
-    bar.dataset.barKey = key;
-    /* A pill carries the minimum only while it is unmet — once it is satisfied
-       the number stops being news, and the counter says the rest. */
-    bar.innerHTML = pills.length
-      ? `<span class="pick-allowance-label">ALLOWANCE</span>` +
-        pills.map((p) => {
-          const cls = p.unmet ? "is-unmet" : p.used >= p.cap ? "is-maxed" : "";
-          const need = p.unmet ? ` · need ${p.min}` : "";
-          return `<span class="pick-allowance-pill ${cls}">${escapeHtml(p.label)} ${p.used}/${p.cap}${need}</span>`;
-        }).join("")
-      : "";
-  }
-
-  renderConfirmPicks(room, myPicks, maxPicks);
-}
+// ── Confirm ──────────────────────────────────────────────────
 
 /**
  * CLEAR ALL is only live when it has something to do.
@@ -499,59 +443,6 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
       ? theirConfirmed ? "Opponent is ready and waiting for you" : ""
       : `Pick all ${maxPicks} players to confirm · ${count}/${maxPicks}`;
   hint.classList.toggle("is-waiting", confirmed && !theirConfirmed);
-}
-
-/**
- * The used/allowed counters above the pick board — one per rule, not per
- * category.
- *
- * A `range` category is one rule and gets one pill. Every other shape carries a
- * Min/Max **per value**, so it gets a pill per value the host actually
- * constrained; values with neither number set are not rules and print nothing.
- * That keeps the bar bounded by what was configured rather than by how many
- * clubs happen to be listed.
- *
- * `allowAllPlayers` turns the whole system off, so there is nothing to count.
- */
-function buildAllowancePills(cfg, myPicks) {
-  if (cfg.allowAllPlayers) return [];
-  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
-
-  const asCount = (raw) => Math.max(0, Math.floor(Number(raw) || 0));
-  const pills = [];
-
-  const push = (label, used, cap, min) => {
-    if (!cap && !min) return;
-    pills.push({
-      label: label.length <= 12 ? label.toUpperCase() : label.slice(0, 11).toUpperCase() + "…",
-      used,
-      cap: cap || FIXED_PICKS_PER_SIDE,
-      min,
-      /* Short of a minimum reads the same as over a maximum: the squad cannot
-         be confirmed as it stands. */
-      unmet: min > 0 && used < min,
-    });
-  };
-
-  for (const key of enabled) {
-    if (ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
-      const values = normalizeAllowanceListValue(key, cfg.allowance?.[key]);
-      if (!values.length) continue;
-      const caps = parseAllowanceCountMap(cfg.allowanceCaps?.[key], values);
-      const mins = parseAllowanceCountMap(cfg.allowanceMins?.[key], values);
-      for (const value of values) {
-        const used = myPicks.filter((p) => playerMatchesAllowanceValue(key, p, value)).length;
-        push(value, used, asCount(caps[value]), asCount(mins[value]));
-      }
-      continue;
-    }
-
-    const value = String(cfg.allowance?.[key] || "").trim();
-    if (!value) continue;
-    const used = myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, value)).length;
-    push(value, used, asCount(cfg.allowanceCaps?.[key]), asCount(cfg.allowanceMins?.[key]));
-  }
-  return pills;
 }
 
 // ── Live opponent feed ───────────────────────────────────────

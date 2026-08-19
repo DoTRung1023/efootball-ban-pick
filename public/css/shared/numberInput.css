@@ -1,9 +1,8 @@
 /* ============================================================
    Number inputs — no spinner arrows, anywhere
 
-   Every number input in the app wants this: the lobby's duration fields, the
-   allowance caps and ranges, and the Min/Max filter pairs on both the home and
-   room pages. Spinners are tiny, they fight the dark theme, and each field
+   Every number input in the app wants this: the lobby's duration fields and
+   the Min/Max filter pairs on both the home and room pages. Spinners are tiny, they fight the dark theme, and each field
    already carries its own affordance — a stepper, a unit label, or the Min/Max
    pairing.
 

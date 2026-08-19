@@ -1,5 +1,5 @@
 /* ============================================================
-   Pick phase: squad pool, formation pitch, allowance bar, the LOAD GAME PLAN
+   Pick phase: squad pool, formation pitch, the LOAD GAME PLAN
    row and the opponent's picks.
 
    Split out of draft.css by concern. Rule order within this file follows the
@@ -430,7 +430,7 @@
 
 /* ── Out of play ──────────────────────────────────────────────────────────
    Nothing here any more, and that is the point: the pool **filters** instead of
-   greying. A card that is banned, picked or over an allowance maximum is not in
+   greying. A card that is banned or already in your lineup is not in
    `#pickGrid` at all, and `.squad-pool-count` above the grid says how many left
    and why.
 
@@ -837,7 +837,7 @@
    `.pick-slot-ovr`) reprinted the surname and the rating in a smaller font,
    directly over the part of the artwork that already carries both. */
 
-/* Bottom bar: allowance + confirm */
+/* Bottom bar: confirm */
 
 .pick-bottom-bar {
   display: flex;
@@ -847,51 +847,6 @@
   flex-shrink: 0;
   flex-wrap: wrap;
   min-height: 36px;
-}
-
-.pick-allowance-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.pick-allowance-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.pick-allowance-pill {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line-faint);
-  background: var(--fill-faint);
-  white-space: nowrap;
-}
-
-.pick-allowance-pill.is-maxed {
-  color: var(--text);
-  border-color: var(--line-hover);
-  background: var(--fill);
-}
-
-/* Short of a minimum: the squad cannot be confirmed as it stands, which is the
-   same class of problem as a blocked start, so it takes the same colour. */
-.pick-allowance-pill.is-unmet {
-  color: var(--danger);
-  border-color: var(--danger-line);
-  background: var(--danger-fill);
 }
 
 /* Wraps, and may shrink. It was `flex-shrink: 0` with no `flex-wrap`, so once
