@@ -416,6 +416,12 @@
   opacity: 0.58;
 }
 
+/* Every control, but **not** `.allowance-list`. It is a scroll container, and
+   `pointer-events: none` on a scroller is a wheel that does nothing: the guest
+   could see the first two of the host's twelve categories and had no way to
+   reach the rest. Its contents are all buttons, inputs and labels, so they are
+   still caught by the selectors below — the guest scrolls the list and edits
+   nothing. */
 .prep-col--settings.is-readonly .prep-scroll :is(
   button,
   input,
@@ -423,7 +429,6 @@
   textarea,
   label,
   .allowance-category-dd,
-  .allowance-list,
   .allowance-pos-dropdown,
   .allowance-multi-dropdown,
   .allowance-cap-wrap,
@@ -630,7 +635,11 @@
   transition: var(--transition);
 }
 
-.lv-unlimited-btn:hover:not(:disabled) {
+/* `:not([aria-pressed="true"])` — without it this rule outweighs the pressed
+   one below (one more compound selector) and hovering the button that is
+   already on dropped it back down a rung, so the control said "off" under the
+   cursor. */
+.lv-unlimited-btn:hover:not(:disabled):not([aria-pressed="true"]) {
   background: var(--fill);
   color: var(--text);
 }
@@ -657,20 +666,36 @@
   align-items: flex-start;
   gap: 9px;
   padding: 11px;
-  background: var(--surface-control);
-  border: 1px solid var(--line-faint);
+  /* Transparent at rest, not `--surface-control`. The state fills are
+     white-alpha, so laid *over* a solid chip they read darker than the chip
+     itself — the selected card was the dimmest of the three and hover changed
+     nothing but a near-invisible `--line-faint` edge. Transparent lets the
+     documented ladder work as written: rest `--border` → hover `--line-hover` +
+     `--fill` → selected `--line-active` + `--fill-strong`, each step lighter
+     than the last. DESIGN.md §3.3. */
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: left;
   cursor: pointer;
   color: var(--text);
-  transition: var(--transition);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
-.lv-reveal-card:hover:not(:disabled) { border-color: var(--line-hover); }
+/* `:not(.is-selected)` because a hover must not outrank a selected state — the
+   selected card is already at the top of the ladder and has nowhere to go. */
+.lv-reveal-card:hover:not(:disabled):not(.is-selected) {
+  border-color: var(--line-hover);
+  background: var(--fill);
+}
 
+/* The ring is the one box-shadow the design allows (zero offset, zero blur,
+   DESIGN.md §7): it doubles the selected edge to 2px without a glow, which is
+   what makes the chosen mode readable across the row at a glance. */
 .lv-reveal-card.is-selected {
   border-color: var(--line-active);
-  background: var(--fill);
+  background: var(--fill-strong);
+  box-shadow: 0 0 0 1px var(--line-active);
 }
 
 .lv-reveal-card:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -802,6 +827,15 @@
 
 .prep-check input[type="checkbox"]:checked::after { opacity: 1; }
 
+/* Unticked only — a filled box is already the top of the ladder, and lightening
+   it under the cursor would read as *less* checked. The box itself sits a rung
+   above the usual ladder because 1.5px of a 16px square has to carry what a
+   whole panel edge carries elsewhere (DESIGN.md §3.3), so hover moves the fill
+   rather than the border, which is already at `--line-active`. */
+.prep-check:hover input[type="checkbox"]:not(:checked) {
+  background: var(--fill-strong);
+}
+
 .allowance-controls {
   display: flex;
   align-items: center;
@@ -839,11 +873,18 @@
   text-align: left;
 }
 
-.allowance-category-trigger:hover:not(:disabled),
-.allowance-category-trigger.open {
+.allowance-category-trigger:hover:not(:disabled):not(.open) {
   color: var(--text);
   border-color: var(--line-hover);
   background: var(--fill);
+}
+
+/* Open is a selected state, not a hover one — it goes a rung further so the
+   trigger still reads as active while the menu is over it. */
+.allowance-category-trigger.open {
+  color: var(--text);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
 }
 
 .allowance-category-trigger:disabled { opacity: 0.38; cursor: not-allowed; }
@@ -923,9 +964,11 @@
 
 .allowance-category-option:last-child { border-bottom: none; }
 
-.allowance-category-option:hover:not(:disabled) { background: var(--fill); color: var(--text); }
+.allowance-category-option:hover:not(:disabled):not(.is-selected) { background: var(--fill); color: var(--text); }
 
-.allowance-category-option.is-selected { color: var(--text); background: var(--fill); font-weight: 700; }
+/* One rung above hover. Both were `--fill`, so running the cursor down the menu
+   made every row look like the chosen one. */
+.allowance-category-option.is-selected { color: var(--text); background: var(--fill-strong); font-weight: 700; }
 
 .allowance-category-option:disabled { cursor: not-allowed; color: var(--text-muted); }
 
@@ -958,12 +1001,21 @@
 
 #addAllowanceBtn:disabled { opacity: 0.38; }
 
+/* `min-height: 0` is load-bearing: this list is the settings panel's shock
+   absorber. Everything above it — BAN PER SIDE, the two durations, the MODE
+   cards, the CATEGORY ALLOWANCE header — is fixed furniture that must stay put,
+   so when the column is a few pixels short the list is what gives. With a floor
+   here it could not, `.prep-scroll` took the overflow instead, and scrolling it
+   slid the labels up under the "BAN SETTING" header. A 761-780px viewport (just
+   inside the desktop rung) was short by 6-19px and did exactly that.
+   The comfortable floor lives in the auto-height regime only — see the
+   `.allowance-empty` rule in responsive.css. */
 .allowance-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   flex: 1;
-  min-height: 80px;
+  min-height: 0;
   overflow-y: auto;
   align-content: start;
 }
@@ -973,12 +1025,16 @@
 
 .allowance-list:has(.allowance-empty) { align-content: stretch; }
 
+/* No `min-height` on purpose. `align-content: stretch` above already fills the
+   list with this box whenever the list has a height to give, and a fixed floor
+   only bites in the one case where it hurts: a squeezed list clipping its own
+   placeholder. responsive.css restores the floor where the panel is
+   auto-height and there is nothing to stretch into. */
 .allowance-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 92px;
   padding: 14px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
@@ -1097,9 +1153,10 @@
 
 .allowance-club-suggest-option:last-child { border-bottom: none; }
 
-.allowance-club-suggest-option:hover { background: var(--fill); color: var(--text); }
+.allowance-club-suggest-option:not(.is-active):hover { background: var(--fill); color: var(--text); }
 
-.allowance-club-suggest-option.is-active { background: var(--fill); color: var(--text); }
+/* `.is-active` is the keyboard cursor, so it has to beat the mouse hover. */
+.allowance-club-suggest-option.is-active { background: var(--fill-strong); color: var(--text); }
 
 .allowance-club-suggest-empty { padding: 9px 12px; font-size: 14px; color: var(--text-muted); }
 
@@ -1158,19 +1215,28 @@
   justify-content: center;
   gap: 5px;
   padding: 7px 10px;
-  border: 1px solid var(--line-faint);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface-control);
+  /* Same as the MODE cards: transparent so the white-alpha fills layer instead
+     of replacing a chip and coming out darker. These had no hover state at all. */
+  background: transparent;
   color: var(--text-dim);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.allowance-foot-option:hover:not(:disabled):not(.is-selected) {
+  border-color: var(--line-hover);
+  background: var(--fill);
+  color: var(--text);
 }
 
 .allowance-foot-option.is-selected {
   border-color: var(--line-active);
-  background: var(--fill);
+  background: var(--fill-strong);
+  box-shadow: 0 0 0 1px var(--line-active);
   color: var(--text);
 }
 
@@ -1202,11 +1268,19 @@
   font-family: var(--font-body);
 }
 
-.allowance-pos-trigger:hover:not(:disabled),
-.allowance-pos-dropdown.is-open .allowance-pos-trigger {
+/* Hover is scoped to the closed dropdown, and open goes a rung further. Sharing
+   one rule left an open menu's trigger looking exactly like any row the cursor
+   happened to pass over. Same shape for the multi, cap and pos-cap triggers. */
+.allowance-pos-dropdown:not(.is-open) .allowance-pos-trigger:hover:not(:disabled) {
   border-color: var(--line-hover);
   color: var(--text);
   background: var(--fill);
+}
+
+.allowance-pos-dropdown.is-open .allowance-pos-trigger {
+  border-color: var(--line-active);
+  color: var(--text);
+  background: var(--fill-strong);
 }
 
 .allowance-pos-caret,
@@ -1287,12 +1361,13 @@
   text-align: left;
 }
 
-.allowance-pos-option:hover, .allowance-multi-option:hover {
+.allowance-pos-option:not(.is-selected):hover,
+.allowance-multi-option:not(.is-selected):hover {
   background: var(--fill); color: var(--text);
 }
 
 .allowance-pos-option.is-selected, .allowance-multi-option.is-selected {
-  color: var(--text); background: var(--fill);
+  color: var(--text); background: var(--fill-strong);
 }
 
 .allowance-pos-check,
@@ -1427,13 +1502,18 @@
   position: relative;
 }
 
-.allowance-pos-cap-trigger:hover:not(:disabled),
-.allowance-pos-cap-wrap.is-open .allowance-pos-cap-trigger,
-.allowance-cap-trigger:hover:not(:disabled),
-.allowance-cap-wrap.is-open .allowance-cap-trigger {
+.allowance-pos-cap-wrap:not(.is-open) .allowance-pos-cap-trigger:hover:not(:disabled),
+.allowance-cap-wrap:not(.is-open) .allowance-cap-trigger:hover:not(:disabled) {
   border-color: var(--line-hover);
   color: var(--text);
   background: var(--fill);
+}
+
+.allowance-pos-cap-wrap.is-open .allowance-pos-cap-trigger,
+.allowance-cap-wrap.is-open .allowance-cap-trigger {
+  border-color: var(--line-active);
+  color: var(--text);
+  background: var(--fill-strong);
 }
 
 .allowance-pos-cap-row,
@@ -1488,11 +1568,16 @@
   position: relative;
 }
 
-.allowance-multi-trigger:hover:not(:disabled),
-.allowance-multi-dropdown.is-open .allowance-multi-trigger {
+.allowance-multi-dropdown:not(.is-open) .allowance-multi-trigger:hover:not(:disabled) {
   border-color: var(--line-hover);
   color: var(--text);
   background: var(--fill);
+}
+
+.allowance-multi-dropdown.is-open .allowance-multi-trigger {
+  border-color: var(--line-active);
+  color: var(--text);
+  background: var(--fill-strong);
 }
 
 /* Club list */
@@ -1776,7 +1861,6 @@
   .ls-center { min-width: 0; padding: 12px 14px; }
   .ls-name { font-size: 15px; }
   .prep-col--chat { min-height: 240px; }
-  .allowance-list { min-height: 60px; }
 
   /* Stacked, the log has no column height to fill, so it collapses to ~140px —
      four lines of chat. Give it a share of the screen instead, and keep the
@@ -1819,7 +1903,13 @@
   .lv-reveal-cards { grid-template-columns: 1fr; }
 }
 
-@media (max-height: 760px) {
+/* 820, not 760. The rung is meant to fire where the fixed-height lobby stops
+   fitting, and measurement puts that at ~804px: the settings column hands the
+   category list whatever is left after the labels, steppers, MODE cards and the
+   allowance header, which works out at roughly `viewport - 712`. At 762px that
+   is a 50px list — half a row — and at 760 it was 48. Below 820 the lobby is
+   better off as one scrolling page. */
+@media (max-height: 820px) {
   #viewLobby {
     overflow-y: auto;
     height: auto;

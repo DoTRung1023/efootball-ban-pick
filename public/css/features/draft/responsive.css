@@ -17,7 +17,7 @@
    after them.
    ═══════════════════════════════════════════════════════════════ */
 
-@media (max-width: 1200px), (max-height: 760px) {
+@media (max-width: 1200px), (max-height: 820px) {
   .centered-box--lobby { flex: 0 0 auto; }
 
   /* `flex: 1 0 auto` — basis is the content height, grow to fill whatever space
@@ -44,6 +44,20 @@
   /* Grows into spare space so `.lobby-cta-bar` stays pinned to the panel
      bottom, but never shrinks below its content, so nothing is cut off. */
   .prep-scroll { flex: 1 0 auto; overflow: visible; }
+
+  /* The panel is auto-height here, so `.allowance-list` has no height for its
+     empty placeholder to stretch into and the box would collapse to its single
+     line. This is the only regime that wants a floor: in the desktop one the
+     list has to stay free to shrink (see `.allowance-list` in lobby.css). */
+  .allowance-empty { min-height: 92px; }
+
+  /* …and a ceiling for the list itself. Auto-height means a long category list
+     is paid for by the *page*: twelve categories made BAN SETTING 1400px tall
+     and pushed the chat column and the START DRAFT bar that far down. Capped,
+     the list keeps its own scrollbar here too, so the rule is the same in both
+     regimes — inside the ban-setting box, the category list is the only thing
+     that scrolls. */
+  .allowance-list { max-height: 45vh; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

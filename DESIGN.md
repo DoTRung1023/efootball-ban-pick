@@ -146,7 +146,20 @@ mixed from efhub's own `#FB2C36`, not from `--danger`: see §3.1.
 
 State convention on an interactive surface: rest `--border` + no fill → hover
 `--line-hover` + `--fill` → selected `--line-active` + `--fill-strong`. No glow at any
-step.
+step. Where a selected state needs more weight than a border can carry, add the sanctioned
+hairline ring — `box-shadow: 0 0 0 1px var(--line-active)` (§7) — which reads as a 2px
+edge without becoming a glow.
+
+**"No fill" at rest is load-bearing: the fill rungs are white-alpha, so they have to
+*layer*.** Give a stateful control a solid rest surface and the state fills replace it
+rather than lighten it — `--fill-strong` over `--bg-elevated` composites to `rgb(42,43,52)`,
+which is *darker* than a `--surface-control` chip at `rgb(38,42,58)` in the two channels
+the eye weighs most. The lobby's MODE cards were exactly that: a `--surface-control` chip
+whose selected state painted `--fill` over it, so the chosen mode was the dimmest of the
+three and hover moved nothing but a `--line-faint` edge. A control that has to show hover
+and selected is **transparent at rest**, and its border does the work of separating it
+from the panel. Measured after the fix — relative luminance rest `0.0099` → hover `0.0163`
+→ selected `0.0247`, each step ~1.6× the last.
 
 **A small control's outline is the exception, and it is a legibility floor, not a new
 rung.** A 14px checkbox at `--border` measures **1.47:1** on `--bg-elevated`, so an
@@ -394,7 +407,7 @@ track) — inherit it, do not restyle per-component.
 These have bitten before; a "purely visual" change can break them.
 
 - **Responsive down to 320px**, with a fixed breakpoint ladder per page — home
-  `768 → 480`; room `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 760px`
+  `768 → 480`; room `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 820px`
   rung. Do not invent a rung. Verify with a measured headless-Chrome harness, never by
   eye: `.claude/rules/responsive-testing.md`.
 - **The player grid is a fixed column count** — 6 / 3 / 2 on the home ladder — not

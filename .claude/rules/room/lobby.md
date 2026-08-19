@@ -11,28 +11,57 @@ paths:
   Do not move `overflow-y` back onto `.prep-col--settings` — that is what let the header
   scroll out of view.
 
-**`.allowance-list` is the scroller, not `.prep-scroll`.** Above the `max-width: 1200px`
-rung the lobby is `100vh` with `overflow: hidden`, so the settings column is bounded and
-something inside it has to absorb a long category list. That must be the list: scrolling
-`.prep-scroll` instead slides BAN PER SIDE, the durations and MODE up underneath the
-panel header, which is what "the host scrolls wrong, the guest is fine" looks like — the
-guest's `#lobbySettings` is hidden, so their column had nothing above the list to lose.
+**Inside the ban-setting box, `.allowance-list` is the only scroller.** Above the
+`max-width: 1200px` / `max-height: 820px` rung the lobby is `100vh` with
+`overflow: hidden`, so the settings column is bounded and something inside it has to
+absorb a long category list. That must be the list. Everything above it — BAN PER SIDE,
+the two durations, the MODE cards, the CATEGORY ALLOWANCE header — is fixed furniture;
+scrolling `.prep-scroll` instead slides it up underneath the panel header, and the panel
+header is what the user is reading the labels against.
 
-Two separate causes, both needed fixing:
+Four separate causes have produced that symptom, all now fixed:
 
 - **`.prep-section--allowance` was `flex: 1 0 auto`.** `flex-shrink: 0` meant it could
   never give up height, so `.allowance-list`'s `overflow-y: auto` was inert — the section
   grew to fit every row and pushed the overflow outward. It is `flex: 1 1 auto` with
   `min-height: 0` now; without the `min-height` a flex item still floors at its content.
+- **`.allowance-list` had `min-height: 80px`.** Same failure one level down: the list is
+  the panel's shock absorber, and a floor on it means the shortfall lands on
+  `.prep-scroll` instead. It is `min-height: 0` in the desktop regime, and
+  `.allowance-empty` carries no floor either or a squeezed list clips its own
+  placeholder. Both floors are restored in the auto-height regime by responsive.css,
+  which is the only regime that needs them: there the list has no definite height to
+  stretch a placeholder into.
 - **`.allowance-category-panel` was hidden with `opacity: 0` alone.** An absolutely
   positioned box still extends its scroll container's scrollable area, so the closed
   "Choose a category" dropdown — up to 280px of it — added phantom scroll to the settings
   column that revealed nothing. It toggles `display` now, like every sibling panel
   (`.allowance-pos-panel`, `.allowance-multi-panel`, `.allowance-cap-panel`) already did.
+- **…and the same panel *open* added 143px of real scroll** at 1440×830, because it hangs
+  below the scroller's bottom edge. `clampDropdownToScroller()` in `lobby.js` caps it to
+  the room left under its trigger when `.prep-scroll` is actually clipping (it is
+  `overflow: visible` in the auto regime, where clamping would only shorten the menu for
+  nothing). Below a 96px floor it gives up and lets the scroller take the overflow — one
+  scrollbar beats a two-line menu.
 
-Measured at 1600×900 with five categories: `.prep-scroll` scrollable **341 → 0**, and
-`.allowance-list` became the scroller (529px of rows in 188px). The guest was 0 both
-before and after.
+**The guest gets to scroll it too.** `.allowance-list` used to sit in the readonly
+`pointer-events: none` list, which on a *scroll container* is a wheel that does nothing:
+the guest could see the first two of the host's twelve categories and had no way to reach
+the rest. It is out of that selector now — everything inside it is a button, input or
+label, so the guest scrolls the list and edits nothing. Verified at 1440×830: list
+`pointer-events: auto` with 1167px of scroll range, and `button` / `input` / `label` /
+`.allowance-pos-dropdown` / `.allowance-cap-wrap` inside it all still `none`.
+
+Measured with twelve categories (1287px of rows): `.prep-scroll` scrollable **0** at
+1440×830 and 1440×900, `.allowance-list` the only inner scroller in both, host and guest
+alike. At 1440×762 the layout is in the auto regime instead — page scroll, list capped at
+`45vh`, panel scroll still 0.
+
+**"The host scrolls wrong, the guest is fine" was two windows either side of the height
+rung**, not a host/guest difference at all: the guest's settings column is read-only, not
+hidden, so the two render identically. Do not reach for a `state.mySide` explanation
+before checking the viewport heights.
+
 - `#lobbySettings` (`.lv-settings-panel`) and `.prep-section--allowance` are siblings
   inside `.prep-scroll` — no `.prep-section` wrapper around the settings panel.
 

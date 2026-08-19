@@ -555,11 +555,38 @@ function bindDraftSettings(user) {
   document.getElementById("banCountPlus")?.addEventListener("click", () => _stepBans(1));
 }
 
+/**
+ * Caps an opening dropdown at the room left below its trigger.
+ *
+ * The panel is absolutely positioned inside `.prep-scroll`, and an abspos box
+ * extends its scroll container's scrollable area — so a 280px panel opened near
+ * the bottom of the settings column handed `.prep-scroll` 143px of scroll it
+ * did not have, and scrolling that slid BAN PER SIDE and the MODE cards up
+ * under the panel header. Inside the ban-setting box only the category list
+ * scrolls; everything else stays where the host left it.
+ *
+ * Only in the desktop regime: below the 1200/820 rung `.prep-scroll` is
+ * `overflow: visible` and clips nothing, so there is no reason to shorten it.
+ */
+function clampDropdownToScroller(panel, trigger) {
+  panel.style.maxHeight = "";
+  const scroller = panel.closest(".prep-scroll");
+  if (!scroller || getComputedStyle(scroller).overflowY !== "auto") return;
+  const room = scroller.getBoundingClientRect().bottom - trigger.getBoundingClientRect().bottom - 12;
+  /* The floor is the point below which a clamped panel shows nothing useful.
+     Under it the panel keeps its own height and the scroller takes the
+     overflow — one scrollbar beats a two-line menu. */
+  if (room >= 96) panel.style.maxHeight = `${Math.round(room)}px`;
+}
+
 /** Closes every open lobby dropdown (reveal mode, category picker, caps). */
 function closeAllLobbyDropdowns() {
     const categoryPanel = document.getElementById("allowanceCategoryPanel");
     const categoryTrigger = document.getElementById("allowanceCategoryTrigger");
-    if (categoryPanel) categoryPanel.classList.remove("is-open");
+    if (categoryPanel) {
+      categoryPanel.classList.remove("is-open");
+      categoryPanel.style.maxHeight = "";
+    }
     if (categoryTrigger) {
       categoryTrigger.classList.remove("open");
       categoryTrigger.setAttribute("aria-expanded", "false");
@@ -987,6 +1014,7 @@ function bindAllowanceCategoryDropdown() {
       allowancePanel.classList.add("is-open");
       allowanceTrigger.classList.add("open");
       allowanceTrigger.setAttribute("aria-expanded", "true");
+      clampDropdownToScroller(allowancePanel, allowanceTrigger);
     }
   });
 

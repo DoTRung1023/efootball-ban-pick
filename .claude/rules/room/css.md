@@ -192,6 +192,22 @@ fields — and it is two rungs lighter: `.ban-phase-right` wore it and read as a
 field standing beside the panels rather than as one of them (2.4× the luminance of the
 panel next to it). If a panel looks brighter than its neighbours, this is why.
 
+**The state ladder is rest → hover → selected, and each step has to be lighter than the
+last** (DESIGN.md §3.3). Two ways it has gone wrong in `lobby.css`, both fixed:
+
+- *A solid rest surface.* The fills are white-alpha; over a `--surface-control` chip they
+  replace the chip instead of lightening it, so `.lv-reveal-card.is-selected` and
+  `.allowance-foot-option.is-selected` came out **darker** than their unselected
+  neighbours. Both are transparent at rest now, with `--border` doing the separating.
+- *Hover sharing a rule with the selected/open state.* `.allowance-category-option`,
+  `.allowance-pos-option`, `.allowance-multi-option` and every dropdown trigger had hover
+  and selected on the same `--fill`, so running the cursor down a menu made every row look
+  chosen. Hover is `--fill` and scoped `:not(.is-selected)` / `:not(.is-open) &`; selected
+  and open go to `--fill-strong` + `--line-active`. `.lv-unlimited-btn` was the sharper
+  version of the same bug: its `:hover` rule carried one more compound than the
+  `[aria-pressed="true"]` rule below it, so hovering the ∞ button that was **on** dropped
+  it a rung and the control said "off" under the cursor.
+
 **A checked control has to be legible as checked.** `.prep-check`'s box drew its tick as a
 knockout in `--bg-elevated`, which only works over a *solid* fill — over its old
 `--fill-strong` box the tick measured **1.25:1**, and so did the box against the panel
@@ -761,16 +777,24 @@ Key blocks:
 ## Responsive ladder
 
 Widths `1200` → `1100` → `900` → `860` → `620` → `480`, plus a **height** rung:
-`max-height: 760px`, which pairs with `1200` for the lobby (`@media (max-width: 1200px),
-(max-height: 760px)`) — a short desktop window hits the same layout problems as a phone.
+`max-height: 820px`, which pairs with `1200` for the lobby (`@media (max-width: 1200px),
+(max-height: 820px)`) — a short desktop window hits the same layout problems as a phone.
 
-The last four blocks in the file are ordered `1200/760 → 900 → 620 → 480` and live **at
+**820 is measured, not chosen.** The fixed-height lobby hands the category list whatever
+is left after the labels, steppers, MODE cards and the allowance header — about
+`viewport - 712`. The rung used to be 760, where that arithmetic leaves a 48px list, so
+every window between 761 and ~804 got a fixed layout it could not actually fit: the
+allowance section clipped its own placeholder and `.prep-scroll` took the difference as
+scroll. Below 820 the lobby is better off as one scrolling page. Re-measure before moving
+it again — the number tracks the height of the furniture above the list.
+
+The last four blocks in the file are ordered `1200/820 → 900 → 620 → 480` and live **at
 the end on purpose**: several components they override (`.ban-phase-right`,
 `.ban-side-section`, `.ap-dd-panel`, `.pick-phase-grid`, `.prep-scroll`, `.chat-log`) are
 declared after the earlier 900 px block, so an override placed there silently loses the
 cascade. Check where a selector is declared before adding a media rule for it.
 
-- **≤1200 px or ≤760 px tall — the lobby becomes one scrolling page.** Switching
+- **≤1200 px or ≤820 px tall — the lobby becomes one scrolling page.** Switching
   `#viewLobby` to `overflow-y: auto` is not enough on its own: `.centered-box--lobby`
   shrinks back to the viewport unless it is `flex: 0 0 auto`, and `.lobby-board` keeps
   its desktop `overflow: hidden`, so everything past the fold (rest of BAN SETTING, the
@@ -786,8 +810,15 @@ cascade. Check where a selector is declared before adding a media rule for it.
     stacked and the page scrolls. Applying it on wide-but-short viewports just leaves a
     gap, because the chat column's grid already bounds the log there. Stacked, the log
     also has no column height to fill, so it needs a floor:
-    `min(38vh, 260px)` at ≤900 px, `min(32vh, 200px)` in the `max-height: 760px` block
+    `min(38vh, 260px)` at ≤900 px, `min(32vh, 200px)` in the `max-height: 820px` block
     (which wins on short screens) — without one it collapses to ~140 px, four lines.
+  - `.allowance-list` gets the opposite treatment here: a `max-height: 45vh` **cap**, so a
+    long category list is not paid for by the page. Twelve categories are 1287px of rows;
+    uncapped they made BAN SETTING 1400px tall and pushed the chat column and START DRAFT
+    that far down. Capped, the list keeps its own scrollbar in this regime too, so the
+    rule holds either side of the rung: inside the ban-setting box, only the category
+    list scrolls. `.allowance-empty`'s 92px floor lives here for the same reason — the
+    panel is auto-height, so the placeholder has nothing to stretch into.
 - **≤900 px — the draft view stops being a fixed-height app shell.** `.view--draft` gets
   `overflow-y: auto` and the panels (`.draft-shell`, `.draft-workspace`,
   `.ban-side-section`, `.pick-phase-center`) go to content height. Stacked, each region

@@ -108,7 +108,7 @@ and in `public/js/features/draft/constants.js`.
 `.claude/rules/room/presence-and-reconnect.md`.
 
 **Both pages are responsive down to 320 px** and each keeps its own breakpoint ladder —
-home: `768 → 480`; room: `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 760px`
+home: `768 → 480`; room: `1200 → 1100 → 900 → 860 → 620 → 480` plus a `max-height: 820px`
 rung. The two ladders are documented in `home/css.md` and `room/css.md`; do not invent a
 new rung without checking them. Verify with a measured harness, not by eye — see
 `responsive-testing.md`.
