@@ -11,18 +11,15 @@ import {
   REVEAL_MODE_INSTANT,
   FIXED_PICKS_PER_SIDE,
   LEGACY_ALLOWANCE_KEY_MAP,
+  ALLOWANCE_CATEGORY_DEFS,
   ALLOWANCE_DEF_MAP,
+  ALLOWANCE_VALUE_LIST_KEYS,
 } from './constants.js';
 
 import {
   normalizeAllowanceRangeValue,
-  normalizeClubValue,
-  normalizeTextAllowanceListValue,
-  normalizeFootValue,
-  normalizePositionValue,
-  stringifyPositionCapMap,
-  stringifyClubCapMap,
-  stringifyTextAllowanceCapMap,
+  normalizeAllowanceListValue,
+  stringifyAllowanceCountMap,
 } from './allowance.js';
 
 import { DEFAULT_FORMATION } from './constants.js';
@@ -43,25 +40,15 @@ export const state = {
   presencePollId: null,
   lastRoomUpdatedAt: 0,
   lobbyConfigDirty: false,
-  openAllowancePosKey: "",
-  openAllowancePosCapKey: "",
-  openAllowancePosScrollTop: 0,
-  openAllowanceCardTypeKey: "",
-  openAllowanceCardTypeCapKey: "",
-  openAllowanceRegionKey: "",
-  openAllowanceRegionCapKey: "",
-  openAllowancePlayingStyleKey: "",
-  openAllowancePlayingStyleCapKey: "",
-  openAllowanceCardTypeScrollTop: 0,
-  openAllowanceRegionScrollTop: 0,
-  openAllowancePlayingStyleScrollTop: 0,
-  clubSearchKey: "club",
-  clubSearchQuery: "",
-  clubSearchOptions: [],
-  clubSearchOpen: false,
-  clubSearchLoading: false,
-  clubSearchActiveIndex: -1,
-  clubSearchReqSeq: 0,
+  /* One allowance value-picker is open at a time — a click on any of them
+     closes the last — so this is one set of fields, not a map per category. */
+  allowancePickerKey: "",
+  allowancePickerQuery: "",
+  allowancePickerOptions: [],
+  allowancePickerOpen: false,
+  allowancePickerLoading: false,
+  allowancePickerActiveIndex: -1,
+  allowancePickerReqSeq: 0,
   opponentBanPlayers: [],
   loadingOpponentBanPlayers: false,
   opponentBanPlayersLoaded: false,
@@ -116,6 +103,10 @@ export function normalizeRevealMode(raw) {
   return REVEAL_MODES.has(mode) ? mode : REVEAL_MODE_INSTANT;
 }
 
+/** One blank slot per category, for each of the three allowance maps. */
+const emptyAllowanceMap = () =>
+  Object.fromEntries(ALLOWANCE_CATEGORY_DEFS.map((d) => [d.key, ""]));
+
 export function defaultRoomConfig() {
   return {
     allowAllPlayers: true,
@@ -125,37 +116,9 @@ export function defaultRoomConfig() {
     revealMode: REVEAL_MODE_INSTANT,
     pickCountPerSide: FIXED_PICKS_PER_SIDE,
     allowanceEnabled: [],
-    allowanceMins: {},
-    allowanceCaps: {
-      position: "",
-      overall: "",
-      overallMax: "",
-      club: "",
-      league: "",
-      nationality: "",
-      height: "",
-      weight: "",
-      age: "",
-      cardType: "",
-      region: "",
-      foot: "",
-      playingStyle: "",
-    },
-    allowance: {
-      position: "",
-      overall: "",
-      overallMax: "",
-      club: "",
-      league: "",
-      nationality: "",
-      height: "",
-      weight: "",
-      age: "",
-      cardType: "",
-      region: "",
-      foot: "",
-      playingStyle: "",
-    },
+    allowanceMins: emptyAllowanceMap(),
+    allowanceCaps: emptyAllowanceMap(),
+    allowance: emptyAllowanceMap(),
   };
 }
 
@@ -200,10 +163,9 @@ export function normalizeRoomConfig(raw) {
   if (!String(incomingAllowance.age || "").trim()) {
     incomingAllowance.age = normalizeAllowanceRangeValue(incomingAllowance.ageMin, incomingAllowance.ageMax);
   }
-  incomingAllowance.club = normalizeClubValue(incomingAllowance.club).join(",");
-  incomingAllowance.league = normalizeTextAllowanceListValue(incomingAllowance.league).join(",");
-  incomingAllowance.nationality = normalizeTextAllowanceListValue(incomingAllowance.nationality).join(",");
-  incomingAllowance.foot = normalizeFootValue(incomingAllowance.foot, { defaultAll: true }).join(",");
+  for (const key of ALLOWANCE_VALUE_LIST_KEYS) {
+    incomingAllowance[key] = normalizeAllowanceListValue(key, incomingAllowance[key]).join(",");
+  }
 
   const normalizedEnabled = Array.isArray(rawCfg.allowanceEnabled)
     ? Array.from(new Set(rawCfg.allowanceEnabled.map((k) => {
@@ -212,14 +174,16 @@ export function normalizeRoomConfig(raw) {
     }).filter((k) => ALLOWANCE_DEF_MAP.has(k))))
     : [];
 
-  const incomingCaps = {
-    ...defaults.allowanceCaps,
-    ...((rawCfg && rawCfg.allowanceCaps) || {}),
-  };
-  incomingCaps.position = stringifyPositionCapMap(incomingCaps.position, normalizePositionValue(incomingAllowance.position || ""));
-  incomingCaps.club = stringifyClubCapMap(incomingCaps.club, normalizeClubValue(incomingAllowance.club || ""));
-  incomingCaps.league = stringifyTextAllowanceCapMap(incomingCaps.league, normalizeTextAllowanceListValue(incomingAllowance.league || ""));
-  incomingCaps.nationality = stringifyTextAllowanceCapMap(incomingCaps.nationality, normalizeTextAllowanceListValue(incomingAllowance.nationality || ""));
+  /* Both count maps get the same pass, because both are one now: a per-value
+     category carries a Min per value as well as a Max, so `allowanceMins` is no
+     longer the plain-count-only field it started as. */
+  const incomingCaps = { ...defaults.allowanceCaps, ...(rawCfg.allowanceCaps || {}) };
+  const incomingMins = { ...defaults.allowanceMins, ...(rawCfg.allowanceMins || {}) };
+  for (const key of ALLOWANCE_VALUE_LIST_KEYS) {
+    const values = normalizeAllowanceListValue(key, incomingAllowance[key]);
+    incomingCaps[key] = stringifyAllowanceCountMap(incomingCaps[key], values);
+    incomingMins[key] = stringifyAllowanceCountMap(incomingMins[key], values);
+  }
 
   return {
     ...defaults,
@@ -229,9 +193,7 @@ export function normalizeRoomConfig(raw) {
     revealMode: normalizeRevealMode(rawCfg.revealMode),
     allowanceEnabled: normalizedEnabled,
     allowanceCaps: incomingCaps,
-    /* Plain counts, so unlike the caps above they need no per-value parsing —
-       but they still have to be named here or the spread drops them. */
-    allowanceMins: { ...defaults.allowanceMins, ...((rawCfg && rawCfg.allowanceMins) || {}) },
+    allowanceMins: incomingMins,
     allowance: {
       ...defaults.allowance,
       ...incomingAllowance,

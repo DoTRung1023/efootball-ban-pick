@@ -119,8 +119,15 @@ export const ALLOWANCE_FIELDS = new Set([
   "cardType", "region", "foot", "playingStyle",
 ]);
 
-/** Allowance categories whose caps are keyed by an arbitrary name rather than a fixed enum. */
-const NAMED_CAP_FIELDS = new Set(["club", "cardType", "region", "playingStyle"]);
+/**
+ * The categories whose counts are **one number for the whole category**.
+ *
+ * Everything else carries a Min and a Max per selected value and stores both as
+ * a `{value: count}` JSON map — see `ALLOWANCE_CATEGORY_DEFS` in
+ * `public/js/features/draft/constants.js`, which this mirrors. The five here
+ * are the ones whose value is a numeric span rather than a list.
+ */
+const RANGE_COUNT_FIELDS = new Set(["overall", "overallMax", "height", "weight", "age"]);
 
 const ALLOWANCE_KEYS = [
   "position",
@@ -143,15 +150,6 @@ export function normalizeAllowanceCapValue(raw) {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? String(Math.min(23, Math.floor(n))) : "";
 }
-
-/**
- * A minimum is the same 1..23 count, and clears the same way.
- *
- * `0` and `""` both mean "no requirement", which is why they collapse to the
- * same empty string: a minimum of zero is not a rule, it is the absence of one.
- * Kept as its own name so the call sites read as what they check.
- */
-export const normalizeAllowanceMinValue = normalizeAllowanceCapValue;
 
 /** True for the sentinel, and only for it — not for null, "" or nonsense. */
 export function isUnlimitedDuration(raw) {
@@ -242,11 +240,55 @@ function coerceCapObject(raw) {
   }
 }
 
-/** Applies the right normalizer for an allowance cap category. */
-export function normalizeCapForField(field, value) {
+/**
+ * Applies the right normalizer for one end of an allowance count.
+ *
+ * The same function for the floor and the ceiling, because they are the same
+ * shape: a per-value category's minimum is a `{value: count}` map exactly as
+ * its maximum is. `allowanceMins` used to be a plain count for every category,
+ * which is why the caller once had two of these.
+ */
+export function normalizeCountForField(field, value) {
+  if (RANGE_COUNT_FIELDS.has(field)) return normalizeAllowanceCapValue(value);
   if (field === "position") return normalizePositionCaps(value);
-  if (NAMED_CAP_FIELDS.has(field)) return normalizeNamedCaps(value);
-  return normalizeAllowanceCapValue(value);
+  return normalizeNamedCaps(value);
+}
+
+/**
+ * A category's floor and ceiling, stored in order.
+ *
+ * "At least 23, at most 22" refuses every possible squad, so an inverted pair
+ * is swapped whoever sent it. Per-value categories are swapped **per value**:
+ * their two maps are keyed the same way, so the pair for each key is compared
+ * on its own and a value with only one end set is left alone.
+ */
+export function orderAllowanceCounts(minRaw, capRaw) {
+  const minObj = coerceCapObject(minRaw);
+  const capObj = coerceCapObject(capRaw);
+
+  if (minObj || capObj) {
+    const mins = { ...(minObj || {}) };
+    const caps = { ...(capObj || {}) };
+    for (const key of Object.keys(mins)) {
+      const min = Number(mins[key]);
+      const cap = Number(caps[key]);
+      if (Number.isFinite(min) && Number.isFinite(cap) && min > 0 && cap > 0 && min > cap) {
+        mins[key] = String(cap);
+        caps[key] = String(min);
+      }
+    }
+    return {
+      min: Object.keys(mins).length ? JSON.stringify(mins) : "",
+      cap: Object.keys(caps).length ? JSON.stringify(caps) : "",
+    };
+  }
+
+  const min = Number(minRaw);
+  const cap = Number(capRaw);
+  if (Number.isFinite(min) && Number.isFinite(cap) && min > 0 && cap > 0 && min > cap) {
+    return { min: String(cap), cap: String(min) };
+  }
+  return { min: String(minRaw ?? ""), cap: String(capRaw ?? "") };
 }
 
 export function createDefaultRoomConfig() {
@@ -259,10 +301,9 @@ export function createDefaultRoomConfig() {
     pickCountPerSide: PICK_COUNT_PER_SIDE,
     allowanceEnabled: [],
     allowanceCaps: emptyAllowanceMap(),
-    /* How few of a category a squad may contain — the floor to `allowanceCaps`'
-       ceiling. Only the single-count categories use it; the per-value ones
-       (position, club, card type, …) carry their caps as a map and have no
-       minimum. See `allowance.md`. */
+    /* How few of a category a squad must contain — the floor to
+       `allowanceCaps`' ceiling, and the same shape as it in every category.
+       See `allowance.md`. */
     allowanceMins: emptyAllowanceMap(),
     allowance: emptyAllowanceMap(),
   };

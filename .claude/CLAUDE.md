@@ -140,7 +140,7 @@ where there is no shared module to extract into:
   a pitch. Length-cap it there and leave the whitelist where it guards a DB column.
 
 Within the client there should be **no** such pairs: the formation table, the draft sort
-categories and the club-suggestion markup each live in exactly one module.
+categories and the allowance picker's panel markup each live in exactly one module.
 
 **Formations are eFootball's own fifteen presets**, and each digit in the name is a row
 on the pitch — so a formation is **four or five rows**, not always four, and each slot
@@ -170,7 +170,7 @@ automatically when a matching file is read:
 | `auth.md` | sign-in / sign-up / profile, and the `efb_user` session |
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
-| `allowance.md` | allowance caps (client + server) |
+| `allowance.md` | allowance categories, caps and minimums (client + server) |
 | `admin-dashboard.md` | `/console` page, its access model and its API |
 | `home/modules.md`, `home/css.md` | home page JS modules and CSS |
 | `room/modules.md` | room page module map |

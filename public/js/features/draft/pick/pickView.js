@@ -10,14 +10,19 @@
  */
 
 import {
-  ALLOWANCE_SIMPLE_COUNT_KEYS,
+  ALLOWANCE_VALUE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
   FORMATION_LAYOUTS,
   REVEAL_MODE_BLUR,
   REVEAL_MODE_HIDDEN,
   REVEAL_MODE_INSTANT,
 } from '@/features/draft/constants.js';
-import { playerMatchesAllowanceCategory } from '@/features/draft/allowance.js';
+import {
+  normalizeAllowanceListValue,
+  parseAllowanceCountMap,
+  playerMatchesAllowanceCategory,
+  playerMatchesAllowanceValue,
+} from '@/features/draft/allowance.js';
 import { escapeHtml } from '@/features/draft/utils.js';
 import { state, normalizeRevealMode } from '@/features/draft/state.js';
 import {
@@ -455,33 +460,28 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
 }
 
 /**
- * The used/allowed counters above the pick board.
+ * The used/allowed counters above the pick board — one per rule, not per
+ * category.
  *
- * Only the single-count categories can be shown this way: the rest store their
- * caps as a `{value: cap}` JSON map, and this used to run `Number()` over that
- * map, get `NaN`, and skip every category — including the ones it could have
- * drawn. It is scoped explicitly now rather than by accident.
+ * A `range` category is one rule and gets one pill. Every other shape carries a
+ * Min/Max **per value**, so it gets a pill per value the host actually
+ * constrained; values with neither number set are not rules and print nothing.
+ * That keeps the bar bounded by what was configured rather than by how many
+ * clubs happen to be listed.
  *
  * `allowAllPlayers` turns the whole system off, so there is nothing to count.
  */
 function buildAllowancePills(cfg, myPicks) {
   if (cfg.allowAllPlayers) return [];
   const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
-  const caps = cfg.allowanceCaps || {};
-  const mins = cfg.allowanceMins || {};
-  const allowance = cfg.allowance || {};
 
+  const asCount = (raw) => Math.max(0, Math.floor(Number(raw) || 0));
   const pills = [];
-  for (const key of enabled) {
-    if (!ALLOWANCE_SIMPLE_COUNT_KEYS.has(key)) continue;
-    const cap = Math.max(0, Math.floor(Number(caps[key]) || 0));
-    const min = Math.max(0, Math.floor(Number(mins[key]) || 0));
-    const value = String(allowance[key] || "").trim();
-    if ((!cap && !min) || !value) continue;
 
-    const used = myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, value)).length;
+  const push = (label, used, cap, min) => {
+    if (!cap && !min) return;
     pills.push({
-      label: value.length <= 12 ? value.toUpperCase() : key.toUpperCase(),
+      label: label.length <= 12 ? label.toUpperCase() : label.slice(0, 11).toUpperCase() + "…",
       used,
       cap: cap || FIXED_PICKS_PER_SIDE,
       min,
@@ -489,6 +489,25 @@ function buildAllowancePills(cfg, myPicks) {
          be confirmed as it stands. */
       unmet: min > 0 && used < min,
     });
+  };
+
+  for (const key of enabled) {
+    if (ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
+      const values = normalizeAllowanceListValue(key, cfg.allowance?.[key]);
+      if (!values.length) continue;
+      const caps = parseAllowanceCountMap(cfg.allowanceCaps?.[key], values);
+      const mins = parseAllowanceCountMap(cfg.allowanceMins?.[key], values);
+      for (const value of values) {
+        const used = myPicks.filter((p) => playerMatchesAllowanceValue(key, p, value)).length;
+        push(value, used, asCount(caps[value]), asCount(mins[value]));
+      }
+      continue;
+    }
+
+    const value = String(cfg.allowance?.[key] || "").trim();
+    if (!value) continue;
+    const used = myPicks.filter((p) => playerMatchesAllowanceCategory(p, key, value)).length;
+    push(value, used, asCount(cfg.allowanceCaps?.[key]), asCount(cfg.allowanceMins?.[key]));
   }
   return pills;
 }

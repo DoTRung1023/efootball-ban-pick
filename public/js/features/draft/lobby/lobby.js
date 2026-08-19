@@ -10,9 +10,8 @@
 
 import {
   ALLOWANCE_DEF_MAP,
-  POSITION_OPTIONS,
-  FOOT_OPTIONS,
-  TEXT_ALLOWANCE_LIST_KEYS,
+  ALLOWANCE_SEARCH_KEYS,
+  ALLOWANCE_VALUE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
   UNLIMITED_DURATION_SEC,
   DEFAULT_BAN_DURATION_SECONDS,
@@ -20,30 +19,14 @@ import {
 } from '@/features/draft/constants.js';
 
 import {
-  normalizePositionValue,
-  normalizeFootValue,
-  normalizeCardTypeValue,
-  normalizeRegionValue,
-  normalizePlayingStyleValue,
-  normalizeTextAllowanceListValue,
-  positionSummaryText,
-  cardTypeSummaryText,
-  regionSummaryText,
-  playingStyleSummaryText,
   normalizeAllowanceCapValue,
-  parsePositionCapMap,
-  stringifyPositionCapMap,
-  parseCardTypeCapMap,
-  stringifyCardTypeCapMap,
-  parseRegionCapMap,
-  stringifyRegionCapMap,
-  parsePlayingStyleCapMap,
-  stringifyPlayingStyleCapMap,
-  parseTextAllowanceCapMap,
-  stringifyTextAllowanceCapMap,
+  normalizeAllowanceListValue,
   normalizeAllowanceRangeValue,
-  rawAllowanceRangeValue,
+  orderAllowanceCountPair,
+  parseAllowanceCountMap,
   parseAllowanceRangeValue,
+  rawAllowanceRangeValue,
+  stringifyAllowanceCountMap,
 } from '@/features/draft/allowance.js';
 
 import { cb } from '@/features/draft/callbacks.js';
@@ -80,11 +63,12 @@ import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 import { renderAllowanceList } from './allowanceView.js';
 import { readAllowanceFieldValue, scheduleLobbyConfigPush } from './config.js';
 import {
-  clearClubSearchState,
-  addTextAllowanceValue,
-  scheduleClubSuggestions,
-  renderClubSuggestionPanel,
-} from './clubSuggest.js';
+  addAllowanceValue,
+  clearAllowancePicker,
+  removeAllowanceValue,
+  renderAllowancePickerPanel,
+  updateAllowancePicker,
+} from './valuePicker.js';
 
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
@@ -162,8 +146,6 @@ function renderLobby() {
   const room = state.room;
   const isHost = state.mySide === "host";
   const cfg = room.config || defaultRoomConfig();
-  const allowance = cfg.allowance || {};
-  const allowanceEnabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
   const identity = isHost ? (room.host?.username || getCurrentIdentity().username) : (room.guest?.username || getCurrentIdentity().username);
 
   document.getElementById("lobbyCodeDisplay").textContent = room.code;
@@ -358,8 +340,6 @@ function renderLobby() {
   if (banDurationEl) banDurationEl.disabled = !isHost;
   if (pickDurationEl) pickDurationEl.disabled = !isHost;
   renderAllowanceList({ isHost, cfg });
-
-  renderClubSuggestionPanel();
   /* The chat dock is not part of the lobby any more — it renders off the
      presence poll, which covers every phase. See features/draft/chat.js. */
   cb.updateStageTabs?.();
@@ -451,9 +431,8 @@ export function initLobby() {
   bindRevealModeDropdown();
   bindAddAllowanceButton();
   bindAllowanceListClick();
-  bindAllowanceListChange();
   bindAllowanceCategoryDropdown();
-  bindAllowanceCapInputs();
+  bindAllowanceListInputs();
   bindGlobalDropdownDismiss();
   bindLobbyExit();
 }
@@ -570,43 +549,25 @@ function clampDropdownToScroller(panel, trigger) {
   if (room >= 96) panel.style.maxHeight = `${Math.round(room)}px`;
 }
 
-/** Closes every open lobby dropdown (reveal mode, category picker, caps). */
+/** Closes the category picker and any open allowance value picker. */
 function closeAllLobbyDropdowns() {
-    const categoryPanel = document.getElementById("allowanceCategoryPanel");
-    const categoryTrigger = document.getElementById("allowanceCategoryTrigger");
-    if (categoryPanel) {
-      categoryPanel.classList.remove("is-open");
-      categoryPanel.style.maxHeight = "";
-    }
-    if (categoryTrigger) {
-      categoryTrigger.classList.remove("open");
-      categoryTrigger.setAttribute("aria-expanded", "false");
-    }
-
-    document.querySelectorAll("[data-allowance-pos-dropdown].is-open").forEach((el) => {
-      el.classList.remove("is-open");
-    });
-    document.querySelectorAll("[data-allowance-pos-cap-wrap].is-open").forEach((el) => {
-      el.classList.remove("is-open");
-    });
-    document.querySelectorAll("[data-allowance-cap-wrap].is-open").forEach((el) => {
-      el.classList.remove("is-open");
-    });
-    document.querySelectorAll("[data-allowance-multi-dropdown].is-open").forEach((el) => {
-      el.classList.remove("is-open");
-    });
-
-    state.openAllowancePosKey = "";
-    state.openAllowancePosCapKey = "";
-    state.openAllowanceCardTypeKey = "";
-    state.openAllowanceCardTypeCapKey = "";
-    state.openAllowanceRegionKey = "";
-    state.openAllowanceRegionCapKey = "";
-    state.openAllowancePlayingStyleKey = "";
-    state.openAllowancePlayingStyleCapKey = "";
-    state.clubSearchOpen = false;
-    state.clubSearchActiveIndex = -1;
+  const categoryPanel = document.getElementById("allowanceCategoryPanel");
+  const categoryTrigger = document.getElementById("allowanceCategoryTrigger");
+  if (categoryPanel) {
+    categoryPanel.classList.remove("is-open");
+    categoryPanel.style.maxHeight = "";
   }
+  if (categoryTrigger) {
+    categoryTrigger.classList.remove("open");
+    categoryTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  if (state.allowancePickerOpen) {
+    state.allowancePickerOpen = false;
+    state.allowancePickerActiveIndex = -1;
+    renderAllowancePickerPanel();
+  }
+}
 
 /** Ban reveal mode dropdown. */
 function bindRevealModeDropdown() {
@@ -637,24 +598,24 @@ function bindAddAllowanceButton() {
     const enabled = new Set(cfg.allowanceEnabled || []);
     if (enabled.has(key)) return;
     enabled.add(key);
-    state.room.config.allowanceEnabled = [...enabled];
-    if (key === "foot") {
-      state.room.config.allowance[key] = normalizeFootValue(state.room.config.allowance[key], { defaultAll: true }).join(",");
-    } else if (TEXT_ALLOWANCE_LIST_KEYS.has(key)) {
-      state.room.config.allowance[key] = normalizeTextAllowanceListValue(state.room.config.allowance[key]).join(",");
+    cfg.allowanceEnabled = [...enabled];
+
+    /* A category arrives with whatever it was last configured with — removing
+       one and adding it back is not a reset — so the stored value and both
+       count maps are re-normalised against each other rather than blanked. */
+    if (ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
+      const values = normalizeAllowanceListValue(key, cfg.allowance[key]);
+      cfg.allowance[key] = values.join(",");
+      cfg.allowanceCaps[key] = stringifyAllowanceCountMap(cfg.allowanceCaps[key], values);
+      cfg.allowanceMins[key] = stringifyAllowanceCountMap(cfg.allowanceMins[key], values);
     } else {
-      state.room.config.allowance[key] = state.room.config.allowance[key] || "";
+      cfg.allowance[key] = cfg.allowance[key] || "";
+      cfg.allowanceCaps[key] = normalizeAllowanceCapValue(cfg.allowanceCaps[key]);
+      cfg.allowanceMins[key] = normalizeAllowanceCapValue(cfg.allowanceMins[key]);
     }
-    if (TEXT_ALLOWANCE_LIST_KEYS.has(key)) {
-      state.room.config.allowanceCaps[key] = stringifyTextAllowanceCapMap(
-        state.room.config.allowanceCaps[key],
-        normalizeTextAllowanceListValue(state.room.config.allowance[key]),
-      );
-    } else {
-      state.room.config.allowanceCaps[key] = normalizeAllowanceCapValue(state.room.config.allowanceCaps[key]);
-    }
+
     renderLobby();
-    const node = document.querySelector(`[data-allowance-key="${key}"]`);
+    const node = document.querySelector(`.allowance-item[data-allowance-key="${key}"]`);
     if (node) {
       node.classList.add("is-added");
       setTimeout(() => node.classList.remove("is-added"), 220);
@@ -675,242 +636,83 @@ function bindAddAllowanceButton() {
 
 }
 
-/** Allowance list: clicks (chips, removes, cap toggles, multi-selects). */
+/** Re-renders the list and puts the cursor back in the category's search box. */
+function refocusValuePicker(key) {
+  renderLobby();
+  document.querySelector(`.allowance-picker-search[data-allowance-picker-search="${key}"]`)?.focus();
+  scheduleLobbyConfigPush();
+}
+
+/** Allowance list: clicks (remove, add a value, open a picker). */
 function bindAllowanceListClick() {
   document.getElementById("allowanceList")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-allowance-remove]");
-    if (btn && state.mySide === "host") {
-      const key = btn.dataset.allowanceRemove;
+    if (state.mySide !== "host") return;
+
+    const removeCategoryBtn = e.target.closest("[data-allowance-remove]");
+    if (removeCategoryBtn) {
+      if (removeCategoryBtn.disabled) return;
+      const key = removeCategoryBtn.dataset.allowanceRemove;
       const cfg = state.room.config || defaultRoomConfig();
       cfg.allowanceEnabled = (cfg.allowanceEnabled || []).filter((k) => k !== key);
       cfg.allowance[key] = "";
       cfg.allowanceCaps[key] = "";
-      if (TEXT_ALLOWANCE_LIST_KEYS.has(key)) clearClubSearchState();
-      if (state.openAllowancePosKey === key) state.openAllowancePosKey = "";
-      if (state.openAllowancePosCapKey === key) state.openAllowancePosCapKey = "";
-      if (state.openAllowanceCardTypeCapKey === key) state.openAllowanceCardTypeCapKey = "";
-      if (state.openAllowanceRegionCapKey === key) state.openAllowanceRegionCapKey = "";
-      if (state.openAllowancePlayingStyleCapKey === key) state.openAllowancePlayingStyleCapKey = "";
+      cfg.allowanceMins[key] = "";
+      if (state.allowancePickerKey === key) clearAllowancePicker();
       renderLobby();
       scheduleLobbyConfigPush();
       return;
     }
 
-    const trigger = e.target.closest("[data-allowance-pos-trigger]");
-    if (trigger && state.mySide === "host") {
-      if (trigger.disabled) return;
-      const dropdown = trigger.closest("[data-allowance-pos-dropdown]");
-      if (!dropdown) return;
-      const key = String(dropdown.dataset.allowancePosKey || "").trim();
-      const willOpen = !dropdown.classList.contains("is-open");
+    const removeValueBtn = e.target.closest("[data-allowance-value-remove]");
+    if (removeValueBtn) {
+      if (removeValueBtn.disabled) return;
+      const key = String(removeValueBtn.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
+      if (!removeAllowanceValue(key, removeValueBtn.dataset.allowanceValueRemove)) return;
+      renderLobby();
+      scheduleLobbyConfigPush();
+      return;
+    }
+
+    /* Clicking an option *is* the add — for a list category there is no Add
+       button, and for a search one filling the box and asking for a second
+       click was a step that never had a decision in it. */
+    const pickerOption = e.target.closest("[data-allowance-picker-option]");
+    if (pickerOption) {
+      const key = String(pickerOption.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
+      if (!addAllowanceValue(key, pickerOption.dataset.allowancePickerOption)) return;
+      /* Straight back to an open picker: adding one club is rarely adding all
+         of them, and reopening it by hand each time is the annoying part. */
+      updateAllowancePicker(key, "", { open: true });
+      refocusValuePicker(key);
+      return;
+    }
+
+    const addBtn = e.target.closest("[data-allowance-value-add]");
+    if (addBtn) {
+      if (addBtn.disabled) return;
+      const key = String(addBtn.dataset.allowanceValueAdd || "").trim();
+      const searchInput = addBtn.closest(".allowance-item")?.querySelector(".allowance-picker-search");
+      if (!searchInput || !addAllowanceValue(key, searchInput.value)) return;
+      updateAllowancePicker(key, "", { open: true });
+      refocusValuePicker(key);
+      return;
+    }
+
+    /* Opening on click, not on focus: a click is also how the panel is
+       dismissed, and a focus-open panel cannot be closed by clicking the box
+       it hangs off. */
+    const searchInput = e.target.closest(".allowance-picker-search");
+    if (searchInput) {
+      if (searchInput.disabled) return;
+      const key = String(searchInput.dataset.allowancePickerSearch || "").trim();
+      const reopening = !(state.allowancePickerKey === key && state.allowancePickerOpen);
       closeAllLobbyDropdowns();
-      if (willOpen) {
-        dropdown.classList.add("is-open");
-        state.openAllowancePosKey = key;
-      }
-      return;
-    }
-
-    const option = e.target.closest("[data-allowance-pos-option]");
-    if (option && state.mySide === "host") {
-      const dropdown = option.closest("[data-allowance-pos-dropdown]");
-      if (!dropdown) return;
-      const key = String(dropdown.dataset.allowancePosKey || "").trim();
-      const panel = dropdown.querySelector(".allowance-pos-panel");
-      if (panel) state.openAllowancePosScrollTop = panel.scrollTop;
-      option.classList.toggle("is-selected");
-      const selected = Array.from(dropdown.querySelectorAll("[data-allowance-pos-option].is-selected"))
-        .map((el) => String(el.dataset.allowancePosOption || "").trim())
-        .filter(Boolean);
-      const normalized = normalizePositionValue(selected.join(","));
-      const hiddenInput = dropdown.querySelector(".allowance-pos-hidden");
-      if (hiddenInput) hiddenInput.value = normalized.join(",");
-      const summary = dropdown.querySelector(".allowance-pos-summary");
-      if (summary) summary.textContent = positionSummaryText(normalized);
-      state.room.config.allowance.position = normalized.join(",");
-      state.room.config.allowanceCaps.position = stringifyPositionCapMap(state.room.config.allowanceCaps.position, normalized);
-      renderLobby();
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const footOption = e.target.closest("[data-allowance-foot-option]");
-    if (footOption && state.mySide === "host") {
-      const listWrap = footOption.closest("[data-allowance-foot-list]");
-      if (!listWrap || footOption.disabled) return;
-      if (footOption.classList.contains("is-selected")) {
-        const selectedCount = listWrap.querySelectorAll("[data-allowance-foot-option].is-selected").length;
-        if (selectedCount <= 1) {
-          showToast("You have to select at least 1 option.");
-          return;
-        }
-      }
-      footOption.classList.toggle("is-selected");
-      const selected = Array.from(listWrap.querySelectorAll("[data-allowance-foot-option].is-selected"))
-        .map((el) => String(el.dataset.allowanceFootOption || "").trim())
-        .filter((v) => FOOT_OPTIONS.includes(v));
-      const normalized = normalizeFootValue(selected.join(","));
-      const hiddenInput = listWrap.querySelector(".allowance-foot-hidden");
-      if (hiddenInput) hiddenInput.value = normalized.join(",");
-      state.room.config.allowance.foot = normalized.join(",");
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const clubAddBtn = e.target.closest("[data-allowance-club-add]");
-    if (clubAddBtn && state.mySide === "host") {
-      if (clubAddBtn.disabled) return;
-      const key = String(clubAddBtn.dataset.allowanceClubAdd || "").trim();
-      if (!TEXT_ALLOWANCE_LIST_KEYS.has(key)) return;
-      const item = clubAddBtn.closest(".allowance-item");
-      const searchInput = item?.querySelector(".allowance-club-search");
-      if (!searchInput) return;
-
-      const typed = String(searchInput.value || "").replace(/\s+/g, " ").trim();
-      if (!typed) return;
-      if (!addTextAllowanceValue(key, typed)) return;
-      renderLobby();
-      const nextSearchInput = document.querySelector(`.allowance-club-search[data-allowance-club-search="${key}"]`);
-      if (nextSearchInput) nextSearchInput.focus();
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const clubSuggestion = e.target.closest("[data-allowance-club-suggestion]");
-    if (clubSuggestion && state.mySide === "host") {
-      const value = String(clubSuggestion.dataset.allowanceClubSuggestion || "").replace(/\s+/g, " ").trim();
-      if (!value) return;
-      const key = String(clubSuggestion.closest(".allowance-item")?.dataset.allowanceKey || state.clubSearchKey || "club").trim();
-      state.clubSearchKey = key;
-      state.clubSearchQuery = value;
-      state.clubSearchOpen = false;
-      state.clubSearchActiveIndex = -1;
-      renderClubSuggestionPanel();
-      const searchInput = document.querySelector(`.allowance-club-search[data-allowance-club-search="${key}"]`);
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-      }
-      return;
-    }
-
-    const clubRemoveBtn = e.target.closest("[data-allowance-club-remove]");
-    if (clubRemoveBtn && state.mySide === "host") {
-      if (clubRemoveBtn.disabled) return;
-      const key = String(clubRemoveBtn.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
-      if (!TEXT_ALLOWANCE_LIST_KEYS.has(key)) return;
-      const club = String(clubRemoveBtn.dataset.allowanceClubRemove || "").replace(/\s+/g, " ").trim();
-      if (!club) return;
-      const clubs = normalizeTextAllowanceListValue(state.room.config.allowance[key] || "").filter((c) => c.toLowerCase() !== club.toLowerCase());
-      const capMap = parseTextAllowanceCapMap(
-        state.room.config.allowanceCaps[key],
-        normalizeTextAllowanceListValue(state.room.config.allowance[key] || ""),
-      );
-      Object.keys(capMap).forEach((name) => {
-        if (name.toLowerCase() === club.toLowerCase()) delete capMap[name];
-      });
-      state.room.config.allowance[key] = clubs.join(",");
-      state.room.config.allowanceCaps[key] = stringifyTextAllowanceCapMap(capMap, clubs);
-      renderLobby();
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const multiTrigger = e.target.closest("[data-allowance-multi-trigger]");
-    if (multiTrigger && state.mySide === "host") {
-      if (multiTrigger.disabled) return;
-      const dropdown = multiTrigger.closest("[data-allowance-multi-dropdown]");
-      if (!dropdown) return;
-      const multiType = String(multiTrigger.dataset.allowanceMultiTrigger || "").trim();
-      const key = String(dropdown.dataset.allowanceMultiKey || "").trim();
-      if (!multiType || !key) return;
-      const willOpen = !dropdown.classList.contains("is-open");
-      closeAllLobbyDropdowns();
-      if (willOpen) {
-        dropdown.classList.add("is-open");
-        if (multiType === "cardType") {
-          state.openAllowanceCardTypeKey = key;
-        } else if (multiType === "region") {
-          state.openAllowanceRegionKey = key;
-        } else if (multiType === "playingStyle") {
-          state.openAllowancePlayingStyleKey = key;
-        }
-      }
-      return;
-    }
-
-    const multiOption = e.target.closest("[data-allowance-multi-option]");
-    if (multiOption && state.mySide === "host") {
-      const dropdown = multiOption.closest("[data-allowance-multi-dropdown]");
-      if (!dropdown || multiOption.disabled) return;
-      const multiType = String(multiOption.dataset.allowanceMultiOption || "").trim();
-      const key = String(dropdown.dataset.allowanceMultiKey || "").trim();
-      if (!key) return;
-      multiOption.classList.toggle("is-selected");
-      const selected = Array.from(dropdown.querySelectorAll("[data-allowance-multi-option].is-selected"))
-        .map((el) => String(el.dataset.allowanceMultiValue || "").trim())
-        .filter(Boolean);
-      let normalized = [];
-      let summaryText = "";
-      if (multiType === "cardType") {
-        normalized = normalizeCardTypeValue(selected.join(","));
-        summaryText = cardTypeSummaryText(normalized);
-      } else if (multiType === "region") {
-        normalized = normalizeRegionValue(selected.join(","));
-        summaryText = regionSummaryText(normalized);
-      } else if (multiType === "playingStyle") {
-        normalized = normalizePlayingStyleValue(selected.join(","));
-        summaryText = playingStyleSummaryText(normalized);
-      }
-      const hiddenInput = dropdown.querySelector(".allowance-multi-hidden");
-      if (hiddenInput) hiddenInput.value = normalized.join(",");
-      const summary = dropdown.querySelector(".allowance-multi-summary");
-      if (summary) summary.textContent = summaryText;
-      state.room.config.allowance[key] = normalized.join(",");
-      renderLobby();
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const capTrigger = e.target.closest("[data-allowance-pos-cap-trigger]");
-    if (capTrigger && state.mySide === "host") {
-      const wrap = capTrigger.closest("[data-allowance-pos-cap-wrap]");
-      if (!wrap || capTrigger.disabled) return;
-      const key = String(wrap.dataset.allowancePosCapKey || "").trim();
-      const willOpen = !wrap.classList.contains("is-open");
-      closeAllLobbyDropdowns();
-      if (willOpen) {
-        wrap.classList.add("is-open");
-        state.openAllowancePosCapKey = key;
-      }
-      return;
-    }
-
-    const multiCapTrigger = e.target.closest("[data-allowance-cap-trigger]");
-    if (multiCapTrigger && state.mySide === "host") {
-      const wrap = multiCapTrigger.closest("[data-allowance-cap-wrap]");
-      if (!wrap || multiCapTrigger.disabled) return;
-      const key = String(wrap.dataset.allowanceCapKey || "").trim();
-      const capType = String(multiCapTrigger.dataset.allowanceCapTrigger || "").trim();
-      const willOpen = !wrap.classList.contains("is-open");
-      closeAllLobbyDropdowns();
-      if (willOpen) {
-        wrap.classList.add("is-open");
-        if (capType === "cardType") {
-          state.openAllowanceCardTypeCapKey = key;
-        } else if (capType === "region") {
-          state.openAllowanceRegionCapKey = key;
-        } else if (capType === "playingStyle") {
-          state.openAllowancePlayingStyleCapKey = key;
-        }
-      }
-      return;
+      if (reopening) updateAllowancePicker(key, searchInput.value, { open: true });
     }
   });
 
 }
 
-/** Allowance list: select / checkbox commits. */
 /**
  * Writes a category's player-count pair back, in order.
  *
@@ -923,10 +725,7 @@ function commitAllowanceCountPair(item, key) {
   const minEl = item?.querySelector(`.allowance-item-min[data-allowance-min-key="${key}"]`);
   const capEl = item?.querySelector(`.allowance-item-cap[data-allowance-cap-key="${key}"]`);
 
-  let min = normalizeAllowanceCapValue(minEl?.value);
-  let cap = normalizeAllowanceCapValue(capEl?.value);
-  if (min && cap && Number(min) > Number(cap)) [min, cap] = [cap, min];
-
+  const { min, cap } = orderAllowanceCountPair(minEl?.value, capEl?.value);
   if (minEl) minEl.value = min;
   if (capEl) capEl.value = cap;
   state.room.config.allowanceMins[key] = min;
@@ -934,58 +733,39 @@ function commitAllowanceCountPair(item, key) {
   scheduleLobbyConfigPush();
 }
 
-function bindAllowanceListChange() {
-  document.getElementById("allowanceList")?.addEventListener("change", (e) => {
-    const capInput = e.target.closest(".allowance-cap-input");
-    if (capInput && state.mySide === "host") {
-      const capType = String(capInput.dataset.allowanceCapKey || "").trim();
-      const capValue = String(capInput.dataset.allowanceCapValue || "").trim();
-      const key = capInput.closest("[data-allowance-cap-wrap]")?.dataset.allowanceCapKey;
-      if (!capType || !capValue || !key) return;
+/** The same write for one value of a per-value category, into the two maps. */
+function commitAllowanceValueCounts(row, { order }) {
+  const key = String(row.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
+  const value = row.dataset.allowanceValueItem || "";
+  if (!key || !value) return;
 
-      const n = Number(capInput.value);
-      if (Number.isFinite(n) && n > FIXED_PICKS_PER_SIDE) {
-        capInput.value = String(FIXED_PICKS_PER_SIDE);
-      }
-      if (Number.isFinite(n) && n < 1) {
-        capInput.value = "";
-      }
+  const minEl = row.querySelector(".allowance-value-min");
+  const capEl = row.querySelector(".allowance-value-max");
+  const pair = order
+    ? orderAllowanceCountPair(minEl?.value, capEl?.value)
+    : {
+      min: normalizeAllowanceCapValue(minEl?.value),
+      cap: normalizeAllowanceCapValue(capEl?.value),
+    };
+  /* Only `change` rewrites the boxes. Doing it per keystroke is what made the
+     range fields impossible to type in — a swap mid-number moves the digits
+     the host is still typing into the other field. */
+  if (order) {
+    if (minEl) minEl.value = pair.min;
+    if (capEl) capEl.value = pair.cap;
+  }
 
-      let capMap = {};
-      let normalizedCap = normalizeAllowanceCapValue(capInput.value);
-
-      if (capType === "cardType") {
-        const selected = normalizeCardTypeValue(state.room.config.allowance.cardType || "");
-        capMap = parseCardTypeCapMap(state.room.config.allowanceCaps.cardType, selected);
-      } else if (capType === "region") {
-        const selected = normalizeRegionValue(state.room.config.allowance.region || "");
-        capMap = parseRegionCapMap(state.room.config.allowanceCaps.region, selected);
-      } else if (capType === "playingStyle") {
-        const selected = normalizePlayingStyleValue(state.room.config.allowance.playingStyle || "");
-        capMap = parsePlayingStyleCapMap(state.room.config.allowanceCaps.playingStyle, selected);
-      } else {
-        return;
-      }
-
-      if (normalizedCap) capMap[capValue] = normalizedCap;
-      else delete capMap[capValue];
-
-      if (capType === "cardType") {
-        const selected = normalizeCardTypeValue(state.room.config.allowance.cardType || "");
-        state.room.config.allowanceCaps.cardType = stringifyCardTypeCapMap(capMap, selected);
-      } else if (capType === "region") {
-        const selected = normalizeRegionValue(state.room.config.allowance.region || "");
-        state.room.config.allowanceCaps.region = stringifyRegionCapMap(capMap, selected);
-      } else if (capType === "playingStyle") {
-        const selected = normalizePlayingStyleValue(state.room.config.allowance.playingStyle || "");
-        state.room.config.allowanceCaps.playingStyle = stringifyPlayingStyleCapMap(capMap, selected);
-      }
-
-      scheduleLobbyConfigPush();
-      return;
-    }
-  });
-
+  const cfg = state.room.config;
+  const values = normalizeAllowanceListValue(key, cfg.allowance[key]);
+  const write = (store, count) => {
+    const map = parseAllowanceCountMap(store[key], values);
+    if (count) map[value] = count;
+    else delete map[value];
+    store[key] = stringifyAllowanceCountMap(map, values);
+  };
+  write(cfg.allowanceMins, pair.min);
+  write(cfg.allowanceCaps, pair.cap);
+  scheduleLobbyConfigPush();
 }
 
 /** The category picker beside ADD CATEGORY. */
@@ -1024,19 +804,49 @@ function bindAllowanceCategoryDropdown() {
 
 }
 
-/** Allowance list: cap number fields (input / change / keydown). */
-function bindAllowanceCapInputs() {
-  document.getElementById("allowanceList")?.addEventListener("input", (e) => {
-    const searchInput = e.target.closest(".allowance-club-search");
-    if (searchInput && state.mySide === "host") {
-      const key = String(searchInput.dataset.allowanceClubSearch || "club").trim();
-      scheduleClubSuggestions(key, searchInput.value);
+/**
+ * Allowance list: every number and text field on it.
+ *
+ * `input` records; `change` normalises and writes back. That split is the whole
+ * reason these fields are usable — anything that rewrites a box does it on
+ * blur, never under the cursor.
+ */
+function bindAllowanceListInputs() {
+  const list = document.getElementById("allowanceList");
+
+  list?.addEventListener("input", (e) => {
+    if (state.mySide !== "host") return;
+
+    const searchInput = e.target.closest(".allowance-picker-search");
+    if (searchInput) {
+      updateAllowancePicker(
+        String(searchInput.dataset.allowancePickerSearch || "").trim(),
+        searchInput.value,
+        { open: true },
+      );
+      return;
+    }
+
+    const valueCount = e.target.closest(".allowance-value-count");
+    if (valueCount) {
+      commitAllowanceValueCounts(valueCount.closest(".allowance-value-row"), { order: false });
+      return;
+    }
+
+    const rangeCount = e.target.closest(".allowance-item-min, .allowance-item-cap");
+    if (rangeCount) {
+      const key = rangeCount.dataset.allowanceMinKey || rangeCount.dataset.allowanceCapKey;
+      if (!key) return;
+      const store = rangeCount.dataset.allowanceMinKey
+        ? state.room.config.allowanceMins
+        : state.room.config.allowanceCaps;
+      store[key] = normalizeAllowanceCapValue(rangeCount.value);
+      scheduleLobbyConfigPush();
       return;
     }
 
     const input = e.target.closest(".allowance-item-input");
-    if (!input || state.mySide !== "host") return;
-    const key = input.dataset.allowanceKey;
+    const key = input?.dataset.allowanceKey;
     if (!key) return;
     if (input.classList.contains("allowance-item-range")) {
       /* Typing only records what is in the two boxes. Clamping and the
@@ -1044,29 +854,22 @@ function bindAllowanceCapInputs() {
          fields — under the cursor, if they ran per keystroke. Same split the
          duration fields use. */
       const item = input.closest(".allowance-item");
-      const minInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="min"]`);
-      const maxInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="max"]`);
-      state.room.config.allowance[key] = rawAllowanceRangeValue(minInput?.value, maxInput?.value);
+      state.room.config.allowance[key] = rawAllowanceRangeValue(
+        rangeBoundInput(item, key, "min")?.value,
+        rangeBoundInput(item, key, "max")?.value,
+      );
     } else {
       state.room.config.allowance[key] = readAllowanceFieldValue(input);
     }
     scheduleLobbyConfigPush();
   });
-  document.getElementById("allowanceList")?.addEventListener("change", (e) => {
-    const clubCapInput = e.target.closest(".allowance-club-cap-input");
-    if (clubCapInput && state.mySide === "host") {
-      const key = String(clubCapInput.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
-      if (!TEXT_ALLOWANCE_LIST_KEYS.has(key)) return;
-      const club = String(clubCapInput.dataset.allowanceClubCap || "").replace(/\s+/g, " ").trim();
-      if (!club) return;
-      const clubs = normalizeTextAllowanceListValue(state.room.config.allowance[key] || "");
-      const capMap = parseTextAllowanceCapMap(state.room.config.allowanceCaps[key], clubs);
-      const normalizedCap = normalizeAllowanceCapValue(clubCapInput.value);
-      clubCapInput.value = normalizedCap;
-      if (normalizedCap) capMap[club] = normalizedCap;
-      else delete capMap[club];
-      state.room.config.allowanceCaps[key] = stringifyTextAllowanceCapMap(capMap, clubs);
-      scheduleLobbyConfigPush();
+
+  list?.addEventListener("change", (e) => {
+    if (state.mySide !== "host") return;
+
+    const valueCount = e.target.closest(".allowance-value-count");
+    if (valueCount) {
+      commitAllowanceValueCounts(valueCount.closest(".allowance-value-row"), { order: true });
       return;
     }
 
@@ -1074,195 +877,86 @@ function bindAllowanceCapInputs() {
        cannot tell whether it now exceeds its maximum. Same normaliser for each,
        so 0 and blank both come back as "" — a minimum of zero is the absence of
        a rule, not a rule. */
-    const countInput = e.target.closest(".allowance-item-min, .allowance-item-cap");
-    if (countInput && state.mySide === "host") {
-      const key = countInput.dataset.allowanceMinKey || countInput.dataset.allowanceCapKey;
-      if (!key) return;
-      commitAllowanceCountPair(countInput.closest(".allowance-item"), key);
+    const rangeCount = e.target.closest(".allowance-item-min, .allowance-item-cap");
+    if (rangeCount) {
+      const key = rangeCount.dataset.allowanceMinKey || rangeCount.dataset.allowanceCapKey;
+      if (key) commitAllowanceCountPair(rangeCount.closest(".allowance-item"), key);
       return;
     }
-    const input = e.target.closest(".allowance-item-input");
-    if (!input || state.mySide !== "host") return;
-    const key = input.dataset.allowanceKey;
+
+    const input = e.target.closest(".allowance-item-range");
+    const key = input?.dataset.allowanceKey;
     if (!key) return;
-    if (input.classList.contains("allowance-item-range")) {
-      const item = input.closest(".allowance-item");
-      const minInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="min"]`);
-      const maxInput = item?.querySelector(`.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="max"]`);
-      const normalizedRange = normalizeAllowanceRangeValue(minInput?.value, maxInput?.value);
-      const parsedRange = parseAllowanceRangeValue(normalizedRange);
-      if (minInput) minInput.value = parsedRange.min;
-      if (maxInput) maxInput.value = parsedRange.max;
-      state.room.config.allowance[key] = normalizedRange;
-    } else {
-      state.room.config.allowance[key] = readAllowanceFieldValue(input);
-    }
+    const item = input.closest(".allowance-item");
+    const minInput = rangeBoundInput(item, key, "min");
+    const maxInput = rangeBoundInput(item, key, "max");
+    const normalizedRange = normalizeAllowanceRangeValue(minInput?.value, maxInput?.value);
+    const parsedRange = parseAllowanceRangeValue(normalizedRange);
+    if (minInput) minInput.value = parsedRange.min;
+    if (maxInput) maxInput.value = parsedRange.max;
+    state.room.config.allowance[key] = normalizedRange;
     scheduleLobbyConfigPush();
   });
-  document.getElementById("allowanceList")?.addEventListener("change", (e) => {
-    const capInput = e.target.closest(".allowance-pos-cap-input");
-    if (!capInput || state.mySide !== "host") return;
-    const pos = String(capInput.dataset.allowancePos || "").trim().toUpperCase();
-    if (!POSITION_OPTIONS.includes(pos)) return;
-    const selected = normalizePositionValue(state.room.config.allowance.position || "");
-    const capMap = parsePositionCapMap(state.room.config.allowanceCaps.position, selected);
-    const normalizedCap = normalizeAllowanceCapValue(capInput.value);
-    capInput.value = normalizedCap;
-    if (normalizedCap) capMap[pos] = normalizedCap;
-    else delete capMap[pos];
-    state.room.config.allowanceCaps.position = stringifyPositionCapMap(capMap, selected);
-    scheduleLobbyConfigPush();
-  });
-  document.getElementById("allowanceList")?.addEventListener("input", (e) => {
-    const clubCapInput = e.target.closest(".allowance-club-cap-input");
-    if (clubCapInput && state.mySide === "host") {
-      const key = String(clubCapInput.closest(".allowance-item")?.dataset.allowanceKey || "").trim();
-      if (!TEXT_ALLOWANCE_LIST_KEYS.has(key)) return;
-      const club = String(clubCapInput.dataset.allowanceClubCap || "").replace(/\s+/g, " ").trim();
-      if (!club) return;
-      const clubs = normalizeTextAllowanceListValue(state.room.config.allowance[key] || "");
-      const capMap = parseTextAllowanceCapMap(state.room.config.allowanceCaps[key], clubs);
-      if (clubCapInput.value === "") {
-        delete capMap[club];
-        state.room.config.allowanceCaps[key] = stringifyTextAllowanceCapMap(capMap, clubs);
-        scheduleLobbyConfigPush();
-        return;
-      }
-      const n = Number(clubCapInput.value);
-      if (Number.isFinite(n) && n > FIXED_PICKS_PER_SIDE) {
-        clubCapInput.value = String(FIXED_PICKS_PER_SIDE);
-      }
-      if (Number.isFinite(n) && n < 1) {
-        clubCapInput.value = "";
-      }
-      const normalizedCap = normalizeAllowanceCapValue(clubCapInput.value);
-      if (normalizedCap) capMap[club] = normalizedCap;
-      else delete capMap[club];
-      state.room.config.allowanceCaps[key] = stringifyTextAllowanceCapMap(capMap, clubs);
-      scheduleLobbyConfigPush();
-      return;
-    }
 
-    const capInput = e.target.closest(".allowance-item-cap");
-    if (capInput && state.mySide === "host") {
-      const key = capInput.dataset.allowanceCapKey;
-      if (!key) return;
-      if (capInput.value === "") {
-        state.room.config.allowanceCaps[key] = "";
-        scheduleLobbyConfigPush();
-        return;
-      }
-      const n = Number(capInput.value);
-      if (Number.isFinite(n) && n > FIXED_PICKS_PER_SIDE) {
-        capInput.value = String(FIXED_PICKS_PER_SIDE);
-      }
-      if (Number.isFinite(n) && n < 1) {
-        capInput.value = "";
-      }
-      state.room.config.allowanceCaps[key] = normalizeAllowanceCapValue(capInput.value);
-      scheduleLobbyConfigPush();
-      return;
-    }
-
-    const posCapInput = e.target.closest(".allowance-pos-cap-input");
-    if (posCapInput && state.mySide === "host") {
-      const pos = String(posCapInput.dataset.allowancePos || "").trim().toUpperCase();
-      if (!POSITION_OPTIONS.includes(pos)) return;
-      if (posCapInput.value === "") {
-        const selected = normalizePositionValue(state.room.config.allowance.position || "");
-        const capMap = parsePositionCapMap(state.room.config.allowanceCaps.position, selected);
-        delete capMap[pos];
-        state.room.config.allowanceCaps.position = stringifyPositionCapMap(capMap, selected);
-        scheduleLobbyConfigPush();
-        return;
-      }
-      const n = Number(posCapInput.value);
-      if (Number.isFinite(n) && n > FIXED_PICKS_PER_SIDE) {
-        posCapInput.value = String(FIXED_PICKS_PER_SIDE);
-      }
-      if (Number.isFinite(n) && n < 1) {
-        posCapInput.value = "";
-      }
-      const selected = normalizePositionValue(state.room.config.allowance.position || "");
-      const capMap = parsePositionCapMap(state.room.config.allowanceCaps.position, selected);
-      const normalizedCap = normalizeAllowanceCapValue(posCapInput.value);
-      if (normalizedCap) capMap[pos] = normalizedCap;
-      else delete capMap[pos];
-      state.room.config.allowanceCaps.position = stringifyPositionCapMap(capMap, selected);
-      scheduleLobbyConfigPush();
-      return;
-    }
-  });
-  document.getElementById("allowanceList")?.addEventListener("keydown", (e) => {
-    const searchInput = e.target.closest(".allowance-club-search");
+  list?.addEventListener("keydown", (e) => {
+    const searchInput = e.target.closest(".allowance-picker-search");
     if (!searchInput || state.mySide !== "host") return;
-    const key = String(searchInput.dataset.allowanceClubSearch || "club").trim();
-    state.clubSearchKey = key;
-    if (e.key === "ArrowDown") {
-      if (!state.clubSearchOptions.length) return;
+    const key = String(searchInput.dataset.allowancePickerSearch || "").trim();
+    const options = state.allowancePickerOptions;
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!options.length) return;
       e.preventDefault();
-      const next = state.clubSearchActiveIndex < 0
-        ? 0
-        : Math.min(state.clubSearchOptions.length - 1, state.clubSearchActiveIndex + 1);
-      state.clubSearchActiveIndex = next;
-      state.clubSearchOpen = true;
-      renderClubSuggestionPanel();
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      if (!state.clubSearchOptions.length) return;
-      e.preventDefault();
-      const next = state.clubSearchActiveIndex <= 0
-        ? 0
-        : state.clubSearchActiveIndex - 1;
-      state.clubSearchActiveIndex = next;
-      state.clubSearchOpen = true;
-      renderClubSuggestionPanel();
+      const cursor = state.allowancePickerActiveIndex;
+      state.allowancePickerActiveIndex = e.key === "ArrowDown"
+        ? (cursor < 0 ? 0 : Math.min(options.length - 1, cursor + 1))
+        : Math.max(0, cursor - 1);
+      state.allowancePickerOpen = true;
+      renderAllowancePickerPanel();
       return;
     }
     if (e.key === "Escape") {
-      if (!state.clubSearchOpen) return;
+      if (!state.allowancePickerOpen) return;
       e.preventDefault();
-      state.clubSearchOpen = false;
-      state.clubSearchActiveIndex = -1;
-      renderClubSuggestionPanel();
+      state.allowancePickerOpen = false;
+      state.allowancePickerActiveIndex = -1;
+      renderAllowancePickerPanel();
       return;
     }
     if (e.key !== "Enter") return;
     e.preventDefault();
-    if (state.clubSearchOpen && state.clubSearchActiveIndex >= 0 && state.clubSearchOptions[state.clubSearchActiveIndex]) {
-      state.clubSearchQuery = state.clubSearchOptions[state.clubSearchActiveIndex];
-      state.clubSearchOpen = false;
-      state.clubSearchActiveIndex = -1;
-      renderClubSuggestionPanel();
-      const nextSearchInput = document.querySelector(`.allowance-club-search[data-allowance-club-search="${key}"]`);
-      if (nextSearchInput) {
-        nextSearchInput.focus();
-        nextSearchInput.setSelectionRange(nextSearchInput.value.length, nextSearchInput.value.length);
-      }
-      return;
-    }
-    const addBtn = searchInput.closest(".allowance-item")?.querySelector(`[data-allowance-club-add='${key}']`);
-    if (addBtn && !addBtn.disabled) addBtn.click();
+    /* Enter takes the highlighted option, or the typed text where the category
+       accepts free text at all. A list category has no free text to take. */
+    const highlighted = state.allowancePickerOpen ? options[state.allowancePickerActiveIndex] : "";
+    const typed = ALLOWANCE_SEARCH_KEYS.has(key) ? searchInput.value : "";
+    if (!addAllowanceValue(key, highlighted || typed)) return;
+    updateAllowancePicker(key, "", { open: true });
+    refocusValuePicker(key);
   });
+}
+
+/** One half of a range category's value pair. */
+function rangeBoundInput(item, key, bound) {
+  return item?.querySelector(
+    `.allowance-item-range[data-allowance-key="${key}"][data-allowance-range-bound="${bound}"]`,
+  );
 }
 
 /** Any outside click closes the lobby dropdowns. */
 function bindGlobalDropdownDismiss() {
+  const OPEN_OWNERS = "#allowanceCategoryDd, #allowanceCategoryPanel, [data-allowance-picker-wrap]";
+
+  /* The event's **path**, not `e.target.closest(...)`.
+     Clicking a suggestion adds the value, which rebuilds the allowance list —
+     so by the time the click reaches `document` the option has been detached
+     and `closest` walks up to nothing. That read as "clicked outside" and shut
+     the panel on every single add. `composedPath()` is fixed at dispatch and
+     still describes where the click landed. */
   document.addEventListener("click", (e) => {
-    if (e.target.closest("#allowanceCategoryDd")) return;
-    if (e.target.closest("#allowanceCategoryPanel")) return;
-    if (e.target.closest("[data-allowance-pos-dropdown]")) return;
-    if (e.target.closest("[data-allowance-pos-cap-wrap]")) return;
-    if (e.target.closest("[data-allowance-cap-wrap]")) return;
-    if (e.target.closest("[data-allowance-multi-dropdown]")) return;
-    if (e.target.closest("[data-allowance-club-search-wrap]")) return;
+    const landedInside = e.composedPath()
+      .some((node) => node?.nodeType === 1 && node.matches(OPEN_OWNERS));
+    if (landedInside) return;
     closeAllLobbyDropdowns();
-    if (state.clubSearchOpen) {
-      state.clubSearchOpen = false;
-      state.clubSearchActiveIndex = -1;
-      renderClubSuggestionPanel();
-    }
   });
 
 }

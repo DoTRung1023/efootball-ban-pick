@@ -253,11 +253,14 @@ last** (DESIGN.md §3.3). Two ways it has gone wrong in `lobby.css`, both fixed:
 - *A solid rest surface.* The fills are white-alpha; over a `--surface-control` chip they
   replace the chip instead of lightening it, so `.lv-reveal-card.is-selected` and
   `.allowance-foot-option.is-selected` came out **darker** than their unselected
-  neighbours. Both are transparent at rest now, with `--border` doing the separating.
+  neighbours. Both were made transparent at rest, with `--border` doing the separating;
+  the foot chips have since gone (foot is a value list with a Min/Max per side now), but
+  `.lv-reveal-card` still carries the fix and any new chip has to.
 - *Hover sharing a rule with the selected/open state.* `.allowance-category-option`,
-  `.allowance-pos-option`, `.allowance-multi-option` and every dropdown trigger had hover
-  and selected on the same `--fill`, so running the cursor down a menu made every row look
-  chosen. Hover is `--fill` and scoped `:not(.is-selected)` / `:not(.is-open) &`; selected
+  the allowance option lists and every dropdown trigger had hover and selected on the
+  same `--fill`, so running the cursor down a menu made every row look chosen.
+  `.allowance-picker-option` keeps the split: hover is `--fill`, and `.is-active` — the
+  keyboard cursor — is `--fill-strong`, so it beats the mouse. Hover is `--fill` and scoped `:not(.is-selected)` / `:not(.is-open) &`; selected
   and open go to `--fill-strong` + `--line-active`. `.lv-unlimited-btn` was the sharper
   version of the same bug: its `:hover` rule carried one more compound than the
   `[aria-pressed="true"]` rule below it, so hovering the ∞ button that was **on** dropped

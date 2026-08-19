@@ -6,8 +6,8 @@ import {
   PICK_COUNT_PER_SIDE,
   squadStartProblem,
   normalizeBanDurationSec,
-  normalizeAllowanceMinValue,
-  normalizeCapForField,
+  normalizeCountForField,
+  orderAllowanceCounts,
   normalizePickDurationSec,
   turnDeadline,
   normalizeRevealMode,
@@ -839,33 +839,22 @@ router.post("/:code/config", withRoomCode, (req, res) => {
     }
   }
 
-  if (allowanceCaps && typeof allowanceCaps === "object") {
-    for (const [key, value] of Object.entries(allowanceCaps)) {
+  /* The floor and the ceiling take the same normaliser, because a per-value
+     category carries a Min per value exactly as it carries a Max. */
+  for (const [field, incoming] of [["allowanceCaps", allowanceCaps], ["allowanceMins", allowanceMins]]) {
+    if (!incoming || typeof incoming !== "object") continue;
+    for (const [key, value] of Object.entries(incoming)) {
       if (!ALLOWANCE_FIELDS.has(key)) continue;
-      config.allowanceCaps[key] = normalizeCapForField(key, value);
-    }
-  }
-
-  /* Minimums are a plain count for every category that has one — never a map,
-     because the categories with per-value caps do not carry a minimum. */
-  if (allowanceMins && typeof allowanceMins === "object") {
-    for (const [key, value] of Object.entries(allowanceMins)) {
-      if (!ALLOWANCE_FIELDS.has(key)) continue;
-      config.allowanceMins[key] = normalizeAllowanceMinValue(value);
+      config[field][key] = normalizeCountForField(key, value);
     }
   }
 
   /* A floor above its ceiling — "at least 23, at most 22" — is a rule no squad
-     can satisfy, so the pair is stored in order whoever sent it. Only the
-     single-count categories are touched: a per-value cap is a JSON map, which
-     `Number()` reads as NaN and this skips. */
+     can satisfy, so the pair is stored in order whoever sent it. */
   for (const key of Object.keys(config.allowanceMins)) {
-    const min = Number(config.allowanceMins[key]);
-    const cap = Number(config.allowanceCaps[key]);
-    if (Number.isFinite(min) && Number.isFinite(cap) && min > 0 && cap > 0 && min > cap) {
-      config.allowanceMins[key] = String(cap);
-      config.allowanceCaps[key] = String(min);
-    }
+    const ordered = orderAllowanceCounts(config.allowanceMins[key], config.allowanceCaps[key]);
+    config.allowanceMins[key] = ordered.min;
+    config.allowanceCaps[key] = ordered.cap;
   }
 
   if (Array.isArray(allowanceEnabled)) {

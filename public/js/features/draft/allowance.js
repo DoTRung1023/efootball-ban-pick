@@ -1,74 +1,33 @@
+/**
+ * The allowance model: what a category's stored value means, and whether a
+ * squad satisfies it.
+ *
+ * A category answers two questions — *which players* it describes, and *how
+ * many* of them a squad may hold. The five `range` categories answer the second
+ * once for the whole category; every other shape answers it **per value**, as a
+ * `{value: count}` map in `allowanceCaps` and the matching one in
+ * `allowanceMins`. See `ALLOWANCE_CATEGORY_DEFS` in `constants.js`.
+ *
+ * The normalisers here are duplicated in `src/features/rooms/config.js` — the
+ * client/server boundary has no shared module, so a change to one is a change
+ * to both.
+ */
+
 import {
   POSITION_OPTIONS,
   FOOT_OPTIONS,
-  CARD_TYPE_OPTIONS,
-  REGION_OPTIONS,
-  PLAYING_STYLE_OPTIONS,
   ALLOWANCE_DEF_MAP,
-  ALLOWANCE_SIMPLE_COUNT_KEYS,
-  TEXT_ALLOWANCE_LIST_KEYS,
+  ALLOWANCE_VALUE_LIST_KEYS,
   FIXED_PICKS_PER_SIDE,
 } from './constants.js';
 
-export function normalizePositionValue(raw) {
-  return String(raw || "")
-    .split(",")
-    .map((v) => v.trim().toUpperCase())
-    .filter(Boolean)
-    .filter((v, i, arr) => arr.indexOf(v) === i && POSITION_OPTIONS.includes(v));
-}
+const collapseSpaces = (raw) => String(raw || "").replace(/\s+/g, " ").trim();
 
-export function normalizeFootValue(raw, { defaultAll = false } = {}) {
-  const normalized = String(raw || "")
-    .split(",")
-    .map((v) => String(v || "").trim().toLowerCase())
-    .map((v) => (v === "left" ? "Left" : v === "right" ? "Right" : ""))
-    .filter(Boolean)
-    .filter((v, i, arr) => arr.indexOf(v) === i);
-  if (normalized.length) return normalized;
-  return defaultAll ? [...FOOT_OPTIONS] : [];
-}
-
-export function normalizeCardTypeValue(raw) {
+function splitCsvValue(raw) {
   return String(raw || "")
     .split(",")
     .map((v) => v.trim())
-    .filter(Boolean)
-    .filter((v, i, arr) => arr.indexOf(v) === i && CARD_TYPE_OPTIONS.includes(v));
-}
-
-export function normalizeRegionValue(raw) {
-  return String(raw || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .filter((v, i, arr) => arr.indexOf(v) === i && REGION_OPTIONS.includes(v));
-}
-
-export function normalizePlayingStyleValue(raw) {
-  return String(raw || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .filter((v, i, arr) => arr.indexOf(v) === i && PLAYING_STYLE_OPTIONS.includes(v));
-}
-
-export function normalizeClubValue(raw) {
-  const seen = new Set();
-  return String(raw || "")
-    .split(",")
-    .map((v) => String(v || "").replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .filter((v) => {
-      const key = v.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-}
-
-export function normalizeTextAllowanceListValue(raw) {
-  return normalizeClubValue(raw);
+    .filter(Boolean);
 }
 
 export function dedupeCaseInsensitive(values) {
@@ -81,38 +40,56 @@ export function dedupeCaseInsensitive(values) {
   });
 }
 
-export function positionSummaryText(selected) {
-  if (!selected.length) return "All positions";
-  if (selected.length <= 7) return selected.join(", ");
-  return `${selected.length} selected`;
+export function normalizePositionValue(raw) {
+  return dedupeCaseInsensitive(
+    splitCsvValue(raw).map((v) => v.toUpperCase()),
+  ).filter((v) => POSITION_OPTIONS.includes(v));
 }
 
-export function cardTypeSummaryText(selected) {
-  if (!selected.length) return "All card types";
-  if (selected.length <= 3) return selected.join(", ");
-  return `${selected.length} selected`;
+/**
+ * Trimmed, space-collapsed, case-insensitively deduped — and **not** checked
+ * against any option list.
+ *
+ * The option lists for league, card type, region and playing style are fetched
+ * at runtime and are empty until `/api/players/filter-options` answers.
+ * Validating against one would silently erase a host's categories on any render
+ * that beat the fetch, and club and nationality accept free text anyway: their
+ * matcher is a substring, so "Barcelona" is a deliberate half of "FC Barcelona".
+ */
+function normalizeFreeTextList(raw) {
+  return dedupeCaseInsensitive(splitCsvValue(raw).map(collapseSpaces));
 }
 
-export function regionSummaryText(selected) {
-  if (!selected.length) return "All regions";
-  if (selected.length <= 3) return selected.join(", ");
-  return `${selected.length} selected`;
+/**
+ * The selected values of a per-value category, in stored order.
+ *
+ * Foot is the exception it looks like: it is a `fixed` shape, so both options
+ * are always on the row and the *counts* are what say whether either is
+ * constrained. There is nothing to select.
+ */
+export function normalizeAllowanceListValue(key, raw) {
+  if (key === "foot") return [...FOOT_OPTIONS];
+  if (key === "position") return normalizePositionValue(raw);
+  return normalizeFreeTextList(raw);
 }
 
-export function playingStyleSummaryText(selected) {
-  if (!selected.length) return "All styles";
-  if (selected.length <= 3) return selected.join(", ");
-  return `${selected.length} selected`;
-}
-
+/** A whole player count in 1..23; `0` and `""` both mean "no rule". */
 export function normalizeAllowanceCapValue(raw) {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return "";
   return String(Math.min(FIXED_PICKS_PER_SIDE, Math.floor(n)));
 }
 
-export function parsePositionCapMap(raw, selectedPositions = []) {
-  const selectedSet = new Set(normalizePositionValue(selectedPositions.join(",")));
+/**
+ * A `{value: count}` map, narrowed to the values the category actually holds.
+ *
+ * Accepts the map as an object, as its JSON string, or as a bare number — the
+ * last being a pre-per-value config, which is read as that count applying to
+ * every selected value. Keys are matched case-insensitively but stored under
+ * the selection's own casing, so a map written against "Real Madrid" still
+ * answers for a value re-added as "real madrid".
+ */
+export function parseAllowanceCountMap(raw, selectedValues = []) {
   let parsed = {};
 
   if (raw && typeof raw === "object") {
@@ -120,11 +97,9 @@ export function parsePositionCapMap(raw, selectedPositions = []) {
   } else {
     const text = String(raw || "").trim();
     if (text) {
-      const legacyCap = normalizeAllowanceCapValue(text);
-      if (legacyCap) {
-        selectedSet.forEach((pos) => {
-          parsed[pos] = legacyCap;
-        });
+      const legacyCount = normalizeAllowanceCapValue(text);
+      if (legacyCount) {
+        selectedValues.forEach((value) => { parsed[value] = legacyCount; });
       } else {
         try {
           const obj = JSON.parse(text);
@@ -136,247 +111,43 @@ export function parsePositionCapMap(raw, selectedPositions = []) {
     }
   }
 
+  const byLowerKey = {};
+  for (const [nameRaw, countRaw] of Object.entries(parsed)) {
+    const name = collapseSpaces(nameRaw);
+    const count = normalizeAllowanceCapValue(countRaw);
+    if (name && count) byLowerKey[name.toLowerCase()] = count;
+  }
+
+  const effective = selectedValues.length
+    ? selectedValues
+    : Object.keys(parsed).map(collapseSpaces).filter(Boolean);
+
   const normalized = {};
-  POSITION_OPTIONS.forEach((pos) => {
-    if (selectedSet.size && !selectedSet.has(pos)) return;
-    const cap = normalizeAllowanceCapValue(parsed[pos]);
-    if (cap) normalized[pos] = cap;
+  effective.forEach((value) => {
+    const count = byLowerKey[String(value).toLowerCase()];
+    if (count) normalized[value] = count;
   });
   return normalized;
 }
 
-export function stringifyPositionCapMap(map, selectedPositions = []) {
-  const normalized = parsePositionCapMap(map, selectedPositions);
-  const keys = Object.keys(normalized);
-  if (!keys.length) return "";
-  return JSON.stringify(normalized);
+export function stringifyAllowanceCountMap(map, selectedValues = []) {
+  const normalized = parseAllowanceCountMap(map, selectedValues);
+  return Object.keys(normalized).length ? JSON.stringify(normalized) : "";
 }
 
-export function positionCapSummaryText(capMap, selectedPositions) {
-  const selected = normalizePositionValue(selectedPositions.join(","));
-  const effective = selected.length ? selected : POSITION_OPTIONS;
-  const active = effective.filter((pos) => normalizeAllowanceCapValue(capMap[pos]));
-  if (!active.length) return "No caps";
-  if (active.length <= 2) return active.map((pos) => `${pos}:${capMap[pos]}`).join(" / ");
-  return `${active.length} capped`;
-}
-
-export function parseCardTypeCapMap(raw, selectedCardTypes = []) {
-  const selectedSet = new Set(normalizeCardTypeValue(selectedCardTypes.join(",")));
-  let parsed = {};
-
-  if (raw && typeof raw === "object") {
-    parsed = raw;
-  } else {
-    const text = String(raw || "").trim();
-    if (text) {
-      const legacyCap = normalizeAllowanceCapValue(text);
-      if (legacyCap) {
-        selectedSet.forEach((ct) => {
-          parsed[ct] = legacyCap;
-        });
-      } else {
-        try {
-          const obj = JSON.parse(text);
-          if (obj && typeof obj === "object") parsed = obj;
-        } catch {
-          parsed = {};
-        }
-      }
-    }
-  }
-
-  const normalized = {};
-  CARD_TYPE_OPTIONS.forEach((ct) => {
-    if (selectedSet.size && !selectedSet.has(ct)) return;
-    const cap = normalizeAllowanceCapValue(parsed[ct]);
-    if (cap) normalized[ct] = cap;
-  });
-  return normalized;
-}
-
-export function stringifyCardTypeCapMap(map, selectedCardTypes = []) {
-  const normalized = parseCardTypeCapMap(map, selectedCardTypes);
-  const keys = Object.keys(normalized);
-  if (!keys.length) return "";
-  return JSON.stringify(normalized);
-}
-
-export function cardTypeCapSummaryText(capMap, selectedCardTypes) {
-  const selected = normalizeCardTypeValue(selectedCardTypes.join(","));
-  const effective = selected.length ? selected : CARD_TYPE_OPTIONS;
-  const active = effective.filter((ct) => normalizeAllowanceCapValue(capMap[ct]));
-  if (!active.length) return "No caps";
-  if (active.length <= 2) return active.map((ct) => `${ct}:${capMap[ct]}`).join(" / ");
-  return `${active.length} capped`;
-}
-
-export function parseRegionCapMap(raw, selectedRegions = []) {
-  const selectedSet = new Set(normalizeRegionValue(selectedRegions.join(",")));
-  let parsed = {};
-
-  if (raw && typeof raw === "object") {
-    parsed = raw;
-  } else {
-    const text = String(raw || "").trim();
-    if (text) {
-      const legacyCap = normalizeAllowanceCapValue(text);
-      if (legacyCap) {
-        selectedSet.forEach((r) => {
-          parsed[r] = legacyCap;
-        });
-      } else {
-        try {
-          const obj = JSON.parse(text);
-          if (obj && typeof obj === "object") parsed = obj;
-        } catch {
-          parsed = {};
-        }
-      }
-    }
-  }
-
-  const normalized = {};
-  REGION_OPTIONS.forEach((r) => {
-    if (selectedSet.size && !selectedSet.has(r)) return;
-    const cap = normalizeAllowanceCapValue(parsed[r]);
-    if (cap) normalized[r] = cap;
-  });
-  return normalized;
-}
-
-export function stringifyRegionCapMap(map, selectedRegions = []) {
-  const normalized = parseRegionCapMap(map, selectedRegions);
-  const keys = Object.keys(normalized);
-  if (!keys.length) return "";
-  return JSON.stringify(normalized);
-}
-
-export function regionCapSummaryText(capMap, selectedRegions) {
-  const selected = normalizeRegionValue(selectedRegions.join(","));
-  const effective = selected.length ? selected : REGION_OPTIONS;
-  const active = effective.filter((r) => normalizeAllowanceCapValue(capMap[r]));
-  if (!active.length) return "No caps";
-  if (active.length <= 2) return active.map((r) => `${r}:${capMap[r]}`).join(" / ");
-  return `${active.length} capped`;
-}
-
-export function parsePlayingStyleCapMap(raw, selectedPlayingStyles = []) {
-  const selectedSet = new Set(normalizePlayingStyleValue(selectedPlayingStyles.join(",")));
-  let parsed = {};
-
-  if (raw && typeof raw === "object") {
-    parsed = raw;
-  } else {
-    const text = String(raw || "").trim();
-    if (text) {
-      const legacyCap = normalizeAllowanceCapValue(text);
-      if (legacyCap) {
-        selectedSet.forEach((ps) => {
-          parsed[ps] = legacyCap;
-        });
-      } else {
-        try {
-          const obj = JSON.parse(text);
-          if (obj && typeof obj === "object") parsed = obj;
-        } catch {
-          parsed = {};
-        }
-      }
-    }
-  }
-
-  const normalized = {};
-  PLAYING_STYLE_OPTIONS.forEach((ps) => {
-    if (selectedSet.size && !selectedSet.has(ps)) return;
-    const cap = normalizeAllowanceCapValue(parsed[ps]);
-    if (cap) normalized[ps] = cap;
-  });
-  return normalized;
-}
-
-export function stringifyPlayingStyleCapMap(map, selectedPlayingStyles = []) {
-  const normalized = parsePlayingStyleCapMap(map, selectedPlayingStyles);
-  const keys = Object.keys(normalized);
-  if (!keys.length) return "";
-  return JSON.stringify(normalized);
-}
-
-export function playingStyleCapSummaryText(capMap, selectedPlayingStyles) {
-  const selected = normalizePlayingStyleValue(selectedPlayingStyles.join(","));
-  const effective = selected.length ? selected : PLAYING_STYLE_OPTIONS;
-  const active = effective.filter((ps) => normalizeAllowanceCapValue(capMap[ps]));
-  if (!active.length) return "No caps";
-  if (active.length <= 2) return active.map((ps) => `${ps}:${capMap[ps]}`).join(" / ");
-  return `${active.length} capped`;
-}
-
-function parseClubCapMap(raw, selectedClubs = []) {
-  let parsed = {};
-
-  if (raw && typeof raw === "object") {
-    parsed = raw;
-  } else {
-    const text = String(raw || "").trim();
-    if (text) {
-      const legacyCap = normalizeAllowanceCapValue(text);
-      if (legacyCap) {
-        normalizeClubValue(selectedClubs.join(",")).forEach((club) => {
-          parsed[club] = legacyCap;
-        });
-      } else {
-        try {
-          const obj = JSON.parse(text);
-          if (obj && typeof obj === "object") parsed = obj;
-        } catch {
-          parsed = {};
-        }
-      }
-    }
-  }
-
-  const normalizedParsed = {};
-  for (const [clubRaw, capRaw] of Object.entries(parsed)) {
-    const club = String(clubRaw || "").replace(/\s+/g, " ").trim();
-    if (!club) continue;
-    const cap = normalizeAllowanceCapValue(capRaw);
-    if (!cap) continue;
-    normalizedParsed[club.toLowerCase()] = { club, cap };
-  }
-
-  const normalizedSelection = normalizeClubValue(selectedClubs.join(","));
-  const effectiveSelection = normalizedSelection.length
-    ? normalizedSelection
-    : Object.values(normalizedParsed).map((entry) => entry.club);
-
-  const normalized = {};
-  effectiveSelection.forEach((club) => {
-    const hit = normalizedParsed[club.toLowerCase()];
-    if (hit?.cap) normalized[club] = hit.cap;
-  });
-  return normalized;
-}
-
-export function stringifyClubCapMap(map, selectedClubs = []) {
-  const normalized = parseClubCapMap(map, selectedClubs);
-  const keys = Object.keys(normalized);
-  if (!keys.length) return "";
-  return JSON.stringify(normalized);
-}
-
-export function parseTextAllowanceCapMap(raw, selectedValues = []) {
-  return parseClubCapMap(raw, selectedValues);
-}
-
-export function stringifyTextAllowanceCapMap(map, selectedValues = []) {
-  return stringifyClubCapMap(map, selectedValues);
-}
-
-function splitCsvValue(raw) {
-  return String(raw || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
+/**
+ * Both ends of one value's rule, in order.
+ *
+ * "At least 5, at most 3" refuses every possible squad, so an inverted pair is
+ * swapped rather than stored — the same treatment the value range beside it
+ * gets, and the server repeats it in `POST /:code/config` so no client can
+ * store the unsatisfiable version.
+ */
+export function orderAllowanceCountPair(minRaw, capRaw) {
+  let min = normalizeAllowanceCapValue(minRaw);
+  let cap = normalizeAllowanceCapValue(capRaw);
+  if (min && cap && Number(min) > Number(cap)) [min, cap] = [cap, min];
+  return { min, cap };
 }
 
 function parseNumberOrNull(raw) {
@@ -443,192 +214,114 @@ function isWithinOptionalRange(value, min, max) {
   return min != null || max != null;
 }
 
-function matchesAnyIncludes(fieldValue, queryRaw) {
-  const hay = String(fieldValue || "").toLowerCase();
-  const needles = splitCsvValue(queryRaw).map((v) => v.toLowerCase());
-  if (!needles.length) return false;
-  return needles.some((q) => hay.includes(q));
+const equalsCI = (fieldValue, value) =>
+  String(fieldValue || "").trim().toLowerCase() === String(value || "").trim().toLowerCase();
+
+const includesCI = (fieldValue, value) =>
+  String(fieldValue || "").toLowerCase().includes(String(value || "").trim().toLowerCase());
+
+/**
+ * Whether a player is one of the players a single selected value describes.
+ *
+ * Club, nationality and region match on a **substring** because their values
+ * can legitimately be typed as a fragment; the rest are a closed set of exact
+ * names, where a substring would let "CF" catch nothing useful and "Left" catch
+ * a hypothetical "Left/Right".
+ */
+export function playerMatchesAllowanceValue(key, player, value) {
+  const raw = player?._raw || {};
+  if (!String(value || "").trim()) return false;
+
+  switch (key) {
+    case "position":     return equalsCI(raw.position, value);
+    case "club":         return includesCI(raw.club, value);
+    case "league":       return equalsCI(raw.league, value);
+    case "nationality":  return includesCI(raw.nationality, value);
+    case "cardType":     return equalsCI(raw.card_type, value);
+    case "region":       return includesCI(raw.region, value);
+    case "foot":         return equalsCI(raw.foot, value);
+    case "playingStyle": return equalsCI(raw.playing_style, value);
+    default:             return false;
+  }
 }
 
-function matchesAnyEquals(fieldValue, queryRaw) {
-  const hay = String(fieldValue || "").toLowerCase();
-  const needles = splitCsvValue(queryRaw).map((v) => v.toLowerCase());
-  if (!needles.length) return false;
-  return needles.includes(hay);
-}
-
+/** Whether a player falls in a category at all — any one of its values. */
 export function playerMatchesAllowanceCategory(player, key, valueRaw) {
   const raw = player?._raw || {};
   const value = String(valueRaw || "").trim();
   if (!value) return false;
 
+  if (ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
+    return normalizeAllowanceListValue(key, value)
+      .some((item) => playerMatchesAllowanceValue(key, player, item));
+  }
+
+  const { min, max } = parseAllowanceRangeNumbers(value);
   switch (key) {
-    case "position": {
-      const selected = normalizePositionValue(value);
-      if (!selected.length) return false;
-      return selected.includes(String(raw.position || "").trim().toUpperCase());
-    }
-    case "overall": {
-      const ovr = parseNumberOrNull(raw.overall);
-      const { min, max } = parseAllowanceRangeNumbers(value);
-      return isWithinOptionalRange(ovr, min, max);
-    }
-    case "overallMax": {
-      const ovrMax = parseNumberOrNull(raw.overall_max);
-      const { min, max } = parseAllowanceRangeNumbers(value);
-      return isWithinOptionalRange(ovrMax, min, max);
-    }
-    case "height": {
-      const h = parseNumberOrNull(raw.height);
-      const { min, max } = parseAllowanceRangeNumbers(value);
-      return isWithinOptionalRange(h, min, max);
-    }
-    case "weight": {
-      const w = parseNumberOrNull(raw.weight);
-      const { min, max } = parseAllowanceRangeNumbers(value);
-      return isWithinOptionalRange(w, min, max);
-    }
-    case "age": {
-      const age = parseNumberOrNull(raw.age);
-      const { min, max } = parseAllowanceRangeNumbers(value);
-      return isWithinOptionalRange(age, min, max);
-    }
-    // Legacy keys kept for backward compatibility with existing room snapshots.
-    case "overallMin": {
-      const min = parseNumberOrNull(value);
-      const ovr = parseNumberOrNull(raw.overall);
-      return min != null && ovr != null && ovr >= min;
-    }
-    case "overallMaxMin": {
-      const min = parseNumberOrNull(value);
-      const ovrMax = parseNumberOrNull(raw.overall_max);
-      return min != null && ovrMax != null && ovrMax >= min;
-    }
-    case "overallMaxMax": {
-      const max = parseNumberOrNull(value);
-      const ovrMax = parseNumberOrNull(raw.overall_max);
-      return max != null && ovrMax != null && ovrMax <= max;
-    }
-    case "heightMin": {
-      const min = parseNumberOrNull(value);
-      const h = parseNumberOrNull(raw.height);
-      return min != null && h != null && h >= min;
-    }
-    case "heightMax": {
-      const max = parseNumberOrNull(value);
-      const h = parseNumberOrNull(raw.height);
-      return max != null && h != null && h <= max;
-    }
-    case "weightMin": {
-      const min = parseNumberOrNull(value);
-      const w = parseNumberOrNull(raw.weight);
-      return min != null && w != null && w >= min;
-    }
-    case "weightMax": {
-      const max = parseNumberOrNull(value);
-      const w = parseNumberOrNull(raw.weight);
-      return max != null && w != null && w <= max;
-    }
-    case "ageMin": {
-      const min = parseNumberOrNull(value);
-      const age = parseNumberOrNull(raw.age);
-      return min != null && age != null && age >= min;
-    }
-    case "ageMax": {
-      const max = parseNumberOrNull(value);
-      const age = parseNumberOrNull(raw.age);
-      return max != null && age != null && age <= max;
-    }
-    case "club": {
-      const clubs = normalizeClubValue(value);
-      if (!clubs.length) return false;
-      return clubs.some((club) => matchesAnyIncludes(raw.club, club));
-    }
-    case "league": {
-      const leagues = normalizeTextAllowanceListValue(value);
-      if (!leagues.length) return false;
-      return leagues.some((league) => matchesAnyEquals(raw.league, league));
-    }
-    case "nationality": {
-      const nationalities = normalizeTextAllowanceListValue(value);
-      if (!nationalities.length) return false;
-      return nationalities.some((nation) => matchesAnyIncludes(raw.nationality, nation));
-    }
-    case "cardType":
-      return matchesAnyEquals(raw.card_type, value);
-    case "region":
-      return matchesAnyIncludes(raw.region, value);
-    case "foot":
-      return matchesAnyEquals(raw.foot, value);
-    case "playingStyle":
-      return matchesAnyEquals(raw.playing_style, value);
-    default:
-      return false;
+    case "overall":    return isWithinOptionalRange(parseNumberOrNull(raw.overall), min, max);
+    case "overallMax": return isWithinOptionalRange(parseNumberOrNull(raw.overall_max), min, max);
+    case "height":     return isWithinOptionalRange(parseNumberOrNull(raw.height), min, max);
+    case "weight":     return isWithinOptionalRange(parseNumberOrNull(raw.weight), min, max);
+    case "age":        return isWithinOptionalRange(parseNumberOrNull(raw.age), min, max);
+    default:           return false;
   }
 }
 
+const categoryLabel = (key) => ALLOWANCE_DEF_MAP.get(key)?.label || key;
+
+/** The enabled categories, their selected values, and both count maps. */
+function* activeAllowanceRules(cfg) {
+  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
+  for (const key of enabled) {
+    if (!ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
+      yield { key, value: String(cfg.allowance?.[key] || "").trim() };
+      continue;
+    }
+    const values = normalizeAllowanceListValue(key, cfg.allowance?.[key]);
+    if (!values.length) continue;
+    yield {
+      key,
+      values,
+      caps: parseAllowanceCountMap(cfg.allowanceCaps?.[key], values),
+      mins: parseAllowanceCountMap(cfg.allowanceMins?.[key], values),
+    };
+  }
+}
+
+const sidePicksOf = (room, side) =>
+  // slot-addressed: skip the holes, they are empty pitch slots
+  (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
+
+/** Which maximum the incoming player would break, or `null`. */
 export function getAllowanceCapViolation(room, side, player) {
   const cfg = room?.config || {};
   /* The checkbox reads "ignore category filters" and now does: it used to grey
      out the editor and leave every previously-set cap in force. */
   if (cfg.allowAllPlayers) return null;
-  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
-  const allowance = cfg.allowance || {};
-  const caps = cfg.allowanceCaps || {};
-  // slot-addressed: skip the holes, they are empty pitch slots
-  const sidePicks = (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
+  const sidePicks = sidePicksOf(room, side);
 
-  for (const key of enabled) {
-    if (key === "position") {
-      const selected = normalizePositionValue(allowance.position || "");
-      const effectivePositions = selected.length ? selected : POSITION_OPTIONS;
-      const capMap = parsePositionCapMap(caps.position, effectivePositions);
-      const playerPos = String(player?._raw?.position || "").trim().toUpperCase();
-      if (!effectivePositions.includes(playerPos)) continue;
-      const cap = Number(normalizeAllowanceCapValue(capMap[playerPos]));
-      if (!Number.isFinite(cap) || cap <= 0) continue;
-      const already = sidePicks.reduce((acc, p) => {
-        const pos = String(p?._raw?.position || "").trim().toUpperCase();
-        return acc + (pos === playerPos ? 1 : 0);
-      }, 0);
-      if (already + 1 > cap) {
-        return { key, label: `Position ${playerPos}`, cap };
-      }
-      continue;
-    }
-
-    if (TEXT_ALLOWANCE_LIST_KEYS.has(key)) {
-      const values = normalizeTextAllowanceListValue(allowance[key] || "");
-      if (!values.length) continue;
-      const capMap = parseTextAllowanceCapMap(caps[key], values);
-      const matchedValues = values.filter((valueItem) => {
-        if (key === "club") return matchesAnyIncludes(player?._raw?.club, valueItem);
-        if (key === "league") return matchesAnyEquals(player?._raw?.league, valueItem);
-        return matchesAnyIncludes(player?._raw?.nationality, valueItem);
-      });
-      for (const valueItem of matchedValues) {
-        const cap = Number(normalizeAllowanceCapValue(capMap[valueItem]));
-        if (!Number.isFinite(cap) || cap <= 0) continue;
-        const already = sidePicks.reduce((acc, p) => {
-          if (key === "club") return acc + (matchesAnyIncludes(p?._raw?.club, valueItem) ? 1 : 0);
-          if (key === "league") return acc + (matchesAnyEquals(p?._raw?.league, valueItem) ? 1 : 0);
-          return acc + (matchesAnyIncludes(p?._raw?.nationality, valueItem) ? 1 : 0);
-        }, 0);
+  for (const rule of activeAllowanceRules(cfg)) {
+    if (rule.values) {
+      for (const value of rule.values) {
+        const cap = Number(normalizeAllowanceCapValue(rule.caps[value]));
+        if (!cap) continue;
+        if (!playerMatchesAllowanceValue(rule.key, player, value)) continue;
+        const already = sidePicks
+          .filter((p) => playerMatchesAllowanceValue(rule.key, p, value)).length;
         if (already + 1 > cap) {
-          return { key, label: `${ALLOWANCE_DEF_MAP.get(key)?.label || key} ${valueItem}`, cap };
+          return { key: rule.key, label: `${categoryLabel(rule.key)} ${value}`, cap };
         }
       }
       continue;
     }
-    const cap = Number(normalizeAllowanceCapValue(caps[key]));
-    if (!Number.isFinite(cap) || cap <= 0) continue;
-    const value = String(allowance[key] || "").trim();
-    if (!value) continue;
-    const already = sidePicks.reduce((acc, p) => acc + (playerMatchesAllowanceCategory(p, key, value) ? 1 : 0), 0);
-    const addsOne = playerMatchesAllowanceCategory(player, key, value) ? 1 : 0;
+
+    const cap = Number(normalizeAllowanceCapValue(cfg.allowanceCaps?.[rule.key]));
+    if (!cap || !rule.value) continue;
+    const already = sidePicks
+      .filter((p) => playerMatchesAllowanceCategory(p, rule.key, rule.value)).length;
+    const addsOne = playerMatchesAllowanceCategory(player, rule.key, rule.value) ? 1 : 0;
     if (already + addsOne > cap) {
-      const label = ALLOWANCE_DEF_MAP.get(key)?.label || key;
-      return { key, label, cap };
+      return { key: rule.key, label: categoryLabel(rule.key), cap };
     }
   }
   return null;
@@ -641,33 +334,33 @@ export function getAllowanceCapViolation(room, side, player) {
  * an empty board breaks every one of them, and a half-full board breaks most.
  * So it is checked once, against the finished squad, at CONFIRM — which is also
  * the last moment the player can still do anything about it.
- *
- * Only the single-count categories carry a minimum. The per-value ones cap each
- * selected value separately and have no floor; see `allowance.md`.
  */
 export function getAllowanceMinViolations(room, side) {
   const cfg = room?.config || {};
   if (cfg.allowAllPlayers) return [];
-
-  const enabled = Array.isArray(cfg.allowanceEnabled) ? cfg.allowanceEnabled : [];
-  const mins = cfg.allowanceMins || {};
-  const allowance = cfg.allowance || {};
-  const sidePicks = (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
+  const sidePicks = sidePicksOf(room, side);
 
   const violations = [];
-  for (const key of enabled) {
-    if (!ALLOWANCE_SIMPLE_COUNT_KEYS.has(key)) continue;
-    const min = Number(normalizeAllowanceCapValue(mins[key]));
-    if (!Number.isFinite(min) || min <= 0) continue;
-    const value = String(allowance[key] || "").trim();
-    if (!value) continue;
+  for (const rule of activeAllowanceRules(cfg)) {
+    if (rule.values) {
+      for (const value of rule.values) {
+        const min = Number(normalizeAllowanceCapValue(rule.mins[value]));
+        if (!min) continue;
+        const have = sidePicks
+          .filter((p) => playerMatchesAllowanceValue(rule.key, p, value)).length;
+        if (have < min) {
+          violations.push({ key: rule.key, label: `${categoryLabel(rule.key)} ${value}`, min, have });
+        }
+      }
+      continue;
+    }
 
-    const have = sidePicks.reduce(
-      (acc, p) => acc + (playerMatchesAllowanceCategory(p, key, value) ? 1 : 0),
-      0,
-    );
+    const min = Number(normalizeAllowanceCapValue(cfg.allowanceMins?.[rule.key]));
+    if (!min || !rule.value) continue;
+    const have = sidePicks
+      .filter((p) => playerMatchesAllowanceCategory(p, rule.key, rule.value)).length;
     if (have < min) {
-      violations.push({ key, label: ALLOWANCE_DEF_MAP.get(key)?.label || key, min, have });
+      violations.push({ key: rule.key, label: categoryLabel(rule.key), min, have });
     }
   }
   return violations;

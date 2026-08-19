@@ -36,7 +36,7 @@ Four separate causes have produced that symptom, all now fixed:
   positioned box still extends its scroll container's scrollable area, so the closed
   "Choose a category" dropdown — up to 280px of it — added phantom scroll to the settings
   column that revealed nothing. It toggles `display` now, like every sibling panel
-  (`.allowance-pos-panel`, `.allowance-multi-panel`, `.allowance-cap-panel`) already did.
+  (`.allowance-picker-panel` is `display: none` when closed for the same reason).
 - **…and the same panel *open* added 143px of real scroll** at 1440×830, because it hangs
   below the scroller's bottom edge. `clampDropdownToScroller()` in `lobby.js` caps it to
   the room left under its trigger when `.prep-scroll` is actually clipping (it is
@@ -50,7 +50,7 @@ the guest could see the first two of the host's twelve categories and had no way
 the rest. It is out of that selector now — everything inside it is a button, input or
 label, so the guest scrolls the list and edits nothing. Verified at 1440×830: list
 `pointer-events: auto` with 1167px of scroll range, and `button` / `input` / `label` /
-`.allowance-pos-dropdown` / `.allowance-cap-wrap` inside it all still `none`.
+`.allowance-picker-wrap` inside it all still `none`.
 
 Measured with twelve categories (1287px of rows): `.prep-scroll` scrollable **0** at
 1440×830 and 1440×900, `.allowance-list` the only inner scroller in both, host and guest
@@ -192,41 +192,80 @@ the rule. There is no account behind it and so no squad, and the draft falls bac
 to a demo pool; counting it as 0 would stop every room in `draft-testing` from
 ever starting.
 
-## An allowance row is two labelled halves
+## An allowance row: a head, then one shape of body
 
-`.allowance-item-row` is a grid of `main | cap | remove`, and **anything in the
-right-hand column must declare `grid-area: cap`**. Without it the block
-auto-places into the grid's empty first cell, landing *above* the control it
-belongs beside and leaving the right half of the row blank — which is how the
-card-type and position rows had always rendered, and how the new count pair
-rendered until it was given the area. `.allowance-count-pair`,
-`.allowance-cap-wrap` and `.allowance-pos-cap-wrap` all claim it.
+`.allowance-item-head` is the category name and its Remove button on one line.
+Remove used to sit in the row below, beside the value control, which made every
+row's widest column a button that has nothing to do with the value next to it —
+and gave the per-value categories, whose values fill the row, nowhere to put it.
 
-Both halves carry a small heading, so a row reads as two labelled questions —
-*which players* on the left, *how many* on the right:
+Below it, `.allowance-item-row` is either **two labelled halves** or one:
 
-- ranges → the **unit** (`def.unit`: YEARS, cm, kg, Rating), never the category
-  name, which the row title already carries;
-- foot → SIDE, and its two options are a `1fr 1fr` grid so they fill the column
-  instead of sitting as small buttons against a wide empty track;
-- the count pair → PLAYERS.
+- a `range` category keeps the grid — *which players* on the left
+  (`.allowance-range-block`), *how many* on the right (`.allowance-count-pair`),
+  each under a small heading, because both are Min/Max boxes and without one they
+  read as the same question asked twice. The left heading is the **unit**
+  (`def.unit`: Years, cm, kg, Rating), never the category name, which the row
+  title already carries; the right one is PLAYERS.
+- every other shape takes `.allowance-item-row--full`, one column, because its
+  counts live **inside** its value list and there is no right-hand half to fill.
 
-Measured at 320 / 480 / 620 / 900 / 1100: every row keeps both halves on one
-line, with no overflow on the page or inside `#allowanceList`.
+`.allowance-value-row` is `name | counts | remove`, `align-items: end` so the name
+sits on the inputs' baseline rather than on the Min/Max captions'. Foot omits the
+Remove button — its two options are the category, not a selection from it — and
+prints the unit heading (SIDE) above the list instead of a picker.
+
+**The grid no longer uses named areas.** It had `grid-template-areas` with a
+`cap` cell, and anything in the right-hand column that failed to declare
+`grid-area: cap` auto-placed into the grid's empty first cell — landing *above*
+the control it belonged beside and leaving the right half of the row blank. Two
+columns in source order cannot do that.
+
+Measured at 320 / 480 / 620 / 900 / 1440 with six categories: nothing inside
+`#allowanceList` overflows at any of them, and every value row keeps its three
+parts on one line (the name ellipsises to 40px at 320 rather than wrapping). The
+settings column as a whole still overruns a 320px viewport by 35px — that is the
+`.lv-field-row` steppers above the list, and it predates this work: the old build
+overran by 89px at the same width.
+
+## Adding a value
+
+One picker serves every per-value category (`lobby/valuePicker.js`), and the only
+difference between a `list` and a `search` category is where its options come
+from — see `allowance.md` for the table.
+
+- **Clicking an option is the add.** A `list` category therefore has no Add
+  button (`.allowance-add-row--no-button`): its values must come from its list,
+  so a button would be a second click with no decision in it. `search` keeps one,
+  because club and nationality match on a substring and "Barcelona" is a
+  deliberate half of "FC Barcelona" that no suggestion list will offer.
+- **The picker stays open after an add**, with focus back in its box: adding one
+  club is rarely adding all of them.
+- **The outside-click dismisser reads `e.composedPath()`, not
+  `e.target.closest()`.** Adding a value rebuilds the allowance list, so by the
+  time the click reaches `document` the option it started on has been detached
+  and `closest` walks up to nothing — which read as "clicked outside" and shut
+  the panel on every single add. The path is fixed at dispatch and still
+  describes where the click landed.
+- The panel opens **on click, not on focus**. A click is also how it is
+  dismissed, and a focus-open panel cannot be closed by clicking the box it hangs
+  off.
 
 ## Typing in the allowance list
 
-Two separate bugs made the range fields almost unusable, and both came from
-work happening while the user was still typing.
+Two separate bugs made the number fields almost unusable, and both came from work
+happening while the user was still typing. Every count box on the list — the
+range bounds, a category's Players pair, a value's own Min/Max — is bound the
+same way because of them.
 
 **1. The inverted-pair swap belongs on `change`, not on `input`.**
-`normalizeAllowanceRangeValue` reorders a pair whose min exceeds its max. Run per
-keystroke, that fires *mid-number*: with 30 in the min, the "3" of "35" made
-`30 > 3` true, the two swapped, both boxes were rewritten under the cursor, and
-the rest of the number landed in the wrong field. The `input` handler now stores
-what is in the boxes verbatim (`rawAllowanceRangeValue`) and the `change` handler
-clamps, swaps and writes back — **the same split the duration fields already
-used**.
+`normalizeAllowanceRangeValue` and `orderAllowanceCountPair` both reorder a pair
+whose min exceeds its max. Run per keystroke, that fires *mid-number*: with 30 in
+the min, the "3" of "35" made `30 > 3` true, the two swapped, both boxes were
+rewritten under the cursor, and the rest of the number landed in the wrong field.
+The `input` handler records; the `change` handler clamps, swaps and writes back —
+**the same split the duration fields already used**. `commitAllowanceValueCounts`
+takes an `order` flag for exactly this, and only `change` passes it.
 
 **2. `renderAllowanceList` rebuilds `#allowanceList` from `innerHTML` on every
 render**, and a render follows every config echo. So about a second after a
@@ -235,14 +274,20 @@ and that forced blur fired `change` — which ran the swap on a half-typed numbe
 Fixing the first bug alone did **not** fix the symptom; both were producing it.
 
 The rebuild is now skipped while an `<input>` inside the list holds focus and the
-category set is unchanged (`els.list.dataset.signature`). Deliberately narrow:
+signature is unchanged (`els.list.dataset.signature`). Deliberately narrow:
 
 - a focused **button** is not typing, so Remove can still rebuild the list it
   sits in;
-- a changed category set rebuilds regardless, so Add and Remove both work — both
+- the signature carries each per-value category's **value list**, not just the
+  category set, so adding a club while the search box has focus still draws the
+  new row;
+- a changed signature rebuilds regardless, so Add and Remove both work — both
   verified with focus held in a field, and a half-typed value survived the add;
 - the **guest** never holds focus here (their inputs are disabled), so their
   view keeps updating live.
+
+Measured on a live room: a half-typed `1` in a value's Max box survived 1.8 s of
+presence polls and a config echo with focus intact, and committed as `12`.
 
 ## Matchup band (`.lobby-summary`)
 
@@ -268,8 +313,10 @@ therefore stays "START DRAFT" and carries the reason in `title` only — do not 
 waiting text back on the button.
 
 Guest read-only: `.prep-col--settings.is-readonly .prep-scroll :is(button, ...)` disables
-all interactive elements including `.lv-stepper-btn` and `.lv-reveal-card` — no extra CSS
-needed for new controls. `renderLobby()` additionally sets `.disabled` on the two
+all interactive elements including `.lv-stepper-btn`, `.lv-reveal-card` and
+`.allowance-picker-wrap` — no extra CSS needed for new controls. Measured on a guest at
+1440×900: four categories rendered, `#allowanceList` `pointer-events: auto` with 577 px of
+scroll range, every count input and picker inside it `none`. `renderLobby()` additionally sets `.disabled` on the two
 duration inputs directly (`banDurationEl.disabled = !isHost`).
 
 **The `.prep-scroll` in that selector is load-bearing — never widen it back to the whole

@@ -108,9 +108,9 @@ room's `formations` field is display data the client normalises on the way in.
 Length-cap it there; do not "helpfully" add the whitelist.
 
 Inside the client there should be **no** such pairs. The formation table, the
-draft sort categories (`shared/players/sort.js`) and the club-suggestion markup
-(`clubSuggestPanelHtml`) each live in exactly one module — the sort categories
-because two copies drifted into two different orders, the suggestion markup
+draft sort categories (`shared/players/sort.js`) and the allowance picker's panel
+markup (`allowancePickerPanelHtml`) each live in exactly one module — the sort
+categories because two copies drifted into two different orders, the panel markup
 because two copies drifted in shape and the panel changed on re-render.
 
 Also canonical in one order everywhere: **positions**, CF → SS → RWF → LWF → AMF

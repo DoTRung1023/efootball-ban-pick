@@ -7,12 +7,10 @@
  */
 
 import { cb } from '@/features/draft/callbacks.js';
-import { POSITION_OPTIONS, TEXT_ALLOWANCE_LIST_KEYS } from '@/features/draft/constants.js';
+import { ALLOWANCE_VALUE_LIST_KEYS } from '@/features/draft/constants.js';
 import {
-  normalizeAllowanceCapValue,
   normalizeAllowanceRangeValue,
-  normalizeTextAllowanceListValue,
-  stringifyTextAllowanceCapMap,
+  orderAllowanceCountPair,
 } from '@/features/draft/allowance.js';
 import {
   state,
@@ -66,47 +64,52 @@ function readAllowanceFromDom() {
   return allowance;
 }
 
-/** Collects per-category caps: simple numbers, the position map, and text-list maps. */
-/** The `Players min` boxes: a plain count per category, never a map. */
-function readAllowanceMinsFromDom() {
-  const mins = {};
-  for (const input of queryAll(".allowance-item-min")) {
-    const key = input.dataset.allowanceMinKey;
-    if (!key) continue;
-    mins[key] = normalizeAllowanceCapValue(input.value);
-  }
-  return mins;
-}
-
-function readAllowanceCapsFromDom(allowance) {
+/**
+ * Both player-count maps, read straight off the visible Min/Max boxes.
+ *
+ * Off the boxes and not off `state.room.config`, because the two disagree for
+ * as long as someone is typing: the list is not rebuilt while a field has
+ * focus, so the field is ahead of the config it will be written into.
+ *
+ * A `range` category yields one bare count per side of the pair; every other
+ * shape yields a `{value: count}` JSON map, one entry per value that carries a
+ * rule. An empty map is `""` — the same "no rule" every other empty count is.
+ */
+function readAllowanceCountsFromDom() {
   const caps = {};
+  const mins = {};
 
-  for (const input of queryAll(".allowance-item-cap")) {
-    const key = input.dataset.allowanceCapKey;
-    if (!key || TEXT_ALLOWANCE_LIST_KEYS.has(key)) continue;
-    caps[key] = normalizeAllowanceCapValue(input.value);
-  }
+  for (const item of queryAll(".allowance-item[data-allowance-key]")) {
+    const key = item.dataset.allowanceKey;
+    if (!key) continue;
 
-  const posInputs = queryAll(".allowance-pos-cap-input");
-  if (posInputs.length) {
-    const posCaps = {};
-    for (const input of posInputs) {
-      const pos = String(input.dataset.allowancePos || "").trim().toUpperCase();
-      if (!POSITION_OPTIONS.includes(pos)) continue;
-      const cap = normalizeAllowanceCapValue(input.value);
-      if (cap) posCaps[pos] = cap;
+    if (!ALLOWANCE_VALUE_LIST_KEYS.has(key)) {
+      const pair = orderAllowanceCountPair(
+        item.querySelector(`.allowance-item-min[data-allowance-min-key="${key}"]`)?.value,
+        item.querySelector(`.allowance-item-cap[data-allowance-cap-key="${key}"]`)?.value,
+      );
+      mins[key] = pair.min;
+      caps[key] = pair.cap;
+      continue;
     }
-    caps.position = Object.keys(posCaps).length ? JSON.stringify(posCaps) : "";
+
+    const capMap = {};
+    const minMap = {};
+    for (const row of item.querySelectorAll(".allowance-value-row")) {
+      const value = row.dataset.allowanceValueItem;
+      if (!value) continue;
+      const pair = orderAllowanceCountPair(
+        row.querySelector(".allowance-value-min")?.value,
+        row.querySelector(".allowance-value-max")?.value,
+      );
+      if (pair.min) minMap[value] = pair.min;
+      if (pair.cap) capMap[value] = pair.cap;
+    }
+    mins[key] = Object.keys(minMap).length ? JSON.stringify(minMap) : "";
+    caps[key] = Object.keys(capMap).length ? JSON.stringify(capMap) : "";
   }
 
-  for (const hidden of queryAll(".allowance-club-cap-hidden[data-allowance-cap-key]")) {
-    const capKey = String(hidden.dataset.allowanceCapKey || "").trim();
-    if (!TEXT_ALLOWANCE_LIST_KEYS.has(capKey)) continue;
-    const values = normalizeTextAllowanceListValue(allowance[capKey] || "");
-    caps[capKey] = stringifyTextAllowanceCapMap(hidden.value, values);
-  }
-
-  return caps;
+  return { caps, mins };
 }
 
 /** Reads a control's value, falling back to the stored config when absent. */
@@ -123,8 +126,7 @@ function buildConfigPayload() {
   const allowanceInputs = queryAll(".allowance-item-input");
 
   const allowance = readAllowanceFromDom();
-  const allowanceCaps = readAllowanceCapsFromDom(allowance);
-  const allowanceMins = readAllowanceMinsFromDom();
+  const { caps: allowanceCaps, mins: allowanceMins } = readAllowanceCountsFromDom();
   const allowanceEnabled = distinctDataKeys(allowanceInputs, "allowanceKey");
 
   return {
