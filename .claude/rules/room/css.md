@@ -193,6 +193,24 @@ right edge. Start Match needs none either — `.sm-foot` and `.sm-foot-actions` 
 Check any new bottom-right control the same way: hide `#roomChat`, then
 `document.elementFromPoint` at the launcher's centre.
 
+**The dock's box is the launcher, not the launcher plus the panel.** `.room-chat` is
+52×52 and `.room-chat-panel` hangs off it with `position: absolute`. That is what makes it
+draggable: an anchor that changed size when the panel opened would move the button out
+from under the cursor. Two classes decide which way the panel opens, set from where the
+launcher ended up — `.is-flip-down` (top half of the screen: open downwards) and
+`.is-align-left` (left half: open rightwards). Without them a dragged dock opens its
+330×420 panel off-screen.
+
+`touch-action: none` goes on the two drag handles (`.room-chat-launcher`,
+`.room-chat-head`) and **never on `.room-chat`**: the browser honours an ancestor's
+`touch-action`, so on the container it would kill touch scrolling inside `.chat-log`,
+which is a child of it.
+
+The gutters above are measured against the dock's **default** corner. A player who drags
+it elsewhere leaves 68px of reserved padding behind in the corner (harmless) and may park
+the launcher over something else (their choice, and they can drag it back). Do not try to
+make the gutter follow the dock.
+
 ## Colour system (hard rule)
 
 **Never write a raw `rgba()` for green, cyan, red, amber, a light text colour, or a dark

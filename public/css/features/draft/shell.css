@@ -969,23 +969,32 @@
    after this one and would otherwise win the cascade against a rule here. */
 :root { --chat-dock-gutter: 68px; }
 
+/* The dock's box **is** the launcher, and the panel hangs off it absolutely.
+   That is what lets the thing be dragged: the anchor point cannot depend on
+   whether the panel is open, or opening it would move the button out from under
+   the cursor. `left`/`top` are set by the drag; until then the corner defaults
+   below hold, which is what `--chat-dock-gutter` is measured against. */
 .room-chat {
   position: fixed;
   right: 16px;
   bottom: 16px;
+  width: 52px;
+  height: 52px;
   z-index: 300;      /* over every phase (≤200), under menus (500) and modals */
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  /* The dock is only ever as wide as its panel, so the rest of the corner
-     stays clickable — a full-width wrapper here swallows the CTA behind it. */
-  pointer-events: none;
 }
 
-.room-chat > * { pointer-events: auto; }
+.room-chat.is-dragging,
+.room-chat.is-dragging .room-chat-launcher,
+.room-chat.is-dragging .room-chat-head { cursor: grabbing; }
+
+/* No text selection mid-drag — a drag that highlights the room's UI as it goes
+   looks broken and leaves the selection behind. */
+.room-chat.is-dragging { user-select: none; }
 
 .room-chat-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
   width: min(330px, calc(100vw - 32px));
   height: min(420px, calc(100vh - 120px));
   display: grid;
@@ -997,7 +1006,11 @@
   border-radius: var(--radius);
 }
 
+/* Also a drag handle — see `initDockDrag` in features/draft/chat.js. The close
+   button inside it opts out. */
 .room-chat-head {
+  cursor: move;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1015,6 +1028,7 @@
 }
 
 .room-chat-close {
+  cursor: pointer;
   width: 24px;
   height: 24px;
   display: grid;
@@ -1040,8 +1054,12 @@
    than the white-alpha fills. */
 .room-chat-launcher {
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 100%;
+  height: 100%;
+  /* On the two drag handles only, never on `.room-chat` itself: the browser
+     honours an ancestor's `touch-action`, so putting it on the dock would kill
+     touch scrolling inside `.chat-log`, which is a child of it. */
+  touch-action: none;
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
@@ -1059,6 +1077,19 @@
 .room-chat-launcher.is-open {
   background: var(--bg-input);
   border-color: var(--line-active);
+}
+
+/* Which way the panel opens. Set by the drag from where the launcher ended up:
+   dragged to the top of the screen it opens downwards, dragged to the left half
+   it opens rightwards. Without these it would open off-screen. */
+.room-chat.is-flip-down .room-chat-panel {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+.room-chat.is-align-left .room-chat-panel {
+  right: auto;
+  left: 0;
 }
 
 .room-chat-icon { width: 26px; height: 26px; display: block; }

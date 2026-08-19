@@ -31,10 +31,132 @@ const els = () => ({
   sendBtn: document.querySelector("#chatForm button[type='submit']"),
 });
 
+/* ── Dragging ────────────────────────────────────────────────────────────────
+   The dock can be put anywhere on screen. Position is the launcher's top-left
+   in viewport pixels, kept in localStorage so it survives the reload that
+   rejoining a room does — it is a preference about the window, not about the
+   room, so it is not keyed by code. Until it is dragged the CSS corner defaults
+   stand, which is what the phases' `--chat-dock-gutter` is measured against. */
+
+const DOCK_POS_KEY = "efb_chat_dock";
+const EDGE_MARGIN = 8;
+/* Under this, a pointer that moved is still a click. Pressing a 52px button
+   without shifting a pixel is not something a hand reliably does. */
+const DRAG_THRESHOLD_PX = 4;
+
+let suppressClick = false;
+
+function dockSize() {
+  const { dock } = els();
+  const r = dock?.getBoundingClientRect();
+  return { w: r?.width || 52, h: r?.height || 52 };
+}
+
+/** Keeps the whole launcher on screen, including after the window is resized. */
+function clampToViewport(x, y) {
+  const { w, h } = dockSize();
+  const maxX = Math.max(EDGE_MARGIN, window.innerWidth - w - EDGE_MARGIN);
+  const maxY = Math.max(EDGE_MARGIN, window.innerHeight - h - EDGE_MARGIN);
+  return { x: Math.min(Math.max(x, EDGE_MARGIN), maxX), y: Math.min(Math.max(y, EDGE_MARGIN), maxY) };
+}
+
+function applyDockPos(x, y) {
+  const { dock } = els();
+  if (!dock) return;
+  const pos = clampToViewport(x, y);
+  /* `right`/`bottom` have to go, or the fixed box is anchored on both axes and
+     the width the CSS gave it fights the position the drag is setting. */
+  dock.style.left = `${Math.round(pos.x)}px`;
+  dock.style.top = `${Math.round(pos.y)}px`;
+  dock.style.right = "auto";
+  dock.style.bottom = "auto";
+  const { w, h } = dockSize();
+  /* Open away from the nearest edges: the panel is 330×420 and would otherwise
+     hang off the screen the moment the launcher is anywhere but bottom-right. */
+  dock.classList.toggle("is-flip-down", pos.y + h / 2 < window.innerHeight / 2);
+  dock.classList.toggle("is-align-left", pos.x + w / 2 < window.innerWidth / 2);
+  return pos;
+}
+
+function storedDockPos() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DOCK_POS_KEY) || "null");
+    if (!raw || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) return null;
+    return raw;
+  } catch { return null; }
+}
+
+function saveDockPos(pos) {
+  try { localStorage.setItem(DOCK_POS_KEY, JSON.stringify(pos)); } catch { /* private mode */ }
+}
+
+function initDockDrag() {
+  const { dock, launcher } = els();
+  const head = document.querySelector(".room-chat-head");
+  if (!dock) return;
+
+  const stored = storedDockPos();
+  if (stored) applyDockPos(stored.x, stored.y);
+
+  /* A resize can leave a stored position off-screen — re-clamp rather than
+     lose the dock behind the edge of a smaller window. */
+  window.addEventListener("resize", () => {
+    if (!dock.style.left) return;
+    applyDockPos(parseFloat(dock.style.left), parseFloat(dock.style.top));
+  });
+
+  let dragging = false;
+  let startX = 0, startY = 0, originX = 0, originY = 0;
+
+  const onDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    /* The close button lives inside the handle and is not a grip. */
+    if (e.target.closest(".room-chat-close")) return;
+    const r = dock.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    originX = r.left; originY = r.top;
+    dragging = false;
+    /* Capture keeps the drag alive when the pointer outruns the 52px button.
+       Wrapped because a pointer that has already been released — or a
+       synthetic event from a test harness — throws on an unknown id. */
+    try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* not captureable */ }
+    e.currentTarget.addEventListener("pointermove", onMove);
+    e.currentTarget.addEventListener("pointerup", onUp, { once: true });
+    e.currentTarget.addEventListener("pointercancel", onUp, { once: true });
+  };
+
+  const onMove = (e) => {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    dragging = true;
+    dock.classList.add("is-dragging");
+    applyDockPos(originX + dx, originY + dy);
+  };
+
+  const onUp = (e) => {
+    e.currentTarget.removeEventListener("pointermove", onMove);
+    try { e.currentTarget.releasePointerCapture?.(e.pointerId); } catch { /* never captured */ }
+    dock.classList.remove("is-dragging");
+    if (!dragging) return;
+    /* The click that follows this pointerup would toggle the panel — a drag
+       that ends by opening the chat is not what the hand asked for. */
+    suppressClick = true;
+    saveDockPos(applyDockPos(parseFloat(dock.style.left), parseFloat(dock.style.top)));
+  };
+
+  launcher?.addEventListener("pointerdown", onDown);
+  head?.addEventListener("pointerdown", onDown);
+}
+
 /** Binds the launcher, the close button and the composer. Called once, on boot. */
 export function initRoomChat() {
   const { launcher, panel, input } = els();
-  launcher?.addEventListener("click", () => setOpen(!isOpen));
+  launcher?.addEventListener("click", () => {
+    if (suppressClick) { suppressClick = false; return; }
+    setOpen(!isOpen);
+  });
+  initDockDrag();
   document.getElementById("chatCloseBtn")?.addEventListener("click", () => setOpen(false));
 
   document.getElementById("chatForm")?.addEventListener("submit", async (e) => {

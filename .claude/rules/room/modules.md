@@ -151,6 +151,13 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `pollPresence` (ahead of its per-phase branches, each of which returns) and `showView`
   (the exit screens are not rooms, and polling has usually stopped by the time one
   appears). The unread count lives in the module, not in `state` — nothing else reads it.
+  `initDockDrag()` makes the dock draggable from the launcher or the panel header (the
+  close button opts out): pointer events with capture, a **4px threshold** below which the
+  gesture is still a click, and a one-shot `suppressClick` so the click that ends a drag
+  does not toggle the panel. The position is the launcher's viewport top-left, clamped 8px
+  inside the edges (again on `resize`, or a smaller window would strand it), and saved to
+  `localStorage` under `efb_chat_dock` — it is a preference about the window, not about
+  the room, so it is deliberately not keyed by room code.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   allowance pills, live opponent feed.
