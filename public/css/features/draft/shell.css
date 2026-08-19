@@ -555,11 +555,24 @@
   gap: 8px;
 }
 
+/* Bottom centre, not bottom right: the chat launcher is fixed to that corner
+   and drew straight over the message. Centred, it also stops competing with
+   whichever primary action the phase keeps down there.
+
+   `z-index: 550` puts it over the chat dock (300) and the open menus (500) —
+   an announcement that arrives while a dropdown is open still has to be read.
+   `pointer-events: none` (below) is what keeps it from stealing a click on
+   anything it covers. */
 .toast {
   position: fixed;
-  right: 24px;
+  left: 50%;
   bottom: 24px;
-  transform: translateY(12px);
+  /* Both axes in one transform, so the `.show` state has to restate the
+     centring — drop the `translateX` there and the toast slides left by half
+     its width as it appears. */
+  transform: translate(-50%, 12px);
+  max-width: min(520px, calc(100vw - 48px));
+  text-align: center;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -569,12 +582,12 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition), transform var(--transition);
-  z-index: 100;
+  z-index: 550;
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .toast.toast--warn {

@@ -334,12 +334,14 @@
   box-shadow: none;
 }
 
-/* Bottom-right, out of the way of the content the message is about. */
+/* Bottom centre, matching the room page: an announcement reads the same way on
+   every screen, and the corner is where floating furniture lives. */
 .toast {
   position: fixed;
   bottom: 24px;
-  right: 24px;
-  transform: translateY(12px);
+  left: 50%;
+  transform: translate(-50%, 12px);
+  text-align: center;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text);
@@ -355,7 +357,9 @@
   max-width: calc(100vw - 48px);
 }
 
-.toast.show { opacity: 1; transform: translateY(0); }
+/* Restates the centring: a bare `translateY` here slides the toast left by half
+   its width on the way in. */
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error   { border-color: var(--danger-line); color: var(--danger); }
 .toast.success { border-color: var(--line-active); color: var(--text); }
 

@@ -130,7 +130,8 @@ Split into 8 focused files, loaded in order via `<link>` tags.
   `.ap-dd-panel`, `.filter-dd-panel`, `.pos-multiselect`, `.catalog-list`). Kept in
   visual sync with the room ban toolbar (`css/features/draft/ban.css`) — see the room
   CSS rule.
-- `modals.css` — shared modal overlay/card base, spinner, player popup, toast, confirm
+- `modals.css` — shared modal overlay/card base, spinner, player popup, toast (bottom
+  **centre**, matching the room and sign-in pages), confirm
   dialog, edit profile modal.
 - `rooms.css` — Rooms tab: the host's room code, then two action panels either side of
   an OR. Key blocks: `.rooms-code-block` (`.rooms-code-kicker` / `.rooms-code-display` /

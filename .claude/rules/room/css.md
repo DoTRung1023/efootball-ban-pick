@@ -190,6 +190,15 @@ START DRAFT (21%)** and **39px of the 290px CONFIRM BANS (13%)**, both labels ce
 untouched. That is the accepted cost: the dock drags anywhere and remembers where it was
 put, so a player who minds moves it once. Do not reintroduce a gutter for it.
 
+**The toast goes over it, and everything else.** `#toast` is bottom **centre**
+(`left: 50%` + `translate(-50%, …)`, restated in `.toast.show` or it slides sideways as it
+fades in) at `z-index: 550` — above the dock (300) and above the open menus (500), because
+an announcement that arrives while a dropdown is open still has to be readable. It was
+bottom-right at 100, which put it behind the chat launcher: the message showed up as a
+sliver of card peeking out from under the bubble. `pointer-events: none` is what lets it
+sit over a control without stealing the click. The home page's copy in `shared/modals.css`
+was centred to match; `auth.css` (sign-in) already was.
+
 **A stage change never moves it.** `#roomChat` is outside every `.view` and nothing
 re-creates it, so the element (and its inline `left`/`top`, and the open panel's scroll)
 survives lobby → ban → pick → Start Match. Verified by dragging to (872, 532) and then
