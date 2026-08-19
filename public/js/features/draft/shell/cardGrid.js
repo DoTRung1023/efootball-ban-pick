@@ -120,3 +120,29 @@ export function bindGridInfoToggle(btnId, gridId, storageKey) {
     }
   });
 }
+
+/**
+ * `35 players`, or `23 of 35 · 2 picked · 10 over limit` once cards are hidden.
+ *
+ * The breakdown is not decoration: both grids **filter** rather than grey out,
+ * so this line is the only thing that says a card was taken out and why. A pool
+ * that silently shrank from 35 to 23 reads as a bug.
+ *
+ * Kept terse because the pool column is ~274px at 320px wide and this wraps
+ * rather than truncating: `35 players · 23 available · …` ran to three lines
+ * and cost 31px of grid height for one word.
+ */
+export function renderPoolCount(elementId, total, shown, tally = {}) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  const parts = shown === total
+    ? [`${total} player${total === 1 ? "" : "s"}`]
+    : [`${shown} of ${total}`];
+  if (tally.banned) parts.push(`${tally.banned} banned`);
+  if (tally.picked) parts.push(`${tally.picked} picked`);
+  if (tally.blocked) parts.push(`${tally.blocked} over limit`);
+
+  const text = parts.join(" · ");
+  if (el.textContent !== text) el.textContent = text;
+}

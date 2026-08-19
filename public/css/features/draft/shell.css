@@ -1157,3 +1157,43 @@
   background: var(--fill-strong);
   border-radius: var(--radius-pill);
 }
+
+/* The heading over each board's card grid — MY SQUAD POOL on the pick board,
+   OPPONENT SQUAD on the ban board — with its live count on the right. One line:
+   it was a kicker plus a subtitle, and the subtitle said "Pick from your roster"
+   under a label that already reads MY SQUAD POOL.
+
+   In `shell.css` and not a phase sheet because both phases draw it, same as
+   `.mini-card` and `.side-panel`. It was `.pick-squad-header` in `pick.css`,
+   which only reached the ban board because `pick.css` happens to be linked
+   after `ban.css`. */
+.squad-pool-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  /* Wraps rather than truncates. The full count runs to "35 players · 23
+     available · 2 picked · 10 over limit", which is wider than the 274px pool
+     column at 320px — and every clause after the first is the part that
+     explains why the grid is short. */
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  line-height: 1.2;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* The pool is filtered, not greyed, so this line is the only thing that says a
+   card was taken out and why. Mono, because it is a row of numbers that changes
+   on every pick and a proportional face makes the whole line shift. */
+.squad-pool-count {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  text-transform: none;
+}

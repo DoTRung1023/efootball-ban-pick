@@ -137,7 +137,17 @@ export const LEGACY_ALLOWANCE_KEY_MAP = {
 
 // ── Player attribute options ──────────────────────────────────────
 export const POSITION_OPTIONS = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
-export const FOOT_OPTIONS = ["Left", "Right"];
+/**
+ * The catalog's own two values, verbatim — **not** `["Left", "Right"]`.
+ *
+ * `players_catalog.foot` holds "Left foot" / "Right foot", and every consumer
+ * matches it by equality: the draft FILTER panel's FOOT multi-select
+ * (`selected.has(read(p))`) and the foot allowance category
+ * (`playerMatchesAllowanceValue`). Against the short forms both compared
+ * "Left" to "Left foot" and matched nobody, so the filter silently returned an
+ * empty list and a foot cap could never be reached.
+ */
+export const FOOT_OPTIONS = ["Left foot", "Right foot"];
 
 // Mutable: populated at runtime by fetchFilterOptions() in room.js.
 // Use .length = 0 + push() to update — never reassign the binding.

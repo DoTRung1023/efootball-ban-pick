@@ -18,6 +18,7 @@ import {
   REVEAL_MODE_INSTANT,
 } from '@/features/draft/constants.js';
 import {
+  buildAllowanceGate,
   normalizeAllowanceListValue,
   parseAllowanceCountMap,
   playerMatchesAllowanceCategory,
@@ -37,6 +38,7 @@ import {
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
+import { renderPoolCount } from '@/features/draft/shell/cardGrid.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
@@ -220,37 +222,54 @@ function renderPickPlanList() {
 // ── Squad pool grid ──────────────────────────────────────────
 
 /**
- * The squad pool.
+ * The pool lists what you can act on **now**, and nothing else.
  *
- * **Only your own picks grey a card out.** Picks are per-side — the opponent
- * drafts from their own squad — so their taking a player says nothing about
- * yours. This used to read the union of both sides, which showed a green
- * "PICKED" badge on a player the *opponent* had taken.
+ * Three things take a card out of it, and all three are states you cannot pick
+ * from: the opponent banned it, it is already in your lineup, or a maximum it
+ * counts toward is full. Greying them out instead left a 38-card pool where
+ * seven of the cards were decoration, and the allowance ones did not even
+ * announce themselves until you clicked and got a toast.
  *
- * The opponent's *bans* are a different matter: those are aimed at you, and do
- * make a player unavailable.
+ * **The gate is evaluated against the lineup the next write would produce.**
+ * With a slot armed, that slot is emptied first — overwriting a filled one
+ * hands back whatever was in it, so swapping one CF for another must not read
+ * as a third CF. Without a slot armed there is nothing to hand back, so a full
+ * rule hides every further card until you free one. This is the same
+ * arithmetic `placePickInSlot` does before it writes; here it just runs
+ * earlier.
  *
- * There is no pick-limit gate on clickability. A pick always names its slot, and
- * landing on a filled one replaces its occupant, so a full lineup is still
- * editable — locking the pool at 23 would kill "change this player" at exactly
- * the point you want it.
+ * There is still no pick-limit gate: a pick names its slot and landing on a
+ * filled one replaces its occupant, so a full lineup stays editable.
  */
 function renderPickGrid(room, mySide, theirSide) {
   const grid = document.getElementById("pickGrid");
   if (!grid) return;
 
-  const rows = getPickListPlayers();
+  const pool = getPickListPlayers();
   const opponentBanIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b.id)));
   const myPickIds = new Set(filledPicks(room.picks?.[mySide]).map((p) => String(p.id)));
+  const blocks = buildAllowanceGate(lineupAfterArmedSlot(room, mySide), mySide);
+
+  const tally = { banned: 0, picked: 0, blocked: 0 };
+  const rows = pool.filter((p) => {
+    const id = String(p.id || "");
+    if (opponentBanIds.has(id)) { tally.banned += 1; return false; }
+    if (myPickIds.has(id)) { tally.picked += 1; return false; }
+    if (blocks(p)) { tally.blocked += 1; return false; }
+    return true;
+  });
+
+  renderPoolCount("pickPoolCount", pool.length, rows.length, tally);
+
   const pendingId = state.pickPendingPlayerId;
   // A confirmed squad is read-only until it is un-confirmed.
   const locked = Boolean(room.picksConfirmed?.[mySide]);
-
-  const flagsFor = (id) => {
-    const banned = opponentBanIds.has(id);
-    const picked = myPickIds.has(id);
-    return { banned, picked, pending: id === pendingId, clickable: !banned && !picked && !locked };
-  };
+  const flagsFor = (id) => ({
+    banned: false,
+    picked: false,
+    pending: id === pendingId,
+    clickable: !locked,
+  });
 
   /* The key is **which players, in what order** — nothing about their state.
      Picking someone changes only his flags, and rebuilding the grid for that
@@ -264,9 +283,7 @@ function renderPickGrid(room, mySide, theirSide) {
     grid.dataset.rowsKey = rowsKey;
     grid.innerHTML = rows.length
       ? rows.map((p) => playerCardHtml(p, flagsFor(String(p.id || "")))).join("")
-      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(
-          state.loadingPlayers ? "Loading your squad..." : "No players found.",
-        )}</div>`;
+      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(pickEmptyMessage(pool.length))}</div>`;
     return; // built with the current flags already applied
   }
 
@@ -274,7 +291,35 @@ function renderPickGrid(room, mySide, theirSide) {
 }
 
 /**
- * Repaints availability on the cards already in the grid.
+ * The room to measure the allowance against: this one, with the armed slot
+ * emptied. Nothing is armed most of the time, and then it is this room.
+ */
+function lineupAfterArmedSlot(room, mySide) {
+  const slot = state.pickActiveSlot;
+  if (slot == null) return room;
+  const picks = [...(room.picks?.[mySide] || [])];
+  picks[slot] = null;
+  return { config: room.config, picks: { [mySide]: picks } };
+}
+
+/**
+ * An empty pool means one of two very different things, and the difference is
+ * the only thing worth saying: nothing loaded, or everything is spoken for.
+ */
+function pickEmptyMessage(poolSize) {
+  if (state.loadingPlayers) return "Loading your squad...";
+  return poolSize
+    ? "Every remaining player is banned, picked, or over a ban-setting limit."
+    : "No players found.";
+}
+
+/**
+ * Repaints the cards already in the grid.
+ *
+ * Only two flags survive the filter above: a card that is banned, picked or
+ * over a limit is not in the grid at all, so `is-ban-taken` / `is-pick-taken` /
+ * `is-unavailable` have nothing left to mark here. They are still what
+ * `playerCardHtml` emits for the boards that do show unavailable cards.
  *
  * These classes are deliberately **not** part of `rowsKey`, so mutating them
  * here cannot desync the diff guard the way `is-hovered` would on a key built
@@ -282,10 +327,7 @@ function renderPickGrid(room, mySide, theirSide) {
  */
 function paintPickCardFlags(grid, flagsFor) {
   for (const card of grid.querySelectorAll(".player-card")) {
-    const { banned, picked, pending, clickable } = flagsFor(card.dataset.playerId || "");
-    card.classList.toggle("is-ban-taken", banned);
-    card.classList.toggle("is-pick-taken", picked);
-    card.classList.toggle("is-unavailable", banned || picked);
+    const { pending, clickable } = flagsFor(card.dataset.playerId || "");
     card.classList.toggle("is-pending", pending);
     card.classList.toggle("is-clickable", clickable);
     card.tabIndex = clickable ? 0 : -1;

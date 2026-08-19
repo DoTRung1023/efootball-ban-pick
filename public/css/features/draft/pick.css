@@ -203,19 +203,6 @@
   background: var(--bg-elevated);
 }
 
-/* The panel's whole heading, in one line. It was a kicker plus a subtitle on a
-   second line; the subtitle said "Pick from your roster" on the pick page, under
-   a label that already reads MY SQUAD POOL. */
-.pick-squad-header {
-  line-height: 1.2;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 /* Two rows, and which control sits on which is fixed rather than left to flex.
    The pool column is only ~360px, so search + sort + filter + info have never
    fitted on one line; `flex-wrap` alone broke them wherever it happened to run
@@ -442,41 +429,15 @@
 }
 
 /* ── Out of play ──────────────────────────────────────────────────────────
-   A card that is already banned or picked drops to 35% and stops taking the
-   pointer. The word is what tells the two apart: colour alone would leave a
-   red-blind player with two identical grey cards, so the badge always spells
-   it out and the hue only reinforces it. */
+   Nothing here any more, and that is the point: the pool **filters** instead of
+   greying. A card that is banned, picked or over an allowance maximum is not in
+   `#pickGrid` at all, and `.squad-pool-count` above the grid says how many left
+   and why.
 
-.pick-phase-grid .player-card.is-pick-taken,
-.pick-phase-grid .player-card.is-ban-taken {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after,
-.pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.pick-phase-grid .player-card.is-pick-taken .pc-img-wrap::after {
-  content: "PICKED";
-  color: var(--text-muted);
-}
-
-.pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
-  content: "BANNED";
-  color: var(--danger);
-  border-color: var(--danger-line);
-}
+   The PICKED / BANNED overlays that lived here styled
+   `.pick-phase-grid .player-card.is-pick-taken` / `.is-ban-taken`, which
+   `renderPickGrid` can no longer emit. `playerCardHtml` still takes those flags
+   for the grids that do show unavailable cards. */
 
 .pick-phase-grid::-webkit-scrollbar { width: 4px; }
 

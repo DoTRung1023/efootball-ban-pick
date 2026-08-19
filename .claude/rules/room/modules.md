@@ -58,7 +58,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   screen changed. A reply that lingers is noise; an announcement that flashes is
   simply missed.
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
-  `REGION_OPTIONS`, etc. The option arrays are **mutable** and are filled at runtime by
+  `REGION_OPTIONS`, etc. **They hold the catalog's own strings** — `FOOT_OPTIONS`
+  is `["Left foot", "Right foot"]`, not `["Left", "Right"]`, because every
+  consumer compares them to `players_catalog.foot` by equality. The option arrays are **mutable** and are filled at runtime by
   `fetchFilterOptions()`; update with `.length = 0` + `push()`, never reassign.
   `FORMATION_LAYOUTS` / `DEFAULT_FORMATION` are re-exported from
   `@/shared/players/formations.js` — the home page's game-plan pitch renders the same
@@ -103,8 +105,11 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `public/js/shared/players/playerMeta.js` — see below.
 - `allowance.js` — the allowance model: what a category's stored value means, the
   `{value: count}` maps behind its Min/Max, and whether a squad satisfies them
-  (`getAllowanceCapViolation`, `getAllowanceMinViolations`). The server normalises the
-  same data independently in `src/features/rooms/config.js`. See `allowance.md`.
+  (`buildAllowanceGate`, `getAllowanceCapViolation`, `getAllowanceMinViolations`).
+  It reads a player attribute **flat-first, `_raw` second**, because only the
+  catalog normalisation has a `_raw` — reading `_raw` alone is what left the whole
+  system inert outside the ban board. The server normalises the same data
+  independently in `src/features/rooms/config.js`. See `allowance.md`.
 
 ## Draft flow
 
@@ -165,8 +170,12 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   mid-page instead of in its default corner. `storedDockPos()` deletes the old localStorage
   key on the way past, so a position saved by the earlier build cannot haunt a new window.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
+  The grid drops the cards you have already banned rather than greying them; see
+  `ban-phase.md`.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
-  allowance pills, live opponent feed.
+  allowance pills, live opponent feed. The pool holds only cards you can act on —
+  banned, picked and over-a-maximum are all filtered out, not dimmed. See
+  `pick-phase.md`.
 - `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
   stages. See `ready-phase.md`.
 - `ready/matchSteps.js` — the table behind those stages: one row per handshake (READY,
@@ -214,8 +223,11 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `banInteractions.js` and `opponentSquad.js`. The parts every phase uses moved to the
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
-  `attachMiniCardGridHandlers`, `bindGridInfoToggle` (SHOW INFO / HIDE INFO)
-  **and** `bindCardGridHover`, all three of which serve ban and pick. `bindGridInfoToggle` is called from
+  `attachMiniCardGridHandlers`, `bindGridInfoToggle` (SHOW INFO / HIDE INFO),
+  `bindCardGridHover` **and** `renderPoolCount`, all four of which serve ban and
+  pick. `renderPoolCount` writes the `23 of 35 · 2 picked · 10 over limit` line
+  above each grid — both grids filter rather than grey, so it is the only thing
+  that says a card was taken out and why. `bindGridInfoToggle` is called from
   each phase's `bind*PhaseUiOnce`, not on DOMContentLoaded: the pick grid does
   not exist until its board first renders, so a load-time lookup found nothing
   and silently did nothing. Its localStorage key is per-grid, so hiding info

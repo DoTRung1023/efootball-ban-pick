@@ -39,6 +39,24 @@ merged during the rename; they are not interchangeable.
 
 ## Layout
 
+Ban phase left panel: a `.squad-pool-header` — "OPPONENT SQUAD" and
+`#banPoolCount` — then the toolbar and `#banGrid`. The grid had no label at all
+until the count needed somewhere to live. It is 14 px tall and stays on one line
+at 320 / 480 / 620 / 900 / 1440 (measured); the count wraps rather than
+truncating, because every clause after the first is the part that explains why
+the grid is short.
+
+**The grid holds only cards you can still ban.** One you have already taken —
+staged or confirmed — leaves it, and `#draftMyBansStrip` on the right is where
+you read your bans back. `renderPoolCount` writes `34 players`, or
+`33 of 34 · 1 banned` once you have started.
+
+**The ban settings hide nobody here, and cannot.** An allowance maximum only
+bites once a lineup has cards counting toward it, and during the ban phase
+neither side has picked anything — so every one of the opponent's players is
+still a legal pick for them. The pick board is where the settings filter; see
+`allowance.md`.
+
 Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks
 (bans-on-me / my-bans) and a `.ban-side-actions` footer. Each section header contains a
 `.ban-opponent-badge` pill showing the username, a colored presence dot

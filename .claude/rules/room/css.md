@@ -605,9 +605,10 @@ Key blocks:
   The hover panel still floats all four rows, but a row you cannot read on a
   card you are choosing from is not information you have.
 
-  Overlay CSS:
+  There is **no** overlay CSS on this grid any more. It carried
   `.is-pick-taken .pc-img-wrap::after { content: "PICKED" }` and
-  `.is-ban-taken::after { content: "BANNED" }`.
+  `.is-ban-taken::after { content: "BANNED" }`; the pool filters those cards out
+  instead of dimming them, so neither class can reach it. See `pick-phase.md`.
 - **`grid-auto-rows: max-content` is load-bearing on every grid holding a
   `.player-card` or a `.pick-slot`** — `.ban-phase-grid` had it;
   `.pick-phase-grid`, `.pick-opp-grid` and `.pick-bench` did not.

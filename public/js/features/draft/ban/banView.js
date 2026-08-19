@@ -17,6 +17,7 @@ import {
   stagedBanThumbHtml,
 } from '@/features/draft/playerCards.js';
 import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQuery.js';
+import { renderPoolCount } from '@/features/draft/shell/cardGrid.js';
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit } from '@/features/draft/engine/draftFlow.js';
@@ -278,42 +279,61 @@ function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining }) {
   }
 }
 
+/**
+ * The opponent's squad, minus the cards you have already taken out of it.
+ *
+ * A card you have banned — staged or confirmed — is not bannable again, so it
+ * leaves the grid rather than sitting in it greyed. Nothing is lost by that:
+ * `#draftMyBansStrip` on the right is the list of your bans, and it is the
+ * thing you look at to count them.
+ *
+ * **The ban settings hide nobody here, and cannot.** A maximum only bites once
+ * a lineup has cards counting toward it, and during the ban phase neither side
+ * has picked anything — so every one of their players is still a legal pick for
+ * them. The count line says how many of them each rule covers instead, which is
+ * what actually decides a ban: their 3 GKs against a `GK min 1` are the bans
+ * that hurt.
+ */
 function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed }) {
-  const rows = getBanListPlayers();
+  const pool = getBanListPlayers();
   const canStillBan = !maxBans || myBans.length + state.stagedBans.length < maxBans;
   const stagedIds = new Set(state.stagedBans.map((p) => String(p.id)));
-  // Only YOUR bans grey a card out — the opponent banning it is irrelevant here.
   const myConfirmedIds = new Set(myBans.map((b) => String(b.id)));
 
-  const flagFor = (id) =>
-    myConfirmedIds.has(id) ? "b" : stagedIds.has(id) ? "s" : "";
+  const tally = { banned: 0 };
+  const rows = pool.filter((p) => {
+    const id = String(p.id);
+    if (myConfirmedIds.has(id) || stagedIds.has(id)) { tally.banned += 1; return false; }
+    return true;
+  });
+
+  renderPoolCount("banPoolCount", pool.length, rows.length, tally);
 
   const stateKey = [
     isMyTurn ? 1 : 0,
     canStillBan ? 1 : 0,
     readyPhase ? 1 : 0,
     myConfirmed ? 1 : 0,
-    rows.map((p) => String(p.id) + flagFor(String(p.id))).join(","),
+    rows.map((p) => String(p.id)).join(","),
   ].join("|");
   if (grid.dataset.stateKey === stateKey) return;
 
   grid.dataset.stateKey = stateKey;
   grid.innerHTML = rows.length
     ? rows.map((p) => {
-        const id = String(p.id);
-        const banned = myConfirmedIds.has(id) || stagedIds.has(id);
         // A confirmed side's bans are read-only until it un-confirms.
-        const clickable = isMyTurn && canStillBan && !banned && !readyPhase && !myConfirmed;
+        const clickable = isMyTurn && canStillBan && !readyPhase && !myConfirmed;
         // No pick exists yet during the ban phase, so a card is never "picked".
-        return playerCardHtml(p, { banned, picked: false, clickable });
+        return playerCardHtml(p, { banned: false, picked: false, clickable });
       }).join("")
-    : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage())}</div>`;
+    : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage(pool.length))}</div>`;
 }
 
-function banEmptyMessage() {
+function banEmptyMessage(poolSize) {
   if (state.loadingOpponentBanPlayers || !state.opponentBanPlayersLoaded) {
     return "Loading opponent squad cards...";
   }
+  if (poolSize) return "Every player matching this search is already banned.";
   return state.opponentBanPlayers.length
     ? "Opponent squad loaded."
     : "No opponent players to show yet.";

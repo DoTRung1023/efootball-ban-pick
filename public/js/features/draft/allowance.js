@@ -214,6 +214,23 @@ function isWithinOptionalRange(value, min, max) {
   return min != null || max != null;
 }
 
+/**
+ * One player attribute, whichever of the two shapes the object is in.
+ *
+ * The draft carries players in three normalisations and only **one** of them
+ * has a `_raw`: `normalizeApiPlayer` (the catalog, behind the ban board) keeps
+ * the row under `_raw`, while `normalizeMySquadPlayerForDraft` (your pool) and
+ * `normalizeDraftPlayer` (everything that round-trips through the room) hoist
+ * the fields flat.
+ *
+ * This file used to read `player._raw` and nothing else, so against a squad or
+ * a lineup every attribute came back `undefined`: no cap was ever reached, no
+ * minimum was ever met, and the pick board's counters sat at `0/2` for the
+ * whole draft. Flat-first with a `_raw` fallback is the same reader
+ * `playerFilters.js` uses on the same objects.
+ */
+const attr = (player, name) => player?.[name] ?? player?._raw?.[name] ?? "";
+
 const equalsCI = (fieldValue, value) =>
   String(fieldValue || "").trim().toLowerCase() === String(value || "").trim().toLowerCase();
 
@@ -229,25 +246,28 @@ const includesCI = (fieldValue, value) =>
  * a hypothetical "Left/Right".
  */
 export function playerMatchesAllowanceValue(key, player, value) {
-  const raw = player?._raw || {};
   if (!String(value || "").trim()) return false;
 
   switch (key) {
-    case "position":     return equalsCI(raw.position, value);
-    case "club":         return includesCI(raw.club, value);
-    case "league":       return equalsCI(raw.league, value);
-    case "nationality":  return includesCI(raw.nationality, value);
-    case "cardType":     return equalsCI(raw.card_type, value);
-    case "region":       return includesCI(raw.region, value);
-    case "foot":         return equalsCI(raw.foot, value);
-    case "playingStyle": return equalsCI(raw.playing_style, value);
+    case "position":     return equalsCI(attr(player, "position"), value);
+    case "club":         return includesCI(attr(player, "club"), value);
+    case "league":       return equalsCI(attr(player, "league"), value);
+    case "nationality":  return includesCI(playerNationality(player), value);
+    case "cardType":     return equalsCI(attr(player, "card_type"), value);
+    case "region":       return includesCI(attr(player, "region"), value);
+    case "foot":         return equalsCI(attr(player, "foot"), value);
+    case "playingStyle": return equalsCI(attr(player, "playing_style"), value);
     default:             return false;
   }
 }
 
+/* `normalizeDraftPlayer` writes the country to `nation` and copies it to
+   `nationality`; `normalizeApiPlayer` leaves it in `_raw.nationality` only. */
+const playerNationality = (player) =>
+  player?.nationality ?? player?.nation ?? player?._raw?.nationality ?? "";
+
 /** Whether a player falls in a category at all — any one of its values. */
 export function playerMatchesAllowanceCategory(player, key, valueRaw) {
-  const raw = player?._raw || {};
   const value = String(valueRaw || "").trim();
   if (!value) return false;
 
@@ -257,12 +277,13 @@ export function playerMatchesAllowanceCategory(player, key, valueRaw) {
   }
 
   const { min, max } = parseAllowanceRangeNumbers(value);
+  const within = (name) => isWithinOptionalRange(parseNumberOrNull(attr(player, name)), min, max);
   switch (key) {
-    case "overall":    return isWithinOptionalRange(parseNumberOrNull(raw.overall), min, max);
-    case "overallMax": return isWithinOptionalRange(parseNumberOrNull(raw.overall_max), min, max);
-    case "height":     return isWithinOptionalRange(parseNumberOrNull(raw.height), min, max);
-    case "weight":     return isWithinOptionalRange(parseNumberOrNull(raw.weight), min, max);
-    case "age":        return isWithinOptionalRange(parseNumberOrNull(raw.age), min, max);
+    case "overall":    return within("overall");
+    case "overallMax": return within("overall_max");
+    case "height":     return within("height");
+    case "weight":     return within("weight");
+    case "age":        return within("age");
     default:           return false;
   }
 }
@@ -292,39 +313,74 @@ const sidePicksOf = (room, side) =>
   // slot-addressed: skip the holes, they are empty pitch slots
   (Array.isArray(room?.picks?.[side]) ? room.picks[side] : []).filter(Boolean);
 
-/** Which maximum the incoming player would break, or `null`. */
-export function getAllowanceCapViolation(room, side, player) {
+/**
+ * The maximums a side is currently up against, as a reusable test.
+ *
+ * One rule per *number*, not per category: a per-value category contributes one
+ * check per capped value. Each carries how many of that side's picks already
+ * count toward it, so testing a player is a match test and a comparison — no
+ * re-walking the lineup. That is what lets the pick pool run this over every
+ * card on every render.
+ *
+ * Pass a room whose `picks[side]` already reflects the write you are about to
+ * make: `placePickInSlot` empties the target slot first, because overwriting a
+ * filled one hands back whatever was in it, and the pick grid does the same for
+ * the slot the player has armed.
+ */
+export function buildAllowanceGate(room, side) {
   const cfg = room?.config || {};
   /* The checkbox reads "ignore category filters" and now does: it used to grey
      out the editor and leave every previously-set cap in force. */
-  if (cfg.allowAllPlayers) return null;
+  if (cfg.allowAllPlayers) return () => null;
+
   const sidePicks = sidePicksOf(room, side);
+  const checks = [];
 
   for (const rule of activeAllowanceRules(cfg)) {
     if (rule.values) {
       for (const value of rule.values) {
         const cap = Number(normalizeAllowanceCapValue(rule.caps[value]));
         if (!cap) continue;
-        if (!playerMatchesAllowanceValue(rule.key, player, value)) continue;
-        const already = sidePicks
-          .filter((p) => playerMatchesAllowanceValue(rule.key, p, value)).length;
-        if (already + 1 > cap) {
-          return { key: rule.key, label: `${categoryLabel(rule.key)} ${value}`, cap };
-        }
+        checks.push({
+          key: rule.key,
+          label: `${categoryLabel(rule.key)} ${value}`,
+          cap,
+          used: sidePicks.filter((p) => playerMatchesAllowanceValue(rule.key, p, value)).length,
+          matches: (player) => playerMatchesAllowanceValue(rule.key, player, value),
+        });
       }
       continue;
     }
 
     const cap = Number(normalizeAllowanceCapValue(cfg.allowanceCaps?.[rule.key]));
     if (!cap || !rule.value) continue;
-    const already = sidePicks
-      .filter((p) => playerMatchesAllowanceCategory(p, rule.key, rule.value)).length;
-    const addsOne = playerMatchesAllowanceCategory(player, rule.key, rule.value) ? 1 : 0;
-    if (already + addsOne > cap) {
-      return { key: rule.key, label: categoryLabel(rule.key), cap };
-    }
+    checks.push({
+      key: rule.key,
+      label: categoryLabel(rule.key),
+      cap,
+      used: sidePicks.filter((p) => playerMatchesAllowanceCategory(p, rule.key, rule.value)).length,
+      matches: (player) => playerMatchesAllowanceCategory(player, rule.key, rule.value),
+    });
   }
-  return null;
+
+  /* A player who does not fall in the rule can never breach it — even when
+     `used` already exceeds `cap`, which a config edited mid-draft can produce.
+     Reporting that against every card would empty the pool over a rule none of
+     them belong to. */
+  return (player) => {
+    for (const check of checks) {
+      if (!check.matches(player)) continue;
+      if (check.used + 1 > check.cap) {
+        return { key: check.key, label: check.label, cap: check.cap };
+      }
+    }
+    return null;
+  };
+}
+
+/** Which maximum the incoming player would break, or `null`. */
+export function getAllowanceCapViolation(room, side, player) {
+  return buildAllowanceGate(room, side)(player);
 }
 
 /**

@@ -23,10 +23,11 @@ into `pickManualFormation`, so the dropdown stays authoritative afterwards.
 `#draftPickPhaseBoard` → `.pick-phase-layout`, a 3-column grid
 (`380px | 1fr | 252px`; `360 | 1fr | 220` at ≤1100 px; single column at ≤860 px):
 
-- **Left** (`.pick-phase-left`): "MY SQUAD POOL" header, then a toolbar carrying
-  the same controls as the ban board's — search, sort + direction, **FILTER**,
-  **SHOW INFO** — then the ALL/GK/DEF/MID/ATT tab bar and `#pickGrid`. Cards
-  carry `is-pick-taken` (green "PICKED") or `is-ban-taken` (red "BANNED").
+- **Left** (`.pick-phase-left`): a `.squad-pool-header` — "MY SQUAD POOL" and
+  `#pickPoolCount` — then a toolbar carrying the same controls as the ban
+  board's — search, sort + direction, **FILTER**, **SHOW INFO** — then the
+  ALL/GK/DEF/MID/ATT tab bar and `#pickGrid`. The grid holds **only cards you
+  can act on**; see "The pool is filtered" below.
   The toolbar is **two fixed rows** (search alone, then the other three) and its
   buttons run tighter than the ban board's, because the column is ~360 px wide
   rather than the width of the page — see `css.md`.
@@ -186,13 +187,40 @@ missing:
   `composedPath()` is fixed at dispatch and still holds the original ancestors.
 - **`submitPick` reads `state.pickActiveSlot` before its first `await`**, for the
   same ordering reason.
-- **The pool has no pick-limit gate.** Cards are clickable whenever they are
-  neither banned nor already yours. A full lineup is still editable because a
+- **The pool has no pick-limit gate.** Every card in it is clickable — being in
+  it is what says it is available. A full lineup is still editable because a
   pick names its slot and landing on a filled one replaces its occupant — a
   23-pick lock would kill "change this player" at exactly the point you want it.
 - **The pending player is resolved from `state.players`, not the filtered pool**,
   so changing the search or the position tab between the two clicks does not
   strand the choice.
+
+## The pool is filtered, not greyed
+
+`renderPickGrid` drops three kinds of card rather than dimming them: banned by
+the opponent, already in your lineup, and **over an allowance maximum**. The
+last one used to announce itself only after you clicked, as a toast.
+`renderPoolCount` writes `23 of 35 · 2 picked · 10 over limit` into
+`#pickPoolCount`, because a pool that silently shrank reads as a bug.
+
+`buildAllowanceGate` (`allowance.js`) is what makes this affordable: it walks the
+rules once, counting each against the lineup, so testing a card is a match plus
+a compare rather than a re-walk. It is measured against
+`lineupAfterArmedSlot(room, mySide)` — the lineup the **next write** would
+produce. With a slot armed that slot is emptied first, so the cards that would
+replace its occupant come back; with nothing armed a full rule hides every
+further card until a slot is freed. Measured with `Left foot` capped at 2 on a
+35-player squad: two placed → the other four vanish; click one of their slots →
+all four return; click away → gone again.
+
+Two consequences worth knowing:
+
+- `is-ban-taken` / `is-pick-taken` / `is-unavailable` are **unreachable on this
+  grid** now, and their PICKED / BANNED overlay CSS is gone from `pick.css`.
+  `playerCardHtml` still takes the flags for the grids that do show unavailable
+  cards.
+- The BANNED overlay was the only place during the pick phase that named which
+  of your players the opponent took. The count line says *how many*, not which.
 
 `placePickInSlot` checks the allowance caps against the lineup the write
 **produces**, not the current one — overwriting a filled slot gives back

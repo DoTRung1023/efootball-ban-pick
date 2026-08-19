@@ -56,12 +56,40 @@ taken off.
 list constrains nothing, which is what makes "add the category, then add the
 values you care about" safe: the default is the absence of a rule, not a zero.
 
+## Reading a player
+
+**`allowance.js` reads an attribute flat-first, `_raw` second** (`attr()`), and
+that is not defensive coding — the draft carries players in two shapes and only
+one has a `_raw`. `normalizeApiPlayer` (the catalog, behind the ban board) keeps
+the row under `_raw`; `normalizeMySquadPlayerForDraft` (your pool) and
+`normalizeDraftPlayer` (everything that round-trips through the room) hoist the
+fields flat. `playerFilters.js` has always read both.
+
+This file read `player._raw` and nothing else, so **against a squad or a lineup
+every attribute came back `undefined`**: no maximum was ever reached, no minimum
+was ever met, and the pick board's counters sat at `0/2` for a whole draft.
+Nothing about the system worked outside the ban board.
+
+Two things follow from it:
+
+- `normalizeMySquadPlayerForDraft` and `normalizeDraftPlayer` now carry
+  `overall`, `overall_max` and `card_type`. They dropped them, so those three
+  categories could not match a pick even once `_raw` stopped being required.
+- **`FOOT_OPTIONS` is `["Left foot", "Right foot"]`** — `players_catalog.foot`
+  holds exactly those strings and every consumer compares by equality. Against
+  `["Left", "Right"]` the foot allowance matched nobody, and so did the draft
+  FILTER panel's FOOT multi-select, which reads the same table.
+
 ## Where each end is enforced
 
 - **Maximum — at pick time**, `getAllowanceCapViolation`, called from
-  `draftActions.js` before a card lands in a slot. For a per-value category it
-  looks only at the values the host added, and only at the ones the incoming
-  player matches.
+  `draftActions.js` before a card lands in a slot, and **again over the whole
+  pool** by `renderPickGrid` — a card that would break a maximum is not shown.
+  Both go through `buildAllowanceGate`, which walks the rules once and counts
+  each one against the lineup, so testing a player is a match plus a compare.
+  That is what makes it affordable per card per render.
+  For a per-value category it looks only at the values the host added, and only
+  at the ones the incoming player matches.
 - **Minimum — at CONFIRM**, `getAllowanceMinViolations`. It cannot be checked any
   earlier: an empty board breaks every minimum and a half-full board breaks most.
   Taking a confirmation *back* is never blocked.
@@ -79,6 +107,29 @@ a closed set of exact names.
 
 Enforcement is client-side, as it has always been. The server normalises what it
 stores and owns the phase transitions, not the squad rules.
+
+## The pool shows what you can act on, and nothing else
+
+Both card grids **filter**; neither greys out. `renderPickGrid` drops a card
+that is banned by the opponent, already in your lineup, or over a maximum;
+`renderBanGrid` drops one you have already banned. `renderPoolCount`
+(`shell/cardGrid.js`) writes `23 of 35 · 2 picked · 10 over limit` above the
+grid, because a pool that silently shrank from 35 to 23 reads as a bug.
+
+**The maximum is measured against the lineup the next write would produce.**
+With a slot armed (`state.pickActiveSlot`), `lineupAfterArmedSlot` empties it
+first — overwriting a filled slot hands back whatever was in it, so swapping one
+CF for another must not read as a third CF. That is the same arithmetic
+`placePickInSlot` does before it writes; the grid just runs it earlier. Without
+a slot armed there is nothing to hand back, so a full rule hides every further
+card until a slot is freed. Measured on a 35-player squad with `Left foot` capped
+at 2: two placed → the other four vanish; click one of their slots → all four are
+back; click away → gone again.
+
+**The ban board's grid is not filtered by the allowance, and cannot be.** A
+maximum only bites once a lineup has cards counting toward it, and during the
+ban phase neither side has picked anything — so every one of the opponent's
+players is still a legal pick for them. Only your own bans leave that grid.
 
 ## The pick board prints one pill per rule, not per category
 
