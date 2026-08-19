@@ -128,9 +128,10 @@ Layout:
   grid so the ≤900 rung has something to restate.
 - `.lobby-cta-bar` — settings-panel footer, `space-between`: `#lobbyWaiting` (why the CTA
   is blocked) on the left, `.lobby-actions` on the right. `.lobby-actions` carries
-  `margin-left: auto` so the button stays right when the status is hidden, and the bar
-  carries `padding-right: var(--chat-dock-gutter)` so START DRAFT is not underneath the
-  floating chat launcher — see `css.md`.
+  `margin-left: auto` so the button stays right when the status is hidden. It carried a
+  right gutter for the floating chat launcher for one round; the launcher clears the bar
+  by sitting 84px up instead, so the button is flush with the panel edge again — see
+  `css.md`.
 
 ## Squad size gates START
 

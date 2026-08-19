@@ -175,23 +175,27 @@ Measured across both stage states, in the lobby and in the pick phase:
 the lobby, both draft boards and Start Match share one panel, one scroll position and one
 unread count.
 
-**Nothing may sit underneath it.** `--chat-dock-gutter` (68px = the 52px launcher plus its
-margin) is declared on `:root` beside the dock and read by the three bars that put
-something in the same corner:
+**Nothing may sit underneath it — and the dock is what moves, not the phases.** Every
+phase puts its primary action in the bottom-right: START DRAFT / READY (`.lobby-cta-bar`),
+CONFIRM BANS (`.ban-side-actions`), the opponent's live status (`.pick-live-footer`). The
+first version of this reserved a 68px `--chat-dock-gutter` in all three sheets, which
+indented all three controls away from their panel edge — visible, and the first thing
+anyone asks about. **That token is gone.** The dock defaults to `bottom: 84px` instead:
+the bars are ~56px tall, so one offset on the floating element buys the same clearance and
+the buttons keep their full width.
 
-| Sheet | Rule | What was underneath |
+Measured at 1440×900, sampling the launcher's four corners and centre with
+`elementFromPoint` and the dock hidden:
+
+| Phase | Under the launcher | Control? |
 | --- | --- | --- |
-| `lobby.css` | `.lobby-cta-bar` | START DRAFT — and it moved into that corner the moment the chat column left |
-| `ban.css` | `.ban-side-actions` | `#confirmBansBtn`, measured with `elementFromPoint` under the launcher's centre |
-| `pick.css` | `.pick-live-footer` | the opponent's live status line |
+| lobby | `.allowance-empty`, or an `.allowance-item` | none at the centre — but the **top-left corner clips a row's `.allowance-remove-btn`** when categories are added |
+| ban | `#draftMyBansStrip`, `.ban-side-actions` padding | none |
+| pick | `#pickOppGrid` | none |
 
-The gutter is applied **from those sheets, not from `shell.css`** — `shell.css` loads
-first, so a rule there loses the cascade to their own blocks. `.pick-bottom-actions` does
-**not** need it: CONFIRM PICKS is in the centre column, which ends well short of the
-right edge. Start Match needs none either — `.sm-foot` and `.sm-foot-actions` are centred.
-
-Check any new bottom-right control the same way: hide `#roomChat`, then
-`document.elementFromPoint` at the launcher's centre.
+That last overlap is the accepted residual: it is a secondary action, the list under it
+scrolls, and the dock is draggable. Do not fix it by indenting the rows — that is the
+gutter again, one level down.
 
 **The dock's box is the launcher, not the launcher plus the panel.** `.room-chat` is
 52×52 and `.room-chat-panel` hangs off it with `position: absolute`. That is what makes it

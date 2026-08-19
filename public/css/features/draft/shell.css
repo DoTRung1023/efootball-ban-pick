@@ -962,22 +962,25 @@
    players lost their only channel the moment the draft began.
    ══════════════════════════════════════════════════════════════ */
 
-/* Space the phases have to keep clear in the bottom-right corner: the launcher
-   plus its margin. Declared here because the dock owns the number; the three
-   bars that put a control in the same corner read it from their own sheets
-   (`.lobby-cta-bar`, `.ban-side-actions`, `.pick-bottom-actions`), which load
-   after this one and would otherwise win the cascade against a rule here. */
-:root { --chat-dock-gutter: 68px; }
-
 /* The dock's box **is** the launcher, and the panel hangs off it absolutely.
    That is what lets the thing be dragged: the anchor point cannot depend on
    whether the panel is open, or opening it would move the button out from under
-   the cursor. `left`/`top` are set by the drag; until then the corner defaults
-   below hold, which is what `--chat-dock-gutter` is measured against. */
+   the cursor. `left`/`top` are set by the drag; until then the defaults below
+   hold. */
 .room-chat {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  /* 84px, not 16: every phase puts its primary action in this corner — START
+     DRAFT / READY in `.lobby-cta-bar`, CONFIRM BANS in `.ban-side-actions`, the
+     opponent's live status in `.pick-live-footer` — and those bars are ~56px
+     tall. The dock used to sit on them and each sheet reserved a 68px gutter
+     for it, which indented all three buttons away from their panel edge; this
+     is the same clearance bought once, from the floating element, and the
+     buttons keep their full width. Measured at 1440×900: the launcher's centre
+     lands on `.allowance-empty` / an `.allowance-item` (lobby),
+     `#draftMyBansStrip` (ban) and `#pickOppGrid` (pick) — no control in any of
+     them. It is only the default; the dock is draggable. */
+  bottom: 84px;
   width: 52px;
   height: 52px;
   z-index: 300;      /* over every phase (≤200), under menus (500) and modals */
@@ -1124,7 +1127,7 @@
 .room-chat-panel .chat-log { border-color: transparent; }
 
 @media (max-width: 620px) {
-  .room-chat { right: 12px; bottom: 12px; }
+  .room-chat { right: 12px; bottom: 78px; }
   .room-chat-panel { height: min(60vh, calc(100vh - 110px)); }
 }
 
