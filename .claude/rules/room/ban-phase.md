@@ -34,17 +34,26 @@ thumbnails earn theirs; a shared helper does not.
 
 ## Layout
 
-Ban phase left panel: a `.squad-pool-header` — "OPPONENT SQUAD" and
-`#banPoolCount` — then the toolbar and `#banGrid`. The grid had no label at all
-until the count needed somewhere to live. It is 14 px tall and stays on one line
-at 320 / 480 / 620 / 900 / 1440 (measured); the count wraps rather than
-truncating, because every clause after the first is the part that explains why
-the grid is short.
+Ban phase left panel: a `.squad-pool-header` reading "OPPONENT SQUAD", then the
+toolbar and `#banGrid`. The grid had no label at all until a count needed
+somewhere to live; the count is gone (below) and the label stayed, because a
+panel should say what it is showing. It is 14 px tall and stays on one line at
+320 / 480 / 620 / 900 / 1440 (measured).
 
-**The grid holds only cards you can still ban.** One you have already taken —
-staged or confirmed — leaves it, and `#draftMyBansStrip` on the right is where
-you read your bans back. `renderPoolCount` writes `34 players`, or
-`33 of 34 · 1 banned` once you have started.
+**The grid holds the opponent's whole squad, with your bans marked.** A card you
+have taken — staged or confirmed — carries a red BANNED badge, drops to a dimmed
+grey, and stops taking the click; it does not leave. It used to, on the reasoning
+that it is not bannable again and `#draftMyBansStrip` already lists your bans.
+Two things were wrong with that: the pool is where you go to ask *"is he still
+available?"*, and a filtered grid answers by omission — indistinguishable from a
+search that never matched him — and the list moved under the pointer on every
+ban.
+
+Search, sort and the FILTER panel still remove cards. That is you asking for a
+shorter list, which is a different thing from the draft removing one.
+
+`#banPoolCount` went with the filtering. It read `33 of 34 · 1 banned` and
+existed only to explain why the pool had shrunk; nothing shrinks now.
 
 Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` blocks
 (bans-on-me / my-bans) and a `.ban-side-actions` footer. Each section header contains a
@@ -200,11 +209,12 @@ them in `serializeRoomEntry`, which is a server change and has not been made.
   `!isBanPhase && !state.turnTimer` and starts it on the next render cycle.
 - **Duplicate-ban prevention** uses only the current user's own bans: the server checks
   `entry.bans[sideKey]` (not the shared `bannedPlayerIds` union); the client checks
-  `room.bans[mySide]` in both `applyLocalBan` and `submitBan`. The ban grid renderer
-  computes `myConfirmedBanIds` from `room.bans[mySide]` — a card is greyed out only if
-  YOU already confirmed that ban, not if the opponent banned it. `bannedPlayerIds` (the
-  union of all bans) is still maintained in `entry`/`room` for other uses but is no
-  longer the authority for ban-phase duplicate detection.
+  `room.bans[mySide]` in both `applyLocalBan` and `submitBan`. `renderBanGrid` builds
+  its `bannedIds` set from `room.bans[mySide]` **plus `state.stagedBans`** — a card is
+  marked BANNED only if YOU took it, not if the opponent banned it, and a staged ban
+  marks the instant you click it rather than waiting for CONFIRM. `bannedPlayerIds`
+  (the union of all bans) is still maintained in `entry`/`room` for other uses but is
+  no longer the authority for ban-phase duplicate detection.
 - **Picks work the same way**, and did not always: they were globally exclusive
   through a `pickedPlayerIds` union, which has since been removed entirely. See
   `pick-phase.md`. The ban grid no longer carries a "picked" flag at all — bans
@@ -228,12 +238,15 @@ sorted/filtered order + ban/pick flags + turn state) is stored as a `data-state-
 whitespace and drop the `/` on void elements (`<img />` → `<img>`) when serializing, so
 the strings never match and the grid would rebuild every poll cycle.
 
-- The ban grid state key uses `myConfirmedBanIds` (`"b"` suffix) and staged ban IDs
-  (`"s"` suffix). There is no picked flag — bans are resolved before any pick exists.
-  Because the flags are *in* the key, staging a ban rebuilds the whole grid. The
-  pick grid no longer works this way: it keys on the player list alone and repaints
-  flags in place, which is what stopped its roster jumping on every pick. See
-  `pick-phase.md`; the ban grid would benefit from the same treatment.
+- **The ban grid no longer keys on its flags**, and that was the treatment this
+  entry used to recommend. Its key is `rowsKey` — which players, in what order —
+  exactly like the pick grid's, and every state a card can be in (`is-ban-taken`,
+  `is-unavailable`, `is-clickable`, the `tabindex`) is toggled in place by the
+  shared `paintCardFlags` in `shell/cardGrid.js`. Staging a ban therefore repaints
+  one card instead of rebuilding forty, which is what stopped the roster jumping.
+  Both grids now go through the one function.
+- The flags are deliberately **not** in `rowsKey`, so toggling them cannot desync
+  the guard the way `is-hovered` would on a key built from rendered state.
 - The BANS ON ME strip key encodes confirmed bans (`"c"` suffix), opponent staged bans
   (`"s"` suffix), and the remaining empty-slot count — all three must agree before a
   write is skipped.
@@ -365,11 +378,10 @@ one signal that a card can be clicked. Locked, they go flat, grey and
 `not-allowed`, and a banner above the grid names UN-CONFIRM, which lives in the
 sidebar where a hand on the cards will not find it.
 
-Your own bans keep their 0.45 opacity — the locked dim is
+Your own bans keep their BANNED badge and their dimmed art — the locked dim is
 `:not(.is-unavailable)` precisely so it cannot flatten them into the rest of the
-grid, which is the only thing marking them out here. The CSS is in
-`room/css.md`; `myConfirmed` is already in the grid's state key, so no extra
-rebuild comes with this.
+grid. The CSS is in `room/css.md`. `myConfirmed` is **not** in `rowsKey`; it
+reaches the cards through `paintCardFlags`, so no rebuild comes with this.
 
 > **Colour system note.** This file predates the efhub re-skin. The token *names* below
 > are current, but the reasoning often says "green", "cyan" or "glow" — those hues and

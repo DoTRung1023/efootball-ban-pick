@@ -220,9 +220,12 @@ seat and returns `{ code, side, phase }`. `home.js` awaits it before booting
 anything else and `location.replace`s into the room. `replace`, not `href`, so
 Back does not land on a page that immediately redirects here again.
 
-There is no trap: Leave frees the seat, so the next visit stays home. Declare
-the route **before `/:code`** — Express matches in order and `mine` is a valid
-room code as far as that route is concerned.
+There is no trap **so long as Leave really frees the seat**, and for a while it
+did not — see "Leave stops the heartbeat first" below. A seat that comes back
+after the leave turns this route into a loop: you press Leave, land on home, and
+are posted straight back into the room you just left. Declare the route **before
+`/:code`** — Express matches in order and `mine` is a valid room code as far as
+that route is concerned.
 
 **Signed-out players get this too**, because `getAnonId` now writes to
 `localStorage`. It was `sessionStorage`, so a signed-out player who closed the
@@ -303,6 +306,44 @@ everyone home. All cross-module render calls use `cb.*`.
 `leavePresence()` and `window.location.href = "/"`. The `allowLeave()` call is
 what stops the exit guard asking a second question about a decision the user has
 just made.
+
+### Leave stops the heartbeat first, and `leavePresence` owns that
+
+`stopPresencePolling()` is the **first line of `leavePresence()`**, not something
+the caller does. The heartbeat runs at 500 ms and `registerPresence` re-creates
+whatever seat it names — a room exists as soon as somebody posts presence for it
+— so one beat landing after the leave puts the player back in the chair they just
+vacated, and the page then navigates away with nobody left to clear it.
+
+That ghost seat broke two things built on the seat being gone, and both were
+reported as separate bugs:
+
+- **the opponent sat on a dead board.** `pollPresence` returns the host to the
+  lobby on `prevGuestId && !nextGuestId`, which needs to *witness* the seat
+  emptying between two beats. Refilled, it never fires — the guest left the pick
+  board and the host stayed on it;
+- **the leaver was bounced back in.** `GET /rooms/mine` still answered with the
+  room, so `redirectToActiveRoom` sent them from home straight back to
+  `/room/CODE` — by then reset to `lobby`, so Leave on the pick board landed you
+  on the ban-setting screen instead of My Players.
+
+`leaveGuard.js` and the lobby's Leave called `stopPresencePolling()` themselves;
+the draft board's Leave did not. Three call sites, one rule to remember, and the
+one that forgot is the one people use mid-draft. It lives in `leavePresence` now
+so none of them can.
+
+### The lobby return is on the status too, not only on the empty seat
+
+`pollPresence` also calls `returnToLobby()` when `state.phase` is `draft` or
+`ready` and the snapshot's status is `lobby`. The empty-seat test above is an
+*edge* and a client that was tabbed out, offline for a beat, or looking at a seat
+some stray heartbeat refilled never sees it. The status is not an edge: the
+server owns every transition into `lobby`, so a board still up under one is wrong
+however it got there.
+
+**`done` is deliberately excluded.** `done` → `lobby` is also what an accepted
+rematch looks like, and the two are told apart only by the seats — which is why
+the empty-seat test runs first and this one leaves `done` to `onRematchAccepted`.
 
 (This section used to say there was no `beforeunload` guard, on the grounds that
 the `sessionStorage` phase cache makes reloading safe. Reloading *is* safe — that

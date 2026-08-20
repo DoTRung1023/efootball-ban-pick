@@ -39,7 +39,6 @@ import {
 } from '@/features/draft/utils.js';
 import {
   registerAndPollPresence,
-  stopPresencePolling,
   leavePresence,
   opponentLiveness,
 } from '@/features/draft/engine/presence.js';
@@ -556,7 +555,6 @@ function bindLobbyExit() {
       if (!ok) return;
     }
     allowLeave();
-    stopPresencePolling();
     await leavePresence();
     setPendingToast(state.mySide === "host" ? "Room closed." : "You left the room.");
     window.location.href = "/";

@@ -122,27 +122,37 @@ export function bindGridInfoToggle(btnId, gridId, storageKey) {
 }
 
 /**
- * `35 players`, or `23 of 35 · 2 picked · 10 over limit` once cards are hidden.
+ * Repaints the state classes on cards already in the grid.
  *
- * The breakdown is not decoration: both grids **filter** rather than grey out,
- * so this line is the only thing that says a card was taken out and why. A pool
- * that silently shrank from 35 to 23 reads as a bug.
+ * **Both boards show the whole roster and mark what is out of play**, rather
+ * than dropping those cards — a squad that shrinks as the draft runs makes you
+ * re-scan a moving list, and the pool is the one place you go to check whether
+ * a particular player is still there. Marked, he answers that; filtered, his
+ * absence is indistinguishable from a search that never matched him. There used
+ * to be a `renderPoolCount` line over each grid saying *"9 of 35 · 3 banned · 23
+ * picked"*, which existed only to explain the shrinking, and it goes with it.
  *
- * Kept terse because the pool column is ~274px at 320px wide and this wraps
- * rather than truncating: `35 players · 23 available · …` ran to three lines
- * and cost 31px of grid height for one word.
+ * Which means this function is now the whole mechanism: the grid is rebuilt only
+ * when **which players are in it** changes, and every state a card can be in is
+ * a class toggled here. Rebuilding for a state change instead would throw away
+ * 40 `<img loading="lazy">` elements and make 40 more — the cards lose their
+ * height until the new images are sized, the scroller clamps `scrollTop` to the
+ * collapsed content, and the list jumps upward. See the `aspect-ratio` note in
+ * `ban.css`.
+ *
+ * These classes are deliberately **not** part of the caller's diff key, so
+ * mutating them here cannot desync the guard the way `is-hovered` would on a key
+ * built from rendered state (see `ban-phase.md`).
  */
-export function renderPoolCount(elementId, total, shown, tally = {}) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
-
-  const parts = shown === total
-    ? [`${total} player${total === 1 ? "" : "s"}`]
-    : [`${shown} of ${total}`];
-  if (tally.banned) parts.push(`${tally.banned} banned`);
-  if (tally.picked) parts.push(`${tally.picked} picked`);
-  if (tally.blocked) parts.push(`${tally.blocked} over limit`);
-
-  const text = parts.join(" · ");
-  if (el.textContent !== text) el.textContent = text;
+export function paintCardFlags(grid, flagsFor) {
+  for (const card of grid.querySelectorAll(".player-card")) {
+    const { banned, picked, pending = false, clickable } = flagsFor(card.dataset.playerId || "");
+    card.classList.toggle("is-ban-taken", Boolean(banned));
+    card.classList.toggle("is-pick-taken", Boolean(picked));
+    card.classList.toggle("is-unavailable", Boolean(banned || picked));
+    card.classList.toggle("is-pending", Boolean(pending));
+    card.classList.toggle("is-clickable", Boolean(clickable));
+    // `playerCardHtml` sets this at build time; keep the two in step.
+    card.tabIndex = clickable ? 0 : -1;
+  }
 }

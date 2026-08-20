@@ -23,11 +23,11 @@ into `pickManualFormation`, so the dropdown stays authoritative afterwards.
 `#draftPickPhaseBoard` → `.pick-phase-layout`, a 3-column grid
 (`380px | 1fr | 252px`; `360 | 1fr | 220` at ≤1100 px; single column at ≤860 px):
 
-- **Left** (`.pick-phase-left`): a `.squad-pool-header` — "MY SQUAD POOL" and
-  `#pickPoolCount` — then a toolbar carrying the same controls as the ban
-  board's — search, sort + direction, **FILTER**, **SHOW INFO** — then the
-  ALL/GK/DEF/MID/ATT tab bar and `#pickGrid`. The grid holds **only cards you
-  can act on**; see "The pool is filtered" below.
+- **Left** (`.pick-phase-left`): a `.squad-pool-header` reading "MY SQUAD POOL",
+  then a toolbar carrying the same controls as the ban board's — search, sort +
+  direction, **FILTER**, **SHOW INFO** — then the ALL/GK/DEF/MID/ATT tab bar and
+  `#pickGrid`. The grid holds **your whole squad**, with what you cannot act on
+  marked; see "The pool is marked" below.
   The toolbar is **two fixed rows** (search alone, then the other three) and its
   buttons run tighter than the ban board's, because the column is ~360 px wide
   rather than the width of the page — see `css.md`.
@@ -82,7 +82,15 @@ slots run 42 px → 116 px.
   else in `pickView.js` used it.
 - **Right** (`.pick-phase-right`): LIVE label, opponent identity + count +
   progress bar, then `#pickOppGrid` — the opponent's picks as ordinary
-  `playerCardHtml` cards — and `#pickOppConcealNote`.
+  `playerCardHtml` cards — with `#pickOppLocked` in its place under the `hidden`
+  reveal mode.
+
+  There is **no conceal note**. `#pickOppConcealNote` printed "REVEALED AFTER
+  MATCH" under the feed whenever the mode was not `instant`, and it outlived the
+  thing it described: concealment now ends at Start Match, not after the match
+  (see `ready-phase.md`), so the line was promising a later reveal than the one
+  that happens. `#pickOppLocked` already says PICKS HIDDEN in the mode that hides
+  the most.
 
 `renderPickBoard()` is the **only** export of `pickView.js`; the plan dialog's
 list is rendered from inside it, so opening the dialog just calls `renderDraftUi()`.
@@ -194,22 +202,30 @@ missing:
   so changing the search or the position tab between the two clicks does not
   strand the choice.
 
-## The pool is filtered, not greyed
+## The pool is marked, not filtered
 
-`renderPickGrid` drops two kinds of card rather than dimming them: banned by the
-opponent, and already in your lineup. `renderPoolCount` writes
-`32 of 35 · 3 picked` into `#pickPoolCount`, because a pool that silently shrank
-reads as a bug. Clearing a slot puts its card straight back — measured
-`33 of 35 · 2 picked` on the next render.
+`renderPickGrid` shows all 35 of your cards and marks the two states you cannot
+act on: **BANNED** (the opponent took him) and **PICKED** (he is already in your
+lineup). Both drop the art to a dimmed grey, keep the badge at full strength, and
+lose `is-clickable`.
 
-Two consequences worth knowing:
+It filtered instead for one release, with a `#pickPoolCount` line reading
+`32 of 35 · 3 picked` over the grid to explain the shrinking. Two things were
+wrong with it, and the second is the one that decided it:
 
-- `is-ban-taken` / `is-pick-taken` / `is-unavailable` are **unreachable on this
-  grid** now, and their PICKED / BANNED overlay CSS is gone from `pick.css`.
-  `playerCardHtml` still takes the flags for the grids that do show unavailable
-  cards.
-- The BANNED overlay was the only place during the pick phase that named which
-  of your players the opponent took. The count line says *how many*, not which.
+- the pool stopped being a view of your squad and became a list of what was left,
+  so *"did they ban him?"* and *"have I already got him in?"* — the two questions
+  you actually ask here — could only be answered by a card's absence;
+- **the BANNED badge is the only place in the pick phase that names which of your
+  players the opponent took.** The count line said *how many*. Nothing said who.
+
+Clearing a slot drops its card's PICKED badge on the next render. The card never
+moved, so nothing reflows.
+
+The badge is the carrier, not the hue: colour alone would leave a red-blind
+player with two identical grey cards, so each state spells its word out and the
+red on BANNED only reinforces it. CSS in `shell.css` — both boards draw it, so
+neither phase sheet owns it.
 
 Every change posts the whole lineup through `replaceMyPicks`. A write past the
 end of a short lineup pads with holes first, or it would land nowhere.
@@ -353,19 +369,20 @@ add a `title` back to a card, in this file or `playerCards.js`.
   unreadable in a 252px column.
 - The pick grid's diff guard is a **`rowsKey`**, not a state key: it is the
   ordered player ids and **nothing about their state**. Picking someone changes
-  only his flags, so it repaints them in place (`paintPickCardFlags`) instead of
+  only his flags, so it repaints them in place (`paintCardFlags`) instead of
   rebuilding. Rebuilding threw away 40 `<img loading="lazy">` elements and made
   40 more; combined with images that had no declared size, that collapsed the
   grid and scrolled the roster upward on every pick — the visible bug. Those
   classes are deliberately absent from `rowsKey`, so mutating them cannot desync
   the guard the way `is-hovered` would (see `ban-phase.md`). An `innerHTML`
   comparison still must not be substituted for either.
-  **The ban grid still rebuilds** on every staged ban. `aspect-ratio` on
-  `.pc-img-wrap img` means it no longer jumps, but it does re-request the lazy
-  images below the fold; the same `rowsKey` treatment would fix that.
+  **The ban grid works the same way now**, and this entry used to note that it
+  did not. Both grids key on `rowsKey` and share the one `paintCardFlags` in
+  `shell/cardGrid.js`, so a staged ban no longer re-requests the lazy images
+  below the fold either.
 - **The pitch and bench keys carry the lineup, not the selection.**
   `is-active` is painted in place by `paintActiveSlot()` and appears in neither
-  key, nor in `pickSlotHtml` — the same treatment `paintPickCardFlags` gives the
+  key, nor in `pickSlotHtml` — the same treatment `paintCardFlags` gives the
   pool, for a sharper reason. With `active` in the key, clicking a slot rebuilt
   the pitch, and the replacement element is not hovered until the engine
   re-resolves hover: the slot painted its selected look for a frame and then

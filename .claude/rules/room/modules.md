@@ -171,11 +171,12 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   reload a rematch does therefore resets the dock, which is the intended answer rather
   than a lost preference.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
-  The grid drops the cards you have already banned rather than greying them, and the
-  opponent's strip is concealed per `banRevealMode`; see `ban-phase.md`.
+  The grid shows the opponent's whole squad and **marks** the cards you have banned
+  rather than dropping them, and the opponent's strip is concealed per
+  `banRevealMode`; see `ban-phase.md`.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
-  live opponent feed. The pool holds only cards you can act on — banned and
-  picked are filtered out, not dimmed. See `pick-phase.md`.
+  live opponent feed. The pool holds your whole squad; banned and picked cards are
+  **marked** with a badge, not dropped. See `pick-phase.md`.
 - `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
   stages. It does **not** read `revealMode` — both squads are drawn in full here, whatever
   the room was set to. See `ready-phase.md`.
@@ -225,10 +226,13 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
   `attachMiniCardGridHandlers`, `bindGridInfoToggle` (SHOW INFO / HIDE INFO),
-  `bindCardGridHover` **and** `renderPoolCount`, all four of which serve ban and
-  pick. `renderPoolCount` writes the `23 of 35 · 2 picked · 10 over limit` line
-  above each grid — both grids filter rather than grey, so it is the only thing
-  that says a card was taken out and why. `bindGridInfoToggle` is called from
+  `bindCardGridHover` **and** `paintCardFlags`, all four of which serve ban and
+  pick. `paintCardFlags` toggles `is-ban-taken` / `is-pick-taken` /
+  `is-unavailable` / `is-pending` / `is-clickable` on cards already in a grid: both
+  grids key their rebuild on **which players** they hold and repaint state in
+  place, so a ban or a pick costs one card, not forty images. It replaced
+  `renderPoolCount`, which wrote a `23 of 35 · 2 picked` line above each grid back
+  when they filtered. `bindGridInfoToggle` is called from
   each phase's `bind*PhaseUiOnce`, not on DOMContentLoaded: the pick grid does
   not exist until its board first renders, so a load-time lookup found nothing
   and silently did nothing. Its localStorage key is per-grid, so hiding info

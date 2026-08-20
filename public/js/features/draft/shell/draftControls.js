@@ -325,6 +325,9 @@ function initLeaveControl() {
     // Asked and answered — `beforeunload` must not ask again on the way out.
     allowLeave();
     clearTurnTimer();
+    /* Stops the heartbeat as its first act, which this button used to skip: a
+       beat landing after the leave re-seated the player and sent them back into
+       the room from the home page. See `leavePresence`. */
     await leavePresence();
     /* My Players is a page away from anything this button did, so it says so
        on arrival — a toast fired here would go down with this page. */

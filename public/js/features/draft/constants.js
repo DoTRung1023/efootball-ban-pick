@@ -55,6 +55,10 @@ export const BAN_ORDER_ALTERNATING = "alternating";
    The last four are all the same screen (Start Match); the status says which of
    its three handshakes is open. `LIVE` means *this match is being played*, not
    "the room is alive". */
+/* `lobby` is the one the client acts on rather than merely leaves: the server
+   puts a live room back here when the draft is cancelled, and a board still on
+   screen under it is stale. See `returnToLobby` in engine/presence.js. */
+export const ROOM_STATUS_LOBBY = "lobby";
 export const ROOM_STATUS_DRAFTING = "drafting";
 export const ROOM_STATUS_AWAIT_READY = "await-ready";
 export const ROOM_STATUS_AWAIT_START = "await-start";

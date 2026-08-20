@@ -597,10 +597,12 @@ Key blocks:
   The hover panel still floats all four rows, but a row you cannot read on a
   card you are choosing from is not information you have.
 
-  There is **no** overlay CSS on this grid any more. It carried
-  `.is-pick-taken .pc-img-wrap::after { content: "PICKED" }` and
-  `.is-ban-taken::after { content: "BANNED" }`; the pool filters those cards out
-  instead of dimming them, so neither class can reach it. See `pick-phase.md`.
+  The PICKED / BANNED overlay is back, and it is in **`shell.css`** rather than
+  here: both boards mark cards now, so a copy in each phase sheet would be two
+  places to drift apart. `.is-pick-taken .pc-img-wrap::after { content: "PICKED" }`
+  and the `.is-ban-taken` / "BANNED" pair beside it, scoped to `.ban-phase-grid`
+  and `.pick-phase-grid` so they cannot reach the Start Match cards. See
+  `pick-phase.md`.
 - **`grid-auto-rows: max-content` is load-bearing on every grid holding a
   `.player-card` or a `.pick-slot`** — `.ban-phase-grid` had it;
   `.pick-phase-grid`, `.pick-opp-grid` and `.pick-bench` did not.
@@ -940,9 +942,15 @@ cascade is bit-identical to what it was before the gate existed.
 
 **The locked look** is `cursor: not-allowed` plus `opacity: 0.72;
 filter: grayscale(0.5)` on the pool cards, scoped `:not(.is-unavailable)` in
-both grids. That exclusion is load-bearing: your own bans (0.45) and your picked
-/ banned players (0.55) carry their state *in* their opacity, and levelling
-every card to one value erases it. The pitch and bench keep full colour — a
+both grids. That exclusion is load-bearing: a banned or picked card carries its
+state in its own dimming, and levelling every card to one value erases it.
+
+**The dimming is on the art, not on the card**, and that is the difference from
+the version of this that lived in `ban.css` (0.45) and `pick.css` (0.55). A card
+at 0.45 takes its own badge down with it, and a label you have to lean in to read
+is not a mark — so `.is-unavailable` drops `.pc-img-wrap img` to `opacity: 0.3;
+filter: grayscale(0.85)` and the footer to 0.5, leaving the badge at full
+strength over it. The pitch and bench keep full colour — a
 confirmed lineup is the thing you want to look at — and lose only their
 affordances: the rings above, and `.is-locked .pick-slot-remove { display: none }`.
 That × is `display`, not `opacity`, because `@media (hover: none)` pins it to

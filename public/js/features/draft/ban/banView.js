@@ -18,7 +18,7 @@ import {
   stagedBanThumbHtml,
 } from '@/features/draft/playerCards.js';
 import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQuery.js';
-import { renderPoolCount } from '@/features/draft/shell/cardGrid.js';
+import { paintCardFlags } from '@/features/draft/shell/cardGrid.js';
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit, isSoloTurn } from '@/features/draft/engine/draftFlow.js';
@@ -152,7 +152,7 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
     concealKey: concealTheirs,
   });
 
-  renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed });
+  renderBanGrid(el.banGrid, { maxBans, myBans, isMyTurn, readyPhase, myConfirmed });
 }
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);
@@ -331,61 +331,68 @@ function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining, conce
 }
 
 /**
- * The opponent's squad, minus the cards you have already taken out of it.
+ * The opponent's whole squad, with the cards you have taken out of it marked.
  *
- * A card you have banned — staged or confirmed — is not bannable again, so it
- * leaves the grid rather than sitting in it greyed. Nothing is lost by that:
- * `#draftMyBansStrip` on the right is the list of your bans, and it is the
- * thing you look at to count them.
+ * A card you have banned — staged or confirmed — used to **leave** the grid, on
+ * the reasoning that it is not bannable again and `#draftMyBansStrip` already
+ * lists your bans. It comes back marked instead: the pool is where you go to ask
+ * "is he still available?", and a filtered grid answers that question by
+ * omission, which reads the same as a search that never matched him. It also
+ * made the list move under the pointer on every ban.
  *
- * **The ban settings hide nobody here, and cannot.** A maximum only bites once
- * a lineup has cards counting toward it, and during the ban phase neither side
- * has picked anything — so every one of their players is still a legal pick for
- * them. The count line says how many of them each rule covers instead, which is
- * what actually decides a ban: their 3 GKs against a `GK min 1` are the bans
- * that hurt.
+ * Search, sort and the FILTER panel still remove cards — those are you asking
+ * for a shorter list. This is the draft removing one, which is different.
+ *
+ * **The ban settings hide nobody here, and cannot.** A maximum only bites once a
+ * lineup has cards counting toward it, and during the ban phase neither side has
+ * picked anything — so every one of their players is still a legal pick.
  */
-function renderBanGrid(grid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed }) {
+function renderBanGrid(grid, { maxBans, myBans, isMyTurn, readyPhase, myConfirmed }) {
   const pool = getBanListPlayers();
   const canStillBan = !maxBans || myBans.length + state.stagedBans.length < maxBans;
-  const stagedIds = new Set(state.stagedBans.map((p) => String(p.id)));
-  const myConfirmedIds = new Set(myBans.map((b) => String(b.id)));
+  const bannedIds = new Set([
+    ...myBans.map((b) => String(b.id)),
+    ...state.stagedBans.map((p) => String(p.id)),
+  ]);
 
-  const tally = { banned: 0 };
-  const rows = pool.filter((p) => {
-    const id = String(p.id);
-    if (myConfirmedIds.has(id) || stagedIds.has(id)) { tally.banned += 1; return false; }
-    return true;
-  });
+  /* A confirmed side's bans are read-only until it un-confirms, and a card
+     already banned is not bannable again — it stays on screen, it just stops
+     taking the click. No pick exists yet in this phase, so `picked` is never
+     true here. */
+  const flagsFor = (id) => {
+    const banned = bannedIds.has(id);
+    return {
+      banned,
+      picked: false,
+      clickable: !banned && isMyTurn && canStillBan && !readyPhase && !myConfirmed,
+    };
+  };
 
-  renderPoolCount("banPoolCount", pool.length, rows.length, tally);
+  /* Keyed on **which players, in what order** and nothing else — banning
+     someone changes only his flags, which `paintCardFlags` applies in place.
+     See the note there for what a rebuild would cost. */
+  const rowsKey = pool.map((p) => String(p.id)).join(",");
+  if (grid.dataset.rowsKey !== rowsKey) {
+    grid.dataset.rowsKey = rowsKey;
+    grid.innerHTML = pool.length
+      ? pool.map((p) => playerCardHtml(p, flagsFor(String(p.id)))).join("")
+      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage())}</div>`;
+    return; // built with the current flags already applied
+  }
 
-  const stateKey = [
-    isMyTurn ? 1 : 0,
-    canStillBan ? 1 : 0,
-    readyPhase ? 1 : 0,
-    myConfirmed ? 1 : 0,
-    rows.map((p) => String(p.id)).join(","),
-  ].join("|");
-  if (grid.dataset.stateKey === stateKey) return;
-
-  grid.dataset.stateKey = stateKey;
-  grid.innerHTML = rows.length
-    ? rows.map((p) => {
-        // A confirmed side's bans are read-only until it un-confirms.
-        const clickable = isMyTurn && canStillBan && !readyPhase && !myConfirmed;
-        // No pick exists yet during the ban phase, so a card is never "picked".
-        return playerCardHtml(p, { banned: false, picked: false, clickable });
-      }).join("")
-    : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage(pool.length))}</div>`;
+  paintCardFlags(grid, flagsFor);
 }
 
-function banEmptyMessage(poolSize) {
+/**
+ * An empty grid means one of three things and they are not interchangeable:
+ * still loading, loaded but the opponent has no cards, or a search that matched
+ * nobody. "Already banned" is no longer one of them — banned cards stay.
+ */
+function banEmptyMessage() {
   if (state.loadingOpponentBanPlayers || !state.opponentBanPlayersLoaded) {
     return "Loading opponent squad cards...";
   }
-  if (poolSize) return "Every player matching this search is already banned.";
   return state.opponentBanPlayers.length
-    ? "Opponent squad loaded."
+    ? "No player matches this search."
     : "No opponent players to show yet.";
 }

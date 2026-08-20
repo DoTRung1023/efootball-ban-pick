@@ -3,6 +3,7 @@ import {
   OPPONENT_CONNECTED_MS,
   OPPONENT_GONE_MS,
   ROOM_STATUS_DONE,
+  ROOM_STATUS_LOBBY,
 } from '@/features/draft/constants.js';
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
@@ -152,7 +153,31 @@ async function fetchRoomSnapshot() {
   return { changed: changed || !state.room };
 }
 
+/**
+ * Gives up the seat: stop beating, then post the leave.
+ *
+ * **The stop is in here, not in the callers, and that is the fix.** The heartbeat
+ * runs at 500 ms and `registerPresence` re-creates whatever seat it names — a
+ * room exists as soon as somebody posts presence for it — so a single beat
+ * landing after the leave puts the player straight back in the chair they just
+ * vacated. The page then navigates away and nothing ever clears it again.
+ *
+ * That ghost seat is not cosmetic; it breaks two things that are built on the
+ * seat being gone:
+ *
+ * - the opponent never sees the seat empty, so the `prevGuestId && !nextGuestId`
+ *   test in `pollPresence` never fires and they sit on a dead board;
+ * - `GET /rooms/mine` still answers with the room, so `redirectToActiveRoom`
+ *   bounces the leaver off the home page and back into it. Leaving the pick
+ *   board therefore landed you in the lobby instead of My Players — the room had
+ *   been reset to `lobby` on the way past.
+ *
+ * `leaveGuard.js` and the lobby's Leave both used to stop the poll themselves
+ * and the draft board's Leave did not, which is a rule three call sites had to
+ * remember. Now none of them do.
+ */
 export async function leavePresence() {
+  stopPresencePolling();
   const code = state.room?.code;
   if (!code) return;
   clearRoomPhaseCache(code);
@@ -307,6 +332,25 @@ export async function pollPresence() {
        the empty seat is what tells them apart, so it has to be tested first. */
     const onStartMatch = state.phase === "ready" || state.phase === "done";
     if ((state.phase === "draft" || onStartMatch) && prevGuestId && !nextGuestId && !state.room?.closed) {
+      returnToLobby();
+      return;
+    }
+
+    /* The same landing, reached from the state rather than from the edge above.
+       That test needs to *witness* the seat emptying between two beats, and a
+       client that was tabbed out, offline for a beat, or looking at a seat some
+       stray heartbeat had refilled never does — it stays on a board the server
+       has already torn down. The status is not an edge: the server owns every
+       transition into `lobby` (see CLAUDE.md), so a board still up under one is
+       wrong no matter how it got there.
+
+       `done` is deliberately not here. `done` → `lobby` is also what an accepted
+       rematch looks like, and that has its own branch below; the two are
+       distinguishable only by the seats, which is why the empty-seat test has to
+       come first and this one has to leave `done` alone. */
+    if ((state.phase === "draft" || state.phase === "ready")
+        && String(state.room?.status || "") === ROOM_STATUS_LOBBY
+        && !state.room?.closed) {
       returnToLobby();
       return;
     }

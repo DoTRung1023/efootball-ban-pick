@@ -723,10 +723,9 @@
   transition: transform 0.08s ease;
 }
 
-.player-card.is-unavailable {
-  opacity: 0.45;
-  filter: grayscale(0.25);
-}
+/* `.player-card.is-unavailable` — the BANNED / PICKED treatment — is in
+   `shell.css`, with the badge that goes with it. Both boards mark cards now, so
+   one sheet owns the whole thing rather than each grid dimming its own. */
 
 .player-card.selected {
   border-color: var(--line-active);

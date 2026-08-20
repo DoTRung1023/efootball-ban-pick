@@ -14,7 +14,6 @@ import {
   FORMATION_LAYOUTS,
   REVEAL_MODE_BLUR,
   REVEAL_MODE_HIDDEN,
-  REVEAL_MODE_INSTANT,
 } from '@/features/draft/constants.js';
 import { escapeHtml } from '@/features/draft/utils.js';
 import { state, normalizeRevealMode } from '@/features/draft/state.js';
@@ -30,7 +29,7 @@ import {
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
-import { renderPoolCount } from '@/features/draft/shell/cardGrid.js';
+import { paintCardFlags } from '@/features/draft/shell/cardGrid.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
@@ -214,14 +213,18 @@ function renderPickPlanList() {
 // ── Squad pool grid ──────────────────────────────────────────
 
 /**
- * The pool lists what you can act on **now**, and nothing else.
+ * Your whole squad, with the cards you cannot act on marked.
  *
- * Two things take a card out of it, and both are states you cannot pick from:
- * the opponent banned it, or it is already in your lineup. Greying them out
- * instead left a pool where several of the cards were decoration.
+ * Two states put a card out of play and neither removes it any more: the
+ * opponent banned it, or it is already in your lineup. They were filtered out,
+ * which made the pool a list of what is left rather than a view of your squad —
+ * and the two questions you actually ask here are "did they ban him?" and "have
+ * I already got him in?", both of which a missing card cannot answer. The
+ * BANNED and PICKED badges answer them; the badge spells the word out rather
+ * than relying on hue, so the two are still distinct without colour vision.
  *
- * There is no pick-limit gate: a pick names its slot and landing on a filled
- * one replaces its occupant, so a full lineup stays editable.
+ * There is no pick-limit gate: a pick names its slot and landing on a filled one
+ * replaces its occupant, so a full lineup stays editable.
  */
 function renderPickGrid(room, mySide, theirSide) {
   const grid = document.getElementById("pickGrid");
@@ -231,25 +234,17 @@ function renderPickGrid(room, mySide, theirSide) {
   const opponentBanIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b.id)));
   const myPickIds = new Set(filledPicks(room.picks?.[mySide]).map((p) => String(p.id)));
 
-  const tally = { banned: 0, picked: 0 };
-  const rows = pool.filter((p) => {
-    const id = String(p.id || "");
-    if (opponentBanIds.has(id)) { tally.banned += 1; return false; }
-    if (myPickIds.has(id)) { tally.picked += 1; return false; }
-    return true;
-  });
-
-  renderPoolCount("pickPoolCount", pool.length, rows.length, tally);
-
   const pendingId = state.pickPendingPlayerId;
   // A confirmed squad is read-only until it is un-confirmed.
   const locked = Boolean(room.picksConfirmed?.[mySide]);
-  const flagsFor = (id) => ({
-    banned: false,
-    picked: false,
-    pending: id === pendingId,
-    clickable: !locked,
-  });
+  const flagsFor = (id) => {
+    const banned = opponentBanIds.has(id);
+    const picked = myPickIds.has(id);
+    /* A banned card can never be picked, and a card already in the lineup is
+       moved from its slot rather than from here — clicking it again would place
+       a second copy. Both stay on screen and stop taking the click. */
+    return { banned, picked, pending: id === pendingId, clickable: !locked && !banned && !picked };
+  };
 
   /* The key is **which players, in what order** — nothing about their state.
      Picking someone changes only his flags, and rebuilding the grid for that
@@ -258,48 +253,25 @@ function renderPickGrid(room, mySide, theirSide) {
      `scrollTop` to the collapsed content, and the list jumps upward. See the
      `aspect-ratio` note in ban.css for the measurement. Flags are repainted in
      place below instead. */
-  const rowsKey = rows.map((p) => String(p.id || "")).join(",");
+  const rowsKey = pool.map((p) => String(p.id || "")).join(",");
   if (grid.dataset.rowsKey !== rowsKey) {
     grid.dataset.rowsKey = rowsKey;
-    grid.innerHTML = rows.length
-      ? rows.map((p) => playerCardHtml(p, flagsFor(String(p.id || "")))).join("")
-      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(pickEmptyMessage(pool.length))}</div>`;
+    grid.innerHTML = pool.length
+      ? pool.map((p) => playerCardHtml(p, flagsFor(String(p.id || "")))).join("")
+      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(pickEmptyMessage())}</div>`;
     return; // built with the current flags already applied
   }
 
-  paintPickCardFlags(grid, flagsFor);
+  paintCardFlags(grid, flagsFor);
 }
 
 /**
- * An empty pool means one of two very different things, and the difference is
- * the only thing worth saying: nothing loaded, or everything is spoken for.
+ * An empty grid means one of two things now that banned and picked cards stay:
+ * the squad has not loaded, or the search matched nobody.
  */
-function pickEmptyMessage(poolSize) {
+function pickEmptyMessage() {
   if (state.loadingPlayers) return "Loading your squad...";
-  return poolSize
-    ? "Every remaining player is banned or already in your lineup."
-    : "No players found.";
-}
-
-/**
- * Repaints the cards already in the grid.
- *
- * Only two flags survive the filter above: a card that is banned, picked or
- * over a limit is not in the grid at all, so `is-ban-taken` / `is-pick-taken` /
- * `is-unavailable` have nothing left to mark here. They are still what
- * `playerCardHtml` emits for the boards that do show unavailable cards.
- *
- * These classes are deliberately **not** part of `rowsKey`, so mutating them
- * here cannot desync the diff guard the way `is-hovered` would on a key built
- * from rendered state (see ban-phase.md).
- */
-function paintPickCardFlags(grid, flagsFor) {
-  for (const card of grid.querySelectorAll(".player-card")) {
-    const { pending, clickable } = flagsFor(card.dataset.playerId || "");
-    card.classList.toggle("is-pending", pending);
-    card.classList.toggle("is-clickable", clickable);
-    card.tabIndex = clickable ? 0 : -1;
-  }
+  return "No player matches this search.";
 }
 
 // ── Formation pitch + bench ──────────────────────────────────
@@ -361,7 +333,7 @@ function renderPickBench(myPicks, maxPicks) {
  * dropped into its hovered one. The game-plan pitch has never had that — its
  * `selectPlanSlot` toggles the class over the elements already on screen, and
  * the slot under the cursor simply stays hovered throughout. Same shape here,
- * and the same reason `paintPickCardFlags` repaints the pool instead of
+ * and the same reason `paintCardFlags` repaints the pool instead of
  * rebuilding it.
  */
 function paintActiveSlot(active) {
@@ -463,7 +435,6 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
  */
 function renderOpponentPicks(room, theirSide, theirPicks, maxPicks, revealMode) {
   const grid = document.getElementById("pickOppGrid");
-  const note = document.getElementById("pickOppConcealNote");
   const locked = document.getElementById("pickOppLocked");
   if (!grid) return;
 
@@ -477,7 +448,6 @@ function renderOpponentPicks(room, theirSide, theirPicks, maxPicks, revealMode) 
 
   grid.classList.toggle("is-concealed", blurred);
   grid.hidden = concealed;
-  if (note) note.hidden = revealMode === REVEAL_MODE_INSTANT;
   if (locked) {
     locked.hidden = !concealed;
     const status = document.getElementById("pickOppLockedStatus");

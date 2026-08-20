@@ -1159,24 +1159,19 @@
 }
 
 /* The heading over each board's card grid — MY SQUAD POOL on the pick board,
-   OPPONENT SQUAD on the ban board — with its live count on the right. One line:
-   it was a kicker plus a subtitle, and the subtitle said "Pick from your roster"
-   under a label that already reads MY SQUAD POOL.
+   OPPONENT SQUAD on the ban board.
+
+   It used to carry a live count on the right reading "9 of 35 · 3 banned · 23
+   picked", in its own `.squad-pool-count` span. That line existed for one
+   reason: the grids filtered, so something had to say why the pool had shrunk.
+   They mark instead now, so it had nothing left to explain and the label stands
+   alone — which is also why the flex row went with it.
 
    In `shell.css` and not a phase sheet because both phases draw it, same as
    `.mini-card` and `.side-panel`. It was `.pick-squad-header` in `pick.css`,
    which only reached the ban board because `pick.css` happens to be linked
    after `ban.css`. */
 .squad-pool-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  /* Wraps rather than truncates. The full count runs to "35 players · 23
-     available · 2 picked · 10 over limit", which is wider than the 274px pool
-     column at 320px — and every clause after the first is the part that
-     explains why the grid is short. */
-  flex-wrap: wrap;
-  gap: 2px 8px;
   line-height: 1.2;
   font-family: var(--font-display);
   font-size: 12px;
@@ -1186,14 +1181,62 @@
   color: var(--text-muted);
 }
 
-/* The pool is filtered, not greyed, so this line is the only thing that says a
-   card was taken out and why. Mono, because it is a row of numbers that changes
-   on every pick and a proportional face makes the whole line shift. */
-.squad-pool-count {
-  font-family: ui-monospace, monospace;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--text-dim);
-  text-transform: none;
+/* ── Out of play: BANNED / PICKED ─────────────────────────────────────────
+   Both boards show the whole roster and mark the cards you cannot act on, so
+   the treatment lives here rather than once in `ban.css` and again in
+   `pick.css`. Two states, and the ban board only ever raises the first:
+
+     is-ban-taken   the opponent banned him — gone for this draft
+     is-pick-taken  he is already in your lineup
+
+   **The word carries it, not the hue.** Colour alone would leave a red-blind
+   player with two identical grey cards, so the badge spells the state out and
+   the red on BANNED only reinforces it.
+
+   The dimming is on the **art**, not on the card: a card at 0.45 takes its own
+   badge down with it, and a label you have to lean in to read is not a mark.
+   The image drops instead, which also stops a bright kit competing with the
+   badge sitting on top of it. */
+
+.ban-phase-grid .player-card.is-unavailable .pc-img-wrap img,
+.pick-phase-grid .player-card.is-unavailable .pc-img-wrap img {
+  opacity: 0.3;
+  filter: grayscale(0.85);
+}
+
+.ban-phase-grid .player-card.is-unavailable .pc-footer,
+.pick-phase-grid .player-card.is-unavailable .pc-footer {
+  opacity: 0.5;
+}
+
+/* `.pc-img-wrap` is already `position: relative` (see `ban.css`). Top-left
+   because the card's own art puts its brightest area centre-right, and the
+   badge has to stay legible over whatever is under it. */
+.ban-phase-grid .player-card.is-unavailable .pc-img-wrap::after,
+.pick-phase-grid .player-card.is-unavailable .pc-img-wrap::after {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.ban-phase-grid .player-card.is-ban-taken .pc-img-wrap::after,
+.pick-phase-grid .player-card.is-ban-taken .pc-img-wrap::after {
+  content: "BANNED";
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+
+/* Picked loses to banned when a card is somehow both: banned is the one that
+   ends the card's draft, and it is the answer you came to the pool for. */
+.pick-phase-grid .player-card.is-pick-taken:not(.is-ban-taken) .pc-img-wrap::after {
+  content: "PICKED";
+  color: var(--text-muted);
 }

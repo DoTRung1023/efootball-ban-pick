@@ -33,7 +33,7 @@
 
 import { state } from '@/features/draft/state.js';
 import { askConfirm, getCurrentIdentity } from '@/features/draft/utils.js';
-import { leavePresence, stopPresencePolling } from '@/features/draft/engine/presence.js';
+import { leavePresence } from '@/features/draft/engine/presence.js';
 
 /** Phases where the seat is live and walking out costs the other player. */
 const GUARDED_PHASES = new Set(["lobby", "draft", "ready"]);
@@ -170,7 +170,6 @@ function initBackGuard() {
     if (!ok) return;
 
     allowLeave();
-    stopPresencePolling();
     await leavePresence();
     window.location.href = "/";
   });
