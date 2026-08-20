@@ -33,17 +33,12 @@ const els = () => ({
 
 /* ── Dragging ────────────────────────────────────────────────────────────────
    The dock can be put anywhere on screen. Position is the launcher's top-left
-   in viewport pixels, and it lives in **sessionStorage**, so it belongs to the
-   window it was dragged in.
-
-   It was localStorage first, which is shared by every tab on the origin: drag
-   the bubble in the host's window and the guest's window — a second window of
-   the same browser, which is how a pair actually tests a room — opened with the
-   bubble already parked in the middle of the page, nowhere near the corner it
-   is supposed to default to. Per-window is also what "default bottom-right,
-   then keep where I put it" means: stage changes and the reload that a rematch
-   does are both inside one window, so the position survives exactly as far as
-   it should. */
+   in viewport pixels and it is **not stored anywhere** — every load starts at
+   the bottom-right corner the CSS puts it in, and a drag lasts as long as the
+   page does. It was sessionStorage, and localStorage before that; both are gone
+   because the dock now behaves the same way for everyone on every visit, which
+   is what a default is for. The reload a rematch does therefore resets it, and
+   that is the intended answer rather than a lost preference. */
 
 const DOCK_POS_KEY = "efb_chat_dock";
 const EDGE_MARGIN = 8;
@@ -82,23 +77,16 @@ function applyDockPos(x, y) {
      hang off the screen the moment the launcher is anywhere but bottom-right. */
   dock.classList.toggle("is-flip-down", pos.y + h / 2 < window.innerHeight / 2);
   dock.classList.toggle("is-align-left", pos.x + w / 2 < window.innerWidth / 2);
-  return pos;
 }
 
-function storedDockPos() {
+/* Anyone who dragged the dock while it was still remembered has a key sitting
+   in one storage or the other. Nothing reads them any more, so this only clears
+   the leftovers rather than guarding anything. */
+function forgetDockPos() {
   try {
-    /* Anyone who dragged the dock while it was still browser-wide has a stale
-       key sitting in localStorage; drop it rather than read it, or their next
-       window opens wherever it was left months ago. */
     localStorage.removeItem(DOCK_POS_KEY);
-    const raw = JSON.parse(sessionStorage.getItem(DOCK_POS_KEY) || "null");
-    if (!raw || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) return null;
-    return raw;
-  } catch { return null; }
-}
-
-function saveDockPos(pos) {
-  try { sessionStorage.setItem(DOCK_POS_KEY, JSON.stringify(pos)); } catch { /* private mode */ }
+    sessionStorage.removeItem(DOCK_POS_KEY);
+  } catch { /* private mode */ }
 }
 
 function initDockDrag() {
@@ -106,10 +94,9 @@ function initDockDrag() {
   const head = document.querySelector(".room-chat-head");
   if (!dock) return;
 
-  const stored = storedDockPos();
-  if (stored) applyDockPos(stored.x, stored.y);
+  forgetDockPos();
 
-  /* A resize can leave a stored position off-screen — re-clamp rather than
+  /* A resize can leave a dragged position off-screen — re-clamp rather than
      lose the dock behind the edge of a smaller window. */
   window.addEventListener("resize", () => {
     if (!dock.style.left) return;
@@ -153,7 +140,7 @@ function initDockDrag() {
     /* The click that follows this pointerup would toggle the panel — a drag
        that ends by opening the chat is not what the hand asked for. */
     suppressClick = true;
-    saveDockPos(applyDockPos(parseFloat(dock.style.left), parseFloat(dock.style.top)));
+    applyDockPos(parseFloat(dock.style.left), parseFloat(dock.style.top));
   };
 
   launcher?.addEventListener("pointerdown", onDown);

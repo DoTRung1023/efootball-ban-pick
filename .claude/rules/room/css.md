@@ -182,8 +182,9 @@ versions tried to keep that corner clear and both traded one overlap for another
 Neither token nor lift survives. The launcher sits at `right: 16px; bottom: 16px` and does
 clip the right end of whatever bar is under it — measured at 1440×900, **39px of the 190px
 START DRAFT (21%)** and **39px of the 290px CONFIRM BANS (13%)**, both labels centred and
-untouched. That is the accepted cost: the dock drags anywhere and the window remembers
-where it was put, so a player who minds moves it once. Do not reintroduce a gutter for it.
+untouched. That is the accepted cost: the dock drags anywhere, so a player who minds moves
+it out of the way. The position is not stored — it lasts as long as the page — so the move
+is per visit; see `modules.md`. Do not reintroduce a gutter for it.
 
 **The toast goes over it, and everything else.** `#toast` is bottom **centre**
 (`left: 50%` + `translate(-50%, …)`, restated in `.toast.show` or it slides sideways as it

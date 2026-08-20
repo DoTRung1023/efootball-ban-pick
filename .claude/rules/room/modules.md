@@ -163,13 +163,13 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   close button opts out): pointer events with capture, a **4px threshold** below which the
   gesture is still a click, and a one-shot `suppressClick` so the click that ends a drag
   does not toggle the panel. The position is the launcher's viewport top-left, clamped 8px
-  inside the edges (again on `resize`, or a smaller window would strand it), and saved to
-  **`sessionStorage`** under `efb_chat_dock`. Session, not local, and not keyed by room:
-  it belongs to the window. localStorage is shared by every tab on the origin, so dragging
-  the bubble in the host's window opened the guest's window — the second window of the
-  same browser, which is how a pair actually tests a room — with the bubble already parked
-  mid-page instead of in its default corner. `storedDockPos()` deletes the old localStorage
-  key on the way past, so a position saved by the earlier build cannot haunt a new window.
+  inside the edges (again on `resize`, or a smaller window would strand it), and is **not
+  stored anywhere**. It was `sessionStorage` under `efb_chat_dock`, and `localStorage`
+  before that; both are gone, so every load starts at the CSS corner and a drag lasts as
+  long as the page. `forgetDockPos()` runs once from `initDockDrag` and removes the key
+  from both storages — nothing reads it, so that call is only clearing leftovers. The
+  reload a rematch does therefore resets the dock, which is the intended answer rather
+  than a lost preference.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
   The grid drops the cards you have already banned rather than greying them, and the
   opponent's strip is concealed per `banRevealMode`; see `ban-phase.md`.
@@ -251,18 +251,14 @@ overlay — set the flag and let the board renderer show it.
   `renderLobby()` is module-private and reaches the rest of the app through
   `cb.renderLobby = renderLobby`, set during module init.
   - `initLobby()` is an **orchestrator only**: identity/state setup, then one call per
-    concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`,
-    `bindPresetChips`, `bindLobbyExit`. Add new wiring as another `bind*` function, not as more
+    concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`, `bindLobbyExit`. Add new wiring as another `bind*` function, not as more
     statements inside `initLobby`. Each is module-level and closes over nothing but
     module state, so they can be read in isolation.
-- `lobby/presets.js` — `DRAFT_PRESETS`, `matchingPresetKey`, `readRememberedSettings`,
-  `rememberSettings`: the three pace presets and the host's remembered settings
-  (`localStorage`, `efb_draft_settings`). A preset carries the ban count and the two
-  clocks and deliberately not `revealMode`; see `lobby.md`.
-- `lobby/config.js` — `scheduleLobbyConfigPush` and `pushLobbyConfigNow`, the
-  un-debounced push for writes that are not typing (a preset chip, the seeded
-  settings) and need to know when the server has them. `pushLobbyConfig` is the writer
-  behind both and is module-private. The payload — ban count, both durations, the
+- `lobby/config.js` — `scheduleLobbyConfigPush`, the debounced push behind every
+  settings edit. `pushLobbyConfig` is the writer and is module-private. There was a
+  `pushLobbyConfigNow` beside it, un-debounced, for the two callers that replaced every
+  field at once and had to know when the server had them — the preset chips and the
+  remembered-settings seed. Both are gone; see `lobby.md`. The payload — ban count, both durations, the
   reveal mode — is read from the DOM, not from `state.room.config`, so in-flight typing
   survives a presence poll; writes are debounced and sequence-numbered, and stale
   responses are dropped.

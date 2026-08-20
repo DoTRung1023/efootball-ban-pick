@@ -29,7 +29,6 @@ import {
   normalizeBanOrder,
 } from '@/features/draft/state.js';
 import {
-  escapeHtml,
   showToast,
   askConfirm,
   showView,
@@ -48,8 +47,7 @@ import { paintErrorView } from '@/features/draft/errorView.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 
-import { pushLobbyConfigNow, scheduleLobbyConfigPush } from './config.js';
-import { DRAFT_PRESETS, matchingPresetKey, readRememberedSettings } from './presets.js';
+import { scheduleLobbyConfigPush } from './config.js';
 
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
@@ -319,8 +317,6 @@ function renderLobby() {
     }
   }
 
-  renderPresetChips(cfg, isHost);
-
   if (bansEl) bansEl.disabled = !isHost;
   if (banDurationEl) banDurationEl.disabled = !isHost;
   if (pickDurationEl) pickDurationEl.disabled = !isHost;
@@ -335,95 +331,16 @@ function renderLobby() {
    screen where they are configuring bans, about a squad they cannot change from
    here. The guest's card never had it, so the two cards now match as well. */
 
-/**
- * The preset chips. Built once — a row that rebuilds on every 500 ms poll would
- * swallow the click that is landing on it — after which only `.is-active` and
- * `disabled` move.
- */
-function renderPresetChips(cfg, isHost) {
-  const row = document.getElementById("lobbyPresetRow");
-  if (!row) return;
-
-  if (!row.dataset.built) {
-    row.dataset.built = "1";
-    row.innerHTML = DRAFT_PRESETS.map((preset) => `
-      <button type="button" class="lv-preset-chip" data-lobby-preset="${preset.key}"
-              title="${preset.banCountPerSide} bans · ${preset.banDurationSec}s ban · ${preset.pickDurationSec}s pick">
-        ${escapeHtml(preset.label)}
-      </button>
-    `).join("");
-  }
-
-  const active = matchingPresetKey(cfg);
-  row.querySelectorAll("[data-lobby-preset]").forEach((chip) => {
-    chip.classList.toggle("is-active", chip.dataset.lobbyPreset === active);
-    chip.disabled = !isHost;
-  });
-}
-
-/**
- * Writes a whole set of settings at once — a preset chip, or the host's
- * remembered ones — and does not let go until the server has them.
- *
- * **The inputs, not just the config, and marked `data-touched`.** The payload is
- * read from the DOM, and `renderLobby` syncs these four *from* `room.config` on
- * every 500 ms poll unless they are touched. Without the flag the sequence is:
- * write config → poll merges the server's config back over it → `renderLobby`
- * resets the inputs → the push reads the DOM and sends the values this was
- * called to replace. That is exactly what the first cut of this did.
- *
- * The flag comes off once the server has answered, because from then on the
- * config being synced *is* these values.
- */
-async function applyLobbySettings(settings) {
-  if (state.mySide !== "host" || !state.room) return;
-
-  Object.assign(state.room.config, settings);
-
-  const fields = {
-    lobbyBansInput: settings.banCountPerSide,
-    lobbyBanDurationInput: settings.banDurationSec,
-    lobbyPickDurationInput: settings.pickDurationSec,
-    lobbyRevealModeInput: settings.revealMode,
-    lobbyBanRevealModeInput: settings.banRevealMode,
-    lobbyBanOrderInput: settings.banOrder,
-  };
-  const touched = [];
-  for (const [id, value] of Object.entries(fields)) {
-    if (value === undefined) continue;
-    const el = document.getElementById(id);
-    if (!el) continue;
-    el.value = String(value);
-    el.dataset.touched = "1";
-    touched.push(el);
-  }
-
-  renderLobby();
-  await pushLobbyConfigNow();
-  touched.forEach((el) => { delete el.dataset.touched; });
-  renderLobby();
-}
-
-/**
- * Seeds the host's last settings into a room they have just opened.
- *
- * **After presence registers, not before.** `POST /:code/config` resolves the
- * caller's side from the room, and a room does not exist until the first
- * presence beat creates it — pushed any earlier this is a 403.
- *
- * The guards are the whole of the rule: only the host writes settings, only a
- * lobby has settings to write, and a client that reconnected straight into a
- * running draft is past the point where they mean anything. Re-seeding a lobby
- * the host is already sitting in is harmless — `pushLobbyConfig` stores every
- * write, so what is remembered is what is already on screen.
- */
-function applyRememberedSettings() {
-  if (state.mySide !== "host" || state.phase !== "lobby" || !state.room) return;
-  const remembered = readRememberedSettings();
-  if (remembered) void applyLobbySettings(remembered);
+/* The ban settings used to be remembered in localStorage, so a host who once
+   set five bans got five bans in every room afterwards. They are defaults now —
+   every room opens on the same 3 / 120 / 300 — and this only clears the key that
+   is left over on browsers that stored one. Nothing reads it. */
+function forgetStoredSettings() {
+  try { localStorage.removeItem("efb_draft_settings"); } catch { /* private mode */ }
 }
 
 export function initLobby() {
+  forgetStoredSettings();
   const q = parseQuery();
   const user = getUser();
   const code = getRoomCodeFromUrl();
@@ -494,14 +411,13 @@ export function initLobby() {
   }
 
 
-  void registerAndPollPresence().then(applyRememberedSettings);
+  void registerAndPollPresence();
 
   bindDraftSettings(user);
 
 
 
   bindRevealModeDropdown();
-  bindPresetChips();
   bindLobbyExit();
 }
 
@@ -617,24 +533,6 @@ function bindRevealModeDropdown() {
       state.room.config[group.cfgKey] = mode;
       renderLobby();
       scheduleLobbyConfigPush();
-    });
-  });
-}
-
-/** Pace presets: write the three fields they own and push. */
-function bindPresetChips() {
-  document.getElementById("lobbyPresetRow")?.addEventListener("click", (e) => {
-    const chip = e.target.closest("[data-lobby-preset]");
-    if (!chip || chip.disabled || state.mySide !== "host") return;
-    const preset = DRAFT_PRESETS.find((p) => p.key === chip.dataset.lobbyPreset);
-    if (!preset) return;
-
-    /* `revealMode` is left out on purpose — a preset is a pace, not a
-       concealment choice, so it is not in the table either. See presets.js. */
-    void applyLobbySettings({
-      banCountPerSide: preset.banCountPerSide,
-      banDurationSec: preset.banDurationSec,
-      pickDurationSec: preset.pickDurationSec,
     });
   });
 }

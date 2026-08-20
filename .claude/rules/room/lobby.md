@@ -20,59 +20,30 @@ side of the `max-height: 820px` rung**, not a host/guest difference. The guest's
 settings column is read-only, not hidden, so the two render identically — do not
 reach for a `state.mySide` explanation before checking the viewport heights.
 
-## Presets, and the host's remembered settings
+## The panel has no memory
 
-`lobby/presets.js` holds three pace presets and the `localStorage` blob under
-`efb_draft_settings`. Room creation on the home page is a code and nothing else,
-so the lobby is the only place these are ever set, and every room used to open on
-the same defaults.
+Every room opens on the same six values — **3 bans / 120 s ban / 300 s pick /
+SIMULTANEOUS / INSTANT ban reveal / INSTANT pick reveal**, which is
+`createDefaultRoomConfig()` in `src/features/rooms/config.js`, mirrored by
+`defaultRoomConfig()` in `draft/state.js` and by the static `value=` attributes in
+`room.html`. All three have to agree: the markup is what the host sees for the
+first frame, before any poll has answered.
 
-- **A preset is a pace, not a taste.** QUICK / STANDARD / LONG carry the ban count
-  and the two clocks and leave `revealMode` out of the table entirely — a host who
-  wanted a shorter clock should not have their concealment choice overwritten.
-  What is *remembered* is all four, because that is the whole of what they chose.
-- `rememberSettings` is called from `pushLobbyConfig` **after** the server answers,
-  so what comes back next time is what the server accepted — a clamped value is
-  remembered clamped. It is the only writer, and that function has already
-  returned unless this side is the host.
-- `matchingPresetKey` drives the active chip, so a hand-typed value that matches
-  no preset clears it. The row is built once; a row rebuilt on every 500 ms poll
-  would swallow the click landing on it.
-- **`localStorage`, unlike the chat dock.** The dock had to move to
-  `sessionStorage` because two windows of one browser share the origin and
-  dragging the host's bubble moved the guest's. That cannot bite here: the
-  guest's settings panel is read-only, so a guest window never seeds from this
-  blob and never writes to it.
+There was a `lobby/presets.js` — three pace chips (QUICK / STANDARD / LONG) and a
+`localStorage` blob under `efb_draft_settings` that seeded a new room with
+whatever the host last pushed. Both are gone, along with `applyLobbySettings`,
+`applyRememberedSettings` and the `pushLobbyConfigNow` un-debounced push that
+existed only for them. **Nothing about this panel is persisted**, and the
+defaults above are STANDARD's numbers, so what the chip used to do on a fresh
+room is now simply what a fresh room is.
 
-### `applyLobbySettings` writes the inputs, not just the config
+`initLobby` calls `forgetStoredSettings()` once, which removes `efb_draft_settings`
+from `localStorage`. Nothing reads that key any more — the call only clears the
+leftover on a browser that stored one, and it can be deleted once no such browser
+is in use.
 
-Both the preset chips and the seed replace every field at once, and both race the
-500 ms poll. Writing only `state.room.config` is not enough — `renderLobby` syncs
-the four inputs *from* `room.config` on every poll unless they carry
-`data-touched`, and `pushLobbyConfig` reads its payload from **the DOM**. Without
-the flag the sequence is: write config → poll merges the server's config back
-over it → `renderLobby` resets the inputs → the push sends the values it was
-called to replace. That is what the first cut did, and the seed silently
-round-tripped the defaults.
-
-So `applyLobbySettings` writes the inputs, flags them, `await`s
-`pushLobbyConfigNow()` (the un-debounced push, added for exactly these two
-callers), and clears the flag once the server has answered — from then on the
-config being synced *is* those values.
-
-`applyRememberedSettings` runs on `registerAndPollPresence().then(...)`, **not
-before**: `POST /:code/config` resolves the caller's side from the room, and a
-room does not exist until the first presence beat creates it, so an earlier push
-is a 403. Its three guards are the rule — host only, lobby only, and not a client
-that reconnected straight into a running draft.
-
-Verified on a live server: chips write screen + server and leave MODE at
-`instant`; a hand-typed duration clears the active chip and is stored as the
-server took it; a fresh room seeds all four (including `revealMode: hidden`) and
-still holds them a poll later; a guest pushes nothing, has the chips disabled and
-leaves the blob untouched. Measured at 320 / 480 / 620 / 900 / 1440 and the
-`max-height: 820px` rung: the row is 27 px, the three chips stay on one line even
-in a 262 px column, and nothing overflows.
+The chat dock lost its own persistence at the same time and for the same reason;
+see `modules.md`.
 
 ## Hidden-input source-of-truth pattern
 
