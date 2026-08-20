@@ -85,6 +85,26 @@ inputs the user is actively editing).
 **Never update the visual display by writing to these inputs directly** — always update
 `state.room.config` then call `renderLobby()`.
 
+### `clientSeq` is seeded from the clock, not from 0
+
+`POST /:code/config` carries a `clientSeq` and the server keeps
+`entry.lastConfigSeq` as a permanent high-water mark, dropping anything below it.
+`resetDraftToLobby` does **not** clear it — deliberately, since the config
+survives a rematch — so a client counter that restarts at 0 restarts *below*
+every write the room has already taken.
+
+Accepting a rematch reloads the page (`onRematchAccepted`), which is exactly
+that. The lobby came back with the right settings on screen and then every edit
+was answered `200` and silently discarded, until the counter climbed back past
+wherever the last draft had left it: the stepper snapped back on the next poll,
+the mode cards did nothing, the durations reverted. **A plain reload of the lobby
+did the same thing** — the bug was never really about rematch.
+
+`latestSyncSeq` starts at `Date.now()`. It is monotonic across reloads and still
+catches the out-of-order burst the guard is actually for. Resetting
+`lastConfigSeq` server-side would have fixed rematch only, and weakened the
+guard.
+
 ## CSS system
 
 `.lv-settings-panel` (`flex column; gap: 14px`) → `.lv-field-row` → `.lv-field-group`

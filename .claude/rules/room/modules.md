@@ -61,9 +61,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   simply missed.
 - `playerCards.js` — `playerCardHtml` plus the ban-sidebar thumbs:
   `imageOnlyThumbHtml`, `stagedBanThumbHtml`, `opponentStagedBanThumbHtml` and
-  `concealedBanThumbHtml`. The last takes **no player** — under the `blur` ban-reveal
-  mode there is nothing safe to render, so it draws the anonymous portrait with no
-  name and no id. See `ban-phase.md`.
+  `concealedBanThumbHtml`. The last draws the **real card, blurred** — no name, no id,
+  but its colour intact, because a blur every card shares is just `hidden`. See
+  `ban-phase.md`.
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
   `REGION_OPTIONS`, etc. **They hold the catalog's own strings** — `FOOT_OPTIONS`
   is `["Left foot", "Right foot"]`, not `["Left", "Right"]`, because every
@@ -177,7 +177,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   live opponent feed. The pool holds only cards you can act on — banned and
   picked are filtered out, not dimmed. See `pick-phase.md`.
 - `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
-  stages. See `ready-phase.md`.
+  stages. It does **not** read `revealMode` — both squads are drawn in full here, whatever
+  the room was set to. See `ready-phase.md`.
 - `ready/matchSteps.js` — the table behind those stages: one row per handshake (READY,
   START MATCH, FINISH MATCH) carrying its room status, its `data-stage`, the field on the
   room holding each side's answer, the button label, the team-head chip and the three

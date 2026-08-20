@@ -13,7 +13,6 @@ import {
   normalizePlayerForFooter,
   playerDetailSublineHtml,
 } from "./players.js";
-import { ANON_PLAYER_IMG } from "./constants.js";
 
 export function imageOnlyThumbHtml(player) {
   if (!player) return "";
@@ -34,20 +33,26 @@ export function opponentStagedBanThumbHtml(player) {
 }
 
 /**
- * A ban you are not allowed to see, under the `blur` ban-reveal mode.
+ * A ban you are not allowed to *read*, under the `blur` ban-reveal mode.
  *
- * It carries **no player at all** — the anonymous portrait, no name, no
- * `data-player-id`. The pick board's blur dims the real cards and leans on
- * `user-select: none` plus `aria-hidden` to stop the names being recovered; a
- * ban thumb is one image with the identity *in the src*, so there is nothing to
- * dim that devtools could not undo. Rendering nothing is the only version of
- * this that actually conceals, and a blurred silhouette says exactly what the
- * mode promises: they have banned somebody, and you do not get to know who.
+ * It renders the **real card**, blurred. An earlier cut drew the anonymous
+ * portrait instead, which concealed perfectly and told you nothing: every
+ * concealed ban looked identical, so the mode may as well have been `hidden`.
+ * Blurring the card itself leaves its colour and its shape — the rarity band,
+ * roughly how bright the art is — which is the whole point of a rung between
+ * "see everything" and "see nothing": you can infer, you cannot read.
+ *
+ * The name and the id still stay out of the markup (`alt=""`, no
+ * `data-player-id`, `aria-hidden`) so nothing recovers them by selecting,
+ * hovering or reading the page aloud. The card image's URL does carry the id,
+ * so this is concealment from the player, not from their devtools — the same
+ * caveat the pick board's blur has always had.
  */
-export function concealedBanThumbHtml() {
+export function concealedBanThumbHtml(player) {
+  if (!player) return "";
   return `
     <div class="ban-phase-thumb is-concealed" aria-hidden="true">
-      <img src="${escapeHtml(ANON_PLAYER_IMG)}" alt="" loading="lazy" />
+      <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="" loading="lazy" />
     </div>
   `;
 }

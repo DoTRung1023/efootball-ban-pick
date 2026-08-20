@@ -173,22 +173,10 @@
   min-height: 0;
 }
 
-/* `blur` reveal mode. **The blur is the whole mechanism** — this rule used to
-   set opacity alone, which dimmed the opponent's squad and left every name
-   perfectly legible under a mode whose entire promise is that they are not.
-   `user-select: none` stops the names being recovered by dragging across it,
-   and readyView sets `aria-hidden` so a screen reader cannot read straight
-   through either.
-
-   The team head sits outside this on purpose: the name and the READY chip are
-   what blur still promises you. `hidden` mode does not come through here — that
-   column is replaced wholesale by `.sm-team.is-hidden`. */
-.sm-squad.is-concealed {
-  filter: blur(7px);
-  opacity: 0.75;
-  pointer-events: none;
-  user-select: none;
-}
+/* There is no concealment on this screen — neither `blur` nor `hidden` reaches
+   it. Both squads are drawn in full, whatever the room was set to: concealment
+   is a *drafting* mechanic, and by the time Start Match is up both lineups are
+   confirmed and locked. See `renderTeams` in `ready/readyView.js`. */
 
 /* ── Pitch ───────────────────────────────────────────────────── */
 
@@ -299,23 +287,6 @@
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
-}
-
-/* ── Hidden reveal mode ──────────────────────────────────────── */
-
-/* Centred in whatever height the *other* column set — the card is stretched,
-   so a fixed padding would leave the message stranded at the top. */
-.sm-team.is-hidden .sm-hidden-msg {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 48px 16px;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-muted);
 }
 
 /* ── Footers ─────────────────────────────────────────────────── */

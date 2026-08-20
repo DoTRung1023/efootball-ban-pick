@@ -237,20 +237,28 @@
   opacity: 0.55;
 }
 
-/* `blur` ban-reveal mode: a ban you can count but not read. The markup carries
-   the anonymous portrait and no player at all — see `concealedBanThumbHtml` for
-   why blurring the real one would not have concealed anything — so this is the
-   whole of the treatment, and `user-select: none` keeps it consistent with the
-   pick board's blur rather than because there is text to drag across. */
+/* `blur` ban-reveal mode: a ban you can see but not read.
+   **No `grayscale`.** It was there in the first cut, on top of the anonymous
+   portrait, and between them every concealed ban rendered as the same grey
+   smudge — which is `hidden` with extra steps. The card's own colour is what
+   this rung is for: you can tell an Epic from a Highlight, roughly how bright
+   the art is, and nothing else.
+   `opacity` stays high for the same reason; dimming it to 0.55 washed the
+   colour back out. */
 .ban-phase-thumb.is-concealed {
-  opacity: 0.55;
+  opacity: 0.9;
   user-select: none;
   pointer-events: none;
 }
 
+/* 4px, not 7. A ban thumb is about 40px wide, so 7px flattened each card to a
+   single block of colour — concealed, but only just above `hidden`. The name on
+   the art is 4-5px tall at that size, so 4px still takes it past reading while
+   leaving the card's bands and the shape of the figure on it. Re-measure by eye
+   if `--ban-slot-h` ever grows: the blur is a fixed px against a variable card. */
 .ban-phase-thumb.is-concealed img {
-  filter: blur(5px) grayscale(1);
-  transform: scale(1.1); /* the blur samples past the edge; scale hides the halo */
+  filter: blur(4px);
+  transform: scale(1.12); /* the blur samples past the edge; scale hides the halo */
 }
 
 .ban-phase-controls {

@@ -136,7 +136,7 @@ while choosing your own.
 | Mode | Their strip | Their count |
 | --- | --- | --- |
 | `instant` | faces, live | live |
-| `blur` | `concealedBanThumbHtml` — a blurred anonymous portrait per ban | live |
+| `blur` | `concealedBanThumbHtml` — the real card, blurred | live |
 | `hidden` | nothing; the slots read as un-banned | their **confirmed** count only |
 
 Three things that are easy to get wrong, all of them measured:
@@ -150,11 +150,21 @@ Three things that are easy to get wrong, all of them measured:
   banned two" as plainly as the faces would. `remaining` counts what is *shown*,
   not what exists. This was a real leak and the harness caught it: 2 empty slots
   where there should have been 4.
-- **`blur` renders no player at all.** The pick board's blur dims the real cards
-  and leans on `user-select: none` + `aria-hidden`; a ban thumb is one image with
-  the identity *in its `src`*, so there is nothing to dim that devtools could not
-  undo. `concealedBanThumbHtml` takes no argument: anonymous portrait, `alt=""`,
-  no `data-player-id`. A blurred silhouette says exactly what the mode promises.
+- **`blur` renders the real card, blurred — and that is the point.** The first
+  cut drew the anonymous portrait with `grayscale(1)` on top, which concealed
+  perfectly and told you nothing: every blurred ban was the same grey smudge, so
+  the mode was `hidden` with extra steps. A rung between "see everything" and
+  "see nothing" has to leave *something* to infer from, and on a card that is its
+  colour — the rarity band, the kit, roughly how bright the art is.
+  So: real image, **no grayscale**, `opacity: 0.9` (0.55 washed the colour back
+  out), and `blur(4px)` rather than 7 — a ban thumb is ~40px wide, and 7px
+  flattened each card to a single block. The name on the art is 4-5px tall at
+  that size, so 4px still takes it well past reading. Verified by screenshot,
+  because "can you still infer the colour" is not a thing an assertion answers.
+  The name and the id stay out of the markup either way (`alt=""`, no
+  `data-player-id`, `aria-hidden`), so nothing recovers them by selecting,
+  hovering or reading the page aloud — but the image URL carries the id, so this
+  conceals from the player and not from their devtools.
 
 `concealKey` is part of `renderBanStrip`'s diff key, or switching the mode
 mid-phase repaints nothing.

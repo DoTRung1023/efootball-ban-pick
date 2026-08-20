@@ -323,3 +323,21 @@ screen at `opacity: .5` and `pointer-events: none` so the state is legible but s
 `new-match` mints its code with `genRoomCode()` from `@/shared/lib/roomCode.js`, shared
 with the home page's Rooms tab. There is no create-room endpoint — a room exists as soon
 as somebody sends presence for its code.
+
+## Nothing is concealed on this screen
+
+**Both squads are drawn in full, whatever `revealMode` was.** `renderTeams` does
+not read it, and it is out of the diff key with it.
+
+Concealment is a *drafting* mechanic — it exists so neither side can counter-pick
+the other. By the time Start Match is up both lineups are confirmed and locked,
+so there is nothing left to protect, and this is the screen where you set the
+match up **against the squad you are about to play**. A `hidden` room used to
+arrive here still saying "Picks hidden — this room was set to reveal nothing",
+which made the lobby setting a promise about the whole room rather than about
+the draft, and left both players staring at an empty column while they pressed
+READY.
+
+Gone with it: `hiddenColumnHtml`, the `blurred` flag on `teamColumnHtml`,
+`.sm-team.is-hidden` / `.sm-hidden-msg` and `.sm-squad.is-concealed`. The two
+reveal modes now end where the pick phase ends.

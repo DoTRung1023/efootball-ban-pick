@@ -24,9 +24,7 @@
  * this on every presence poll (~2 Hz).
  */
 
-import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
 import { escapeHtml } from '@/features/draft/utils.js';
-import { normalizeRevealMode } from '@/features/draft/state.js';
 import {
   buildOrderedSlotMap,
   filledPicks,
@@ -70,9 +68,7 @@ const PITCH_MARKS_HTML = `
 /* There is no stat-comparison row, and no aggregate anywhere on this screen.
    It compared five numbers per side — average rating, squad depth, formation,
    starting XI, average age — none of which is a player, on the one screen whose
-   whole job is to show the two squads. `hidden` reveal mode needed a masking
-   path through every one of them for the same reason it needs one for the
-   opponent's column; that path went with them. */
+   whole job is to show the two squads. */
 
 /**
  * The formation a side actually confirmed.
@@ -106,7 +102,6 @@ export function renderReadyBoard({ room, mySide, theirSide, visible }) {
      no step left, and both chips read FINISHED. */
   const mine = step ? Boolean(room[step.flag]?.[mySide]) : true;
   const theirs = step ? Boolean(room[step.flag]?.[theirSide]) : true;
-  const revealMode = normalizeRevealMode(room.config?.revealMode);
 
   const myPicks = room.picks?.[mySide] || [];
   const theirPicks = room.picks?.[theirSide] || [];
@@ -115,7 +110,7 @@ export function renderReadyBoard({ room, mySide, theirSide, visible }) {
 
   renderTeams({
     room, mySide, theirSide, myPicks, theirPicks,
-    myFormation, theirFormation, revealMode, step, mine, theirs,
+    myFormation, theirFormation, step, mine, theirs,
   });
   if (step) renderStepFooter(step, room, theirSide, mine, theirs);
   else renderPostMatch();
@@ -135,26 +130,22 @@ function setText(id, text) {
 // ── The two squads ───────────────────────────────────────────
 
 function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
-                       myFormation, theirFormation, revealMode, step, mine, theirs }) {
+                       myFormation, theirFormation, step, mine, theirs }) {
   const host = document.getElementById("smTeams");
   if (!host) return;
 
-  const hidden = revealMode === REVEAL_MODE_HIDDEN;
   const ids = (picks) => picks.map((p) => (p ? String(p.id) : "-")).join(",");
 
-  /* Their ids and their formation stay out of the key under `hidden`: the key
-     is written to a `data-` attribute, so putting them there would publish in
-     the DOM exactly what this column is refusing to draw. Both names are in it
-     because a name can arrive after the first paint — the old key left them
-     out and the column kept saying "Opponent" for the rest of the match. */
+  /* Both names are in the key because a name can arrive after the first paint —
+     the old key left them out and the column kept saying "Opponent" for the
+     rest of the match. */
   const key = [
     ids(myPicks),
-    hidden ? "" : ids(theirPicks),
+    ids(theirPicks),
     myFormation,
-    hidden ? "" : theirFormation,
+    theirFormation,
     room[mySide]?.username || "",
     room[theirSide]?.username || "",
-    revealMode,
     mySide,
     step?.stage || "post",
     mine ? "1" : "0",
@@ -163,35 +154,34 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
   if (host.dataset.teamsKey === key) return;
   host.dataset.teamsKey = key;
 
-  /* All three reveal modes mean here what they meant during the draft.
-     Revealing at Start Match would make the lobby setting a draft-only
-     promise. */
-  const theirColumn = hidden
-    ? hiddenColumnHtml(room[theirSide]?.username, step, theirs)
-    : teamColumnHtml({
-        name: room[theirSide]?.username || "Opponent",
-        role: "OPPONENT",
-        picks: theirPicks,
-        formation: theirFormation,
-        step,
-        done: theirs,
-        isMe: false,
-        blurred: revealMode === REVEAL_MODE_BLUR,
-      });
+  /**
+   * **Both squads are shown here, whatever the reveal mode was.**
+   *
+   * Concealment is a *drafting* mechanic: it exists so neither side can counter
+   * pick the other. By the time this screen is up both lineups are confirmed
+   * and locked, so there is nothing left to protect — and this is the screen
+   * where you set the match up against the squad you are about to play. A
+   * `hidden` room used to arrive here still saying "this room was set to reveal
+   * nothing", which made the setting a promise about the whole room rather than
+   * about the draft.
+   *
+   * `revealMode` is therefore not read on this screen at all, and is out of the
+   * diff key with it.
+   */
+  const column = (side, name, role, picks, formation, done, isMe) => teamColumnHtml({
+    name: room[side]?.username || name,
+    role,
+    picks,
+    formation,
+    step,
+    done,
+    isMe,
+  });
 
   host.innerHTML =
-    teamColumnHtml({
-      name: room[mySide]?.username || "You",
-      role: "YOU",
-      picks: myPicks,
-      formation: myFormation,
-      step,
-      done: mine,
-      isMe: true,
-      blurred: false,
-    }) +
-    `<div class="sm-vs" aria-hidden="true"><span>VS</span></div>` +
-    theirColumn;
+    column(mySide, "You", "YOU", myPicks, myFormation, mine, true)
+    + `<div class="sm-vs" aria-hidden="true"><span>VS</span></div>`
+    + column(theirSide, "Opponent", "OPPONENT", theirPicks, theirFormation, theirs, false);
 }
 
 /* The chip answers "where is this player up to", so its words come from the
@@ -206,7 +196,7 @@ const stepChipHtml = (step, done) => {
   </span>`;
 };
 
-function teamColumnHtml({ name, role, picks, formation, step, done, isMe, blurred }) {
+function teamColumnHtml({ name, role, picks, formation, step, done, isMe }) {
   const lineup = picks.slice(0, LINEUP_SIZE);
   // `picks` is slot-addressed, so the holes go before anything counts.
   const bench = filledPicks(picks.slice(LINEUP_SIZE));
@@ -224,10 +214,6 @@ function teamColumnHtml({ name, role, picks, formation, step, done, isMe, blurre
     })
     .join("");
 
-  /* Only the squad is blurred, never the head: the name and the READY chip are
-     what `blur` mode still promises you. `aria-hidden` for the same reason as
-     the pick board — a blur a screen reader reads straight through is not a
-     blur. */
   return `
     <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
       <header class="sm-team-head">
@@ -237,7 +223,7 @@ function teamColumnHtml({ name, role, picks, formation, step, done, isMe, blurre
         </div>
         ${stepChipHtml(step, done)}
       </header>
-      <div class="sm-squad${blurred ? " is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
+      <div class="sm-squad">
         <div class="sm-pitch pitch-field">
           ${PITCH_MARKS_HTML}
           <div class="sm-pitch-rows">${rows}</div>
@@ -257,20 +243,6 @@ function benchHtml(bench) {
         ? `<div class="sm-bench-strip">${bench.map((p) => playerCardHtml(p, STATIC_CARD)).join("")}</div>`
         : `<p class="sm-bench-empty">No substitutes picked.</p>`}
     </div>`;
-}
-
-function hiddenColumnHtml(name, step, done) {
-  return `
-    <section class="sm-team is-opp is-hidden">
-      <header class="sm-team-head">
-        <div class="sm-team-id">
-          <h3 class="sm-team-name">${escapeHtml(name || "Opponent")}</h3>
-          <p class="sm-team-role">OPPONENT</p>
-        </div>
-        ${stepChipHtml(step, done)}
-      </header>
-      <p class="sm-hidden-msg">Picks hidden — this room was set to reveal nothing.</p>
-    </section>`;
 }
 
 // ── Footer, while a handshake is open ────────────────────────
