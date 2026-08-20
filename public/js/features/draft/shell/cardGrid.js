@@ -7,6 +7,7 @@
    ============================================================ */
 
 import { state } from "@/features/draft/state.js";
+import { escapeHtml } from "@/features/draft/utils.js";
 import { normalizePlayerForFooter } from "@/features/draft/players.js";
 import { isReadyPhase } from "@/features/draft/engine/draftFlow.js";
 import { bindPlayerHoverCardGrid } from "@/shared/ui/playerHoverCard.js";
@@ -144,6 +145,21 @@ export function bindGridInfoToggle(btnId, gridId, storageKey) {
  * mutating them here cannot desync the guard the way `is-hovered` would on a key
  * built from rendered state (see `ban-phase.md`).
  */
+/**
+ * The "nothing to show" block for either card grid.
+ *
+ * `grid-column: 1 / -1` is the whole point — see `.pool-empty` in `shell.css`.
+ * Both grids are `display: grid` with `auto-fill` columns, so a plain block lands
+ * in the first 128px cell and the message reads as a broken card rather than as
+ * an empty panel.
+ *
+ * Shaped after `.team-empty` on My Players, because it answers the same question
+ * in the same words and there is no reason for the two to look different.
+ */
+export function poolEmptyHtml(message) {
+  return `<div class="pool-empty"><p>${escapeHtml(message)}</p></div>`;
+}
+
 export function paintCardFlags(grid, flagsFor) {
   for (const card of grid.querySelectorAll(".player-card")) {
     const { banned, picked, pending = false, clickable } = flagsFor(card.dataset.playerId || "");

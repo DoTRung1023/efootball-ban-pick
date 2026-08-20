@@ -176,15 +176,15 @@ export function isKickedFromRoom(entry, userId) {
   return Boolean(id) && (entry.kickedGuestIds || []).includes(id);
 }
 
-export function pushSystemChat(entry, message) {
-  appendChat(entry, {
-    id: makeMessageId(),
-    senderId: "system",
-    senderName: "System",
-    message: String(message || "").slice(0, 500),
-    createdAt: Date.now(),
-  });
-}
+/* There was a `pushSystemChat` here, and ~24 calls to it: joins, leaves, every
+   ban, every lineup edit, each confirm, the phase changes, the rematch replies.
+   It turned the chat into an activity log, and the log crowded out the thing the
+   dock is for — the two players talking to each other before they start. Every
+   event it announced is already on screen in the board that owns it.
+
+   `senderId: "system"` was its only marker, so nothing produces one now and the
+   client's `chat-announce` branch went with it. Bring it back only for something
+   a player cannot see any other way. */
 
 export function pushUserChat(entry, { senderId, username, message }) {
   appendChat(entry, {

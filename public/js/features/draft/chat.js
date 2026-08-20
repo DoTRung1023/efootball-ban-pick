@@ -257,10 +257,6 @@ export function renderRoomChat() {
 }
 
 function messageHtml(message, myId) {
-  if (String(message.senderId || "") === "system") {
-    return `<div class="chat-announce">${escapeHtml(message.message || "")}</div>`;
-  }
-
   const mine = String(message.senderId) === String(myId);
   const at = new Date(message.createdAt || Date.now());
   return `

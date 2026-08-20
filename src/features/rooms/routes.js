@@ -18,7 +18,6 @@ import {
   isKickedFromRoom,
   isValidRoomCode,
   normalizeRoomCodeParam,
-  pushSystemChat,
   resetDraftToLobby,
   resetMatchSteps,
   pushUserChat,
@@ -91,7 +90,6 @@ function requireDrafting(message) {
   };
 }
 
-const usernameOf = (entry, side) => entry[side]?.username || "User";
 
 // ── Presence ─────────────────────────────────────────────────
 
@@ -172,7 +170,6 @@ function claimHostSeat(entry, participant) {
   }
 
   const changed = activeHostId !== participant.id;
-  if (changed) pushSystemChat(entry, `${participant.username} joined as host.`);
   /* The heartbeat rebuilds this object every 500 ms, so anything cached on the
      seat rather than sent with the beat has to be carried across — the squad
      size was being wiped a beat after it was looked up. */
@@ -190,7 +187,6 @@ function claimGuestSeat(entry, participant) {
   const changed = activeGuestId !== participant.id;
   participant.playerCount = changed ? null : (entry.guest?.playerCount ?? null);
   if (changed) {
-    pushSystemChat(entry, `${participant.username} joined the room.`);
     entry.ready.guest = false;
     resetMatchSteps(entry, "guest");
   }
@@ -299,7 +295,6 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
 
   if (side === "host") {
     const heir = entry.guest;
-    pushSystemChat(entry, `${entry.host.username || "Host"} left the room.`);
     entry.host = null;
 
     if (disconnected && heir?.id) {
@@ -310,9 +305,7 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
       entry.guest = null;
       entry.ready.guest = false;
       if (resetDraftToLobby(entry)) {
-        pushSystemChat(entry, "Draft cancelled — the host disconnected.");
       }
-      pushSystemChat(entry, `${heir.username || "Guest"} is the host now.`);
     } else if (heir?.id) {
       /* Deliberate close, with somebody to tell. The entry has to outlive both
          seats here — `closed` + `closeReason` is the only thing that puts the
@@ -332,12 +325,10 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
        same code makes a fresh lobby, which is what `reopenRoom` would have
        produced anyway. */
   } else {
-    pushSystemChat(entry, `${entry.guest.username || "Guest"} left the room.`);
     entry.guest = null;
     /* The room survives its guest: the host drops back to the lobby with the
        code intact and can invite somebody else. */
     if (resetDraftToLobby(entry)) {
-      pushSystemChat(entry, "Draft cancelled — waiting for a new player.");
     }
   }
 
@@ -438,7 +429,6 @@ router.post(
     // Stored as sent — the client normalizes the player shape before posting.
     myBans.push(player);
     entry.bannedPlayerIds.push(playerId);
-    pushSystemChat(entry, `${usernameOf(entry, side)} banned ${String(player.name || player.id)}`);
     advanceBanTurnIfSolo(entry);
     entry.updatedAt = Date.now();
 
@@ -469,7 +459,6 @@ router.post(
         .map((p) => ({ id: String(p.id), name: String(p.name || "") }));
       entry.bans[side] = [];
       entry.bannedPlayerIds = [...entry.bans.host, ...entry.bans.guest].map((p) => String(p.id));
-      pushSystemChat(entry, `${usernameOf(entry, side)} un-confirmed their bans.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
@@ -481,7 +470,7 @@ router.post(
       /* `turnIndex = 1` until the schedule moved here — true only while it was
          a two-entry constant, and wrong the moment a ban phase has more than
          one turn in it. */
-      enterPickTurn(entry, "Both players confirmed bans — pick phase starting!");
+      enterPickTurn(entry);
     }
 
     entry.updatedAt = Date.now();
@@ -517,19 +506,12 @@ router.post(
     if (formation) entry.formations[side] = formation;
 
     entry.picksConfirmed[side] = confirmed;
-    pushSystemChat(
-      entry,
-      confirmed
-        ? `${usernameOf(entry, side)} confirmed their squad.`
-        : `${usernameOf(entry, side)} un-confirmed their squad.`,
-    );
 
     if (entry.picksConfirmed.host && entry.picksConfirmed.guest) {
       entry.status = ROOM_STATUS.AWAIT_READY;
       entry.turnEndsAt = null;
       entry.picksConfirmed = { host: false, guest: false };
       resetMatchSteps(entry);
-      pushSystemChat(entry, "Both squads confirmed — on to the match!");
     }
 
     entry.updatedAt = Date.now();
@@ -597,12 +579,6 @@ router.post(
 
     entry.picks[side] = slots;
     entry.updatedAt = Date.now();
-    pushSystemChat(
-      entry,
-      seen.size
-        ? `${usernameOf(entry, side)} updated their lineup (${seen.size})`
-        : `${usernameOf(entry, side)} cleared their lineup`,
-    );
 
     sendRoom(res, entry);
   },
@@ -623,11 +599,9 @@ router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) =>
 
   const kickedId = String(entry.guest.id);
   if (!isKickedFromRoom(entry, kickedId)) entry.kickedGuestIds.push(kickedId);
-  pushSystemChat(entry, `${entry.guest.username || "Guest"} was removed by host.`);
   entry.guest = null;
   // Same as a guest leaving — see resetDraftToLobby.
   if (resetDraftToLobby(entry)) {
-    pushSystemChat(entry, "Draft cancelled — waiting for a new player.");
   }
   entry.updatedAt = Date.now();
   sendRoom(res, entry);
@@ -682,8 +656,6 @@ router.post(
     if (entry[step.flag].host && entry[step.flag].guest) {
       entry.status = step.to;
       entry.turnEndsAt = null;
-      if (step.to === ROOM_STATUS.LIVE) pushSystemChat(entry, "Both sides kicked off — match in progress.");
-      if (step.to === ROOM_STATUS.DONE) pushSystemChat(entry, "Match finished.");
     } else if (entry.status === step.to) {
       entry.status = step.from;
     }
@@ -732,7 +704,6 @@ router.post(
     const { entry, side } = req;
     const action = String(req.body?.action || "");
     const other = side === "host" ? "guest" : "host";
-    const who = entry[side]?.username || side;
 
     if (entry.status !== ROOM_STATUS.DONE) {
       return res.status(409).json({ error: "The match is not over yet." });
@@ -745,14 +716,12 @@ router.post(
          because the side it was aimed at has just left. */
       entry.newMatch = { by: side };
       entry.rematch = null;
-      pushSystemChat(entry, `${who} started a different match.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
 
     if (action === "rematch-propose") {
       entry.rematch = { by: side };
-      pushSystemChat(entry, `${who} wants a rematch.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
@@ -762,7 +731,6 @@ router.post(
         return res.status(409).json({ error: "You have no rematch offer to cancel." });
       }
       entry.rematch = null;
-      pushSystemChat(entry, `${who} cancelled the rematch offer.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
@@ -773,14 +741,12 @@ router.post(
       }
       entry.rematch = null;
       resetDraftToLobby(entry);   // also clears matchReady and the offer
-      pushSystemChat(entry, `${who} accepted the rematch — back to ban settings.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }
 
     if (action === "rematch-decline") {
       entry.rematch = null;
-      pushSystemChat(entry, `${who} declined the rematch.`);
       entry.updatedAt = Date.now();
       return sendRoom(res, entry);
     }

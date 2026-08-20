@@ -159,6 +159,16 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `pollPresence` (ahead of its per-phase branches, each of which returns) and `showView`
   (the exit screens are not rooms, and polling has usually stopped by the time one
   appears). The unread count lives in the module, not in `state` — nothing else reads it.
+
+  **There are no system messages.** `messageHtml` had a `senderId === "system"`
+  branch drawing a centred `.chat-announce` line, fed by ~24 `pushSystemChat` calls
+  on the server: joins, leaves, every ban, every lineup edit, each confirm, the
+  phase changes, the rematch replies. It made the dock an activity log, and the log
+  crowded out what the dock is for — the two players agreeing rules before they
+  start. Every event it announced is already on screen in the board that owns it.
+  The producer, the branch and the CSS are all gone; nothing sets `senderId` to
+  `"system"` any more. Bring it back only for something a player cannot see any
+  other way, and prefer a toast even then.
   `initDockDrag()` makes the dock draggable from the launcher or the panel header (the
   close button opts out): pointer events with capture, a **4px threshold** below which the
   gesture is still a click, and a one-shot `suppressClick` so the click that ends a drag
@@ -226,8 +236,10 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   draft root: `playerQuery.js` (list query + sort), `playerCards.js` (card and thumb
   markup) and `filterOptions.js`. `shell/cardGrid.js` holds
   `attachMiniCardGridHandlers`, `bindGridInfoToggle` (SHOW INFO / HIDE INFO),
-  `bindCardGridHover` **and** `paintCardFlags`, all four of which serve ban and
-  pick. `paintCardFlags` toggles `is-ban-taken` / `is-pick-taken` /
+  `bindCardGridHover`, `paintCardFlags` **and** `poolEmptyHtml`, all five of which
+  serve ban and pick. `poolEmptyHtml` is the "nothing to show" block; its
+  `grid-column: 1 / -1` is the whole point, because both grids are `display: grid`
+  and a plain block lands in the first column as a 128px box (see `css.md`). `paintCardFlags` toggles `is-ban-taken` / `is-pick-taken` /
   `is-unavailable` / `is-pending` / `is-clickable` on cards already in a grid: both
   grids key their rebuild on **which players** they hold and repaint state in
   place, so a ban or a pick costs one card, not forty images. It replaced

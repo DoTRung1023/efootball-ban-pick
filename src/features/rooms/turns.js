@@ -8,7 +8,6 @@
  * turns *are*, this one moves between them.
  */
 
-import { pushSystemChat } from "./store.js";
 import { buildTurnSchedule, isSoloBanTurn, turnAt } from "./schedule.js";
 import {
   normalizeBanDurationSec,
@@ -18,14 +17,13 @@ import {
 import { topBannableFrom } from "./squads.js";
 
 /** Moves the room onto its pick turn and clears everything the ban phase held. */
-export function enterPickTurn(entry, note) {
+export function enterPickTurn(entry) {
   const schedule = buildTurnSchedule(entry.config);
   const pickIdx = schedule.findIndex((t) => t.action === "pick");
   entry.turnIndex = pickIdx < 0 ? 0 : pickIdx;
   entry.turnEndsAt = turnDeadline(normalizePickDurationSec(entry.config?.pickDurationSec));
   entry.bansConfirmed = { host: false, guest: false };
   entry.stagedBans = { host: [], guest: [] };
-  if (note) pushSystemChat(entry, note);
 }
 
 /**
@@ -42,7 +40,7 @@ export function advanceBanTurnIfSolo(entry) {
   const next = schedule[nextIdx];
 
   if (!next || next.action === "pick") {
-    enterPickTurn(entry, "Bans complete — pick phase starting!");
+    enterPickTurn(entry);
     return;
   }
   entry.turnIndex = nextIdx;
@@ -87,16 +85,12 @@ async function resolveExpiredBanTurn(entry) {
   if (!isSoloBanTurn(entry.config, entry.turnIndex)
       || turnAt(entry.config, entry.turnIndex)?.side !== side) return;
 
-  const who = entry[side]?.username || side;
   if (player) {
     entry.bans[side].push({ id: String(player.id), name: String(player.name || "") });
     entry.bannedPlayerIds.push(String(player.id));
-    pushSystemChat(entry, `${who} ran out of time — ${player.name} banned automatically.`);
-  } else {
-    /* Nothing left to take, or the lookup failed. The turn still has to move or
-       the draft deadlocks on a clock that has already expired. */
-    pushSystemChat(entry, `${who} ran out of time — no ban.`);
   }
+  /* Nothing left to take, or the lookup failed: the turn still has to move or
+     the draft deadlocks on a clock that has already expired. */
 
   advanceBanTurnIfSolo(entry);
   entry.updatedAt = Date.now();

@@ -43,25 +43,11 @@
   scrollbar-gutter: stable;
 }
 
-.ban-phase-empty {
-  border-radius: var(--radius);
-  border: none;
-  color: var(--text-dim);
-  padding: 10px 12px;
-  font-size: 12px;
-  text-align: center;
-  width: 100%;
-}
-
-.ban-phase-empty--panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--scrim);
-}
+/* `.pool-empty` — the "nothing to show" block for both card grids — is in
+   `shell.css`, next to the rest of what the two boards share. It was
+   `.ban-phase-empty` here, and being a plain block inside a `display: grid` it
+   landed in **one auto-fill column**: a 128px black box in the top-left corner
+   with the rest of the panel empty beside it. */
 
 /* There is one thumb size. Keep the `96px` **fallback**: a thumb rendered
    outside .ban-phase-right has no --ban-slot-h in scope, and without it the
@@ -392,15 +378,31 @@
   letter-spacing: 0.05em;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition), box-shadow var(--transition);
   user-select: none;
 }
 
-.ap-dd-btn:hover,
-.ap-dd-btn.open {
+/* Hover and open were **one rule** — `--line-active` + `--fill` for both — so an
+   open FILTER panel looked exactly like a FILTER button under the cursor, and
+   both sat on the hover rung. DESIGN.md §3.3: rest `--border` + no fill → hover
+   `--line-hover` + `--fill` → selected `--line-active` + `--fill-strong`, and a
+   hover must never match a selected. Split onto their own rungs. */
+.ap-dd-btn:hover:not(.open):not(.has-active) {
+  color: var(--text);
+  border-color: var(--line-hover);
+  background: var(--fill);
+}
+
+/* Open, or holding a filter: the top rung, plus the sanctioned hairline ring
+   (§7) — the one box-shadow the palette allows, zero-offset and zero-blur, so it
+   reads as a 2px edge rather than a glow. A 1px border alone could not separate
+   "this panel is open" from "the pointer is here" at 12px. */
+.ap-dd-btn.open,
+.ap-dd-btn.has-active {
   color: var(--text);
   border-color: var(--line-active);
-  background: var(--fill);
+  background: var(--fill-strong);
+  box-shadow: 0 0 0 1px var(--line-active);
 }
 
 .dd-chevron {
@@ -565,19 +567,24 @@
   font-size: 14px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.16s ease, color 0.16s ease;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
-.pos-ms-btn:hover,
-.pos-ms-btn.open {
-  border-color: var(--line-active);
+/* Same split as `.ap-dd-btn`, and it also gains a fill: this one moved nothing
+   but its border colour between rest, hover and open, which is the least
+   visible of the three transitions the ladder asks for. */
+.pos-ms-btn:hover:not(.open):not(.has-pos-filter) {
+  border-color: var(--line-hover);
+  background: var(--fill);
   color: var(--text);
 }
 
+.pos-ms-btn.open,
 .pos-ms-btn.has-pos-filter {
   color: var(--text);
   border-color: var(--line-active);
-  background: var(--fill);
+  background: var(--fill-strong);
+  box-shadow: 0 0 0 1px var(--line-active);
 }
 
 .pos-ms-btn svg {

@@ -29,7 +29,7 @@ import {
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
-import { paintCardFlags } from '@/features/draft/shell/cardGrid.js';
+import { paintCardFlags, poolEmptyHtml } from '@/features/draft/shell/cardGrid.js';
 import { bindPickPhaseUiOnce, renderPickPosTabs, renderPickToolbar } from './pick.js';
 import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
@@ -258,7 +258,7 @@ function renderPickGrid(room, mySide, theirSide) {
     grid.dataset.rowsKey = rowsKey;
     grid.innerHTML = pool.length
       ? pool.map((p) => playerCardHtml(p, flagsFor(String(p.id || "")))).join("")
-      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(pickEmptyMessage())}</div>`;
+      : poolEmptyHtml(pickEmptyMessage());
     return; // built with the current flags already applied
   }
 

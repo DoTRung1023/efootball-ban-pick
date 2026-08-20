@@ -124,10 +124,16 @@ same helper `/api/top-players` uses, extracted for exactly this reason.
 WebSocket, and presence deliberately has no TTL — so `maybeResolveExpiredBanTurn`
 hangs off the presence path and the next heartbeat from either client is what
 notices. Worst case 500 ms. `entry.resolvingBanTurn` guards it: measured with
-twelve simultaneous heartbeats against one expired turn, exactly one ban and one
-chat line. It re-checks the turn after its `await` too, in case the player got
-their own ban in first. Every outcome is announced in chat, including the one
-where there is nothing left to take.
+twelve simultaneous heartbeats against one expired turn, exactly one ban. It
+re-checks the turn after its `await` too, in case the player got their own ban in
+first.
+
+**Nothing announces it.** Each outcome used to push a chat line — *"X ran out of
+time — MBAPPE banned automatically."* — and that went with the rest of the system
+chat (see `modules.md`). An auto-ban is therefore visible only as a ban the player
+did not make, appearing in their strip. If that turns out to need explaining, a
+**toast** is the place for it, not the chat log: it is a one-off event addressed
+to one player, which is exactly what `announce` is for.
 
 ## BAN REVEAL — what the opponent's strip shows
 

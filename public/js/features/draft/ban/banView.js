@@ -8,7 +8,6 @@
  * serializing, so the strings never match and the grid rebuilds every cycle.
  */
 
-import { escapeHtml } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import {
   playerCardHtml,
@@ -18,7 +17,7 @@ import {
   stagedBanThumbHtml,
 } from '@/features/draft/playerCards.js';
 import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQuery.js';
-import { paintCardFlags } from '@/features/draft/shell/cardGrid.js';
+import { paintCardFlags, poolEmptyHtml } from '@/features/draft/shell/cardGrid.js';
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit, isSoloTurn } from '@/features/draft/engine/draftFlow.js';
@@ -376,7 +375,7 @@ function renderBanGrid(grid, { maxBans, myBans, isMyTurn, readyPhase, myConfirme
     grid.dataset.rowsKey = rowsKey;
     grid.innerHTML = pool.length
       ? pool.map((p) => playerCardHtml(p, flagsFor(String(p.id)))).join("")
-      : `<div class="ban-phase-empty ban-phase-empty--panel">${escapeHtml(banEmptyMessage())}</div>`;
+      : poolEmptyHtml(banEmptyMessage());
     return; // built with the current flags already applied
   }
 

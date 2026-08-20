@@ -244,7 +244,8 @@ field standing beside the panels rather than as one of them (2.4× the luminance
 panel next to it). If a panel looks brighter than its neighbours, this is why.
 
 **The state ladder is rest → hover → selected, and each step has to be lighter than the
-last** (DESIGN.md §3.3). Two ways it has gone wrong in `lobby.css`, both fixed:
+last** (DESIGN.md §3.3). Two ways it has gone wrong, both fixed — first in `lobby.css`,
+then in the draft toolbars, which had repeated them exactly:
 
 - *A solid rest surface.* The fills are white-alpha; over a `--surface-control` chip they
   replace the chip instead of lightening it, so a selected chip came out **darker** than
@@ -257,6 +258,20 @@ last** (DESIGN.md §3.3). Two ways it has gone wrong in `lobby.css`, both fixed:
   `.lv-unlimited-btn` was the sharper version of the same bug: its `:hover` rule carried one more compound than the
   `[aria-pressed="true"]` rule below it, so hovering the ∞ button that was **on** dropped
   it a rung and the control said "off" under the cursor.
+
+**The draft toolbars had both, and the FILTER button was where it showed.** Four controls
+are now on the ladder as written, each with the sanctioned hairline ring (§7) on its top
+rung because a 1px border alone could not separate "open" from "hovered" at 12px:
+
+| control | was | now |
+| --- | --- | --- |
+| `.ap-dd-btn` (sort, FILTER) | `:hover, .open` one rule at `--line-active` + `--fill` | hover `:not(.open):not(.has-active)` at `--line-hover` + `--fill`; `.open` / `.has-active` at `--line-active` + `--fill-strong` + ring |
+| `.pos-ms-btn` | same merge, and moved **only** a border colour across all three states | same split, and gains the fills |
+| `.pick-pos-tab` | `background: var(--bg-elevated)` at rest — the solid-surface bug above, so `.is-active`'s `--fill` composited darker than the panel | transparent at rest; `.is-active` at `--fill-strong` + ring |
+| `catalog.css`'s own `.ap-dd-btn` | `:hover, .open` merged; `.has-active` differed by a border colour alone | same split as the room's. Its rest keeps `--fill` — that is the solid-rest question for the whole home toolbar, not this one |
+
+The last row is the parity note below turning into a real obligation: the two sheets have
+no shared file, so a change to one of these is a change to two.
 
 **A checked control has to be legible as checked.** `.prep-check`'s box drew its tick as a
 knockout in `--bg-elevated`, which only works over a *solid* fill — over its old
@@ -345,7 +360,8 @@ verified as the only element that changed.
 The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`,
 `.filter-clear-btn`, `.filter-group-label` etc. These are defined in `ban.css` and kept
 visually in sync with `public/css/features/catalog/catalog.css`. Key rules: `.ap-dd-btn.has-active`
-(green highlight when filter active), `.filter-clear-btn` (red destructive style),
+and `.ap-dd-btn.open` (top rung + hairline ring — see the state-ladder table above; both
+sheets carry the same split and neither imports the other), `.filter-clear-btn` (red destructive style),
 `.select-mode-btn` (`border-radius: 7px`), `.filter-group-label` (section divider:
 uppercase label, subtle green tint, top/bottom border — both files share an identical
 definition).

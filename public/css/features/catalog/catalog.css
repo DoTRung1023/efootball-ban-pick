@@ -100,21 +100,31 @@
   letter-spacing: 0.05em;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition), box-shadow var(--transition);
   user-select: none;
 }
 
-.ap-dd-btn:hover,
-.ap-dd-btn.open {
+/* Hover and open shared one rule, so an open panel looked like a button under
+   the pointer, and `.has-active` differed from both by a border colour alone.
+   Split onto their own rungs — the same correction `ban.css` carries for the
+   room's copy of this control, and the two are kept in step by eye because
+   there is no shared sheet between the two pages. */
+.ap-dd-btn:hover:not(.open):not(.has-active) {
   color: var(--text);
   border-color: var(--line-hover);
   background: var(--fill-strong);
 }
 
+/* Open, or holding a filter: top rung plus the sanctioned hairline ring
+   (DESIGN.md §7) — zero-offset, zero-blur, so it reads as a 2px edge and not a
+   glow. Rest keeps its `--fill` here, unlike the room's; changing that is a
+   separate question about every control on this toolbar. */
+.ap-dd-btn.open,
 .ap-dd-btn.has-active {
   color: var(--text);
   border-color: var(--line-active);
   background: var(--fill-strong);
+  box-shadow: 0 0 0 1px var(--line-active);
 }
 
 .dd-chevron {

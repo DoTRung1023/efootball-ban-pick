@@ -879,14 +879,6 @@
   border-color: var(--border);
 }
 
-.chat-announce {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-dim);
-  line-height: 1.4;
-  margin: 4px 0 7px;
-}
-
 .chat-head {
   display: flex;
   justify-content: space-between;
@@ -1238,5 +1230,35 @@
    ends the card's draft, and it is the answer you came to the pool for. */
 .pick-phase-grid .player-card.is-pick-taken:not(.is-ban-taken) .pc-img-wrap::after {
   content: "PICKED";
+  color: var(--text-muted);
+}
+
+/* ── The empty card grid ──────────────────────────────────────────────────
+   Both boards' grids are `display: grid` with `repeat(auto-fill, minmax(…))`
+   columns, so **`grid-column: 1 / -1` is load-bearing**: without it this block
+   is placed in the first column like a card, and "No player matches this
+   search." rendered as a 128px black box in the corner of an otherwise empty
+   panel. That is what it did as `.ban-phase-empty--panel`, whose `min-height`
+   and `--scrim` background made it look all the more like a card that had
+   failed to load.
+
+   Shaped after `.team-empty` on My Players — same question, same words, no
+   reason for the two to look different. The scrim is gone with it: the panel is
+   already a surface, and a second box inside it is one border too many. */
+.pool-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.pool-empty p {
+  margin: 0;
+  max-width: 280px;
+  font-size: 14px;
   color: var(--text-muted);
 }
