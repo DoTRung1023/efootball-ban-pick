@@ -68,3 +68,30 @@ paths:
 - The draft schedule (`buildTurnSchedule`) always returns exactly two entries:
   `{ side: "both", action: "ban" }` then `{ side: "both", action: "pick" }`. Both phases
   are simultaneous — **there are no per-player turns.**
+
+## The turn schedule is the server's
+
+`state.schedule` is **read off the snapshot**, not built. `buildTurnSchedule`
+used to live in `state.js` and return a two-entry constant, and the server
+hardcoded the indices that constant implied — `turnIndex = 0` at START,
+`turnIndex = 1` on the ban→pick advance. An alternating ban phase is
+`2 × banCountPerSide + 1` entries and the server has to walk them, so it builds
+the schedule (`src/features/rooms/schedule.js`) and publishes it from
+`serializeRoomEntry`; `applyPresenceSnapshot` copies it into `state.schedule` on
+**every** snapshot, because changing the ban count or the ban order in the lobby
+reshapes it.
+
+The same split as `ROOM_STATUS`: the server owns every transition, the client
+only compares.
+
+It also removed a real divergence. With zero bans the client used to jump
+`turnIndex` past a ban turn the server still thought it was on
+(`draftSession.js`); a schedule built with no ban entry needs no correction, and
+both sides now agree that index 0 *is* the pick turn. Verified: schedule
+`[{both, pick}]`, `turnIndex: 0`, and the browser opens on the pick board.
+
+`turns.js` is where the room moves between them — `advanceBanTurnIfSolo`,
+`enterPickTurn`, `maybeResolveExpiredBanTurn`. It is separate from `schedule.js`
+because that file is pure: it says what the turns *are*, `turns.js` moves
+between them, and it is separate from `routes.js` because two paths need it (a
+ban write ends its own turn; the heartbeat notices an expired one).

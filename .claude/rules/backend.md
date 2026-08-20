@@ -91,7 +91,10 @@ Supporting modules:
     guest-seat-only check let a kicked player take the room over.
 - `features/rooms/config.js` — duration constants, the three reveal modes,
   `ROOM_LIST_QUIET_MS`, `PICK_COUNT_PER_SIDE`, and all room-config /
-  ban/pick durations and the reveal mode. **No presence TTL** — see
+  ban/pick durations, both reveal modes and the ban order. `schedule.js` derives
+  the turn schedule from that config and `turns.js` moves the room through it —
+  including auto-banning an expired alternating turn, which is resolved on the
+  presence path because there are no server-side timers. **No presence TTL** — see
   `room/presence-and-reconnect.md`.
 - `features/players/catalogQuery.js` — `CATALOG_COLUMNS`, `buildCatalogFilter`,
   `resolveSortOrder`. The `SORT_MAP` and `POS_GROUPS` tables behind them are

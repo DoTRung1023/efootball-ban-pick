@@ -124,6 +124,11 @@
                   <div class="prep-scroll">
                     <div class="lv-settings-panel" id="lobbySettings" hidden>
 
+                      <!-- Pace presets. They write the ban count and the two
+                           clocks and leave MODE alone — see lobby/presets.js for
+                           why. Built once by renderLobby; only .is-active moves. -->
+                      <div class="lv-preset-row" id="lobbyPresetRow"></div>
+
                       <div class="lv-field-row">
                         <div class="lv-field-group">
                           <div class="lv-field-label">BAN PER SIDE</div>
@@ -184,25 +189,77 @@
                       </div>
 
                       <div class="lv-field-group lv-field-group--reveal">
-                        <div class="lv-field-label">MODE</div>
+                        <div class="lv-field-label">BAN ORDER</div>
+                        <input type="hidden" id="lobbyBanOrderInput" value="simultaneous">
+                        <div class="lv-reveal-cards lv-reveal-cards--pair" id="lobbyBanOrderPanel">
+                          <button type="button" class="lv-reveal-card is-selected" data-lobby-ban-order-option="simultaneous">
+                            <span class="lv-reveal-icon">&#9203;</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">SIMULTANEOUS</span>
+                              <span class="lv-reveal-d">Both ban at once, then confirm</span>
+                            </span>
+                          </button>
+                          <button type="button" class="lv-reveal-card" data-lobby-ban-order-option="alternating">
+                            <span class="lv-reveal-icon">&#128260;</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">ALTERNATING</span>
+                              <span class="lv-reveal-d">One ban each, turn by turn</span>
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Two groups, because MODE only ever governed picks. The ban
+                           phase is simultaneous and the opponent's staged bans stream
+                           out on every heartbeat — see ban-phase.md. -->
+                      <div class="lv-field-group lv-field-group--reveal">
+                        <div class="lv-field-label">BAN REVEAL</div>
+                        <input type="hidden" id="lobbyBanRevealModeInput" value="instant">
+                        <div class="lv-reveal-cards" id="lobbyBanRevealModePanel">
+                          <button type="button" class="lv-reveal-card is-selected" data-lobby-ban-reveal-mode-option="instant">
+                            <span class="lv-reveal-icon">&#128065;</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">INSTANT</span>
+                              <span class="lv-reveal-d">Show their bans as they land</span>
+                            </span>
+                          </button>
+                          <button type="button" class="lv-reveal-card" data-lobby-ban-reveal-mode-option="blur">
+                            <span class="lv-reveal-icon">&#127787;&#65039;</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">BLUR</span>
+                              <span class="lv-reveal-d">Blur their bans, show the count</span>
+                            </span>
+                          </button>
+                          <button type="button" class="lv-reveal-card" data-lobby-ban-reveal-mode-option="hidden">
+                            <span class="lv-reveal-icon">&#128274;</span>
+                            <span class="lv-reveal-body">
+                              <span class="lv-reveal-name">HIDDEN</span>
+                              <span class="lv-reveal-d">Show nothing until they confirm</span>
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="lv-field-group lv-field-group--reveal">
+                        <div class="lv-field-label">PICK REVEAL</div>
                         <input type="hidden" id="lobbyRevealModeInput" value="instant">
                         <div class="lv-reveal-cards" id="lobbyRevealModePanel">
                           <button type="button" class="lv-reveal-card is-selected" data-lobby-reveal-mode-option="instant">
-                            <span class="lv-reveal-icon">👁</span>
+                            <span class="lv-reveal-icon">&#128065;</span>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">INSTANT</span>
                               <span class="lv-reveal-d">Show picks after each turn</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="blur">
-                            <span class="lv-reveal-icon">🌫️</span>
+                            <span class="lv-reveal-icon">&#127787;&#65039;</span>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">BLUR</span>
                               <span class="lv-reveal-d">Blur their cards, show progress</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="hidden">
-                            <span class="lv-reveal-icon">🔒</span>
+                            <span class="lv-reveal-icon">&#128274;</span>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">HIDDEN</span>
                               <span class="lv-reveal-d">Show nothing but their status</span>
@@ -210,7 +267,6 @@
                           </button>
                         </div>
                       </div>
-
                     </div>
 
                   </div>

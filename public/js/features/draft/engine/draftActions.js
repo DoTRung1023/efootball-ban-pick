@@ -13,6 +13,7 @@ import { postAsMe } from '@/features/draft/api.js';
 import { normalizeFormation, pickCount } from '@/features/draft/players.js';
 import {
   applyLocalBan,
+  isSoloTurn,
   banLimit,
   isReadyPhase,
   pickLimit,
@@ -244,7 +245,25 @@ export function submitBan(player) {
     return;
   }
 
+  /* One turn, one ban: there is nothing to stage and nothing to confirm, so it
+     posts straight away and the server hands the turn over in the same write. */
+  if (isSoloTurn(room)) {
+    void submitSoloBan(player);
+    return;
+  }
+
   state.stagedBans.push(player);
+  cb.renderDraftUi();
+}
+
+/** The alternating path: post the one ban and take the server's answer. */
+async function submitSoloBan(player) {
+  const { ok, data } = await postAsMe("ban", { player: banPayload(player) });
+  if (!ok) {
+    showToast(data?.error || "Could not ban that player.");
+    return;
+  }
+  if (data.room) applyPresenceSnapshot(data.room);
   cb.renderDraftUi();
 }
 

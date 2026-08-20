@@ -26,8 +26,10 @@ import {
   normalizeBanDurationSec,
   normalizePickDurationSec,
   normalizeRevealMode,
+  normalizeBanOrder,
 } from '@/features/draft/state.js';
 import {
+  escapeHtml,
   showToast,
   askConfirm,
   showView,
@@ -46,7 +48,8 @@ import { paintErrorView } from '@/features/draft/errorView.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 
-import { scheduleLobbyConfigPush } from './config.js';
+import { pushLobbyConfigNow, scheduleLobbyConfigPush } from './config.js';
+import { DRAFT_PRESETS, matchingPresetKey, readRememberedSettings } from './presets.js';
 
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
@@ -56,6 +59,20 @@ let readonlySettingsToastAt = 0;
    so `readLobbyConfigFromDom` needs no special case; the field just stops
    *showing* a number, because a box reading "0 sec" says the opposite of what
    it means. */
+
+/**
+ * Every always-visible card row in the settings panel: BAN ORDER, BAN REVEAL,
+ * PICK REVEAL.
+ *
+ * They are a table rather than three copies because everything done with them
+ * — sync the hidden input, paint the selection, bind the click, push — is
+ * identical, and only the config key, the ids and the normaliser differ.
+ */
+const REVEAL_GROUPS = [
+  { cfgKey: "banOrder",      input: "lobbyBanOrderInput",      panel: "lobbyBanOrderPanel",      attr: "data-lobby-ban-order-option",       dataKey: "lobbyBanOrderOption",     normalize: normalizeBanOrder },
+  { cfgKey: "revealMode",    input: "lobbyRevealModeInput",    panel: "lobbyRevealModePanel",    attr: "data-lobby-reveal-mode-option",     dataKey: "lobbyRevealModeOption",    normalize: normalizeRevealMode },
+  { cfgKey: "banRevealMode", input: "lobbyBanRevealModeInput", panel: "lobbyBanRevealModePanel", attr: "data-lobby-ban-reveal-mode-option", dataKey: "lobbyBanRevealModeOption", normalize: normalizeRevealMode },
+];
 
 const DURATION_FIELDS = {
   ban:  { input: "lobbyBanDurationInput",  field: "banDurationField",  btn: "lobbyBanUnlimitedBtn",  cfgKey: "banDurationSec",  fallback: DEFAULT_BAN_DURATION_SECONDS },
@@ -231,8 +248,6 @@ function renderLobby() {
   const bansEl = document.getElementById("lobbyBansInput");
   const banDurationEl = document.getElementById("lobbyBanDurationInput");
   const pickDurationEl = document.getElementById("lobbyPickDurationInput");
-  const revealModeEl = document.getElementById("lobbyRevealModeInput");
-  const revealModePanel = document.getElementById("lobbyRevealModePanel");
   if (bansEl && !bansEl.dataset.touched) bansEl.value = String(cfg.banCountPerSide ?? 0);
   if (banDurationEl && !banDurationEl.dataset.touched) banDurationEl.value = String(normalizeBanDurationSec(cfg.banDurationSec));
   if (pickDurationEl && !pickDurationEl.dataset.touched) pickDurationEl.value = String(normalizePickDurationSec(cfg.pickDurationSec));
@@ -240,7 +255,6 @@ function renderLobby() {
      still has to say what the host chose. */
   paintDurationField("ban", normalizeBanDurationSec(cfg.banDurationSec));
   paintDurationField("pick", normalizePickDurationSec(cfg.pickDurationSec));
-  if (revealModeEl && !revealModeEl.dataset.touched) revealModeEl.value = normalizeRevealMode(cfg.revealMode);
 
   // Sync lv-settings-panel visual controls from config
   const banCountValEl = document.getElementById("banCountVal");
@@ -248,13 +262,7 @@ function renderLobby() {
   if (banCountValEl) banCountValEl.textContent = String(banCount);
   const banPlusEl = document.getElementById("banCountPlus");
   if (banPlusEl) banPlusEl.disabled = maxBans != null && banCount >= maxBans;
-  const revealModeValue = normalizeRevealMode(revealModeEl?.value || cfg.revealMode);
-  // The cards are always visible; selection is the only state they carry. Their
-  // disabled look comes from the .is-readonly rule on the settings panel.
-  revealModePanel?.querySelectorAll("[data-lobby-reveal-mode-option]").forEach((opt) => {
-    const mode = String(opt.dataset.lobbyRevealModeOption || "").trim();
-    opt.classList.toggle("is-selected", mode === revealModeValue);
-  });
+  REVEAL_GROUPS.forEach((group) => paintRevealGroup(group, cfg));
 
   const startBtn = document.getElementById("startDraftBtn");
   const lobbyLeaveBtn = document.getElementById("lobbyLeaveBtn");
@@ -311,6 +319,8 @@ function renderLobby() {
     }
   }
 
+  renderPresetChips(cfg, isHost);
+
   if (bansEl) bansEl.disabled = !isHost;
   if (banDurationEl) banDurationEl.disabled = !isHost;
   if (pickDurationEl) pickDurationEl.disabled = !isHost;
@@ -324,6 +334,94 @@ function renderLobby() {
    on every lobby load to tell the host the size of their own collection — on the
    screen where they are configuring bans, about a squad they cannot change from
    here. The guest's card never had it, so the two cards now match as well. */
+
+/**
+ * The preset chips. Built once — a row that rebuilds on every 500 ms poll would
+ * swallow the click that is landing on it — after which only `.is-active` and
+ * `disabled` move.
+ */
+function renderPresetChips(cfg, isHost) {
+  const row = document.getElementById("lobbyPresetRow");
+  if (!row) return;
+
+  if (!row.dataset.built) {
+    row.dataset.built = "1";
+    row.innerHTML = DRAFT_PRESETS.map((preset) => `
+      <button type="button" class="lv-preset-chip" data-lobby-preset="${preset.key}"
+              title="${preset.banCountPerSide} bans · ${preset.banDurationSec}s ban · ${preset.pickDurationSec}s pick">
+        ${escapeHtml(preset.label)}
+      </button>
+    `).join("");
+  }
+
+  const active = matchingPresetKey(cfg);
+  row.querySelectorAll("[data-lobby-preset]").forEach((chip) => {
+    chip.classList.toggle("is-active", chip.dataset.lobbyPreset === active);
+    chip.disabled = !isHost;
+  });
+}
+
+/**
+ * Writes a whole set of settings at once — a preset chip, or the host's
+ * remembered ones — and does not let go until the server has them.
+ *
+ * **The inputs, not just the config, and marked `data-touched`.** The payload is
+ * read from the DOM, and `renderLobby` syncs these four *from* `room.config` on
+ * every 500 ms poll unless they are touched. Without the flag the sequence is:
+ * write config → poll merges the server's config back over it → `renderLobby`
+ * resets the inputs → the push reads the DOM and sends the values this was
+ * called to replace. That is exactly what the first cut of this did.
+ *
+ * The flag comes off once the server has answered, because from then on the
+ * config being synced *is* these values.
+ */
+async function applyLobbySettings(settings) {
+  if (state.mySide !== "host" || !state.room) return;
+
+  Object.assign(state.room.config, settings);
+
+  const fields = {
+    lobbyBansInput: settings.banCountPerSide,
+    lobbyBanDurationInput: settings.banDurationSec,
+    lobbyPickDurationInput: settings.pickDurationSec,
+    lobbyRevealModeInput: settings.revealMode,
+    lobbyBanRevealModeInput: settings.banRevealMode,
+    lobbyBanOrderInput: settings.banOrder,
+  };
+  const touched = [];
+  for (const [id, value] of Object.entries(fields)) {
+    if (value === undefined) continue;
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.value = String(value);
+    el.dataset.touched = "1";
+    touched.push(el);
+  }
+
+  renderLobby();
+  await pushLobbyConfigNow();
+  touched.forEach((el) => { delete el.dataset.touched; });
+  renderLobby();
+}
+
+/**
+ * Seeds the host's last settings into a room they have just opened.
+ *
+ * **After presence registers, not before.** `POST /:code/config` resolves the
+ * caller's side from the room, and a room does not exist until the first
+ * presence beat creates it — pushed any earlier this is a 403.
+ *
+ * The guards are the whole of the rule: only the host writes settings, only a
+ * lobby has settings to write, and a client that reconnected straight into a
+ * running draft is past the point where they mean anything. Re-seeding a lobby
+ * the host is already sitting in is harmless — `pushLobbyConfig` stores every
+ * write, so what is remembered is what is already on screen.
+ */
+function applyRememberedSettings() {
+  if (state.mySide !== "host" || state.phase !== "lobby" || !state.room) return;
+  const remembered = readRememberedSettings();
+  if (remembered) void applyLobbySettings(remembered);
+}
 
 export function initLobby() {
   const q = parseQuery();
@@ -396,13 +494,14 @@ export function initLobby() {
   }
 
 
-  void registerAndPollPresence();
+  void registerAndPollPresence().then(applyRememberedSettings);
 
   bindDraftSettings(user);
 
 
 
   bindRevealModeDropdown();
+  bindPresetChips();
   bindLobbyExit();
 }
 
@@ -488,20 +587,55 @@ function bindDraftSettings(user) {
   document.getElementById("banCountPlus")?.addEventListener("click", () => _stepBans(1));
 }
 
-/** Ban reveal mode dropdown. */
+/**
+ * One reveal group's hidden input and card selection.
+ *
+ * The cards are always visible; selection is the only state they carry. Their
+ * disabled look comes from the `.is-readonly` rule on the settings panel.
+ */
+function paintRevealGroup(group, cfg) {
+  const input = document.getElementById(group.input);
+  if (input && !input.dataset.touched) input.value = group.normalize(cfg[group.cfgKey]);
+  const value = group.normalize(input?.value || cfg[group.cfgKey]);
+  document.getElementById(group.panel)?.querySelectorAll(`[${group.attr}]`).forEach((opt) => {
+    opt.classList.toggle("is-selected", String(opt.dataset[group.dataKey] || "").trim() === value);
+  });
+}
+
+/** Every card row in the settings panel. */
 function bindRevealModeDropdown() {
-  document.getElementById("lobbyRevealModePanel")?.addEventListener("click", (e) => {
-    const option = e.target.closest("[data-lobby-reveal-mode-option]");
-    if (!option || state.mySide !== "host") return;
-    const mode = normalizeRevealMode(option.dataset.lobbyRevealModeOption);
-    const input = document.getElementById("lobbyRevealModeInput");
-    if (input) {
-      input.value = mode;
-      input.dataset.touched = "1";
-    }
-    state.room.config.revealMode = mode;
-    renderLobby();
-    scheduleLobbyConfigPush();
+  REVEAL_GROUPS.forEach((group) => {
+    document.getElementById(group.panel)?.addEventListener("click", (e) => {
+      const option = e.target.closest(`[${group.attr}]`);
+      if (!option || state.mySide !== "host") return;
+      const mode = group.normalize(option.dataset[group.dataKey]);
+      const input = document.getElementById(group.input);
+      if (input) {
+        input.value = mode;
+        input.dataset.touched = "1";
+      }
+      state.room.config[group.cfgKey] = mode;
+      renderLobby();
+      scheduleLobbyConfigPush();
+    });
+  });
+}
+
+/** Pace presets: write the three fields they own and push. */
+function bindPresetChips() {
+  document.getElementById("lobbyPresetRow")?.addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-lobby-preset]");
+    if (!chip || chip.disabled || state.mySide !== "host") return;
+    const preset = DRAFT_PRESETS.find((p) => p.key === chip.dataset.lobbyPreset);
+    if (!preset) return;
+
+    /* `revealMode` is left out on purpose — a preset is a pace, not a
+       concealment choice, so it is not in the table either. See presets.js. */
+    void applyLobbySettings({
+      banCountPerSide: preset.banCountPerSide,
+      banDurationSec: preset.banDurationSec,
+      pickDurationSec: preset.pickDurationSec,
+    });
   });
 }
 

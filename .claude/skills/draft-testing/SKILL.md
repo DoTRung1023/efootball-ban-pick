@@ -71,6 +71,19 @@ UI:
 
 Use `roomctl` to reach the phase, then drive the UI for the thing you changed.
 
+**A headless harness cannot wait for a server-side timeout.** Chrome's
+`--virtual-time-budget` fast-forwards the page's timers, so `await sleep(12000)`
+in a harness costs milliseconds of real time — while `turnEndsAt` on the server
+is real `Date.now()`. Anything that expires server-side (the alternating
+auto-ban, a turn clock) will simply not have expired yet, and the run comes back
+looking like the feature is broken. Two ways round it, both used:
+
+- drive the *other* side over real HTTP from the harness page (`fetch` to
+  `/ban`) and set a long clock, so nothing has to expire at all;
+- or test the expiry from bash with real `sleep` and `curl` beats — the presence
+  path is what resolves it, so a loop of `POST /presence` is a complete client
+  for that purpose.
+
 ## 4. The real two-client run
 
 Behavioural changes still need both sides live:

@@ -429,6 +429,47 @@
 
 /* ── Ban settings (lv-* controls) ───────────────────────── */
 
+/* Pace presets, above the three fields they write. Chips rather than a select:
+   there are three, they are one tap each, and the active one has to be readable
+   at a glance while the fields below it are what actually holds the values. */
+.lv-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lv-preset-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  /* Transparent at rest, like `.lv-reveal-card`: the fills are white-alpha, so
+     over a solid chip they replace it instead of lightening it and the selected
+     state comes out darker than its neighbours. */
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.lv-preset-chip:hover:not(:disabled):not(.is-active) {
+  border-color: var(--line-hover);
+  background: var(--fill);
+  color: var(--text);
+}
+
+.lv-preset-chip.is-active {
+  border-color: var(--line-active);
+  background: var(--fill-strong);
+  color: var(--text);
+}
+
+.lv-preset-chip:disabled { opacity: 0.38; cursor: not-allowed; }
+
+
 .lv-settings-panel {
   display: flex;
   flex-direction: column;
@@ -641,6 +682,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 8px;
+}
+
+/* Two options rather than three, so the auto-fit track can be wider before it
+   folds — a pair at `minmax(200px, 1fr)` leaves each card stranded on half a
+   1440px panel. */
+.lv-reveal-cards--pair {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .lv-reveal-card {

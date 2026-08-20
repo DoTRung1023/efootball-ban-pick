@@ -80,9 +80,23 @@ function advanceDraftStage(room, nextAction) {
   startTurnTimer();
 }
 
+/**
+ * True while the live turn belongs to one side alone — an alternating ban.
+ *
+ * Derived from the schedule rather than from `config.banOrder`, so the client
+ * needs no copy of the order constants: the server already says whose turn it
+ * is, and `side: "both"` is exactly what a simultaneous phase looks like.
+ */
+export function isSoloTurn(room = state.room) {
+  const turn = room ? state.schedule[room.turnIndex] : null;
+  return Boolean(turn) && turn.action === "ban" && turn.side !== "both";
+}
+
 /** Once both sides have used every ban, move on without waiting for the timer. */
 function maybeAutoAdvanceFromBan(room = state.room) {
   if (!room || getDraftStage(room) !== "ban") return;
+  // Alternating turns are advanced by the server as each ban lands.
+  if (isSoloTurn(room)) return;
   const target = banLimit(room.config);
   if (!target) return;
   const doneHost = (room.bans?.host || []).length >= target;
@@ -174,6 +188,10 @@ function handleTurnExpiry() {
 
   const stage = getDraftStage(room);
   if (stage === "ban") {
+    /* An alternating turn is the server's to end: it auto-bans the top player
+       left and hands over, resolved on the next snapshot. Advancing locally
+       here would skip the whole rest of the ban phase. */
+    if (isSoloTurn(room)) return;
     void cb.flushAndSubmitStagedBans();
     if (getDraftStage(room) === "ban") advanceDraftStage(room, "pick");
     cb.renderDraftUi();

@@ -9,6 +9,8 @@ import {
   REVEAL_MODE_BLUR,
   REVEAL_MODE_HIDDEN,
   REVEAL_MODE_INSTANT,
+  BAN_ORDER_SIMULTANEOUS,
+  BAN_ORDER_ALTERNATING,
   FIXED_PICKS_PER_SIDE,
 } from './constants.js';
 
@@ -79,6 +81,13 @@ export function normalizePickDurationSec(raw) {
 
 const REVEAL_MODES = new Set([REVEAL_MODE_INSTANT, REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN]);
 
+const BAN_ORDERS = new Set([BAN_ORDER_SIMULTANEOUS, BAN_ORDER_ALTERNATING]);
+
+export function normalizeBanOrder(raw) {
+  const order = String(raw || "").trim().toLowerCase();
+  return BAN_ORDERS.has(order) ? order : BAN_ORDER_SIMULTANEOUS;
+}
+
 export function normalizeRevealMode(raw) {
   const mode = String(raw || "").trim().toLowerCase();
   return REVEAL_MODES.has(mode) ? mode : REVEAL_MODE_INSTANT;
@@ -90,6 +99,9 @@ export function defaultRoomConfig() {
     banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
     pickDurationSec: DEFAULT_PICK_DURATION_SECONDS,
     revealMode: REVEAL_MODE_INSTANT,
+    // The same three rungs over the ban phase — see src/features/rooms/config.js.
+    banRevealMode: REVEAL_MODE_INSTANT,
+    banOrder: BAN_ORDER_SIMULTANEOUS,
     pickCountPerSide: FIXED_PICKS_PER_SIDE,
   };
 }
@@ -113,6 +125,8 @@ export function normalizeRoomConfig(raw) {
     banDurationSec: normalizeBanDurationSec(rawCfg.banDurationSec),
     pickDurationSec: normalizePickDurationSec(rawCfg.pickDurationSec),
     revealMode: normalizeRevealMode(rawCfg.revealMode),
+    banRevealMode: normalizeRevealMode(rawCfg.banRevealMode),
+    banOrder: normalizeBanOrder(rawCfg.banOrder),
   };
 }
 
@@ -143,6 +157,10 @@ export function applyPresenceSnapshot(sr) {
     room.host = participantFromSnapshot(sr.host);
   }
   room.guest = sr.guest?.username ? participantFromSnapshot(sr.guest) : null;
+  /* Every snapshot, not just the first: the host can change the ban count or the
+     ban order in the lobby, and both reshape the schedule. */
+  const schedule = scheduleFromSnapshot(sr);
+  if (schedule.length) state.schedule = schedule;
   const incomingConfig = normalizeRoomConfig(sr.config);
   // While host is actively editing, do not let polling snapshots override local draft values.
   if (!(state.mySide === "host" && state.phase === "lobby" && state.lobbyConfigDirty)) {
@@ -221,17 +239,21 @@ export function applyPresenceSnapshot(sr) {
   state.lastRoomUpdatedAt = Number(sr.updatedAt || state.lastRoomUpdatedAt || Date.now());
 }
 
-export function buildTurnSchedule(bansPerSide, picksPerSide) {
-  // Phase-based flow:
-  // - Ban phase: both users ban simultaneously within total banDurationSec.
-  // - Pick phase: both users pick simultaneously within total pickDurationSec.
-  // Note: pick phase UI is still WIP, but timers/transitions are handled.
-  void bansPerSide;
-  void picksPerSide;
-  return [
-    { side: "both", action: "ban" },
-    { side: "both", action: "pick" },
-  ];
+/**
+ * The turn schedule now arrives on the snapshot — `buildTurnSchedule` lived
+ * here and is gone.
+ *
+ * It was fine while it was a two-entry constant, but an alternating ban phase
+ * has one turn per ban and the **server** has to walk them, so the server
+ * builds it (`src/features/rooms/schedule.js`) and this side only reads. The
+ * old copy also had to special-case zero bans by jumping `turnIndex` past a ban
+ * turn the server still thought it was on; a schedule with no ban entry in it
+ * needs no correction.
+ */
+export function scheduleFromSnapshot(sr) {
+  return Array.isArray(sr?.schedule) && sr.schedule.length
+    ? sr.schedule.map((t) => ({ side: String(t?.side || ""), action: String(t?.action || "") }))
+    : [];
 }
 
 export function emptyRoom(code, host, guest) {

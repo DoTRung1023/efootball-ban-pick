@@ -13,6 +13,7 @@
 
 import db from "#lib/db.js";
 import { describeError } from "#lib/http.js";
+import { topCatalogPlayers } from "#features/players/index.js";
 
 async function fetchSquadSize(participant) {
   const userId = Number(participant?.id);
@@ -75,4 +76,42 @@ export function cachedSquadSizes(entry) {
     host: entry.host?.playerCount ?? null,
     guest: entry.guest?.playerCount ?? null,
   };
+}
+
+/**
+ * The highest-rated player still bannable from one seat's squad, or `null`.
+ *
+ * The server's answer, not a client's, because an auto-ban has to look the same
+ * to both of them. Ordered `overall_max DESC, name ASC` — a total order, so two
+ * cards of the same rating cannot resolve differently on two reads.
+ *
+ * A seat with no account has no squad, and its board is showing the demo pool
+ * instead (`opponentSquad.js` falls back to `/api/top-players`). Auto-banning
+ * out of the same pool is the only version of this that takes somebody the
+ * player can actually see.
+ */
+export async function topBannableFrom(participant, excludeIds = []) {
+  const skip = new Set(excludeIds.map(String));
+  const pick = (rows) => rows.find((r) => !skip.has(String(r.id))) || null;
+  const userId = Number(participant?.id);
+
+  try {
+    if (Number.isFinite(userId) && userId > 0) {
+      const [rows] = await db.query(
+        `SELECT p.pesdb_id AS id, p.name
+         FROM   players p
+         LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
+         WHERE  p.user_id = ?
+         ORDER  BY COALESCE(c.overall_max, p.overall) DESC, p.name ASC`,
+        [userId],
+      );
+      return pick(rows.map((r) => ({ id: String(r.id), name: r.name })));
+    }
+    return pick(await topCatalogPlayers());
+  } catch (err) {
+    /* A database outage must not wedge a draft. No target means the turn is
+       forfeited rather than stalled — see `maybeResolveExpiredBanTurn`. */
+    console.error("auto-ban target lookup failed:", describeError(err));
+    return null;
+  }
 }

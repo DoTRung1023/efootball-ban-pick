@@ -69,6 +69,101 @@ letterboxing the art. It runs on every presence poll but only writes when the va
 changes, and the strip's height comes from the flex layout rather than its contents, so
 the measurement cannot feed back into what it sets.
 
+## BAN ORDER — simultaneous or alternating
+
+`banOrder` decides the **shape of the turn schedule**, and everything else
+follows from that. `src/features/rooms/schedule.js` owns it:
+
+- `simultaneous` (default) — one `{ side: "both", action: "ban" }` turn. Both
+  sides stage bans against one clock and the phase ends on both confirming.
+- `alternating` — `2 × banCountPerSide` turns, `host` first. One ban per turn.
+
+**The client never reads `banOrder`.** It asks the schedule whose turn it is:
+`isSoloTurn()` in `draftFlow.js` is `turn.side !== "both"`, and both `isMyTurn`
+call sites already compared `turn.side` against `mySide` before any of this
+existed. The two order constants are declared on both sides for the config
+round-trip and nothing else.
+
+### One ban is the turn
+
+- `submitBan` posts immediately on a solo turn instead of staging —
+  `submitSoloBan`, which takes the server's snapshot back. There is nothing to
+  stage and nothing to confirm, so `#confirmBansBtn` is `hidden` and
+  `renderTurnHint` takes over the line beneath it ("Your turn — pick one player
+  to ban" / "Waiting for X to ban…"). A board that just stops responding says
+  nothing about why.
+- **The server refuses an out-of-turn ban** (409), not just the client. A tab
+  that missed a turn change would otherwise ban through the other player's slot.
+  Verified over the API: 409 for the guest at index 0, 200 for the host, and 409
+  for the host immediately after.
+- `advanceBanTurnIfSolo` runs on the ban write and hands over, re-arming
+  `turnEndsAt` per turn. `turnDeadline` already answers `null` for the unlimited
+  sentinel, so ∞ still means ∞.
+- **BAN DURATION is per turn here, not per phase** — three bans a side at 120 s
+  is a twelve-minute ban phase.
+
+### A turn that runs out is auto-banned
+
+The highest-rated player left in the opponent's squad, chosen by the **server**
+so both clients see the same name (`topBannableFrom` in `squads.js`, ordered
+`overall_max DESC, name ASC` — a total order, so two equal ratings cannot
+resolve differently on two reads). An anonymous seat has no squad and its board
+is showing the demo pool, so the auto-ban comes from `topCatalogPlayers()` — the
+same helper `/api/top-players` uses, extracted for exactly this reason.
+
+**Resolved on read, because there are no server-side timers.** Polling-only, no
+WebSocket, and presence deliberately has no TTL — so `maybeResolveExpiredBanTurn`
+hangs off the presence path and the next heartbeat from either client is what
+notices. Worst case 500 ms. `entry.resolvingBanTurn` guards it: measured with
+twelve simultaneous heartbeats against one expired turn, exactly one ban and one
+chat line. It re-checks the turn after its `await` too, in case the player got
+their own ban in first. Every outcome is announced in chat, including the one
+where there is nothing left to take.
+
+## BAN REVEAL — what the opponent's strip shows
+
+`banRevealMode` is the second half of what MODE used to be. `revealMode` governs
+the pick board and Start Match; this governs `#draftBannedOnMeStrip` and
+`#draftBannedOnMeCount`. Both use the same three rungs and the same
+`normalizeRevealMode`, and the lobby builds both card groups from one
+`REVEAL_GROUPS` table.
+
+It exists because the ban phase is **simultaneous** and `syncStagedBans` mirrors
+the opponent's staged bans on every 500 ms heartbeat — so without it you watch
+which of your players they are taking before they have confirmed, and can react
+while choosing your own.
+
+| Mode | Their strip | Their count |
+| --- | --- | --- |
+| `instant` | faces, live | live |
+| `blur` | `concealedBanThumbHtml` — a blurred anonymous portrait per ban | live |
+| `hidden` | nothing; the slots read as un-banned | their **confirmed** count only |
+
+Three things that are easy to get wrong, all of them measured:
+
+- **It only ever governs their *staged* bans.** `bans[theirSide]` does not fill
+  until they confirm, and once they have you need to know what you lost before
+  you pick — so `concealTheirs` is `""` the moment `theirConfirmed` is true.
+  Verified: under `hidden`, two confirmed bans render in full, with their ids.
+- **`hidden` has to give back the slots too.** Dropping the thumbs while still
+  reserving their places left the strip two short of full, which says "they have
+  banned two" as plainly as the faces would. `remaining` counts what is *shown*,
+  not what exists. This was a real leak and the harness caught it: 2 empty slots
+  where there should have been 4.
+- **`blur` renders no player at all.** The pick board's blur dims the real cards
+  and leans on `user-select: none` + `aria-hidden`; a ban thumb is one image with
+  the identity *in its `src`*, so there is nothing to dim that devtools could not
+  undo. `concealedBanThumbHtml` takes no argument: anonymous portrait, `alt=""`,
+  no `data-player-id`. A blurred silhouette says exactly what the mode promises.
+
+`concealKey` is part of `renderBanStrip`'s diff key, or switching the mode
+mid-phase repaints nothing.
+
+**Still concealment, not secrecy** in one respect: under `blur` and `hidden` the
+snapshot itself continues to carry the opponent's staged bans, so a determined
+player can read them out of the network tab. Making it real means withholding
+them in `serializeRoomEntry`, which is a server change and has not been made.
+
 ## Interaction
 
 - Bans are **per-side and independent**: each user bans from the opponent's squad

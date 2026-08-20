@@ -14,8 +14,10 @@ import {
   normalizeBanDurationSec,
   normalizePickDurationSec,
   normalizeRevealMode,
+  normalizeBanOrder,
 } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
+import { rememberSettings } from './presets.js';
 
 const PUSH_DEBOUNCE_MS = 300;
 
@@ -40,6 +42,8 @@ function buildConfigPayload() {
     banDurationSec: readOrFallback("lobbyBanDurationInput", normalizeBanDurationSec, cfg.banDurationSec),
     pickDurationSec: readOrFallback("lobbyPickDurationInput", normalizePickDurationSec, cfg.pickDurationSec),
     revealMode: readOrFallback("lobbyRevealModeInput", normalizeRevealMode, cfg.revealMode),
+    banRevealMode: readOrFallback("lobbyBanRevealModeInput", normalizeRevealMode, cfg.banRevealMode),
+    banOrder: readOrFallback("lobbyBanOrderInput", normalizeBanOrder, cfg.banOrder),
   };
 }
 
@@ -56,11 +60,30 @@ async function pushLobbyConfig() {
   if (reqSeq < latestAckSeq || reqSeq !== latestSyncSeq) return;
   latestAckSeq = reqSeq;
   state.lobbyConfigDirty = false;
+  /* Stored on the way out, not on the way in: what the host gets back next time
+     is what the server accepted, so a value the normalisers clamped is
+     remembered as the clamped one. This is the only writer, and it has already
+     returned unless this side is the host. */
+  rememberSettings(payload);
 
   if (data.room) {
     applyPresenceSnapshot(data.room);
     cb.renderLobby();
   }
+}
+
+/**
+ * Pushes now, skipping the debounce, and resolves once the server has answered.
+ *
+ * For writes that are not typing: a preset chip, and the remembered settings
+ * seeded into a room the host has just opened. Both replace every field at once
+ * and both race the 500 ms presence poll, which merges the server's config over
+ * the local one — so they need to know when their write has actually landed.
+ */
+export function pushLobbyConfigNow() {
+  clearTimeout(pushDebounce);
+  state.lobbyConfigDirty = true;
+  return pushLobbyConfig();
 }
 
 export function scheduleLobbyConfigPush() {

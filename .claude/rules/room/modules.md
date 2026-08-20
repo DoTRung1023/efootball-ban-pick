@@ -41,9 +41,11 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 
 - `state.js` — `state` singleton (includes `stagedBans[]`, `opponentStagedBans[]`,
   `banFilterRegion[]`, `pickManualFormation`, `mySquadPlayers[]`),
-  `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`
-  and the opponent's `stagedBans` from each snapshot), `buildTurnSchedule`, and the
-  room-config normalisation helpers.
+  `defaultRoomConfig`, `applyPresenceSnapshot` (reads `bansConfirmed`, the
+  opponent's `stagedBans` **and the turn schedule** from each snapshot),
+  `scheduleFromSnapshot`, and the room-config normalisation helpers.
+  `buildTurnSchedule` is **gone from here** — the server owns the schedule now;
+  see `draft-shell.md`.
 - `utils.js` — `escapeHtml`, `showToast`, `announce`, `askConfirm`, `showView`,
   `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
   `escapeHtml` is re-exported from `shared/players/playerMeta.js`; `showToast` is **not**
@@ -57,6 +59,11 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   out underneath, so the reading clock does not start until they notice the
   screen changed. A reply that lingers is noise; an announcement that flashes is
   simply missed.
+- `playerCards.js` — `playerCardHtml` plus the ban-sidebar thumbs:
+  `imageOnlyThumbHtml`, `stagedBanThumbHtml`, `opponentStagedBanThumbHtml` and
+  `concealedBanThumbHtml`. The last takes **no player** — under the `blur` ban-reveal
+  mode there is nothing safe to render, so it draws the anonymous portrait with no
+  name and no id. See `ban-phase.md`.
 - `constants.js` — canonical lists: `POSITION_OPTIONS`, `CARD_TYPE_OPTIONS`,
   `REGION_OPTIONS`, etc. **They hold the catalog's own strings** — `FOOT_OPTIONS`
   is `["Left foot", "Right foot"]`, not `["Left", "Right"]`, because every
@@ -108,8 +115,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
 
 - `draftFlow.js` — the stage machine: `ensureDraftTimer`, `startTurnTimer` /
   `clearTurnTimer`, `applyLocalBan` (optimistic local ban, returns false when
-  disallowed), `isReadyPhase`, `banLimit` / `pickLimit`, `enterReadyPhase`,
-  `isBothMatchReady`. `enterReadyPhase` replaced `beginPostDraftReadyPhase`: it
+  disallowed), `isSoloTurn` (is the live turn one side's alone — the whole of
+  what the client knows about ban order), `isReadyPhase`, `banLimit` /
+  `pickLimit`, `enterReadyPhase`, `isBothMatchReady`. `enterReadyPhase` replaced `beginPostDraftReadyPhase`: it
   moves **local** state only, because the server now owns the transition — see
   `pick-phase.md`. The stage helpers `getDraftStage`, `advanceDraftStage`,
   `maybeAutoAdvanceFromBan` and `getTurnDurationSec` drive the timer from inside this
@@ -163,8 +171,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   mid-page instead of in its default corner. `storedDockPos()` deletes the old localStorage
   key on the way past, so a position saved by the earlier build cannot haunt a new window.
 - `banView.js` — `renderBanBoard()`: toolbar, both ban strips, identity badges, grid.
-  The grid drops the cards you have already banned rather than greying them; see
-  `ban-phase.md`.
+  The grid drops the cards you have already banned rather than greying them, and the
+  opponent's strip is concealed per `banRevealMode`; see `ban-phase.md`.
 - `pickView.js` — `renderPickBoard()`: quick-load bar, squad-pool grid, formation pitch,
   live opponent feed. The pool holds only cards you can act on — banned and
   picked are filtered out, not dimmed. See `pick-phase.md`.
@@ -243,11 +251,17 @@ overlay — set the flag and let the board renderer show it.
   `cb.renderLobby = renderLobby`, set during module init.
   - `initLobby()` is an **orchestrator only**: identity/state setup, then one call per
     concern — `bindDraftSettings(user)`, `bindRevealModeDropdown`,
-    `bindLobbyExit`. Add new wiring as another `bind*` function, not as more
+    `bindPresetChips`, `bindLobbyExit`. Add new wiring as another `bind*` function, not as more
     statements inside `initLobby`. Each is module-level and closes over nothing but
     module state, so they can be read in isolation.
-- `lobby/config.js` — `scheduleLobbyConfigPush`. `pushLobbyConfig` is the writer behind
-  the scheduler and is module-private. The payload — ban count, both durations, the
+- `lobby/presets.js` — `DRAFT_PRESETS`, `matchingPresetKey`, `readRememberedSettings`,
+  `rememberSettings`: the three pace presets and the host's remembered settings
+  (`localStorage`, `efb_draft_settings`). A preset carries the ban count and the two
+  clocks and deliberately not `revealMode`; see `lobby.md`.
+- `lobby/config.js` — `scheduleLobbyConfigPush` and `pushLobbyConfigNow`, the
+  un-debounced push for writes that are not typing (a preset chip, the seeded
+  settings) and need to know when the server has them. `pushLobbyConfig` is the writer
+  behind both and is module-private. The payload — ban count, both durations, the
   reveal mode — is read from the DOM, not from `state.room.config`, so in-flight typing
   survives a presence poll; writes are debounced and sequence-numbered, and stale
   responses are dropped.

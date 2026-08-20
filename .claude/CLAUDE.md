@@ -121,10 +121,17 @@ where there is no shared module to extract into:
   every transition between them; the client only ever compares, which is why there is no
   second copy of the transition table
 - ban/pick duration + reveal-mode normalisation — `src/features/rooms/config.js` and
-  `public/js/features/draft/state.js`. **`0` means unlimited** and is the one value that
+  `public/js/features/draft/state.js`. There are **two** reveal modes, `revealMode`
+  (picks, Start Match) and `banRevealMode` (the opponent's ban strip); both run
+  through the one `normalizeRevealMode` on each side. **`0` means unlimited** and is the one value that
   must escape the clamp — both copies test for it before the `|| DEFAULT`, which would
   otherwise read it as "absent". The sentinel itself is `UNLIMITED_DURATION_SEC`, declared
   in both files
+- ban order — `BAN_ORDER_*` in `src/features/rooms/schedule.js` and in
+  `public/js/features/draft/constants.js`. Like room status, the server owns what
+  it *means*: it builds the turn schedule and publishes it on the snapshot, and
+  the client derives whose turn it is from that rather than from the order. The
+  two constants exist on both sides only so the setting round-trips
 - the full-squad size — `PICK_COUNT_PER_SIDE` in `src/features/rooms/config.js`
   and `FIXED_PICKS_PER_SIDE` in `public/js/features/draft/constants.js`. Both are
   `23`, and it is now also the minimum squad a room will start with. The **rule**

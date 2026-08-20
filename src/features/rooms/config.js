@@ -14,6 +14,8 @@
 
    This one is unrelated: it is how long a quiet room stays on the admin
    dashboard, and it ends nothing. */
+import { BAN_ORDER_SIMULTANEOUS, normalizeBanOrder } from "./schedule.js";
+
 export const ROOM_LIST_QUIET_MS = 90000;
 
 /**
@@ -144,6 +146,15 @@ export function createDefaultRoomConfig() {
     banDurationSec: DEFAULT_BAN_DURATION_SECONDS,
     pickDurationSec: DEFAULT_PICK_DURATION_SECONDS,
     revealMode: REVEAL_MODE_INSTANT,
+    /* The same three rungs, over the other half of the draft. `revealMode`
+       governs picks and Start Match only, and the ban phase is simultaneous —
+       the opponent's *staged* bans stream out on every heartbeat, so without
+       this you watch what they are taking before they confirm it. */
+    banRevealMode: REVEAL_MODE_INSTANT,
+    /* `simultaneous` (both sides ban at once, then confirm) or `alternating`
+       (one ban per turn, host first). It decides the shape of the turn
+       schedule — see `schedule.js`. */
+    banOrder: BAN_ORDER_SIMULTANEOUS,
     pickCountPerSide: PICK_COUNT_PER_SIDE,
   };
 }
@@ -154,5 +165,7 @@ export function normalizeRoomConfig(config) {
   merged.banDurationSec = normalizeBanDurationSec(merged.banDurationSec);
   merged.pickDurationSec = normalizePickDurationSec(merged.pickDurationSec);
   merged.revealMode = normalizeRevealMode(merged.revealMode);
+  merged.banRevealMode = normalizeRevealMode(merged.banRevealMode);
+  merged.banOrder = normalizeBanOrder(merged.banOrder);
   return merged;
 }

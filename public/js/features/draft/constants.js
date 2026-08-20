@@ -40,6 +40,13 @@ export const REVEAL_MODE_INSTANT = "instant";
 export const REVEAL_MODE_BLUR = "blur";
 export const REVEAL_MODE_HIDDEN = "hidden";
 
+/* How the ban phase is shaped. Kept in step with
+   `src/features/rooms/schedule.js`, which owns the schedule these produce —
+   this side only ever compares, and derives whose turn it is from the schedule
+   the server sends rather than from the order itself. */
+export const BAN_ORDER_SIMULTANEOUS = "simultaneous";
+export const BAN_ORDER_ALTERNATING = "alternating";
+
 // ── Room status ───────────────────────────────────────────────────
 /* The server's `ROOM_STATUS` values, as the client needs to read them off a
    snapshot. Kept in step with `src/features/rooms/store.js`, which is where the

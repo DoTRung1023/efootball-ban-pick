@@ -13,6 +13,7 @@ import {
   normalizePlayerForFooter,
   playerDetailSublineHtml,
 } from "./players.js";
+import { ANON_PLAYER_IMG } from "./constants.js";
 
 export function imageOnlyThumbHtml(player) {
   if (!player) return "";
@@ -28,6 +29,25 @@ export function opponentStagedBanThumbHtml(player) {
   return `
     <div class="ban-phase-thumb is-opponent-staged" data-player-id="${escapeHtml(player.id)}">
       <img src="${escapeHtml(getPlayerImageSrc(player))}" alt="${escapeHtml(player.name || "Player")}" loading="lazy" />
+    </div>
+  `;
+}
+
+/**
+ * A ban you are not allowed to see, under the `blur` ban-reveal mode.
+ *
+ * It carries **no player at all** — the anonymous portrait, no name, no
+ * `data-player-id`. The pick board's blur dims the real cards and leans on
+ * `user-select: none` plus `aria-hidden` to stop the names being recovered; a
+ * ban thumb is one image with the identity *in the src*, so there is nothing to
+ * dim that devtools could not undo. Rendering nothing is the only version of
+ * this that actually conceals, and a blurred silhouette says exactly what the
+ * mode promises: they have banned somebody, and you do not get to know who.
+ */
+export function concealedBanThumbHtml() {
+  return `
+    <div class="ban-phase-thumb is-concealed" aria-hidden="true">
+      <img src="${escapeHtml(ANON_PLAYER_IMG)}" alt="" loading="lazy" />
     </div>
   `;
 }

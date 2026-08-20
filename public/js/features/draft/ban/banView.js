@@ -12,6 +12,7 @@ import { escapeHtml } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import {
   playerCardHtml,
+  concealedBanThumbHtml,
   imageOnlyThumbHtml,
   opponentStagedBanThumbHtml,
   stagedBanThumbHtml,
@@ -20,7 +21,9 @@ import { getBanListPlayers, normalizeSortValue } from '@/features/draft/playerQu
 import { renderPoolCount } from '@/features/draft/shell/cardGrid.js';
 import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
-import { banLimit } from '@/features/draft/engine/draftFlow.js';
+import { banLimit, isSoloTurn } from '@/features/draft/engine/draftFlow.js';
+import { normalizeRevealMode } from '@/features/draft/state.js';
+import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
 import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
@@ -107,10 +110,18 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
      this is what makes it *look* refused, instead of broken. */
   el.draftBanPhaseBoard.classList.toggle("is-locked", myConfirmed);
 
-  renderCounts(myBans, bannedOnMe, opponentStaged, maxBans);
+  /* What the opponent is allowed to see of your bans is `banRevealMode`, and it
+     only ever governs *their staged* ones: `bans[theirSide]` does not fill until
+     they confirm, and once they have, you need to know what you lost before you
+     pick. See `ban-phase.md`. */
+  const banReveal = normalizeRevealMode(room.config?.banRevealMode);
+  const concealTheirs = theirConfirmed ? "" : banReveal;
+  const hideTheirs = concealTheirs === REVEAL_MODE_HIDDEN;
+
+  renderCounts(myBans, bannedOnMe, opponentStaged, maxBans, concealTheirs);
   renderOpponentBadge(room[theirSide], theirConfirmed);
   renderMyBadge(room[mySide], myConfirmed);
-  renderMyBansStatus(myConfirmed, theirConfirmed);
+  renderMyBansStatus(myConfirmed, theirConfirmed, isSoloTurn(room));
 
   applyBanSlotHeight(el.draftMyBansStrip, maxBans);
 
@@ -121,13 +132,24 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
     remaining: remainingSlots(maxBans, myBans.length + state.stagedBans.length),
   });
 
-  renderConfirmButton(myConfirmed);
+  /* An alternating phase has nothing to confirm — a ban *is* the turn — so the
+     button goes and the hint below it carries whose turn it is instead. */
+  const solo = isSoloTurn(room);
+  renderConfirmButton(myConfirmed, solo);
+  renderTurnHint(solo, isMyTurn, room[theirSide]?.username);
 
   renderBanStrip(el.draftBannedOnMeStrip, {
     confirmed: bannedOnMe,
-    staged: opponentStaged,
-    stagedHtml: opponentStagedBanThumbHtml,
-    remaining: remainingSlots(maxBans, bannedOnMe.length + opponentStaged.length),
+    /* `hidden` drops them from the strip entirely, so the empty slots below
+       cover them and the strip is indistinguishable from one where they have
+       not chosen yet — "nothing but their status", the same as the pick side. */
+    staged: hideTheirs ? [] : opponentStaged,
+    stagedHtml: concealTheirs === REVEAL_MODE_BLUR ? concealedBanThumbHtml : opponentStagedBanThumbHtml,
+    /* Counted off what is *shown*, not what exists. Dropping the thumbs under
+       `hidden` while still reserving their slots left a strip two short of full,
+       which says "they have banned two" as plainly as the faces would. */
+    remaining: remainingSlots(maxBans, bannedOnMe.length + (hideTheirs ? 0 : opponentStaged.length)),
+    concealKey: concealTheirs,
   });
 
   renderBanGrid(el.banGrid, { room, mySide, maxBans, myBans, isMyTurn, readyPhase, myConfirmed });
@@ -135,11 +157,18 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);
 
-function renderCounts(myBans, bannedOnMe, opponentStaged, maxBans) {
+function renderCounts(myBans, bannedOnMe, opponentStaged, maxBans, concealTheirs) {
   const myCount = document.getElementById("draftMyBansCount");
   const theirCount = document.getElementById("draftBannedOnMeCount");
   if (myCount) myCount.textContent = `${myBans.length + state.stagedBans.length}/${maxBans}`;
-  if (theirCount) theirCount.textContent = `${bannedOnMe.length + opponentStaged.length}/${maxBans}`;
+  if (!theirCount) return;
+  /* `blur` keeps the count — it is the whole difference between the two modes:
+     the shape, not who. `hidden` counts only what they have confirmed, which
+     until they do is nothing. */
+  const theirs = concealTheirs === REVEAL_MODE_HIDDEN
+    ? bannedOnMe.length
+    : bannedOnMe.length + opponentStaged.length;
+  theirCount.textContent = `${theirs}/${maxBans}`;
 }
 
 /** Shared shape for the two identity pills (dot + name + status text). */
@@ -221,9 +250,11 @@ function renderMyBadge(myInfo, myConfirmed) {
   );
 }
 
-function renderMyBansStatus(myConfirmed, theirConfirmed) {
+function renderMyBansStatus(myConfirmed, theirConfirmed, solo) {
   const el = document.getElementById("draftMyBansStatus");
   if (!el) return;
+  // `renderTurnHint` owns this line while turns alternate.
+  if (solo) return;
 
   if (myConfirmed && theirConfirmed) {
     el.textContent = "Both confirmed — moving to picks!";
@@ -243,23 +274,43 @@ function renderMyBansStatus(myConfirmed, theirConfirmed) {
  * are free to change your mind. It used to disable itself, which left the only
  * way back a page reload.
  */
-function renderConfirmButton(myConfirmed) {
+function renderConfirmButton(myConfirmed, solo) {
   const btn = document.getElementById("confirmBansBtn");
   if (!btn) return;
+  btn.hidden = solo;
+  if (solo) return;
   btn.disabled = false;
   btn.textContent = myConfirmed ? "UN-CONFIRM" : "CONFIRM BANS";
   btn.classList.toggle("is-confirmed", myConfirmed);
 }
 
 /**
+ * Whose turn it is, in the line the CONFIRM button vacated.
+ *
+ * The grid already refuses a click that is not yours, but a board that simply
+ * stops responding says nothing about why — this is the sentence that does.
+ */
+function renderTurnHint(solo, isMyTurn, theirName) {
+  const el = document.getElementById("draftMyBansStatus");
+  if (!el || !solo) return;
+  el.textContent = isMyTurn
+    ? "Your turn — pick one player to ban"
+    : `Waiting for ${theirName || "your opponent"} to ban…`;
+  el.className = isMyTurn ? "ban-status-hint is-confirmed" : "ban-status-hint is-waiting";
+}
+
+/**
  * Renders confirmed bans, then staged (pending) bans, then empty placeholders.
  * The newest thumb gets `is-new` so the spring-in animation plays once.
  */
-function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining }) {
+function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining, concealKey = "" }) {
   const key = [
     ...confirmed.map((p) => `${p.id}c`),
     ...staged.map((p) => `${p.id}s`),
     `e${remaining}`,
+    /* In the key because the same players render differently under a different
+       reveal mode — without it, switching the mode mid-phase repaints nothing. */
+    `r${concealKey}`,
   ].join(",");
   if (strip.dataset.bansKey === key) return;
 

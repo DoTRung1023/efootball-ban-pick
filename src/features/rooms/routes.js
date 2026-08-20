@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { asyncHandler } from "#lib/http.js";
 import { maybeRefreshSquadSizes, refreshSquadSizes } from "./squads.js";
+import { isSoloBanTurn, normalizeBanOrder, turnAt } from "./schedule.js";
+import { advanceBanTurnIfSolo, enterPickTurn, maybeResolveExpiredBanTurn } from "./turns.js";
 import {
   PICK_COUNT_PER_SIDE,
   squadStartProblem,
@@ -144,6 +146,9 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
        changed somewhere else, and the lobby is the only phase it can matter in. */
     maybeRefreshSquadSizes(entry);
   }
+  /* The only thing that notices an alternating ban turn has timed out: there
+     are no server-side timers here, so it is resolved on read. See `turns.js`. */
+  maybeResolveExpiredBanTurn(entry);
 
   syncStagedBans(entry, role, stagedBans);
   roomPresence.set(req.roomCode, entry);
@@ -411,6 +416,13 @@ router.post(
     if (entry.bansConfirmed?.[side]) {
       return res.status(409).json({ error: "Un-confirm your bans before changing them." });
     }
+    /* An alternating ban phase hands the turn to one side at a time, and the
+       client gates on the same thing — but a stale tab that missed a turn
+       change would otherwise ban straight through the other player's slot. */
+    if (isSoloBanTurn(entry.config, entry.turnIndex)
+        && turnAt(entry.config, entry.turnIndex)?.side !== side) {
+      return res.status(409).json({ error: "It is not your turn to ban." });
+    }
     const playerId = String(player.id);
     const myBans = entry.bans[side];
 
@@ -426,8 +438,9 @@ router.post(
     // Stored as sent — the client normalizes the player shape before posting.
     myBans.push(player);
     entry.bannedPlayerIds.push(playerId);
-    entry.updatedAt = Date.now();
     pushSystemChat(entry, `${usernameOf(entry, side)} banned ${String(player.name || player.id)}`);
+    advanceBanTurnIfSolo(entry);
+    entry.updatedAt = Date.now();
 
     sendRoom(res, entry);
   },
@@ -465,11 +478,10 @@ router.post(
     entry.stagedBans[side] = [];
 
     if (entry.bansConfirmed.host && entry.bansConfirmed.guest) {
-      entry.turnIndex = 1; // advance to pick phase
-      entry.turnEndsAt = turnDeadline(normalizePickDurationSec(entry.config?.pickDurationSec));
-      entry.bansConfirmed = { host: false, guest: false };
-      entry.stagedBans = { host: [], guest: [] };
-      pushSystemChat(entry, "Both players confirmed bans — pick phase starting!");
+      /* `turnIndex = 1` until the schedule moved here — true only while it was
+         a two-entry constant, and wrong the moment a ban phase has more than
+         one turn in it. */
+      enterPickTurn(entry, "Both players confirmed bans — pick phase starting!");
     }
 
     entry.updatedAt = Date.now();
@@ -799,6 +811,8 @@ router.post("/:code/config", withRoomCode, (req, res) => {
     banDurationSec,
     pickDurationSec,
     revealMode,
+    banRevealMode,
+    banOrder,
   } = req.body || {};
 
   const entry = ensureRoomEntry(req.roomCode);
@@ -818,6 +832,8 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   if (banDurationSec !== undefined) config.banDurationSec = normalizeBanDurationSec(banDurationSec);
   if (pickDurationSec !== undefined) config.pickDurationSec = normalizePickDurationSec(pickDurationSec);
   if (revealMode !== undefined) config.revealMode = normalizeRevealMode(revealMode);
+  if (banRevealMode !== undefined) config.banRevealMode = normalizeRevealMode(banRevealMode);
+  if (banOrder !== undefined) config.banOrder = normalizeBanOrder(banOrder);
 
   // Picks are fixed for full squad completion.
   config.pickCountPerSide = PICK_COUNT_PER_SIDE;

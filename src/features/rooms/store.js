@@ -14,6 +14,7 @@ import {
   maxBansForSquads,
   normalizeRoomConfig,
 } from "./config.js";
+import { buildTurnSchedule } from "./schedule.js";
 
 /** code -> room entry */
 export const roomPresence = new Map();
@@ -218,6 +219,10 @@ export function serializeRoomEntry(entry) {
     guest: serializeParticipant(entry.guest),
     status: String(entry.status || ROOM_STATUS.LOBBY),
     turnIndex: Number.isFinite(Number(entry.turnIndex)) ? Number(entry.turnIndex) : 0,
+    /* Whose turn it is, doing what, in order. Derived from the config rather
+       than stored, so it cannot drift from the settings it describes — and read
+       rather than rebuilt on the client. See `schedule.js`. */
+    schedule: buildTurnSchedule(entry.config),
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
     bannedPlayerIds: Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : [],
     config: entry.config,

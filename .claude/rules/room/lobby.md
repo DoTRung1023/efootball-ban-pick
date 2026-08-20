@@ -20,6 +20,60 @@ side of the `max-height: 820px` rung**, not a host/guest difference. The guest's
 settings column is read-only, not hidden, so the two render identically — do not
 reach for a `state.mySide` explanation before checking the viewport heights.
 
+## Presets, and the host's remembered settings
+
+`lobby/presets.js` holds three pace presets and the `localStorage` blob under
+`efb_draft_settings`. Room creation on the home page is a code and nothing else,
+so the lobby is the only place these are ever set, and every room used to open on
+the same defaults.
+
+- **A preset is a pace, not a taste.** QUICK / STANDARD / LONG carry the ban count
+  and the two clocks and leave `revealMode` out of the table entirely — a host who
+  wanted a shorter clock should not have their concealment choice overwritten.
+  What is *remembered* is all four, because that is the whole of what they chose.
+- `rememberSettings` is called from `pushLobbyConfig` **after** the server answers,
+  so what comes back next time is what the server accepted — a clamped value is
+  remembered clamped. It is the only writer, and that function has already
+  returned unless this side is the host.
+- `matchingPresetKey` drives the active chip, so a hand-typed value that matches
+  no preset clears it. The row is built once; a row rebuilt on every 500 ms poll
+  would swallow the click landing on it.
+- **`localStorage`, unlike the chat dock.** The dock had to move to
+  `sessionStorage` because two windows of one browser share the origin and
+  dragging the host's bubble moved the guest's. That cannot bite here: the
+  guest's settings panel is read-only, so a guest window never seeds from this
+  blob and never writes to it.
+
+### `applyLobbySettings` writes the inputs, not just the config
+
+Both the preset chips and the seed replace every field at once, and both race the
+500 ms poll. Writing only `state.room.config` is not enough — `renderLobby` syncs
+the four inputs *from* `room.config` on every poll unless they carry
+`data-touched`, and `pushLobbyConfig` reads its payload from **the DOM**. Without
+the flag the sequence is: write config → poll merges the server's config back
+over it → `renderLobby` resets the inputs → the push sends the values it was
+called to replace. That is what the first cut did, and the seed silently
+round-tripped the defaults.
+
+So `applyLobbySettings` writes the inputs, flags them, `await`s
+`pushLobbyConfigNow()` (the un-debounced push, added for exactly these two
+callers), and clears the flag once the server has answered — from then on the
+config being synced *is* those values.
+
+`applyRememberedSettings` runs on `registerAndPollPresence().then(...)`, **not
+before**: `POST /:code/config` resolves the caller's side from the room, and a
+room does not exist until the first presence beat creates it, so an earlier push
+is a 403. Its three guards are the rule — host only, lobby only, and not a client
+that reconnected straight into a running draft.
+
+Verified on a live server: chips write screen + server and leave MODE at
+`instant`; a hand-typed duration clears the active chip and is stored as the
+server took it; a fresh room seeds all four (including `revealMode: hidden`) and
+still holds them a poll later; a guest pushes nothing, has the chips disabled and
+leaves the blob untouched. Measured at 320 / 480 / 620 / 900 / 1440 and the
+`max-height: 820px` rung: the row is 27 px, the three chips stay on one line even
+in a 262 px column, and nothing overflows.
+
 ## Hidden-input source-of-truth pattern
 
 `pushLobbyConfig()` reads `#lobbyBansInput.value`, `#lobbyBanDurationInput.value`,
@@ -56,6 +110,12 @@ inputs the user is actively editing).
   `renderLobby()` as `"<2×count> bans in total"`. Note `banCountPerSide: 0` does **not**
   skip the ban phase (`maybeAutoAdvanceFromBan` returns early on a falsy limit), so the
   hint must not claim it does.
+- **Two reveal groups, built from one table.** `REVEAL_GROUPS` in `lobby.js`
+  pairs `revealMode` (PICK REVEAL) with `banRevealMode` (BAN REVEAL); each row
+  names its hidden input, its panel, and its `data-` attribute, and
+  `paintRevealGroup` / `bindRevealModeDropdown` loop over it. The label used to
+  read MODE, which was accurate for the pick board and silent about the ban
+  phase — see `ban-phase.md` for what the ban half conceals.
 - `.lv-reveal-cards` / `.lv-reveal-card` — always-visible mode option cards;
   `is-selected` = green border + glow. Each card carries
   `data-lobby-reveal-mode-option`. **Three cards** — INSTANT, BLUR, HIDDEN — laid out

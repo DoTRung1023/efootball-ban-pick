@@ -15,7 +15,7 @@ import {
   START_MATCH_STATUSES,
 } from '@/features/draft/constants.js';
 import { showToast, showView } from '@/features/draft/utils.js';
-import { state, defaultRoomConfig, buildTurnSchedule, applyPresenceSnapshot, isUnlimitedDuration } from '@/features/draft/state.js';
+import { state, defaultRoomConfig, applyPresenceSnapshot, isUnlimitedDuration } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
 import { loadOpponentBanPlayers, resetOpponentBanPlayers } from '@/features/draft/ban/opponentSquad.js';
 import { loadDraftPlayers } from '@/features/draft/pick/pick.js';
@@ -61,12 +61,10 @@ export function tryEnterDraftFromRoomSnapshot() {
      client that has stopped polling can never receive the rematch offer that is
      the only reason to still be here. Reloading during a live match landed on a
      dead lobby because of it. */
-  const bansPerSide = banLimit(room.config);
-  state.schedule = buildTurnSchedule(bansPerSide, FIXED_PICKS_PER_SIDE);
-  // With no bans configured the draft opens straight into the pick stage.
-  if (bansPerSide <= 0) {
-    room.turnIndex = Math.max(0, state.schedule.findIndex((t) => t.action === "pick"));
-  }
+  /* `state.schedule` is written by `applyPresenceSnapshot` from the snapshot the
+     server sends — including the zero-ban case, which used to be corrected here
+     by jumping `turnIndex` past a ban turn the server still thought it was on.
+     A schedule with no ban entry needs no correction. */
   syncCurrentTurnFromIndex(room);
   ensureDraftTimer(room);
 

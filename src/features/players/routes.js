@@ -9,36 +9,18 @@ import {
   buildCatalogFilter,
   resolveSortOrder,
 } from "./catalogQuery.js";
+import { topCatalogPlayers } from "./topPlayers.js";
 
 const router = Router();
 
-/** Cards excluded from the featured list (duplicate/placeholder entries on pesdb). */
-const EXCLUDED_TOP_PLAYER_IDS = [8554076, 8554053];
-const TOP_PLAYER_LIMIT = 25;
-
 /**
- * Top players: Epic/Highlight only, best card per name.
- * The self-join keeps the row with no better-ranked card of the same name.
+ * The demo pool for a seat with no account behind it. The query moved to
+ * `topPlayers.js` because the rooms feature auto-bans out of the same pool and
+ * the two must not drift — see the note there.
  */
 router.get("/top-players", async (_req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT p.pesdb_id AS id, p.name
-       FROM players_catalog p
-       LEFT JOIN players_catalog p2
-         ON  p.name = p2.name
-         AND p2.card_type IN ('Epic','Highlight')
-         AND p2.pesdb_id NOT IN (?, ?)
-         AND (p2.overall_max > p.overall_max
-              OR (p2.overall_max = p.overall_max AND p2.pesdb_id > p.pesdb_id))
-       WHERE p.card_type IN ('Epic','Highlight')
-         AND p.pesdb_id NOT IN (?, ?)
-         AND p2.pesdb_id IS NULL
-       ORDER BY p.overall_max DESC, p.pesdb_id DESC
-       LIMIT ?`,
-      [...EXCLUDED_TOP_PLAYER_IDS, ...EXCLUDED_TOP_PLAYER_IDS, TOP_PLAYER_LIMIT],
-    );
-    res.json({ players: rows.map((r) => ({ id: String(r.id), name: r.name })) });
+    res.json({ players: await topCatalogPlayers() });
   } catch {
     res.status(500).json({ players: [] });
   }
