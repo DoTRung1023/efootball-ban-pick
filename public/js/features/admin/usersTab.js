@@ -41,10 +41,13 @@ function notice(message, isError = false) {
   el.hidden = !message;
 }
 
-/** What this account currently is, in one word. */
+/** What this account currently is, in one word. Three rungs, and the third is a
+    word rather than the em-dash it used to be: "—" reads as missing data in a
+    column of real values, when what it means is a plain account with no console
+    access — which is most of them, and is a fact about the row like any other. */
 function roleLabel(user) {
   if (user.is_master_admin) return "MASTER";
-  return user.is_admin ? "ADMIN" : "—";
+  return user.is_admin ? "ADMIN" : "USER";
 }
 
 const grantBtn = (id, attr, value, label) =>
@@ -119,10 +122,17 @@ export async function loadUsers() {
     tbody.innerHTML = d.users.map((u) => {
       const isSelf = Number(u.id) === Number(selfId);
       /* One pill, not two — master implies admin, and a row reading
-         "ADMIN MASTER" says nothing the second word did not. */
+         "ADMIN MASTER" says nothing the second word did not. Every row carries
+         one now, including the plain accounts: a blank next to a name is not
+         readable as "no special role", it is just blank, and to a master the
+         ACCESS column opposite shows buttons rather than a label — so this pill
+         is the only place most rows say what they are. USER is the quietest of
+         the three by design; see the ladder in `admin.css`. */
       const pill = u.is_master_admin
         ? ` <span class="role-pill is-master">MASTER</span>`
-        : u.is_admin ? ` <span class="role-pill">ADMIN</span>` : "";
+        : u.is_admin
+          ? ` <span class="role-pill">ADMIN</span>`
+          : ` <span class="role-pill is-user">USER</span>`;
       /* An unconfirmed address is why that account cannot sign in, and why a
          password reset would be mailed somewhere nobody has proved they read.
          Both questions get asked at this table, so the answer belongs in it. */

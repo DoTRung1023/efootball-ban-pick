@@ -139,6 +139,13 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | OVERVIEW | four tiles, catalog health, last 8 scrape runs | 60 s |
 | ROOMS | live rooms, phase pill, idle time, WATCH button | 10 s |
 | USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
+
+**Every row carries a role pill, plain accounts included.** A blank beside a name
+does not read as "no special role", it just reads as blank — and to a master the
+ACCESS column opposite holds buttons rather than a label, so the pill is the only
+place most rows say what they are. For the same reason `roleLabel` answers `USER`
+rather than the em-dash it used to: `—` in a column of real values reads as
+missing data, when what it means is an account with no console access.
 | CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser, CSV export | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
@@ -316,7 +323,10 @@ page does not own is `shared/filterPanel.css`, linked between tokens and
 page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
-(`.status-pill.is-running/done/stalled`), `.role-pill`, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
+(`.status-pill.is-running/done/stalled`), `.role-pill` — a three-rung ladder,
+MASTER (accent outline) > ADMIN (filled neutral) > USER (`.is-user`, outline
+only), so a table that is mostly plain accounts reads as mostly quiet — plus
+`.is-unverified` for an unconfirmed address, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
 password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column
@@ -350,9 +360,16 @@ badge and EXIT came to ~317px inside a 296px content box and took a third row.
 ## The masthead says which page this is
 
 `.admin-nav-brand` reproduces the home topbar's wordmark — same 22px/12px stack,
-no image — with a `.admin-brand-tag` reading CONSOLE beside it, and the account
-badge carries `#adminRole` (MASTER or ADMIN) next to the name. Two consequences
-worth keeping:
+no image — with a `.admin-brand-tag` reading CONSOLE bound to it by a hairline,
+and the account badge carries `#adminRole` (MASTER or ADMIN) next to the name.
+**The tag is one word behind a rule, not a chip**: it was a filled pill with a
+10px gap, and that is what it read as — a separate control parked beside the
+brand rather than part of it. `align-self: stretch` overrides the row's
+`align-items: center` so the rule runs the height of the mark and the two read as
+one lockup; it is deliberately the same idiom `.admin-role` uses at the other end
+of the nav. At ≤480 the wordmark goes and the rule goes with it, or a hairline
+against the padding edge reads as a rendering fault. Two more consequences worth
+keeping:
 
 - **The wordmark is a copy, not a shared rule.** There is no bundler, so
   `pages/home/base.css` is not on this page and `.topbar-brand` is unavailable
@@ -361,8 +378,8 @@ worth keeping:
 - **Neither the tag nor the role wears the accent.** On this page the accent
   belongs to `.btn--primary` (DESIGN.md §9), and the USERS tab already spends it
   on the MASTER pills in its own table — a masthead that wore it too would leave
-  three accented things on one screen. The tag is a filled neutral chip; the role
-  is dim text behind a hairline.
+  three accented things on one screen. Full-strength text against the dim second
+  line is what marks the tag; the role is the dim half of the same idiom.
 
 `authGate.reveal` fills the role from `isSessionMaster()` — the session the gate
 just opened, re-read from the database server-side — and never from `efb_user`,

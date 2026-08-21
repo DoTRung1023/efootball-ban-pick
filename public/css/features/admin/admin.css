@@ -199,20 +199,29 @@ body {
   margin-top: 2px;
 }
 
-/* Which page you are on. Deliberately **not** the accent: on this page the
-   accent belongs to `.btn--primary` (DESIGN.md §9), and a masthead that wore it
-   would take it from whatever action the current tab is offering. Weight and a
-   filled chip carry it instead. */
+/* Which page you are on — one word bound to the wordmark by a hairline, not a
+   chip standing next to it. It *was* a filled pill with a 10px gap, and that is
+   exactly what it read as: a separate control that happened to be parked by the
+   brand. A rule that runs the height of the mark (`align-self: stretch`, which
+   overrides the row's `align-items: center`) makes the two one lockup, and it
+   is the same idiom `.admin-role` uses at the other end of this nav — a
+   hairline, then a tracked-out label.
+
+   Deliberately **not** the accent: on this page the accent belongs to
+   `.btn--primary` (DESIGN.md §9), and a masthead wearing it would take it from
+   whatever action the current tab is offering. Full-strength text against the
+   dim second line is what carries it instead. */
 .admin-brand-tag {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   color: var(--text);
-  background: var(--fill-strong);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 8px;
   white-space: nowrap;
 }
 
@@ -273,14 +282,10 @@ body {
 
 .admin-role[hidden] { display: none; }
 
-.admin-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text);
-  animation: dotPulse 2s ease-in-out infinite;
-}
-
+/* The account badge had a pulsing dot here. It is gone: a status light that is
+   always on says nothing, and next to a name it reads as one. `dotPulse` stays —
+   `.running-dot` on the scrape panel uses it, where a pulse does mean something.
+   */
 @keyframes dotPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -588,6 +593,15 @@ body {
   background: var(--fill-strong);
   color: var(--text-dim);
   border: 1px solid var(--border);
+}
+
+/* The third rung, and the quietest: no fill, hairline edge, dim label. The
+   ladder is MASTER (accent outline) > ADMIN (filled neutral) > USER (outline
+   only), so a table that is mostly plain accounts still reads as mostly quiet
+   and the two that matter stand out of it. */
+.role-pill.is-user {
+  background: transparent;
+  color: var(--text-muted);
 }
 
 /* Unconfirmed email. Not red: red means banned or destructive in this system
@@ -1060,11 +1074,13 @@ body {
    topbar and the sign-in card already break at. */
 @media (max-width: 480px) {
   .admin-brand-mark { display: none; }
+  /* With the wordmark gone there is nothing on the other side of the rule, and
+     a hairline against the padding edge reads as a rendering fault. */
+  .admin-brand-tag { border-left: 0; padding-left: 0; }
   /* Measured at 320: CONSOLE, the account badge and EXIT came to ~317px inside
-     a 296px content box, so the badge and EXIT took a third row. These three
-     give back ~21px between them — the pulsing dot is decoration, and the two
-     paddings are the cheapest px on the row. */
+     a 296px content box, so the badge and EXIT took a third row. The two
+     paddings are the cheapest px on that row. (The badge's dot used to be
+     hidden here too — it is now gone at every width.) */
   .admin-nav { padding: 10px 8px; }
-  .admin-dot { display: none; }
   .admin-badge { padding: 4px 8px; }
 }
