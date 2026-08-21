@@ -122,6 +122,7 @@ effect at the next sign-in, not mid-session.
 | `roomDetail.js` | the read-only room inspection panel behind WATCH |
 | `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on — and the per-account load/save behind it |
 | `passwordModal.js` | the console-password form. It carried a second form — a master typing a password for somebody else — until resets became generated-and-emailed and there was nothing left to type |
+| `topPlayersControl.js` | the SIGN-IN SHOWCASE panel — the REBUILD button and the ranked chips. Holds no ranking logic; the server owns what "top" means |
 | `index.js` | `initConsole()` |
 
 `initConsole` wires every tab **before** calling `resume`, so a stored token can
@@ -333,6 +334,13 @@ so a refusal never claims to be about roles when it was about a password.
   the captured output. The routes hold no policy; the runner decides.
 - `GET /data-quality` — four COUNTs on `players_catalog`: missing `playing_style`,
   `region`, `overall_max`, duplicate `pesdb_id`.
+- `GET /top-players` · `POST /top-players/refresh` — the SIGN-IN SHOWCASE panel.
+  Both answer the same shape (`count`, `refreshedAt`, `limit`, `players`), so the
+  panel has one renderer and cannot show a count that disagrees with the names
+  under it. The GET has **no side effects** — it reads the snapshot as it stands
+  and never triggers a rebuild, or opening the console would sometimes cost the
+  slow query. The POST rebuilds, then reads back what was stored rather than
+  returning what it just computed.
 
 **`scrape_logs` has no status column**, and a crashed run never writes
 `finished_at`. `scrapeRunState` therefore reads an unfinished run older than an
@@ -397,7 +405,37 @@ once and the console was one long scroll with a tab bar that appeared to do
 nothing. `features/draft/base.css` carries the same rule for the same reason.
 Never style a panel's `display` without checking which of the two wins.
 
-Breakpoints: `1100 → 860 → 700 → 600 → 480`. **At 700** the nav wraps and the tab
+### The tables are responsive by dropping columns, then by stopping being tables
+
+Every table here sets `white-space: nowrap`, so a narrow viewport cannot shrink
+one — it can only scroll it sideways, and a table you have to drag to read is not
+a responsive table. Two mechanisms, in this order:
+
+- **Priority columns.** `.col-lo` (SQUAD, PLANS, DURATION, IDLE) goes at 1000;
+  `.col-mid` (JOINED, STARTED) at 700. Counts before dates, dates before
+  identity; state and controls never go. Add a new column to one of these tables
+  and give it a priority class, or it will be the one that breaks the fit.
+- **Cards below 620.** `thead` is hidden and each row becomes a block whose cells
+  print their own `data-label` — which is why every renderer writes one. The
+  cell is `display: flex`, not grid: a grid gave the UNCONFIRMED pill and the
+  `· YOU` marker rows of their own, and each of those belongs on the line with
+  the value it qualifies. **`.catalog-table` is excluded** — sixteen switchable
+  columns is a data grid, not a list of records, and horizontal scroll is the
+  right answer for that one.
+
+Measured after both: **zero sideways scroll at 320 · 390 · 480 · 620 · 700 · 900
+· 1280**, where before this the USERS table needed 286px of drag at 320 and
+194px at 900.
+
+The ACTIONS column is three fixed 112px slots — promote · demote · password —
+and a row with nothing for a slot leaves it empty rather than closing the gap,
+so the buttons read as columns instead of a ragged run of pills. The width lives
+on the slot, not the button, so arming one (which swaps its label to `CONFIRM?`)
+cannot resize it and shift the row. Below 1000 the slots collapse to `auto` —
+336px of table whether or not a row fills it was the last 43px of overflow at
+900 — and below 600 they wrap.
+
+Breakpoints: `1100 → 1000 → 860 → 700 → 620 → 600 → 480`. **At 700** the nav wraps and the tab
 strip takes a row of its own and scrolls sideways — it used to be `display: none`,
 which left the console with no navigation at all on a phone. That wrap lived at
 600 while the brand was a 28px logo with the wordmark hidden; the home wordmark is
@@ -446,3 +484,25 @@ number beside it.
 > **Colour system note.** Some reasoning in this file predates the efhub re-skin.
 > Token *names* are current; where older notes say "green", "cyan" or "glow", those
 > hues and that glow are gone. Read `DESIGN.md` §3 and §12.
+
+## SIGN-IN SHOWCASE — why a button and not a schedule
+
+The OVERVIEW tab's third panel rebuilds `top_players_snapshot`: the list the
+sign-in page shows, **and** the pool `rooms/squads.js` auto-bans from when an
+empty seat's turn expires. Those two must stay the same list or the auto-ban
+takes somebody who was never on the board — see `src/features/players/topPlayers.js`.
+
+It is a button because the catalog only moves when a scrape runs, and the person
+who ran the scrape is the one who knows the new cards should go up. A timer would
+either lag a scrape or repeat work nothing asked for.
+
+**The snapshot exists for cost, and the numbers are worth keeping.** Ranking the
+catalog live anti-joins ~42k rows on `name` — measured **293 ms**, which the
+sign-in page was paying on *every page load*. Stored, that read is **~1.5 ms**.
+The `(name, overall_max)` index added alongside it takes the rebuild itself from
+293 ms to ~50 ms; without that index the join on `name` is a scan.
+
+An empty snapshot **self-heals on the first read**, so a fresh database serves the
+right list without an admin knowing to press anything — and a rebuild is guarded
+by a single in-flight promise, or a cold snapshot plus a burst of sign-in loads
+would each start their own copy of the slow query.

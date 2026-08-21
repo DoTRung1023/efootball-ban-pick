@@ -54,7 +54,10 @@ CREATE TABLE IF NOT EXISTS players_catalog (
   UNIQUE KEY uq_catalog_pesdb_id (pesdb_id),
   KEY idx_catalog_overall (overall),
   KEY idx_catalog_overall_max (overall_max),
-  KEY idx_catalog_league (league)
+  KEY idx_catalog_league (league),
+  -- The top-N rebuild anti-joins this table against itself on `name`; without
+  -- this that join is a scan and the rebuild measures 293ms instead of 43ms.
+  KEY idx_catalog_name_overall (name, overall_max)
 ) ENGINE=InnoDB;
 
 -- Existing DBs created before detail columns: run in mysql once (skip columns that already exist):
@@ -74,6 +77,20 @@ CREATE TABLE IF NOT EXISTS players_catalog (
 -- ------------------------------------------------------------
 -- 1. USERS
 -- ------------------------------------------------------------
+-- The sign-in page's showcase pool, and the pool an expired empty seat is
+-- auto-banned from. A materialised top-N of players_catalog: computing it live
+-- anti-joins ~42k rows on `name` and measured 293ms, which the sign-in page was
+-- paying on every load. Rebuilt on demand from /console; an empty table
+-- self-heals on the first read. See src/features/players/topPlayers.js.
+CREATE TABLE IF NOT EXISTS top_players_snapshot (
+  rank_no      TINYINT UNSIGNED NOT NULL,
+  pesdb_id     BIGINT UNSIGNED  NOT NULL,
+  name         VARCHAR(100)     NOT NULL,
+  refreshed_at TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (rank_no)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS users (
   id           INT UNSIGNED    NOT NULL AUTO_INCREMENT,
   username     VARCHAR(50)     NOT NULL,

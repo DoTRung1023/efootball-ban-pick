@@ -18,33 +18,42 @@
 
 import { CARD_IMG } from "@/shared/players/playerMeta.js";
 
-// Mirrors /api/top-players: top 25 unique Epic/Highlight players by overall_max
+/* Mirrors `/api/top-players` — the top 30 Epic/Highlight players by
+   overall_max, one card per name. Only ever seen if that call fails: the
+   server now serves the same list out of `top_players_snapshot`, so a
+   rebuild from the console is what moves the real one. Regenerate this by
+   hand after a rebuild if you want the offline copy to match. */
 const FALLBACK_PLAYERS = [
-  { id: "89136409091415",  name: "Lionel Messi"       },
-  { id: "89137214427270",  name: "Eden Hazard"         },
-  { id: "89136677522134",  name: "George Best"         },
-  { id: "89136140651034",  name: "Zlatan Ibrahimović"  },
-  { id: "88040387119495",  name: "Pelé"                },
-  { id: "88039581945329",  name: "Franco Baresi"       },
-  { id: "88039581945324",  name: "Franz Beckenbauer"   },
-  { id: "88039581945323",  name: "Johan Cruyff"        },
-  { id: "106773692401975", name: "Vinícius Júnior"     },
-  { id: "106771008057263", name: "Victor Osimhen"      },
-  { id: "89138019757152",  name: "Bruno Fernandes"     },
-  { id: "89134261635137",  name: "Luis Suárez"         },
-  { id: "89133993205152",  name: "Neymar Jr"           },
-  { id: "89133724764840",  name: "Gareth Bale"         },
-  { id: "88041460993514",  name: "Ruud Gullit"         },
-  { id: "88041460993461",  name: "Luís Figo"           },
-  { id: "88040655690467",  name: "Jaap Stam"           },
-  { id: "88040655554922",  name: "Gerd Müller"         },
-  { id: "88040655554414",  name: "Gianfranco Zola"     },
-  { id: "88040387251641",  name: "Carles Puyol"        },
-  { id: "88040387126189",  name: "Pepe"                },
-  { id: "88040387126185",  name: "Franck Ribéry"       },
-  { id: "88040387120247",  name: "Petr Čech"           },
-  { id: "88040387119839",  name: "Michel Platini"      },
-  { id: "88040387118554",  name: "Samuel Eto'o"        },
+  { id: "89136409091415",   name: "Lionel Messi"       },
+  { id: "89137214427270",   name: "Eden Hazard"        },
+  { id: "89136677522134",   name: "George Best"        },
+  { id: "89136140651034",   name: "Zlatan Ibrahimović" },
+  { id: "88040387119495",   name: "Pelé"               },
+  { id: "88039581945329",   name: "Franco Baresi"      },
+  { id: "88039581945324",   name: "Franz Beckenbauer"  },
+  { id: "88039581945323",   name: "Johan Cruyff"       },
+  { id: "106778255821223",  name: "Erling Haaland"     },
+  { id: "106773692401975",  name: "Vinícius Júnior"    },
+  { id: "106771008057263",  name: "Victor Osimhen"     },
+  { id: "89138019757152",   name: "Bruno Fernandes"    },
+  { id: "89134261635137",   name: "Luis Suárez"        },
+  { id: "89133993205152",   name: "Neymar Jr"          },
+  { id: "89133724764840",   name: "Gareth Bale"        },
+  { id: "88041460993514",   name: "Ruud Gullit"        },
+  { id: "88041460993461",   name: "Luís Figo"          },
+  { id: "88040655690467",   name: "Jaap Stam"          },
+  { id: "88040655554922",   name: "Gerd Müller"        },
+  { id: "88040655554414",   name: "Gianfranco Zola"    },
+  { id: "88040387251641",   name: "Carles Puyol"       },
+  { id: "88040387126189",   name: "Pepe"               },
+  { id: "88040387126185",   name: "Franck Ribéry"      },
+  { id: "88040387120247",   name: "Petr Čech"          },
+  { id: "88040387119839",   name: "Michel Platini"     },
+  { id: "88040387118554",   name: "Samuel Eto'o"       },
+  { id: "88040387118039",   name: "Gianluigi Buffon"   },
+  { id: "88039850384095",   name: "Marcel Desailly"    },
+  { id: "88039850289220",   name: "Raphaël Varane"     },
+  { id: "88039581948647",   name: "Peter Schmeichel"   },
 ];
 
 async function fetchTopPlayers() {
@@ -187,9 +196,15 @@ export async function initPlayers() {
   renderFallingCards(FALLBACK_PLAYERS);
   renderStripPlayers(FALLBACK_PLAYERS);
 
-  // Fetch real data in the background and swap if it differs
+  /* Swap in the real data if it differs from the built-in copy.
+     Compare the WHOLE list, not `players[0]`: both lists start with the same
+     highest-rated card, so a first-element check reported "unchanged" every
+     time and the fetched list was silently thrown away — the page showed the
+     hardcoded copy forever, however stale it got. */
   const players = await fetchTopPlayers();
-  if (players[0]?.id === FALLBACK_PLAYERS[0]?.id) return;
+  const same = players.length === FALLBACK_PLAYERS.length &&
+    players.every((p, i) => p.id === FALLBACK_PLAYERS[i].id);
+  if (same) return;
 
   const strip = document.getElementById("stripPlayers");
   if (strip) strip.innerHTML = "";

@@ -11,6 +11,12 @@
    courtesy and never the check: every role write is re-authorised against the
    database, so a hand-made request from a plain admin is refused too.
 
+   ACCESS holds the role word; ACTIONS holds the buttons, in three fixed slots
+   so they line up down the table. Every cell carries a `data-label`, which is
+   what the card layout below 620px prints in front of its value — see the
+   responsive block in `admin.css`. A plain admin sees the role and an empty
+   ACTIONS column — hiding the controls is a courtesy and never the check.
+
    **The whole row is coloured by rung** — the accent for a master, full-strength
    text for an admin, the muted rung for everyone else — so which accounts carry
    power is answerable by scanning the table rather than by reading one column.
@@ -36,7 +42,7 @@ import { fmtDate, fmtNum, tableMessage } from "./format.js";
 import { initPasswordModal, openConsolePasswordForm } from "./passwordModal.js";
 
 const USER_ROWS = 50;
-const COLS = 6;
+const COLS = 7;
 const CONFIRM_MS = 4000;
 
 let confirmTimer = null;
@@ -73,26 +79,41 @@ const revokeBtn = (id, attr, value, label) =>
            data-revoke-label="${label}">${label}</button>`;
 
 /**
- * The ACCESS cell.
+ * The ACTIONS cell — **three fixed slots, always in the same order**.
  *
- * Your own row can stand yourself down but never revoke your own access — the
- * server refuses the second, and offering a button that always fails would be
- * worse than not offering one. Revoking a master is likewise absent rather than
- * refused: the master flag comes off first, which makes losing the role two
- * deliberate steps instead of one.
+ *   1. promote   MAKE ADMIN · MAKE MASTER
+ *   2. demote    REVOKE · STAND DOWN
+ *   3. password  RESET PW
+ *
+ * A row that has nothing for a slot renders the slot empty rather than closing
+ * the gap, which is the whole point: the buttons used to be a run of pills
+ * packed left, so MAKE ADMIN on one row sat under MAKE MASTER on the next and
+ * RESET PW landed at a different x in every row. Read down a column now and it
+ * is one kind of action.
+ *
+ * Which buttons exist at all is unchanged, and each absence is a rule the
+ * server enforces: you can stand yourself down but never revoke your own
+ * access; a master's access comes off only after the master flag does, so
+ * losing the role is two deliberate steps; and your own password is changed
+ * under Edit Profile, not from a table of other people's accounts.
  */
-function accessCell(user, isSelf, canManage) {
-  /* Every row states its role, whoever is looking. A plain admin sees only
-     this; a master sees it followed by what can be done about it. */
-  const parts = [roleTag(user, isSelf)];
-  if (!canManage) return parts.join(" ");
-
+function actionsCell(user, isSelf) {
   const id = Number(user.id);
 
-  /* Your own sign-in password is changed under Edit Profile, not from a table
-     of other people's accounts. `data-revoke-label` is what `armConfirm` puts
-     back when the arming times out — without it the button would disarm into
-     reading "REVOKE". */
+  const promote = isSelf || user.is_master_admin
+    ? ""
+    : user.is_admin
+      ? grantBtn(id, "make-master", "1", "MAKE MASTER")
+      : grantBtn(id, "make-admin", "1", "MAKE ADMIN");
+
+  const demote = user.is_master_admin
+    ? revokeBtn(id, "make-master", "0", "STAND DOWN")
+    : !isSelf && user.is_admin
+      ? revokeBtn(id, "make-admin", "0", "REVOKE")
+      : "";
+
+  /* `data-revoke-label` is what `armConfirm` puts back when the arming times
+     out — without it the button would disarm into reading "REVOKE". */
   const resetPw = isSelf
     ? ""
     : `<button class="role-btn is-pw" data-reset-pw="${id}"
@@ -100,21 +121,8 @@ function accessCell(user, isSelf, canManage) {
                data-username="${escapeHtml(user.username)}"
                title="Generates a new password and emails it to ${escapeHtml(user.email)}">RESET PW</button>`;
 
-  if (isSelf) {
-    if (user.is_master_admin) parts.push(revokeBtn(id, "make-master", "0", "STAND DOWN"));
-    return parts.join(" ");
-  }
-
-  if (!user.is_admin) {
-    parts.push(grantBtn(id, "make-admin", "1", "MAKE ADMIN"));
-  } else if (user.is_master_admin) {
-    parts.push(revokeBtn(id, "make-master", "0", "STAND DOWN"));
-  } else {
-    parts.push(grantBtn(id, "make-master", "1", "MAKE MASTER"));
-    parts.push(revokeBtn(id, "make-admin", "0", "REVOKE"));
-  }
-  parts.push(resetPw);
-  return parts.join(" ");
+  const slot = (html) => `<span class="role-slot">${html}</span>`;
+  return `<div class="role-actions">${slot(promote)}${slot(demote)}${slot(resetPw)}</div>`;
 }
 
 export async function loadUsers() {
@@ -148,12 +156,13 @@ export async function loadUsers() {
          their own colours, being controls rather than data. */
       return `
       <tr class="role-row ${ROLE_CLASS[roleLabel(u)]}">
-        <td>${escapeHtml(u.username)}</td>
-        <td class="td-dim">${escapeHtml(u.email)}${verify}</td>
-        <td>${fmtNum(u.playerCount)}</td>
-        <td>${fmtNum(u.planCount)}</td>
-        <td class="td-dim">${fmtDate(u.created_at)}</td>
-        <td>${accessCell(u, isSelf, canManage)}</td>
+        <td data-label="ACCOUNT">${escapeHtml(u.username)}</td>
+        <td class="td-dim" data-label="EMAIL">${escapeHtml(u.email)}${verify}</td>
+        <td class="col-lo" data-label="SQUAD">${fmtNum(u.playerCount)}</td>
+        <td class="col-lo" data-label="PLANS">${fmtNum(u.planCount)}</td>
+        <td class="td-dim col-mid" data-label="JOINED">${fmtDate(u.created_at)}</td>
+        <td data-label="ACCESS">${roleTag(u, isSelf)}</td>
+        <td data-label="ACTIONS">${canManage ? actionsCell(u, isSelf) : ""}</td>
       </tr>`;
     }).join("");
   } catch {

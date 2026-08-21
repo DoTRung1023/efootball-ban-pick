@@ -13,7 +13,7 @@
 
 import db from "#lib/db.js";
 import { describeError } from "#lib/http.js";
-import { topCatalogPlayers } from "#features/players/index.js";
+import { readTopPlayers } from "#features/players/index.js";
 
 async function fetchSquadSize(participant) {
   const userId = Number(participant?.id);
@@ -107,7 +107,7 @@ export async function topBannableFrom(participant, excludeIds = []) {
       );
       return pick(rows.map((r) => ({ id: String(r.id), name: r.name })));
     }
-    return pick(await topCatalogPlayers());
+    return pick(await readTopPlayers());
   } catch (err) {
     /* A database outage must not wedge a draft. No target means the turn is
        forfeited rather than stalled — see `maybeResolveExpiredBanTurn`. */

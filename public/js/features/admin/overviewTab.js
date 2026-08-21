@@ -111,12 +111,12 @@ export async function loadScrapeRuns() {
     }
     tbody.innerHTML = d.logs.map((l) => `
       <tr>
-        <td class="td-mono">#${l.id}</td>
-        <td class="td-dim">${escapeHtml(String(l.scrape_type || "—").toUpperCase())}</td>
-        <td>${fmtNum(l.players_upserted)}</td>
-        <td class="td-dim">${fmtDuration(l.started_at, l.finished_at)}</td>
-        <td class="td-dim">${fmtDate(l.started_at)}</td>
-        <td>${scrapeStatusPill(l)}</td>
+        <td class="td-mono" data-label="RUN">#${l.id}</td>
+        <td class="td-dim" data-label="MODE">${escapeHtml(String(l.scrape_type || "—").toUpperCase())}</td>
+        <td data-label="PLAYERS">${fmtNum(l.players_upserted)}</td>
+        <td class="td-dim col-lo" data-label="DURATION">${fmtDuration(l.started_at, l.finished_at)}</td>
+        <td class="td-dim col-mid" data-label="STARTED">${fmtDate(l.started_at)}</td>
+        <td data-label="STATUS">${scrapeStatusPill(l)}</td>
       </tr>`).join("");
   } catch {
     tbody.innerHTML = tableMessage(SCRAPE_COLS, "Failed to load");

@@ -130,3 +130,11 @@ Three things in it are easy to break by touching only one side:
 
 The layer also costs no extra image requests: both layers draw from the same
 `/img/card/:id.png` URLs, which the strip has already warmed.
+
+**`FALLBACK_PLAYERS` is an offline copy, not the source.** The live list is
+`top_players_snapshot`, rebuilt from the console's SIGN-IN SHOWCASE panel — see
+`admin-dashboard.md`. The constant only appears if `/api/top-players` fails, and
+the swap guard compares the **whole list**, not `players[0]`: it used to compare
+the first id alone, and since both lists start with the same highest-rated card
+it reported "unchanged" every time and threw the fetched list away. The page
+showed the hardcoded copy permanently, however stale it got.

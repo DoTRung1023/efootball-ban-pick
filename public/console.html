@@ -135,8 +135,8 @@
                     <th>RUN</th>
                     <th>MODE</th>
                     <th>PLAYERS</th>
-                    <th>DURATION</th>
-                    <th>STARTED</th>
+                    <th class="col-lo">DURATION</th>
+                    <th class="col-mid">STARTED</th>
                     <th>STATUS</th>
                   </tr>
                 </thead>
@@ -145,6 +145,26 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- What the sign-in page shows, and the pool an empty seat is
+             auto-banned from. Rebuilt here rather than on a timer — the
+             catalog only moves when a scrape runs. -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">SIGN-IN SHOWCASE</span>
+            <div class="panel-actions">
+              <span id="topPlayersMeta" class="tp-meta">—</span>
+              <button id="topPlayersRefreshBtn" class="btn btn--ghost btn--sm">REBUILD</button>
+            </div>
+          </div>
+          <div id="topPlayersBody" class="tp-list">
+            <div class="tp-empty">Loading…</div>
+          </div>
+          <div class="panel-hint">
+            The sign-in page reads this stored list instead of ranking the whole
+            catalog on every load. Rebuild after a scrape to pick up new cards.
           </div>
         </div>
       </section>
@@ -164,7 +184,7 @@
                   <th>HOST</th>
                   <th>GUEST</th>
                   <th>PHASE</th>
-                  <th>IDLE</th>
+                  <th class="col-lo">IDLE</th>
                   <th></th>
                 </tr>
               </thead>
@@ -209,14 +229,18 @@
                        the same word made "USER · USER" of every plain row. -->
                   <th>ACCOUNT</th>
                   <th>EMAIL</th>
-                  <th>SQUAD</th>
-                  <th>PLANS</th>
-                  <th>JOINED</th>
+                  <!-- col-lo / col-mid mark what a narrow viewport drops first:
+                       counts before dates, dates before identity. See the
+                       responsive block in admin.css. -->
+                  <th class="col-lo">SQUAD</th>
+                  <th class="col-lo">PLANS</th>
+                  <th class="col-mid">JOINED</th>
                   <th>ACCESS</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody id="usersBody">
-                <tr><td colspan="6" class="td-empty">Loading…</td></tr>
+                <tr><td colspan="7" class="td-empty">Loading…</td></tr>
               </tbody>
             </table>
           </div>

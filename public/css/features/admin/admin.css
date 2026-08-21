@@ -700,6 +700,25 @@ body {
 .admin-table tbody tr.role-row.is-master:hover td { background: var(--role-master-fill-strong); }
 .admin-table tbody tr.role-row.is-admin:hover td  { background: var(--role-admin-fill-strong); }
 
+/* ── The ACTIONS column ─────────────────────────────────────── */
+/* Three fixed slots — promote · demote · password — and a row with nothing for
+   a slot leaves it empty rather than closing the gap. Packed left, the buttons
+   staggered: MAKE ADMIN on one row sat under MAKE MASTER on the next, and
+   RESET PW landed at a different x in every row. A grid of equal slots is what
+   makes a column of buttons read as a column.
+
+   The width is set here rather than on the button so that arming one — which
+   swaps its label to CONFIRM? — cannot resize it and shift the rest of the row. */
+.role-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 112px);
+  gap: 6px;
+  align-items: center;
+}
+
+.role-slot { display: block; min-width: 0; }
+.role-slot .role-btn { width: 100%; }
+
 /* Your own row. Dim on purpose — it is a note about the reader, not the role. */
 .access-you {
   font-size: 12px;
@@ -771,6 +790,47 @@ body {
 .dq-bar.is-bad  { background: var(--danger); }
 
 .dq-empty { color: var(--text-dim); justify-content: center; }
+
+/* ── SIGN-IN SHOWCASE ────────────────────────────────────────
+   Names, not card art: thirty card images would be thirty proxied requests
+   into a panel whose only job is to confirm which names are live. */
+.tp-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.tp-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px;
+}
+
+.tp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  background: var(--fill-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.tp-rank {
+  min-width: 18px;
+  text-align: center;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-empty {
+  padding: 12px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
 
 /* ── Catalog table ──────────────────────────────────────────── */
 /* With every optional column switched on the table is wider than the panel.
@@ -1081,9 +1141,35 @@ body {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* **Columns leave in priority order, counts first.** Every table here sets
+   `white-space: nowrap`, so a narrow viewport cannot shrink one — it can only
+   scroll it sideways, and a table you have to drag to read is not a responsive
+   table. What goes is what a console can be read without: SQUAD/PLANS on USERS,
+   DURATION on the scrape log, IDLE on rooms. Identity, state and the controls
+   stay. Measured: with these still in, USERS needed 194px of sideways scroll at
+   900px wide. */
+@media (max-width: 1000px) {
+  .col-lo { display: none; }
+  /* The fixed slots go with them. Three 112px slots are 336px of table whether
+     or not a row fills them, and at 900px that was the last 43px of sideways
+     scroll; below this the buttons take their own width and the empty slots
+     collapse. Alignment down the column is a wide-screen nicety — fitting is
+     not. */
+  .role-actions { grid-template-columns: repeat(3, auto); }
+}
+
 @media (max-width: 860px) {
   .panel-grid-2 { grid-template-columns: 1fr; }
   .search-input { width: 140px; }
+  /* **Columns leave in priority order, counts first.** Every one of these
+     tables sets `white-space: nowrap`, so a narrow viewport cannot shrink them
+     — it can only scroll them sideways, and a table you have to drag to read
+     is the thing being complained about. What goes is what a console can be
+     read without: SQUAD/PLANS on USERS, DURATION on the scrape log, IDLE on
+     rooms. Identity, state and the controls stay. */
+  /* Fixed slots are a wide-screen nicety; here the buttons take their own
+     width and the empty slots collapse. */
+  .role-actions { grid-template-columns: repeat(3, auto); }
 }
 
 @media (max-width: 700px) {
@@ -1113,6 +1199,15 @@ body {
   }
   .admin-nav-tabs::-webkit-scrollbar { display: none; }
   .admin-nav-right { margin-left: auto; }
+  /* The next rung down: dates. A JOINED or STARTED timestamp is the last thing
+     you need on a phone, and dropping it buys the widest column on the table. */
+  .col-mid { display: none; }
+  /* An email is the one cell here whose width is somebody else's choice. */
+  .admin-table td[data-label="EMAIL"] {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* The same trim the home topbar makes at 768, made here at the width where
      this nav goes compact: the wordmark shrinks and its second line goes, which
      is what keeps the account badge beside the brand rather than on a third
@@ -1125,7 +1220,75 @@ body {
 
 /* The nav wrap that used to live here moved up to 700 — see the note there.
    What is left is panel density, which is a different question to nav fit. */
+/* ── Phones: the tables stop being tables ───────────────────── */
+/* Below this there is no width left to give a row of columns, and the honest
+   options are a table you drag sideways or one row per card. Cards win: every
+   value keeps its label (`data-label`, written by each renderer), nothing is
+   hidden, and the page scrolls the way a page is supposed to.
+
+   **The catalog is excluded.** With sixteen switchable columns it is a data
+   grid, not a list of records, and a card per player would be unreadable — it
+   keeps its horizontal scroll, which is the right answer for that one. */
+@media (max-width: 620px) {
+  .admin-table:not(.catalog-table),
+  .admin-table:not(.catalog-table) tbody,
+  .admin-table:not(.catalog-table) tr,
+  .admin-table:not(.catalog-table) td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table:not(.catalog-table) thead { display: none; }
+
+  .admin-table:not(.catalog-table) tr {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Flex, not grid. A grid gives every child its own cell, which put the
+     UNCONFIRMED pill on a line below its email address and `· YOU` on a line
+     below its role — each cell here holds a value *and* its trimmings, and they
+     belong on one line together. Flex keeps them inline and wraps only when it
+     has to. */
+  .admin-table:not(.catalog-table) td {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding: 4px 12px;
+    border: 0;
+    white-space: normal;
+  }
+
+  /* The header cell, printed per row. Empty for a cell whose label would only
+     repeat its own button (`data-label=""` on the WATCH cell). */
+  .admin-table:not(.catalog-table) td::before {
+    content: attr(data-label);
+    flex: 0 0 84px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  .admin-table:not(.catalog-table) td[data-label="EMAIL"] { max-width: none; }
+
+  /* A card is a row; the row tint has to cover the whole card. */
+  .admin-table:not(.catalog-table) tbody tr.role-row.is-master td,
+  .admin-table:not(.catalog-table) tbody tr.role-row.is-admin td { background: transparent; }
+  tbody tr.role-row.is-master { background: var(--role-master-fill); }
+  tbody tr.role-row.is-admin { background: var(--role-admin-fill); }
+
+  .table-wrap { max-height: none; }
+}
+
 @media (max-width: 600px) {
+  /* Three buttons no longer sit side by side. They wrap instead of forcing the
+     card wider than the panel — the row gets taller, which a phone has room
+     for, where sideways scroll is a tax on every row you read. */
+  .role-actions { display: flex; flex-wrap: wrap; }
+  .role-slot:empty { display: none; }
+  .role-slot .role-btn { width: auto; }
   .stats-row { grid-template-columns: 1fr 1fr; }
   .tab-panel { padding: 12px; gap: 12px; }
   .stat-value { font-size: 28px; }

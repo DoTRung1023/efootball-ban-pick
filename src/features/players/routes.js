@@ -9,7 +9,7 @@ import {
   buildCatalogFilter,
   resolveSortOrder,
 } from "./catalogQuery.js";
-import { topCatalogPlayers } from "./topPlayers.js";
+import { readTopPlayers } from "./topPlayers.js";
 
 const router = Router();
 
@@ -20,7 +20,7 @@ const router = Router();
  */
 router.get("/top-players", async (_req, res) => {
   try {
-    res.json({ players: await topCatalogPlayers() });
+    res.json({ players: await readTopPlayers() });
   } catch {
     res.status(500).json({ players: [] });
   }

@@ -29,12 +29,12 @@ export async function loadRooms() {
     }
     tbody.innerHTML = d.rooms.map((r) => `
       <tr>
-        <td class="td-mono">${escapeHtml(r.code)}</td>
-        <td>${escapeHtml(r.host || "—")}</td>
-        <td>${escapeHtml(r.guest || "—")}</td>
-        <td>${phasePill(r.phase)}</td>
-        <td class="td-dim">${fmtSeconds(r.idleSec)}</td>
-        <td><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}">WATCH</button></td>
+        <td class="td-mono" data-label="CODE">${escapeHtml(r.code)}</td>
+        <td data-label="HOST">${escapeHtml(r.host || "—")}</td>
+        <td data-label="GUEST">${escapeHtml(r.guest || "—")}</td>
+        <td data-label="PHASE">${phasePill(r.phase)}</td>
+        <td class="td-dim col-lo" data-label="IDLE">${fmtSeconds(r.idleSec)}</td>
+        <td data-label=""><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}">WATCH</button></td>
       </tr>`).join("");
   } catch {
     tbody.innerHTML = tableMessage(COLS, "Failed to load");

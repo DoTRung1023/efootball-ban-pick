@@ -12,6 +12,7 @@ import {
   serializeRoomEntry,
 } from "#features/rooms/index.js";
 import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
+import { refreshTopPlayers, topPlayersStatus } from "#features/players/index.js";
 import { newPasswordEmail, sendMail } from "#features/mail/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
@@ -516,6 +517,20 @@ router.post("/scrape/stop", (_req, res) => {
 });
 
 router.get("/scrape/status", (_req, res) => res.json(scrapeStatus()));
+
+/* The sign-in page's showcase pool. Rebuilding is deliberately a button rather
+   than a schedule: the catalog only moves when a scrape runs, and the person who
+   ran the scrape is the one who knows the new cards should go up. */
+router.get("/top-players", asyncHandler(async (_req, res) => {
+  res.json(await topPlayersStatus());
+}));
+
+router.post("/top-players/refresh", asyncHandler(async (_req, res) => {
+  await refreshTopPlayers();
+  /* Read back rather than returning what the rebuild computed: the panel then
+     shows what is actually stored, which is the thing the sign-in page serves. */
+  res.json(await topPlayersStatus());
+}));
 
 router.get("/data-quality", asyncHandler(async (_req, res) => {
   try {

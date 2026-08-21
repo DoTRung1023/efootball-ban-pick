@@ -7,7 +7,7 @@ import { adminRoutes, ensureConsoleAdmin } from "#features/admin/index.js";
 import { authRoutes, ensureAuthSchema, verifyEmailPage } from "#features/auth/index.js";
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
 import pageRoutes from "./pages.js";
-import { playerRoutes } from "#features/players/index.js";
+import { ensureTopPlayersSchema, playerRoutes } from "#features/players/index.js";
 import { roomRoutes } from "#features/rooms/index.js";
 
 const app = express();
@@ -46,5 +46,6 @@ app.listen(PORT, async () => {
      `email_verified` on the account it restores, and that column may not exist
      yet on a database created before confirmation did. */
   await ensureAuthSchema();
+  await ensureTopPlayersSchema();
   ensureConsoleAdmin();
 });
