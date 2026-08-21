@@ -1,49 +1,65 @@
 /* ============================================================
    CATALOG — paginated browser over the scraped player catalog + CSV export
 
-   Reads the public `/api/players`, not an admin route, so these two fetches are
-   the only ones on the page that carry no console token.
+   Reads the public `/api/players`, not an admin route, so these fetches are the
+   only ones on the page that carry no console token.
 
    The endpoint returns a page, never a count, so there is no total to show and
    no last page to jump to: a full page means "there is probably more", which is
    all NEXT needs to know.
+
+   Sort and filter are the **same** controls as My Players — `SORT_CATEGORIES`
+   and `buildPlayerFilterPanel`, not console-local copies — so the two cannot
+   drift into offering different options over the same table. The columns are
+   the console's own: `catalogColumns.js` says which are fixed, which are
+   optional, and which are on. Enough of them are optional that the table can
+   outgrow the panel, which is why `.table-wrap` scrolls sideways.
    ============================================================ */
 
 import { CARD_IMG, escapeHtml } from "@/shared/players/playerMeta.js";
+import { SORT_CATEGORIES } from "@/shared/players/sort.js";
+import {
+  buildPlayerFilterPanel,
+  createPlayerFilterState,
+  getPlayerFilterOptions,
+  hasActivePlayerFilters,
+  playerFilterParams,
+  resetPlayerFilterState,
+} from "@/shared/players/filterPanel.js";
+import { closeDdPanel, toggleDdPanel } from "@/shared/ui/dropdown.js";
+import { CATALOG_COLUMNS, isColumnOn, resetColumns, toggleColumn, visibleColumns }
+  from "./catalogColumns.js";
 import { cardTypeBadge, tableMessage } from "./format.js";
 
 const PAGE_SIZE = 25;
 const EXPORT_LIMIT = 5000;
-const COLS = 8;
 
-/* `name_desc` is the A–Z option on purpose: SORT_MAP in catalogQuery.js maps
-   name_desc -> `name ASC`. The key names there describe the arrow the home page
-   draws, not the direction MySQL sorts. */
-const SORTS = [
-  { key: "overall_max_desc", label: "OVERALL MAX ↓" },
-  { key: "overall_max_asc",  label: "OVERALL MAX ↑" },
-  { key: "overall_desc",     label: "OVERALL ↓" },
-  { key: "name_desc",        label: "NAME A–Z" },
-  { key: "position_asc",     label: "POSITION" },
-];
+/** Filter fields plus the paging and sort state the panel does not own. */
+const state = {
+  ...createPlayerFilterState(),
+  sortCategory: "overall_max",
+  sortDir: "desc",
+  page: 0,
+  search: "",
+};
 
-/** CSV column header -> the field name the API actually returns. */
-const EXPORT_COLUMNS = [
-  ["pesdb_id", "id"], ["name", "name"], ["position", "position"],
-  ["overall", "overall"], ["overall_max", "overall_max"], ["card_type", "card_type"],
-  ["club", "club"], ["league", "league"], ["nationality", "nationality"],
-  ["region", "region"], ["foot", "foot"], ["playing_style", "playing_style"],
-  ["height", "height"], ["weight", "weight"], ["age", "age"],
-];
-
-let page = 0;
-let sortIdx = 0;
-let search = "";
 let searchTimer = null;
 
+const el = (id) => document.getElementById(id);
+
+/* ── Query ────────────────────────────────────────────────── */
+
+function sortValue() {
+  const cat = SORT_CATEGORIES.find((c) => c.key === state.sortCategory) || SORT_CATEGORIES[0];
+  return state.sortDir === "asc" ? cat.ascVal : cat.descVal;
+}
+
 function catalogUrl(limit, offset) {
-  const params = new URLSearchParams({ sortBy: SORTS[sortIdx].key, limit, offset });
-  if (search) params.set("q", search);
+  const params = playerFilterParams(
+    state,
+    new URLSearchParams({ limit, offset, sortBy: sortValue() }),
+  );
+  if (state.search) params.set("q", state.search);
   return `/api/players?${params}`;
 }
 
@@ -54,54 +70,217 @@ async function fetchPlayers(limit, offset) {
   return d.players || [];
 }
 
-export async function loadCatalog() {
-  const tbody = document.getElementById("catalogBody");
-  tbody.innerHTML = tableMessage(COLS, "Loading…");
+/* ── Cells ────────────────────────────────────────────────── */
 
-  const offset = page * PAGE_SIZE;
+const dim = (v) => `<td class="td-dim">${escapeHtml(String(v ?? "—"))}</td>`;
+const plain = (v) => `<td>${escapeHtml(String(v ?? "—"))}</td>`;
+const num = (v) => `<td class="td-ovr">${v ?? "—"}</td>`;
+
+/** One renderer per column key; anything absent falls back to a dim cell. */
+const CELLS = {
+  name: (p) => `<td>${escapeHtml(p.name)}</td>`,
+  position: (p) => dim(p.position),
+  overall: (p) => num(p.overall),
+  overall_max: (p) => num(p.overall_max),
+  card_type: (p) => `<td>${cardTypeBadge(p.card_type)}</td>`,
+  club: (p) => dim(p.club),
+  id: (p) => `<td><a class="td-mono link-btn" href="${CARD_IMG(p.id)}" target="_blank">${escapeHtml(String(p.id))}</a></td>`,
+  height: (p) => num(p.height),
+  weight: (p) => num(p.weight),
+  age: (p) => num(p.age),
+};
+
+function cellHtml(column, player, rank) {
+  if (column.key === "rank") return `<td class="td-rank">${rank}</td>`;
+  const render = CELLS[column.key];
+  return render ? render(player) : dim(player[column.key]);
+}
+
+/* ── Rendering ────────────────────────────────────────────── */
+
+export async function loadCatalog() {
+  const columns = visibleColumns();
+  const tbody = el("catalogBody");
+
+  el("catalogHead").innerHTML = columns
+    .map((c) => `<th>${escapeHtml(c.label)}</th>`)
+    .join("");
+  tbody.innerHTML = tableMessage(columns.length, "Loading…");
+
+  const offset = state.page * PAGE_SIZE;
   try {
     const players = await fetchPlayers(PAGE_SIZE, offset);
     const hasMore = players.length === PAGE_SIZE;
 
-    document.getElementById("catalogPrev").disabled = page === 0;
-    document.getElementById("catalogNext").disabled = !hasMore;
+    el("catalogPrev").disabled = state.page === 0;
+    el("catalogNext").disabled = !hasMore;
 
     if (!players.length) {
-      tbody.innerHTML = tableMessage(COLS, search ? "No players match that name" : "Catalog is empty");
-      document.getElementById("catalogPageInfo").textContent = "0 results";
+      const why = state.search || hasActivePlayerFilters(state)
+        ? "No players match those filters"
+        : "Catalog is empty";
+      tbody.innerHTML = tableMessage(columns.length, why);
+      el("catalogPageInfo").textContent = "0 results";
       return;
     }
 
-    tbody.innerHTML = players.map((p, i) => `
-      <tr>
-        <td class="td-rank">${offset + i + 1}</td>
-        <td>${escapeHtml(p.name)}</td>
-        <td class="td-dim">${escapeHtml(p.position || "—")}</td>
-        <td class="td-ovr">${p.overall ?? "—"}</td>
-        <td class="td-ovr">${p.overall_max ?? "—"}</td>
-        <td>${cardTypeBadge(p.card_type)}</td>
-        <td class="td-dim">${escapeHtml(p.club || "—")}</td>
-        <td><a class="td-mono link-btn" href="${CARD_IMG(p.id)}" target="_blank">${escapeHtml(String(p.id))}</a></td>
-      </tr>`).join("");
+    tbody.innerHTML = players
+      .map((p, i) => `<tr>${columns.map((c) => cellHtml(c, p, offset + i + 1)).join("")}</tr>`)
+      .join("");
 
-    document.getElementById("catalogPageInfo").textContent =
-      `${offset + 1}–${offset + players.length}`;
+    el("catalogPageInfo").textContent = `${offset + 1}–${offset + players.length}`;
   } catch {
-    tbody.innerHTML = tableMessage(COLS, "Failed to load");
+    tbody.innerHTML = tableMessage(columns.length, "Failed to load");
   }
 }
 
-/** Exports the current sort and search — every page of it, not the one on screen. */
+/** Any change to what is being asked for sends you back to the first page. */
+function reload() {
+  state.page = 0;
+  loadCatalog();
+}
+
+/* ── Sort dropdown ────────────────────────────────────────── */
+
+function updateSortUi() {
+  const cat = SORT_CATEGORIES.find((c) => c.key === state.sortCategory);
+  el("acSortLabel").textContent = cat ? cat.label.toUpperCase() : "SORT";
+  el("acSortDirIcon").textContent = state.sortDir === "desc" ? "↓" : "↑";
+  el("acSortDirBtn").title = cat
+    ? (state.sortDir === "desc" ? cat.descTip : cat.ascTip)
+    : "Toggle sort direction";
+  document.querySelectorAll("#acSortPanel .sort-option").forEach((opt) => {
+    opt.classList.toggle("active", opt.dataset.sort === state.sortCategory);
+  });
+}
+
+function buildSortPanel() {
+  const panel = document.createElement("div");
+  panel.className = "ap-dd-panel sort-dd-panel";
+  panel.id = "acSortPanel";
+
+  SORT_CATEGORIES.forEach((cat) => {
+    const item = document.createElement("div");
+    item.className = `sort-option${cat.key === state.sortCategory ? " active" : ""}`;
+    item.dataset.sort = cat.key;
+    item.innerHTML = `<span>${escapeHtml(cat.label)}</span>
+      <svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>`;
+    item.addEventListener("click", () => {
+      state.sortCategory = cat.key;
+      updateSortUi();
+      closeDdPanel("acSortPanel", "acSortBtn");
+      reload();
+    });
+    panel.appendChild(item);
+  });
+  return panel;
+}
+
+/* ── Filter dropdown ──────────────────────────────────────── */
+
+/* The panel addresses every control by id, so the console needs its own set —
+   these share a `cc` prefix so they cannot collide with the home page's. */
+const FILTER_IDS = {
+  posWrap: "ccPosMs", posBtn: "ccPosMsBtn", posLabel: "ccPosMsLabel", posPanel: "ccPosMsPanel",
+  ctWrap: "ccCtMs", ctBtn: "ccCtMsBtn", ctLabel: "ccCtMsLabel", ctPanel: "ccCtMsPanel",
+  psWrap: "ccPsMs", psBtn: "ccPsMsBtn", psLabel: "ccPsMsLabel", psPanel: "ccPsMsPanel",
+  footWrap: "ccFootMs", footBtn: "ccFootMsBtn", footLabel: "ccFootMsLabel", footPanel: "ccFootMsPanel",
+  lgWrap: "ccLgMs", lgBtn: "ccLgMsBtn", lgLabel: "ccLgMsLabel", lgPanel: "ccLgMsPanel",
+  rgWrap: "ccRgMs", rgBtn: "ccRgMsBtn", rgLabel: "ccRgMsLabel", rgPanel: "ccRgMsPanel",
+  ovrMin: "ccOvrMin", ovrMax: "ccOvrMax",
+  ovrMaxMin: "ccOvrMaxMin", ovrMaxMax: "ccOvrMaxMax",
+  club: "ccClub", clubAc: "ccClubAc", nation: "ccNation", nationAc: "ccNationAc",
+  ageMin: "ccAgeMin", ageMax: "ccAgeMax",
+  heightMin: "ccHeightMin", heightMax: "ccHeightMax",
+  weightMin: "ccWeightMin", weightMax: "ccWeightMax",
+  clearBtn: "ccClearFilters",
+};
+
+function updateFilterBadge() {
+  el("acFilterBtn").classList.toggle("has-active", hasActivePlayerFilters(state));
+}
+
+function buildFilterPanel() {
+  return buildPlayerFilterPanel({
+    panelId: "acFilterPanel",
+    ids: FILTER_IDS,
+    state,
+    autocomplete: true,
+    onChange: () => { updateFilterBadge(); reload(); },
+    onClear: () => {
+      resetPlayerFilterState(state);
+      /* Rebuilt rather than walked, so every input resets visually too. */
+      el("acFilterPanel")?.remove();
+      el("acFilterWrap").appendChild(buildFilterPanel());
+      updateFilterBadge();
+      reload();
+    },
+  });
+}
+
+/* ── Column chooser ───────────────────────────────────────── */
+
+function buildColumnsPanel() {
+  const panel = document.createElement("div");
+  panel.className = "ap-dd-panel cols-dd-panel";
+  panel.id = "acColsPanel";
+
+  const optional = CATALOG_COLUMNS.filter((c) => !c.fixed);
+  const fixedNames = CATALOG_COLUMNS.filter((c) => c.fixed).map((c) => c.label).join(" · ");
+
+  panel.innerHTML = `<div class="filter-section-label">ALWAYS SHOWN — ${escapeHtml(fixedNames)}</div>`;
+
+  optional.forEach((col) => {
+    const item = document.createElement("div");
+    item.className = `pos-ms-item${isColumnOn(col.key) ? " checked" : ""}`;
+    item.innerHTML = `<span class="pos-ms-check"></span><span>${escapeHtml(col.label)}</span>`;
+    item.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      toggleColumn(col.key);
+      item.classList.toggle("checked", isColumnOn(col.key));
+      /* Only the table is redrawn — the page of players it is drawing has not
+         changed, so this must not go back to page one or refetch. */
+      loadCatalog();
+    });
+    panel.appendChild(item);
+  });
+
+  const reset = document.createElement("button");
+  reset.className = "filter-clear-btn";
+  reset.textContent = "RESET TO DEFAULT COLUMNS";
+  reset.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    resetColumns();
+    el("acColsPanel")?.remove();
+    el("acColsWrap").appendChild(buildColumnsPanel());
+    closeDdPanel("acColsPanel", "acColsBtn");
+    loadCatalog();
+  });
+  panel.appendChild(reset);
+
+  return panel;
+}
+
+/* ── CSV export ───────────────────────────────────────────── */
+
+/**
+ * Exports the current sort, search and filters — every page of them, not the
+ * one on screen — and the **visible columns**, so the file matches the table
+ * that was exported rather than always being all fifteen fields.
+ */
 async function exportCsv(btn) {
   const label = btn.textContent;
+  const columns = visibleColumns().filter((c) => c.csv);
   btn.disabled = true;
   btn.textContent = "EXPORTING…";
   try {
     const players = await fetchPlayers(EXPORT_LIMIT, 0);
     const csv = [
-      EXPORT_COLUMNS.map(([header]) => header).join(","),
+      columns.map((c) => c.csv).join(","),
       ...players.map((p) =>
-        EXPORT_COLUMNS.map(([, key]) => `"${String(p[key] ?? "").replace(/"/g, '""')}"`).join(","),
+        columns.map((c) => `"${String(p[c.key] ?? "").replace(/"/g, '""')}"`).join(","),
       ),
     ].join("\n");
 
@@ -121,35 +300,68 @@ async function exportCsv(btn) {
   }
 }
 
+/* ── Wiring ───────────────────────────────────────────────── */
+
 export function initCatalogTab() {
-  document.getElementById("catalogSortBtn").addEventListener("click", () => {
-    sortIdx = (sortIdx + 1) % SORTS.length;
-    document.getElementById("catalogSortLabel").textContent = SORTS[sortIdx].label;
-    page = 0;
-    loadCatalog();
+  el("acSortWrap").appendChild(buildSortPanel());
+  el("acFilterWrap").appendChild(buildFilterPanel());
+  el("acColsWrap").appendChild(buildColumnsPanel());
+  updateSortUi();
+  updateFilterBadge();
+  /* Warms the cache the multiselects fill from, so the first open is not empty. */
+  getPlayerFilterOptions();
+
+  /* Three panels, one open at a time. `toggleDdPanel` only closes one sibling,
+     so the other two are closed here before it opens the third. */
+  const panels = [
+    ["acSortPanel", "acSortBtn"],
+    ["acFilterPanel", "acFilterBtn"],
+    ["acColsPanel", "acColsBtn"],
+  ];
+  panels.forEach(([panelId, btnId]) => {
+    el(btnId).addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      panels.forEach(([otherPanel, otherBtn]) => {
+        if (otherPanel !== panelId) closeDdPanel(otherPanel, otherBtn);
+      });
+      toggleDdPanel(panelId, btnId);
+    });
+  });
+  /* Clicking anywhere else closes all three; the panels stop their own clicks
+     from reaching this. */
+  document.addEventListener("click", () => {
+    panels.forEach(([panelId, btnId]) => closeDdPanel(panelId, btnId));
+  });
+  el("acSortWrap").addEventListener("click", (ev) => ev.stopPropagation());
+  el("acFilterWrap").addEventListener("click", (ev) => ev.stopPropagation());
+  el("acColsWrap").addEventListener("click", (ev) => ev.stopPropagation());
+
+  el("acSortDirBtn").addEventListener("click", () => {
+    state.sortDir = state.sortDir === "desc" ? "asc" : "desc";
+    updateSortUi();
+    reload();
   });
 
-  document.getElementById("catalogSearch").addEventListener("input", (e) => {
+  el("catalogSearch").addEventListener("input", (e) => {
     clearTimeout(searchTimer);
     const value = e.target.value.trim();
     searchTimer = setTimeout(() => {
-      search = value;
-      page = 0;
-      loadCatalog();
+      state.search = value;
+      reload();
     }, 300);
   });
 
-  document.getElementById("catalogPrev").addEventListener("click", () => {
-    page--;
+  el("catalogPrev").addEventListener("click", () => {
+    state.page--;
     loadCatalog();
   });
 
   /* Both buttons are disabled at the ends of the range, and a disabled button
      dispatches no click, so neither handler needs a bounds check of its own. */
-  document.getElementById("catalogNext").addEventListener("click", () => {
-    page++;
+  el("catalogNext").addEventListener("click", () => {
+    state.page++;
     loadCatalog();
   });
 
-  document.getElementById("exportCsvBtn").addEventListener("click", (e) => exportCsv(e.currentTarget));
+  el("exportCsvBtn").addEventListener("click", (e) => exportCsv(e.currentTarget));
 }

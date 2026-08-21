@@ -23,13 +23,57 @@ and they are checked in this order:
    in the session, and `initUserMenu` uses it to reveal **Admin Console** in the
    account dropdown on the home page. **That link is the entry point**; revealing
    it is cosmetic, and the server never trusts it.
-3. **The password is re-entered here** (step-up auth). `efb_user` lives in
+3. **A password is entered here** (step-up auth). `efb_user` lives in
    localStorage and nothing signs it, so "I am user 7" is a claim, not a proof —
    without this step `?userId=1` would be the whole gate.
 
 `POST /api/admin/session` checks 2 and 3 against the database and answers with a
 token; five wrong passwords lock that account out for 15 minutes, and the lockout
 holds even against the right password.
+
+### Which password step 3 wants
+
+**One shared console password**, where one is configured, rather than each admin
+retyping their own account password. `consolePassword.js` owns the answer:
+
+- the bcrypt hash in `app_settings.console_password` **wins** — a rotation from
+  inside the console survives a restart, or the rotate button would be a lie;
+- `ADMIN_CONSOLE_PASSWORD` **seeds** that row, once, when nothing is stored;
+- `ADMIN_CONSOLE_PASSWORD_RESET=1` **forces the seed** back over whatever it was
+  rotated to, on the next boot. This is the way back in, and it is deliberately
+  the same shape as the `ADMIN_EMAIL`/`ADMIN_PASSWORD` recovery below;
+- with neither, the gate falls back to per-account passwords — the behaviour
+  before any of this existed. **No default is baked into the repo.**
+
+> **The trade is the one `ADMIN_KEY` used to make, and it is not hidden.** A single
+> shared secret has no identity behind it: `efb_user` is unsigned, so a caller
+> holding the console password can open a session as **any** admin id, master
+> admins included. That is fine for a solo or trusted-team deployment and poor for
+> a public host — there, leave `ADMIN_CONSOLE_PASSWORD` unset and the per-account
+> step-up returns. The note is repeated at the top of `adminSession.js`, where it
+> is felt.
+
+## Master admins
+
+`users.is_master_admin`. **Only a master may grant or revoke console access, or
+designate another master.** A plain admin sees the same USERS table with the
+ACCESS column reduced to labels.
+
+The `ADMIN_EMAIL` account is seeded as a master **on every boot**, so a database
+can never end up with admins and nobody able to change who they are — restarting
+with that pair set is the recovery path, and it only works because it grants
+master rather than plain admin.
+
+Authorisation is read from the **database at write time**, never from the token's
+`mst` claim: a token outlives its account's role by up to eight hours, so trusting
+the claim would let a just-revoked master hand the role back to themselves for the
+rest of the day. `mst` exists only so the USERS tab knows what to draw.
+
+Five ways to end up with a console nobody can administer, all refused: demoting
+yourself, demoting the last admin, revoking access from a master (stand them down
+first — losing the role is always two deliberate steps), standing down the last
+master, and granting master without console access (it grants both in one
+statement, since a master who cannot open the console reads as a bug).
 
 ## Where the first admin comes from
 
@@ -38,7 +82,7 @@ absent database delays the admin rather than the server, and it swallows its own
 errors for the same reason.
 
 1. `ADMIN_EMAIL` + `ADMIN_PASSWORD` both set → that account is created, or its
-   password reset and its flag restored, **on every boot**. This is the way back
+   password reset and its flags restored, **on every boot**. This is the way back
    in after a forgotten password: set the pair, restart, sign in.
 2. Otherwise, no admin exists at all → one is created and its generated password
    printed to the log exactly once.
@@ -49,6 +93,9 @@ from `crypto.randomBytes` over an alphabet with no `0/O/1/I/l`, because it gets
 read off a terminal and typed back in. Rule 1 enforces `PASSWORD_MIN`, imported
 from the auth barrel rather than copied, and refuses (loudly) rather than seeding
 a weak account.
+
+Both seeded accounts are **master** admins, and rule 1 restores that on every
+boot — see **Master admins** above for why that matters.
 
 Every admin after the first is granted from the USERS tab, so `UPDATE users SET
 is_admin = 1` is a last resort, not the setup instructions.
@@ -72,6 +119,9 @@ effect at the next sign-in, not mid-session.
 | `tabs.js` | the tab registry — which panel, what it loads, how often it refetches |
 | `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)` |
 | `overviewTab.js`, `roomsTab.js`, `usersTab.js`, `catalogTab.js` | one module per tab |
+| `roomDetail.js` | the read-only room inspection panel behind WATCH |
+| `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on |
+| `passwordModal.js` | one modal, two forms: console password, and a user reset |
 | `index.js` | `initConsole()` |
 
 `initConsole` wires every tab **before** calling `resume`, so a stored token can
@@ -87,17 +137,42 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | Tab | Shows | Refetch |
 | --- | --- | --- |
 | OVERVIEW | four tiles, catalog health, last 8 scrape runs | 60 s |
-| ROOMS | live rooms, phase pill, idle time, WATCH link | 10 s |
+| ROOMS | live rooms, phase pill, idle time, WATCH button | 10 s |
 | USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
-| CATALOG | paginated `/api/players` browser, search, cycling sort, CSV export | on activation |
+| CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser, CSV export | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
 `refreshMs` and skips entirely when `document.hidden`, so a background tab costs
 nothing. The active tab is mirrored into the URL hash.
 
-CATALOG reads the **public** `/api/players`, so those are the only two fetches on
+CATALOG reads the **public** `/api/players`, so those are the only fetches on
 the page that carry no token. The endpoint returns a page and never a count, so
 there is no total and no last page: a full page means NEXT stays enabled.
+
+### CATALOG's sort, filter and columns
+
+Sort and filter are the **same controls as My Players** — `SORT_CATEGORIES` from
+`shared/players/sort.js` and `buildPlayerFilterPanel` from
+`shared/players/filterPanel.js`, mounted as that panel's fourth call site with a
+`cc`-prefixed id map. Not console-local copies: two tables over one endpoint must
+not drift into offering different options. The filter→query-string mapping is
+`playerFilterParams`, extracted from `features/catalog/catalog.js` when this tab
+became its second caller.
+
+Columns are the console's own, in `catalogColumns.js`. `#` and PLAYER are fixed —
+a table you can hide the name from is a list of numbers — and the other fourteen
+are optional, defaulting to the eight the tab always showed. The choice lives in
+`sessionStorage`, the same store the console token uses, so it survives a reload
+and dies with the tab. A stored key naming a column this build no longer has is
+dropped on read. CSV export follows the **visible** columns, so the file matches
+the table rather than always being all fifteen fields.
+
+With every column on, the table is wider than the panel. `.table-wrap` already
+had `overflow-x: auto`, but `.admin-table { width: 100% }` was squeezing the
+table back inside it — `.catalog-table` overrides that to `width: auto;
+min-width: 100%` with `white-space: nowrap` cells, so the table sizes to its
+content and the wrapper scrolls it. Measured 1440 → 320: the page body never
+scrolls horizontally at any width; the table does, inside its wrapper.
 
 ## Running a scrape from the console
 
@@ -129,6 +204,41 @@ STOP button.
 - A stopped run leaves an unfinished row, so the table shows RUNNING for an hour
   and STALLED after. The panel above it is the live truth; the table is history.
 
+## WATCH — inspecting a live room
+
+**A room cannot be watched by opening `/room/<code>`, and the link that tried was
+the bug.** The room page has exactly two seats and claims one on load: with no
+`?mode=join` it posts `role: "host"`, `claimHostSeat` finds another id in the seat
+and answers 409, and the admin got "Host slot taken". `?mode=join` would not have
+fixed it — that claims the *guest* seat, so on a room waiting for its second
+player the admin would have sat down in it. There is no seat-less viewer in the
+draft client; `mySide` is `"host" | "guest"` across eighteen modules.
+
+So WATCH is a **button**, not a link, and it opens `roomDetail.js` — a read-only
+panel over `GET /api/admin/rooms/:code`. It polls at 3 s against the table's 10 s,
+because a live ban phase is what you opened it to watch and the read is a map
+lookup. Nothing on that route writes, so watching cannot disturb the draft.
+
+The detail route deliberately does **not** hide a room that has gone quiet, unlike
+`GET /rooms`: that list is a dashboard and quiet means uninteresting, but this is
+an inspection, and a room nobody has beaten in two minutes is exactly the one an
+admin clicked through to look at.
+
+## Changing passwords from the console
+
+Both forms are master-only, both live in `passwordModal.js`, and both are
+re-authorised server-side:
+
+- **`PUT /console-password`** rotates the shared console password. The current one
+  is asked for again even though the session was opened with it — the session
+  outlives its tab by up to eight hours, and a borrowed screen should not change
+  the lock every admin uses. Existing tokens stay valid: this rotates the way
+  *in*, not the sessions already through the door.
+- **`PATCH /users/:id/password`** lets a master reset any account's sign-in
+  password — the "they forgot it" path, and the only way to set one on a Google
+  OAuth account whose `password` column is NULL. Worth naming: this means a master
+  can take over any account on the installation, which is why it is master-gated.
+
 ## Admin API routes
 
 All in `src/features/admin/routes.js`. `POST /session` is public — it is what hands
@@ -143,13 +253,29 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   the last heartbeat, not the room's age. The server drops rooms quiet for
   `ROOM_LIST_QUIET_MS` (90 s) from the list — **display only**, it does not end
   them. See `room/presence-and-reconnect.md`.
+- `GET /rooms/:code` — one room in full: `serializeRoomEntry` plus `code`, `phase`
+  and `idleSec`. Reuses the players' own snapshot rather than re-listing twenty
+  fields, which would be a second copy to keep in step. 404 when the code is not
+  in memory. See **WATCH** above.
 - `GET /scrape-logs?limit=N`, `GET /users?limit=N` — `readLimit` clamps to 1…50;
   a negative or NaN limit falls back to the default rather than reaching SQL.
-- `PATCH /users/:id/role` — `{ isAdmin }`. **Two ways to lock everyone out, both
-  refused**: demoting yourself (you are standing on the page you would lose), and
-  demoting the last admin. The second is not theoretical — a token stays valid for
-  up to 8 hours after the account behind it is demoted, so a revoked admin can
-  still reach this route, and without the check could take the last one with them.
+- `PATCH /users/:id/role` — `{ isAdmin }`. Master-only. **Ways to lock everyone
+  out, all refused**: demoting yourself (you are standing on the page you would
+  lose), demoting the last admin, and revoking access from a master. The
+  last-admin one is not theoretical — a token stays valid for up to 8 hours after
+  the account behind it is demoted, so a revoked admin can still reach this route,
+  and without the check could take the last one with them.
+- `PATCH /users/:id/master` — `{ isMaster }`. Master-only. Granting sets `is_admin`
+  too. Standing *yourself* down is allowed, unlike revoking your own access: it is
+  how a master hands the role on, the account keeps console access, and the
+  last-master check keeps somebody in the role.
+- `PATCH /users/:id/password` — `{ password }`. Master-only. See above.
+- `GET /console-password` → `{ configured }`, `PUT /console-password` —
+  `{ currentPassword, newPassword }`. Master-only. See above.
+
+Every master-gated route goes through `requireMaster(req, res, action)`, which
+re-reads `is_master_admin` from the database and names its own action in the 403,
+so a refusal never claims to be about roles when it was about a password.
 - `POST /scrape` — `{ mode: "update" | "missing" }`. 202 started, 409 one is
   already running, 400 unknown mode.
 - `POST /scrape/stop` · `GET /scrape/status` — the runner's own state, including
@@ -164,13 +290,21 @@ April as still going, under a progress bar whose width was hardcoded.
 
 ## CSS (`admin.css`)
 
-Self-contained; colours come from `shared/tokens.css` like every other page. Key
-blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
+Colours come from `shared/tokens.css` like every other page. The one sheet this
+page does not own is `shared/filterPanel.css`, linked between tokens and
+`admin.css`: the sort/filter dropdown chrome moved there out of
+`features/catalog/catalog.css` when the CATALOG tab became a consumer on a second
+page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill`, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
-(`.dq-bar.is-ok/warn/bad`), `.link-btn`, and the pagination bar.
+(`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
+password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column
+chooser, which rides on the shared dropdown chrome and only sets its own width).
+
+`.link-btn` is a `<button>` on the ROOMS tab now, which is why it carries
+`font-family: inherit` — a button does not inherit the page font on its own.
 
 **`[hidden] { display: none !important }` is load-bearing**, and is the first rule in
 the sheet. Tabs are switched by setting `hidden` on `.tab-panel`, and the browser

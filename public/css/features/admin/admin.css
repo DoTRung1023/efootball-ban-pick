@@ -640,6 +640,17 @@ body {
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
 /* ── Catalog table ──────────────────────────────────────────── */
+/* With every optional column switched on the table is wider than the panel.
+   `width: 100%` would squeeze it back in and wrap every cell instead, so the
+   catalog table sizes to its content and `.table-wrap` scrolls it sideways. */
+.catalog-table {
+  width: auto;
+  min-width: 100%;
+}
+
+.catalog-table th,
+.catalog-table td { white-space: nowrap; }
+
 .catalog-table .td-rank {
   font-family: var(--font-display);
   font-size: 12px;
@@ -666,8 +677,6 @@ body {
 }
 .search-input:focus { border-color: var(--line-active); }
 .search-input::placeholder { color: var(--text-dim); }
-
-.sort-btn { min-width: 124px; justify-content: center; }
 
 /* ── Pagination ─────────────────────────────────────────────── */
 .pagination-bar {
@@ -703,6 +712,77 @@ body {
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 .link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
+
+/* ── Column chooser (CATALOG tab) ───────────────────────────── */
+/* Rides on the shared dropdown chrome in shared/filterPanel.css — this only
+   sets the width and the padding the checkbox rows sit in. */
+.cols-dd-panel {
+  width: 240px;
+  padding: 10px;
+}
+
+.cols-dd-panel .filter-section-label { margin-bottom: 6px; }
+.cols-dd-panel .filter-clear-btn { margin-top: 8px; }
+
+/* ── Password modal ─────────────────────────────────────────── */
+/* Shared by the console-password rotation and the per-user reset. Same scrim
+   and card treatment as the room detail panel below it. */
+.adm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: var(--scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.adm-modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-active);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: min(400px, 100%);
+}
+
+.adm-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.adm-modal-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 6px 0 16px;
+  line-height: 1.5;
+}
+
+.adm-field { display: block; margin-bottom: 12px; }
+
+.adm-field > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.adm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Neither granting nor revoking a role — it stays out of both palettes. */
+.role-btn.is-pw:hover {
+  color: var(--text);
+  border-color: var(--line-active);
+  background: var(--fill);
+}
 
 /* ── Room detail (WATCH) ────────────────────────────────────── */
 /* Read-only inspection of one live room. The scrim is `--scrim` and nothing

@@ -14,6 +14,17 @@ paths:
 - `game_plans` / `game_plan_players` — up to 20 plans per user; slots 1–11 = LINEUP,
   12–23 = SUB.
 - `scrape_logs` — one row per scrape run; `max_pesdb_id` drives incremental cutoff.
+- `users` — `is_admin` grants the console; `is_master_admin` is the only thing that
+  may grant or revoke either flag. See `admin-dashboard.md`.
+- `app_settings` — key/value, one row so far: `console_password`, the bcrypt hash of
+  the shared console password.
+
+**Two tables/columns are created by the server, not by `schema.sql` alone**, because
+an existing database would otherwise serve a broken console until somebody ran the
+`ALTER` by hand: `users.is_master_admin` (`ensureMasterColumn` in
+`src/features/admin/bootstrap.js`) and `app_settings` (`ensureSettingsTable` in
+`src/features/admin/consolePassword.js`). Both are idempotent and run on every boot.
+`schema.sql` still declares them, so a fresh install needs neither.
 
 ## Running a scrape
 

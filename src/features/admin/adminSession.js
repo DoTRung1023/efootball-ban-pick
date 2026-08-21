@@ -11,12 +11,10 @@
  * and an expiry. The token travels in the `x-admin-token` header, so it stays out
  * of URLs.
  *
- * **Which password that is depends on `ADMIN_CONSOLE_PASSWORD`.** Set it and the
- * gate takes that one console password from every admin instead of making each
- * of them retype their own account password; leave it unset and the account
- * password is used, exactly as before. There is no default, so an install that
- * configures nothing keeps the stronger behaviour rather than falling back to a
- * value printed in this repo.
+ * **Which password that is lives in `consolePassword.js`.** Where a shared
+ * console password is configured the gate takes that one from every admin
+ * instead of making each of them retype their own account password; where it is
+ * not, the account password is used, exactly as before.
  *
  * The trade is the one `ADMIN_KEY` used to make and it is worth stating plainly:
  * a single shared secret has no identity behind it. `efb_user` is unsigned, so
@@ -54,27 +52,6 @@ export function mintAdminToken({ id, username, is_master_admin: isMaster }) {
     }),
   ).toString("base64url");
   return `${payload}.${sign(payload)}`;
-}
-
-/* ── The shared console password ──────────────────────────── */
-
-const CONSOLE_PASSWORD = process.env.ADMIN_CONSOLE_PASSWORD || "";
-
-/** Whether the gate takes one shared password rather than each account's own. */
-export function usesConsolePassword() {
-  return CONSOLE_PASSWORD.length > 0;
-}
-
-/**
- * Compares against `ADMIN_CONSOLE_PASSWORD` without leaking its length or
- * content through timing. Both sides are hashed first because
- * `timingSafeEqual` throws on a length mismatch, and the length of the real
- * password is itself something worth not giving away.
- */
-export function consolePasswordMatches(candidate) {
-  if (!CONSOLE_PASSWORD) return false;
-  const digest = (v) => crypto.createHash("sha256").update(String(v)).digest();
-  return crypto.timingSafeEqual(digest(candidate), digest(CONSOLE_PASSWORD));
 }
 
 /** The claims of a token this server signed and that has not expired, else null. */

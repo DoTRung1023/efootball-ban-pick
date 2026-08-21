@@ -4,7 +4,8 @@ import { hasFullOvrPair, ovrPairInnerHtml } from './ovr.js';
 import { posClass } from '@/shared/players/positions.js';
 import { SORT_CATEGORIES } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
-         getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
+         getPlayerFilterOptions, hasActivePlayerFilters,
+         playerFilterParams } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
@@ -26,16 +27,7 @@ const catalog = {
   addedPesdbIds: new Set(),
 };
 
-function hasActiveFilters() {
-  return catalog.filterPositions.size || catalog.filterFoot.size || catalog.filterPlayingStyle.size
-    || catalog.filterCardType.size || catalog.filterLeague.size || catalog.filterRegion.size
-    || catalog.filterClub || catalog.filterNation
-    || catalog.filterOverallMin || catalog.filterOverallMax
-    || catalog.filterMaxOverallMin || catalog.filterMaxOverallMax
-    || catalog.filterHeightMin || catalog.filterHeightMax
-    || catalog.filterWeightMin || catalog.filterWeightMax
-    || catalog.filterAgeMin    || catalog.filterAgeMax;
-}
+const hasActiveFilters = () => hasActivePlayerFilters(catalog);
 
 function updateFilterBadge() {
   const btn = document.getElementById("filterDropBtn");
@@ -109,26 +101,11 @@ async function fetchCatalog(reset = false) {
 
   catalog.loading = true;
 
-  const params = new URLSearchParams({ limit: PAGE_SIZE, offset: catalog.offset, sortBy: catalog.sortBy });
-  if (catalog.query)          params.set("q",           catalog.query);
-  if (catalog.filterPositions.size) params.set("positions", [...catalog.filterPositions].join(","));
-  if (catalog.filterClub)     params.set("club",         catalog.filterClub);
-  if (catalog.filterNation)   params.set("nationality",  catalog.filterNation);
-  if (catalog.filterHeightMin) params.set("heightMin",   catalog.filterHeightMin);
-  if (catalog.filterHeightMax) params.set("heightMax",   catalog.filterHeightMax);
-  if (catalog.filterWeightMin) params.set("weightMin",   catalog.filterWeightMin);
-  if (catalog.filterWeightMax) params.set("weightMax",   catalog.filterWeightMax);
-  if (catalog.filterAgeMin)   params.set("ageMin",       catalog.filterAgeMin);
-  if (catalog.filterAgeMax)   params.set("ageMax",       catalog.filterAgeMax);
-  if (catalog.filterFoot.size)         params.set("foot",         [...catalog.filterFoot].join(","));
-  if (catalog.filterPlayingStyle.size)  params.set("playingStyle", [...catalog.filterPlayingStyle].join(","));
-  if (catalog.filterCardType.size)      params.set("cardType",     [...catalog.filterCardType].join(","));
-  if (catalog.filterLeague.size)        params.set("league",       [...catalog.filterLeague].join(","));
-  if (catalog.filterRegion.size)        params.set("region",       [...catalog.filterRegion].join(","));
-  if (catalog.filterOverallMin)        params.set("overallMin",        catalog.filterOverallMin);
-  if (catalog.filterOverallMax)        params.set("overallMax",        catalog.filterOverallMax);
-  if (catalog.filterMaxOverallMin)     params.set("maxOverallMin",     catalog.filterMaxOverallMin);
-  if (catalog.filterMaxOverallMax)     params.set("maxOverallMax",     catalog.filterMaxOverallMax);
+  const params = playerFilterParams(
+    catalog,
+    new URLSearchParams({ limit: PAGE_SIZE, offset: catalog.offset, sortBy: catalog.sortBy }),
+  );
+  if (catalog.query) params.set("q", catalog.query);
 
   try {
     const res   = await fetch("/api/players?" + params);

@@ -11,21 +11,28 @@ import {
   roomPhase,
   serializeRoomEntry,
 } from "#features/rooms/index.js";
+import { PASSWORD_MIN } from "#features/auth/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
   clearFailures,
-  consolePasswordMatches,
   lockoutSeconds,
   mintAdminToken,
   recordFailure,
   requireAdmin,
-  usesConsolePassword,
 } from "./adminSession.js";
+import {
+  consolePasswordMatches,
+  rotateConsolePassword,
+  usesConsolePassword,
+} from "./consolePassword.js";
 
 const router = Router();
 
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 10;
+/* Matches `auth/routes.js` and `bootstrap.js`. Every hash this app writes is
+   written at the same cost, or a rehash would be detectable by timing. */
+const BCRYPT_ROUNDS = 12;
 
 /** At least 1, at most MAX_LIMIT — a negative or NaN limit is a SQL error. */
 const readLimit = (raw) => {
@@ -69,13 +76,13 @@ router.post("/session", asyncHandler(async (req, res) => {
       });
     }
 
-    /* One shared console password when `ADMIN_CONSOLE_PASSWORD` is set,
-       otherwise this account's own — see the note in `adminSession.js`. The
-       lockout counts either kind of failure and is keyed by account, so the
-       shared password does not turn into a shared five attempts. */
-    const ok = usesConsolePassword()
+    /* The shared console password where one is configured, otherwise this
+       account's own — `consolePassword.js` owns which. The lockout counts
+       either kind of failure and is keyed by account, so a shared password does
+       not turn into a shared five attempts. */
+    const ok = await (usesConsolePassword()
       ? consolePasswordMatches(password)
-      : await bcrypt.compare(password, user.password ?? "");
+      : bcrypt.compare(password, user.password ?? ""));
     if (!ok) {
       recordFailure(user.id);
       return res.status(401).json({
@@ -253,10 +260,14 @@ async function isMasterAdmin(userId) {
   return Boolean(row?.is_master_admin);
 }
 
-/** 403 unless the caller is a master, in the words the USERS tab prints as-is. */
-async function requireMaster(req, res) {
+/**
+ * 403 unless the caller is a master, in the words the USERS tab prints as-is —
+ * so each caller names its own action rather than every refusal claiming to be
+ * about roles.
+ */
+async function requireMaster(req, res, action = "do that") {
   if (await isMasterAdmin(req.admin.uid)) return true;
-  res.status(403).json({ error: "Only a master admin can change roles." });
+  res.status(403).json({ error: `Only a master admin can ${action}.` });
   return false;
 }
 
@@ -282,7 +293,7 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
   }
 
   try {
-    if (!(await requireMaster(req, res))) return;
+    if (!(await requireMaster(req, res, "change console access"))) return;
 
     if (!makeAdmin) {
       const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
@@ -326,7 +337,7 @@ router.patch("/users/:id/master", asyncHandler(async (req, res) => {
   if (!targetId) return res.status(400).json({ error: "Unknown user." });
 
   try {
-    if (!(await requireMaster(req, res))) return;
+    if (!(await requireMaster(req, res, "designate a master admin"))) return;
 
     if (!makeMaster) {
       const [[{ cnt }]] = await db.query(
@@ -346,6 +357,81 @@ router.patch("/users/:id/master", asyncHandler(async (req, res) => {
     if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
 
     res.json({ userId: targetId, isMaster: makeMaster });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
+/**
+ * PATCH `{ password }` — a master resets another account's sign-in password.
+ *
+ * The "the user forgot their password" path, and the only way to set one on an
+ * account created through Google OAuth, whose `password` column is NULL.
+ *
+ * It is worth naming what this is: a master admin can take over any account on
+ * the installation. That is ordinary for an admin console and it is the reason
+ * the route is master-gated rather than admin-gated.
+ */
+router.patch("/users/:id/password", asyncHandler(async (req, res) => {
+  const targetId = Number(req.params.id);
+  const password = String(req.body?.password || "");
+  if (!targetId) return res.status(400).json({ error: "Unknown user." });
+  if (password.length < PASSWORD_MIN) {
+    return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN} characters.` });
+  }
+
+  try {
+    if (!(await requireMaster(req, res, "reset an account password"))) return;
+
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const [result] = await db.query("UPDATE users SET password = ? WHERE id = ?", [hash, targetId]);
+    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
+
+    res.json({ userId: targetId });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
+/** Whether a shared console password exists — the form asks before it decides
+    whether to show a "current password" field. Deliberately a live read rather
+    than a claim on the token: the first rotation flips this. */
+router.get("/console-password", (_req, res) => {
+  res.json({ configured: usesConsolePassword() });
+});
+
+/**
+ * PUT `{ currentPassword, newPassword }` — rotate the shared console password.
+ *
+ * The current password is asked for again even though this session was opened
+ * with it. The session outlives the tab it was opened in by up to eight hours,
+ * and this is the credential every admin uses to get in: a borrowed screen
+ * should not be able to change the lock silently.
+ *
+ * Where no shared password is configured yet there is nothing to confirm
+ * against, so the current-password check is skipped and this route is what
+ * switches the install over to one.
+ */
+router.put("/console-password", asyncHandler(async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+
+  if (newPassword.length < PASSWORD_MIN) {
+    return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN} characters.` });
+  }
+
+  try {
+    if (!(await requireMaster(req, res, "change the console password"))) return;
+
+    if (usesConsolePassword() && !(await consolePasswordMatches(currentPassword))) {
+      return res.status(401).json({ error: "The current console password is incorrect." });
+    }
+
+    await rotateConsolePassword(newPassword);
+    /* Existing tokens stay valid: this rotates the way *in*, not the sessions
+       already through the door. Anyone still holding one keeps it until it
+       expires, which is the same bound every other role change lives under. */
+    res.json({ ok: true });
   } catch (err) {
     sendAdminError(res, err);
   }

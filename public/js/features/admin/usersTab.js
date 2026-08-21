@@ -21,6 +21,7 @@
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, getSessionUserId, isSessionMaster } from "./adminApi.js";
 import { fmtDate, fmtNum, tableMessage } from "./format.js";
+import { initPasswordModal, openConsolePasswordForm, openUserPasswordForm } from "./passwordModal.js";
 
 const USER_ROWS = 50;
 const COLS = 6;
@@ -63,20 +64,28 @@ function accessCell(user, isSelf, canManage) {
   const id = Number(user.id);
   const parts = [];
 
+  /* Your own sign-in password is changed under Edit Profile, not from a table
+     of other people's accounts. */
+  const resetPw = isSelf
+    ? ""
+    : `<button class="role-btn is-pw" data-reset-pw="${id}"
+               data-username="${escapeHtml(user.username)}">RESET PW</button>`;
+
   if (isSelf) {
     parts.push(`<span class="access-static">${roleLabel(user)} · YOU</span>`);
     if (user.is_master_admin) parts.push(revokeBtn(id, "make-master", "0", "STAND DOWN"));
     return parts.join(" ");
   }
 
-  if (!user.is_admin) return grantBtn(id, "make-admin", "1", "MAKE ADMIN");
-
-  if (user.is_master_admin) {
+  if (!user.is_admin) {
+    parts.push(grantBtn(id, "make-admin", "1", "MAKE ADMIN"));
+  } else if (user.is_master_admin) {
     parts.push(revokeBtn(id, "make-master", "0", "STAND DOWN"));
   } else {
     parts.push(grantBtn(id, "make-master", "1", "MAKE MASTER"));
     parts.push(revokeBtn(id, "make-admin", "0", "REVOKE"));
   }
+  parts.push(resetPw);
   return parts.join(" ");
 }
 
@@ -93,6 +102,7 @@ export async function loadUsers() {
     }
     const selfId = getSessionUserId();
     const canManage = isSessionMaster();
+    document.getElementById("consolePwBtn").hidden = !canManage;
     document.getElementById("usersHint").textContent = canManage
       ? "You are a master admin: you may grant or revoke console access and designate other masters."
       : "Only a master admin can change roles. The first master comes from ADMIN_EMAIL in the server environment.";
@@ -171,13 +181,40 @@ async function setRole(btn) {
 }
 
 export function initUsersTab() {
+  initPasswordModal();
+
   document.getElementById("refreshUsers").addEventListener("click", () => {
     notice("");
     loadUsers();
   });
 
+  document.getElementById("consolePwBtn").addEventListener("click", async () => {
+    notice("");
+    /* Asked fresh every time: the first rotation turns a console with no shared
+       password into one that has it, and the form is shaped by the answer. */
+    let configured = true;
+    try {
+      ({ configured } = await apiFetch("/api/admin/console-password"));
+    } catch (err) {
+      notice(err.message, true);
+      return;
+    }
+    openConsolePasswordForm({ hasExisting: configured, onDone: (msg) => notice(msg) });
+  });
+
   /* Delegated: the rows are replaced on every load. */
   document.getElementById("usersBody").addEventListener("click", (e) => {
+    const reset = e.target.closest("[data-reset-pw]");
+    if (reset) {
+      notice("");
+      openUserPasswordForm({
+        userId: Number(reset.dataset.resetPw),
+        username: reset.dataset.username,
+        onDone: (msg) => notice(msg),
+      });
+      return;
+    }
+
     const btn = e.target.closest(".role-btn");
     if (!btn) return;
     /* Anything that takes a role away is armed first; granting one is not. */

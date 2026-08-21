@@ -51,6 +51,51 @@ export function createPlayerFilterState() {
   return state;
 }
 
+/**
+ * The filter state as `/api/players` query parameters.
+ *
+ * Lives beside the panel that fills the state in, because the two are one
+ * contract: a field added to `FILTER_SETS` or `FILTER_SCALARS` above has to
+ * arrive at the API under the name `buildCatalogFilter` reads it by, and a
+ * second copy of this mapping in a second consumer would drift the first time
+ * either end changed. Sets are sent comma-separated; empty sets and blank
+ * scalars are left out entirely rather than sent empty.
+ *
+ * The caller owns paging and sorting — `limit`, `offset` and `sortBy` are not
+ * filter state and are not set here.
+ */
+export function playerFilterParams(state, params = new URLSearchParams()) {
+  const set = (key, value) => { if (value) params.set(key, value); };
+  const csv = (key, values) => { if (values?.size) params.set(key, [...values].join(",")); };
+
+  csv("positions",    state.filterPositions);
+  csv("foot",         state.filterFoot);
+  csv("playingStyle", state.filterPlayingStyle);
+  csv("cardType",     state.filterCardType);
+  csv("league",       state.filterLeague);
+  csv("region",       state.filterRegion);
+
+  set("club",          state.filterClub);
+  set("nationality",   state.filterNation);
+  set("overallMin",    state.filterOverallMin);
+  set("overallMax",    state.filterOverallMax);
+  set("maxOverallMin", state.filterMaxOverallMin);
+  set("maxOverallMax", state.filterMaxOverallMax);
+  set("heightMin",     state.filterHeightMin);
+  set("heightMax",     state.filterHeightMax);
+  set("weightMin",     state.filterWeightMin);
+  set("weightMax",     state.filterWeightMax);
+  set("ageMin",        state.filterAgeMin);
+  set("ageMax",        state.filterAgeMax);
+
+  return params;
+}
+
+/** Whether anything at all is filtered — drives the FILTER button's tint. */
+export function hasActivePlayerFilters(state) {
+  return FILTER_SETS.some((k) => state[k]?.size) || FILTER_SCALARS.some((k) => state[k]);
+}
+
 /* ── autocomplete + shared option lists ─────────────────────────── */
 
 function initAutocomplete(inputEl, listEl, field, onPick) {

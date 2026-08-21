@@ -105,6 +105,24 @@ CREATE TABLE IF NOT EXISTS users (
 -- database heals on the next boot rather than serving a broken console.
 
 -- ------------------------------------------------------------
+-- 1b. APP_SETTINGS  (small key/value store for runtime configuration)
+-- Currently one row: `console_password`, the bcrypt hash of the shared /console
+-- password. It lives here rather than only in ADMIN_CONSOLE_PASSWORD so a master
+-- admin can rotate it without editing .env and restarting; the env value seeds
+-- it on first boot, and ADMIN_CONSOLE_PASSWORD_RESET=1 forces a re-seed when it
+-- has been rotated to something nobody remembers.
+-- `src/features/admin/consolePassword.js` creates this table if it is missing,
+-- so an existing database heals on the next boot.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app_settings (
+  setting_key   VARCHAR(64)  NOT NULL,
+  setting_value VARCHAR(255) NOT NULL,
+  updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (setting_key)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
 -- 2. PLAYERS  (user's personal squad roster)
 -- Migration for existing databases:
 --   ALTER TABLE players

@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/css/shared/tokens.css" />
+    <link rel="stylesheet" href="/css/shared/filterPanel.css" />
     <link rel="stylesheet" href="/css/features/admin/admin.css" />
     <link rel="stylesheet" href="/css/shared/controls.css" />
   </head>
@@ -180,7 +181,11 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">USERS <span id="usersCount" class="live-badge">0</span></span>
-            <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
+            <div class="panel-actions">
+              <!-- Master admins only; `usersTab.js` unhides it. -->
+              <button id="consolePwBtn" class="btn btn--ghost btn--sm" hidden>CONSOLE PASSWORD</button>
+              <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
+            </div>
           </div>
           <p id="usersNotice" class="panel-notice" hidden></p>
           <div class="table-wrap">
@@ -214,26 +219,54 @@
             <span class="panel-title">PLAYER CATALOG</span>
             <div class="panel-actions">
               <input id="catalogSearch" type="text" class="search-input" placeholder="Find by name…" />
-              <button id="catalogSortBtn" class="btn btn--ghost btn--sm sort-btn">
-                <span id="catalogSortLabel">OVERALL MAX ↓</span>
-              </button>
+
+              <!-- Sort: the same category list and direction toggle as My
+                   Players, driven by shared/players/sort.js. -->
+              <div class="sort-group">
+                <div class="ap-dd-wrap" id="acSortWrap">
+                  <button class="ap-dd-btn" id="acSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                    <span id="acSortLabel">SORT</span>
+                    <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  <!-- sort panel injected by JS -->
+                </div>
+                <button class="sort-dir-btn" id="acSortDirBtn" type="button" title="Toggle sort direction">
+                  <span id="acSortDirIcon">↓</span>
+                </button>
+              </div>
+
+              <!-- Filter: shared/players/filterPanel.js, the same panel the
+                   three home-page mount points build. -->
+              <div class="ap-dd-wrap" id="acFilterWrap">
+                <button class="ap-dd-btn" id="acFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <span>FILTER</span>
+                  <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <!-- filter panel injected by JS -->
+              </div>
+
+              <!-- Which columns the table draws. Panel injected by JS. -->
+              <div class="ap-dd-wrap" id="acColsWrap">
+                <button class="ap-dd-btn" id="acColsBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <span>COLUMNS</span>
+                  <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+              </div>
+
               <button id="exportCsvBtn" class="btn btn--ghost btn--sm">EXPORT CSV</button>
             </div>
           </div>
+          <!-- `table-wrap` already scrolls on the x axis; with the optional
+               columns switched on the table simply gets wider than it. -->
           <div class="table-wrap">
             <table class="admin-table catalog-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>PLAYER</th>
-                  <th>POS</th>
-                  <th>OVR</th>
-                  <th>MAX</th>
-                  <th>CARD TYPE</th>
-                  <th>CLUB</th>
-                  <th>PESDB ID</th>
-                </tr>
-              </thead>
+              <thead><tr id="catalogHead"></tr></thead>
               <tbody id="catalogBody">
                 <tr><td colspan="8" class="td-empty">Loading…</td></tr>
               </tbody>
@@ -248,6 +281,33 @@
       </section>
 
     </div><!-- /dashboard -->
+
+    <!-- One small modal, two forms: rotating the shared console password, and a
+         master resetting somebody's account password. Both are master-only and
+         both are re-checked server-side; see features/admin/passwordModal.js. -->
+    <div id="pwModal" class="adm-modal" hidden>
+      <form class="adm-modal-card" id="pwForm">
+        <h2 class="adm-modal-title" id="pwTitle">—</h2>
+        <p class="adm-modal-sub" id="pwSub"></p>
+        <label class="adm-field" id="pwCurrentField">
+          <span>Current console password</span>
+          <input type="password" id="pwCurrent" class="gate-input" autocomplete="off" />
+        </label>
+        <label class="adm-field">
+          <span id="pwNewLabel">New password</span>
+          <input type="password" id="pwNew" class="gate-input" autocomplete="new-password" />
+        </label>
+        <label class="adm-field">
+          <span>Confirm</span>
+          <input type="password" id="pwConfirm" class="gate-input" autocomplete="new-password" />
+        </label>
+        <p class="gate-error" id="pwError"></p>
+        <div class="adm-modal-actions">
+          <button type="button" id="pwCancel" class="btn btn--ghost btn--sm">CANCEL</button>
+          <button type="submit" id="pwSubmit" class="btn btn--primary btn--sm">SAVE</button>
+        </div>
+      </form>
+    </div>
 
     <!-- Room inspection, opened by WATCH on the ROOMS tab. Read-only: the room
          page has two seats and claims one on load, so the console cannot look at

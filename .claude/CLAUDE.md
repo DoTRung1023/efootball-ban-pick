@@ -48,7 +48,9 @@ Code is grouped **by feature, not by file type**.
 - `public/js/shared/` — helpers **two or more features import today**; nothing goes here
   speculatively — and when a module drops back to one consumer it moves out again
   (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
-  (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js`),
+  (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js` —
+  which owns the panel, `playerFilterParams` and `hasActivePlayerFilters`, so the
+  filter→query-string mapping has exactly one copy),
   `ui/` (`toast.js`, `readingTime.js`, `pendingToast.js`, `confirm.js`, `dropdown.js`,
   `playerHoverCard.js`), `lib/`
   (`session.js`, `roomCode.js` — both bundles mint room codes: the Rooms tab for the
@@ -59,7 +61,11 @@ Code is grouped **by feature, not by file type**.
   it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
   `features/<name>/<name>.css`,
-  `shared/{tokens,controls,playerCard,modals,numberInput,playerHoverCard,pitchField}.css`.
+  `shared/{tokens,controls,playerCard,modals,numberInput,playerHoverCard,pitchField,filterPanel}.css`.
+  `shared/filterPanel.css` is the chrome for the sort and filter dropdowns — the
+  other half of `shared/players/filterPanel.js` and `sort.js`. It lived in
+  `features/catalog/catalog.css` while every consumer was on the home page; the
+  console's CATALOG tab made it a second page, so it moved to `shared/`.
   There is no bundler, so a page's `<link>` tags **are** its cascade — the order in the
   `<head>` is load-bearing. `shared/tokens.css` must be **first** (every other sheet
   reads its variables) and `shared/controls.css` **last**, because its focus ring has to
