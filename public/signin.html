@@ -17,10 +17,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
   </head>
   <body>
-    <!-- Pitch Grid Background -->
-      <div class="pitch-center-circle"></div>
-      <div class="pitch-halfway"></div>
-    </div>
+    <!-- Card art falling behind the form. Decoration only, and the one screen
+         in the app with ambient motion (DESIGN.md 7). Empty on purpose:
+         signInBackdrop.js fills it from the same list as the strip below. -->
+    <div class="falling-cards" id="fallingCards" aria-hidden="true"></div>
 
     <!-- Main Content -->
     <div class="signin-wrapper">
@@ -126,12 +126,13 @@
           </p>
         </div>
       </div>
+    </div>
 
-      <!-- Featured Players Strip -->
-      <div class="featured-strip">
-        <div class="strip-label">TOP PLAYERS THIS SEASON</div>
-        <div class="strip-players" id="stripPlayers"></div>
-      </div>
+    <!-- Runs the full width of the viewport, so it is a sibling of the form
+         wrapper rather than a child of it — the wrapper is capped at 460px. -->
+    <div class="featured-strip">
+      <div class="strip-label">TOP PLAYERS THIS SEASON</div>
+      <div class="strip-players" id="stripPlayers"></div>
     </div>
 
     <!-- Toast notification -->

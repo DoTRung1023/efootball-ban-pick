@@ -10,16 +10,85 @@ html, body {
   overflow-x: hidden;
 }
 
+/* A column, not a centred box: the form is capped at 460px but the player
+   strip below it runs the full width of the viewport, so the two are
+   siblings. `justify-content: center` would clip the top of the column on a
+   short viewport and make the brand unreachable — `margin: auto` on the
+   wrapper centres the same way and stays scrollable. */
 body {
   font-family: var(--font-main);
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   position: relative;
-}/* ============================================================
+}
+
+/* ============================================================
+   FALLING PLAYER CARDS
+
+   The backdrop: real card art drifting down the page behind the form. This
+   is the one deliberate exception to the flat --bg rule (DESIGN.md §7) and
+   the only ambient motion in the app — scoped to this screen, decorative,
+   and off entirely under `prefers-reduced-motion`.
+
+   It stays a backdrop rather than a competing surface by staying faint:
+   nothing here paints a colour, and the form card above it is opaque
+   --bg-elevated, so no text ever sits on top of moving art.
+   ============================================================ */
+.falling-cards {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;   /* clips the fall at the viewport edge; no scrollbar */
+  pointer-events: none;
+}
+
+/* Every custom property below is written by `signInBackdrop.js`, one set per
+   card. `top: 0` is the origin the keyframes translate away from. */
+.falling-card {
+  position: absolute;
+  top: 0;
+  left: var(--fall-x);
+  /* `min(…, 22vw)` is what keeps a 96px card from covering a third of a
+     320px phone — the JS picks a size in px and the viewport caps it. */
+  width: min(var(--fall-size), 22vw);
+  aspect-ratio: 240 / 339;   /* the card art's own ratio, as in ban/pick */
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: cardFall var(--fall-duration) linear var(--fall-delay) infinite;
+}
+
+.falling-card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Card art is the only thing on this page carrying a hue, and at full
+     saturation twelve of them read as a second theme. Applied to the image,
+     not declared as a colour — there is still no literal outside tokens.css. */
+  filter: saturate(0.45) brightness(0.7);
+}
+
+/* Falls past the bottom edge and is clipped there rather than fading out:
+   a fade would read as vanishing, and these are meant to be falling. The
+   ramp at the start happens above the fold, so nothing pops into view. */
+@keyframes cardFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -30vh, 0) rotate(var(--fall-tilt));
+  }
+  6% {
+    opacity: var(--fall-opacity);
+  }
+  100% {
+    opacity: var(--fall-opacity);
+    transform: translate3d(var(--fall-drift), 115vh, 0) rotate(var(--fall-spin));
+  }
+}
+
+/* ============================================================
    MAIN LAYOUT
    ============================================================ */
 .signin-wrapper {
@@ -27,7 +96,10 @@ body {
   z-index: 10;
   width: 100%;
   max-width: 460px;
-  padding: 24px 16px 32px;
+  /* Takes the free space above and below, which is what centres the form
+     inside the column without `justify-content` clipping anything. */
+  margin: auto 0;
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -409,8 +481,14 @@ body {
 /* ============================================================
    FEATURED PLAYERS STRIP
    ============================================================ */
+/* Full-bleed, and above the falling layer (z 0) but below the sign-up modal
+   (z 200). Its 16px top plus the wrapper's 24px bottom is the 40px the
+   spacing scale asks for between two major sections. */
 .featured-strip {
+  position: relative;
+  z-index: 10;
   width: 100%;
+  padding: 16px 0 40px;
   overflow: hidden;
 }
 
@@ -424,33 +502,47 @@ body {
   margin-bottom: 10px;
 }
 
+/* The track carries the list twice and loops by shifting exactly one copy.
+   `-50%` alone is half a gap short of that: n cards carry n-1 gaps *inside*
+   a copy but n gaps *between* the two, so the period is one gap longer than
+   half the track. Hence the `- var(--strip-gap) / 2` — without it the strip
+   creeps sideways a little on every lap. */
 .strip-players {
+  --strip-gap: 10px;
   display: flex;
-  gap: 10px;
-  /* Scrolls by hand, not on a 40s loop — the system has no ambient motion. */
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: var(--strip-gap);
+  width: max-content;
+  animation: stripScroll 48s linear infinite;
+  will-change: transform;
 }
 
-.strip-players::-webkit-scrollbar { display: none; }
+/* Hovering anywhere on the strip stops it, so a card can actually be looked
+   at. The whole strip, not the card — pausing on the card alone means the
+   card slides out from under the cursor and the pause immediately ends. */
+.featured-strip:hover .strip-players {
+  animation-play-state: paused;
+}
 
+@keyframes stripScroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(calc(-50% - var(--strip-gap) / 2), 0, 0); }
+}
+
+/* Bare art with no box around it, like every other player card in the app:
+   square by rule (DESIGN.md §5), and the outline only appears on hover. */
 .strip-card {
   flex-shrink: 0;
   width: 60px;
-  /* border-radius: var(--radius-sm); */
+  border: 1px solid transparent;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--fill);
-  cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-  position: relative;
+  transition: transform var(--transition), border-color var(--transition);
 }
 
+/* `scale`, never `translateY` — DESIGN.md §8. */
 .strip-card:hover {
-  transform: translateY(-4px) scale(1.05);
-  border-color: var(--line-active);
-
-  z-index: 10;
+  transform: scale(1.06);
+  border-color: var(--border);
 }
 
 .strip-card img {
@@ -659,4 +751,28 @@ body {
 @keyframes cardSlideIn {
   from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   REDUCED MOTION
+
+   Everything this page animates is decoration — the falling art, the strip,
+   and the two entrance transitions. None of it carries state, so all of it
+   can simply stop. The strip still has more cards than fit, so it gets a
+   real scrollbar-free overflow back in exchange for the marquee.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .falling-cards { display: none; }
+
+  .strip-players { animation: none; }
+
+  .featured-strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .featured-strip::-webkit-scrollbar { display: none; }
+
+  .signin-wrapper,
+  .signin-card { animation: none; }
 }

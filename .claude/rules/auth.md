@@ -66,7 +66,7 @@ that adds the column — and the `.env` admin is seeded verified on every boot, 
 | `signInForm.js` | `/api/signin`, field validation, writes `efb_user`. A 403 with `needsVerification` raises the strip below instead of only toasting |
 | `signUpModal.js` | `/api/signup`. Creating an account does **not** sign you in — and now cannot until the link is clicked |
 | `verifyNotice.js` | the "confirm your email" strip under the form: `showVerifyNotice`, `applyVerifyStatus` (the `?verified=` verdict) and the RESEND button. It remembers whichever identifier got you there and falls back to whatever is typed in `#username` |
-| `signInBackdrop.js` | Floating card art + particles. Purely decorative |
+| `signInBackdrop.js` | The page's two decorative layers, off one list: the falling card art behind the form and the horizontal TOP PLAYERS strip. Purely decorative — `/api/top-players` failing just leaves the built-in fallback list on screen. See the note below |
 | `passwordToggle.js` | `bindPasswordToggle(btnId, inputId)` — the eye-icon swap, used by both forms |
 | `editProfile.js` | `/api/profile` (PUT). An empty password field means "leave it alone" |
 | `userMenu.js` | Nav account dropdown: identity, sign out, opens edit-profile, reveals the console link for an admin |
@@ -94,3 +94,28 @@ event fires.
 client maps `field` to `ep<Field>Err` / the matching input id and renders the message
 inline; anything without a `field` falls back to a toast. Keep the server's `field`
 values matching the input id suffixes or the message silently becomes a toast.
+
+## The sign-in page is the one screen with ambient motion
+
+`signInBackdrop.js` + the `FALLING PLAYER CARDS` and `FEATURED PLAYERS STRIP` blocks in
+`features/auth/auth.css` are a deliberate, documented exception to the flat `--bg` rule
+— **DESIGN.md §7 names it as the only one.** Do not copy the pattern to another page,
+and do not delete it as re-skin debris.
+
+Three things in it are easy to break by touching only one side:
+
+- **The marquee loops on `calc(-50% - var(--strip-gap) / 2)`, not `-50%`.** The track
+  holds the list twice; *n* cards carry *n-1* gaps inside a copy but *n* gaps between the
+  two, so half the track is half a gap short of one period and the strip creeps sideways
+  on every lap. `renderStripPlayers` emitting the list exactly twice is the other half of
+  that arithmetic — emit it three times and the shift is wrong.
+- **The falling cards are swapped in place, not re-rendered.** Every `--fall-*` custom
+  property is written once by the JS; rebuilding the layer when `/api/top-players`
+  returns would restart all twelve animations at once, which is the only moment the
+  effect would be noticed. `swapFallingCards` only rewrites `img.src`.
+- **`prefers-reduced-motion` turns all of it off**, in `auth.css` and nowhere else. A
+  second copy of that rule in JS is how it ends up honoured in one place and not the
+  other.
+
+The layer also costs no extra image requests: both layers draw from the same
+`/img/card/:id.png` URLs, which the strip has already warmed.

@@ -300,6 +300,23 @@ particles, no radial washes on `body`. Pages sit on a flat `--bg`. The football 
 markings in `shared/pitchField.css` stay, because that component *is* a pitch, but its
 turf is now `--bg` with `--fill-faint` mow stripes.
 
+**One exception, and it is named: the sign-in page.** `/signin` runs a `.falling-cards`
+layer of player card art drifting down behind the form, and its TOP PLAYERS strip
+scrolls on a loop. It is the only screen with ambient motion, and it is allowed because
+it is the only screen with nothing to do: no state, no data, no decision — a person is
+there for eight seconds typing a password. The constraints it still keeps are what make
+it an exception rather than a second theme:
+
+- it declares **no colour** — the effect is `opacity`, `transform` and a `filter` on the
+  art itself, and there is still no literal outside `tokens.css`;
+- **no gradient, glow, shadow or backdrop blur** — the form card is the same flat
+  `--bg-elevated` panel as everywhere else, and no text ever sits on moving art;
+- it is **off entirely under `prefers-reduced-motion`**, along with the page's two
+  entrance transitions.
+
+Anywhere else, ambient art is still a leftover. `features/auth/auth.css` is the only
+sheet that may carry it.
+
 ---
 
 ## 8. Motion
@@ -310,7 +327,8 @@ turf is now `--bg` with `--fill-faint` mow stripes.
 
 Use `var(--transition)` and name the properties — never `transition: all`.
 
-- **Hover only.** No entrance animations, no reveals, no shine sweeps.
+- **Hover only.** No entrance animations, no reveals, no shine sweeps — outside
+  `/signin`, whose backdrop and player strip are the one scoped exception (§7).
 - Hover on a grid card: `transform: scale(1.03)` + a 1px `--border` outline. **Nothing
   else** — never add `translateY` to a grid card, it moves the bottom edge off the cursor
   and the hover state loops.
@@ -458,7 +476,10 @@ Named here so a leftover is recognisable as a leftover, not as a second theme:
 - **The ambient art** — `.pitch-bg`, four `.glow-orb`s, `orbFloat`, the sign-in particle
   field and `initParticles()`, the floating card backdrop and `renderBackgroundCards()`,
   and the `.btn-shine` sweep. A rooms hero stage briefly reintroduced some of it and was
-  taken out again — the flat `--bg` rule has no exceptions.
+  taken out again. The flat `--bg` rule has exactly one exception, and it is the sign-in
+  page — see §7 for what that exception is allowed to do. The **particle field, the glow
+  orbs and `.btn-shine` are still gone**, including there: what came back is card art and
+  nothing else.
 - **The four duplicated `:root` blocks.** There is one now, and a token change no longer
   has to be applied in four places.
 - **Two hex literals in JS** (`GREEN`/`RED` in `features/draft/constants.js`). The timer

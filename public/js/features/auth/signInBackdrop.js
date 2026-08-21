@@ -1,13 +1,19 @@
 /* ============================================================
-   Sign-in page — the TOP PLAYERS THIS SEASON strip
+   Sign-in page — the ambient player art
 
-   Purely visual; nothing here gates sign-in. The fallback list renders
-   immediately so the page is never empty, then `/api/top-players` swaps in
-   real data if it returns something different.
+   Two decorative layers off one list: card art falling down the page behind
+   the form, and the TOP PLAYERS THIS SEASON strip running horizontally under
+   it. Nothing here gates sign-in, and nothing here carries information — if
+   both layers failed to render, the page would still work.
 
-   The rotated floating card art that used to sit behind the form went with the
-   re-skin: it was decoration on an animation, and the new surface rule is a
-   flat --bg (DESIGN.md §7).
+   The fallback list renders immediately so the page is never empty, then
+   `/api/top-players` swaps in real data if it returns something different.
+   Both layers draw from the same `/img/card/:id.png` URLs, so the falling
+   cards cost no requests the strip has not already made.
+
+   This is the one screen in the app allowed ambient motion — see DESIGN.md
+   §7. `prefers-reduced-motion` drops the falling layer and stops the strip;
+   that lives in `auth.css`, not here, so there is one copy of the rule.
    ============================================================ */
 
 import { CARD_IMG } from "@/shared/players/playerMeta.js";
@@ -53,20 +59,88 @@ async function fetchTopPlayers() {
   }
 }
 
+/* One card per lane, jittered inside it — random placement alone clumps, and
+   a clump on a 12-card layer reads as a mistake rather than as weather. */
+const FALLING_CARD_COUNT = 12;
+const FALLING_LANE_SPAN = 92;  // % of viewport; the remainder is the card's own width
+
+function cardArt(player, { decorative = false } = {}) {
+  const img = document.createElement("img");
+  img.src = CARD_IMG(player.id);
+  /* The falling layer is `aria-hidden`; naming the players twice would make a
+     screen reader read the whole top-25 list before reaching the form. */
+  img.alt = decorative ? "" : player.name;
+  img.loading = "lazy";
+  return img;
+}
+
+function renderFallingCards(players) {
+  const layer = document.getElementById("fallingCards");
+  if (!layer) return;
+
+  const lane = FALLING_LANE_SPAN / FALLING_CARD_COUNT;
+
+  for (let i = 0; i < FALLING_CARD_COUNT; i++) {
+    const player = players[i % players.length];
+    const el = document.createElement("div");
+    el.className = "falling-card";
+
+    /* Depth drives size, speed and opacity together: a bigger card reads as
+       nearer, so it has to fall faster and sit slightly more solid. Vary one
+       without the others and the layer goes flat. */
+    const depth = Math.random();
+    const size = 52 + depth * 44;      // 52–96px
+    const duration = 34 - depth * 13;  // 34s far → 21s near
+    const opacity = 0.10 + depth * 0.12;
+
+    const px = (n) => `${n.toFixed(0)}px`;
+    el.style.setProperty("--fall-x", `${(i * lane + Math.random() * lane * 0.7).toFixed(2)}%`);
+    el.style.setProperty("--fall-size", px(size));
+    el.style.setProperty("--fall-duration", `${duration.toFixed(1)}s`);
+    /* Negative, so every card is already mid-fall on the first frame and the
+       page never opens on an empty sky waiting for the first one to arrive. */
+    el.style.setProperty("--fall-delay", `-${(Math.random() * duration).toFixed(1)}s`);
+    el.style.setProperty("--fall-opacity", opacity.toFixed(2));
+    el.style.setProperty("--fall-drift", px(Math.random() * 80 - 40));
+    el.style.setProperty("--fall-tilt", `${(Math.random() * 24 - 12).toFixed(1)}deg`);
+    el.style.setProperty("--fall-spin", `${(Math.random() * 44 - 22).toFixed(1)}deg`);
+
+    const img = cardArt(player, { decorative: true });
+    img.onerror = () => { el.hidden = true; };
+    el.appendChild(img);
+    layer.appendChild(el);
+  }
+}
+
+/* Swapped in place rather than re-rendered: rebuilding the layer would restart
+   every animation, and twelve cards snapping back to the top of the viewport
+   at once is the one moment this effect would be noticed. */
+function swapFallingCards(players) {
+  const layer = document.getElementById("fallingCards");
+  if (!layer) return;
+
+  [...layer.children].forEach((el, i) => {
+    const img = el.querySelector("img");
+    if (!img) return;
+    const player = players[i % players.length];
+    el.hidden = false;  // a fallback card whose art 404'd
+    img.alt = "";
+    img.src = CARD_IMG(player.id);
+  });
+}
+
 function renderStripPlayers(players) {
   const strip = document.getElementById("stripPlayers");
   if (!strip) return;
 
-  // Double the list for seamless loop
+  /* Listed twice: the marquee loops by shifting the track exactly one copy's
+     width, which only lands seamlessly if the second copy is already there. */
   [...players, ...players].forEach((player) => {
     const card = document.createElement("div");
     card.className = "strip-card";
 
-    const img = document.createElement("img");
-    img.src = CARD_IMG(player.id);
-    img.alt = player.name;
-    img.loading = "lazy";
-    img.onerror = () => { card.style.display = "none"; };
+    const img = cardArt(player);
+    img.onerror = () => { card.hidden = true; };
 
     card.appendChild(img);
     strip.appendChild(card);
@@ -75,18 +149,15 @@ function renderStripPlayers(players) {
 
 export async function initPlayers() {
   // Render fallback immediately so the UI isn't empty
+  renderFallingCards(FALLBACK_PLAYERS);
   renderStripPlayers(FALLBACK_PLAYERS);
 
   // Fetch real data in the background and swap if it differs
   const players = await fetchTopPlayers();
-  const firstFetchedId = players[0]?.id;
-  const firstFallbackId = FALLBACK_PLAYERS[0]?.id;
+  if (players[0]?.id === FALLBACK_PLAYERS[0]?.id) return;
 
-  if (firstFetchedId !== firstFallbackId) {
-    // Clear and re-render with fresh data
-    const strip = document.getElementById("stripPlayers");
-    if (strip) strip.innerHTML = "";
-    renderStripPlayers(players);
-  }
+  const strip = document.getElementById("stripPlayers");
+  if (strip) strip.innerHTML = "";
+  renderStripPlayers(players);
+  swapFallingCards(players);
 }
-
