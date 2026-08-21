@@ -120,7 +120,7 @@ effect at the next sign-in, not mid-session.
 | `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)` |
 | `overviewTab.js`, `roomsTab.js`, `usersTab.js`, `catalogTab.js` | one module per tab |
 | `roomDetail.js` | the read-only room inspection panel behind WATCH |
-| `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on |
+| `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on — and the per-account load/save behind it |
 | `passwordModal.js` | the console-password form. It carried a second form — a master typing a password for somebody else — until resets became generated-and-emailed and there was nothing left to type |
 | `index.js` | `initConsole()` |
 
@@ -278,6 +278,12 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   and `idleSec`. Reuses the players' own snapshot rather than re-listing twenty
   fields, which would be a second copy to keep in step. 404 when the code is not
   in memory. See **WATCH** above.
+- `GET /preferences` · `PUT /preferences` — this admin's console settings,
+  always for `req.admin.uid` and never for an id in the body. The PUT takes one
+  `{ key, value }`; the key is allow-listed and the value shape-checked in
+  `preferences.js`, and a rejected one is a **400 rather than a silent no-op** —
+  the console would otherwise go on showing a choice it never stored. So far one
+  key, `catalogColumns`.
 - `GET /users` also returns `email_verified`; the tab marks an unconfirmed address
   with a dashed UNCONFIRMED pill, which is both why that account cannot sign in and
   why a reset would be mailed somewhere nobody has proved they read. Not red —
@@ -313,6 +319,30 @@ so a refusal never claims to be about roles when it was about a password.
 `finished_at`. `scrapeRunState` therefore reads an unfinished run older than an
 hour as `stalled`, not `running` — the dashboard used to report a run that died in
 April as still going, under a progress bar whose width was hardcoded.
+
+## CATALOG columns belong to the account
+
+The column selection is stored server-side in `user_settings`, not in the
+browser: it used to live in `sessionStorage`, which made "my columns" a property
+of one page load. The shape to keep:
+
+- **The in-memory selection is the authority during a session.** The server is
+  where it is saved, not where it is read on every render — a write that fails
+  leaves the table as chosen instead of snapping back, and a failed *read* falls
+  back to the defaults silently. A dashboard that will not open because a view
+  preference did not load would be a worse trade than a dashboard with the
+  default columns.
+- **`loadColumnPrefs()` runs before `startTabs()`**, in the `openDashboard`
+  callback both ways in share. The columns are only knowable once a session is
+  open, and CATALOG rendering defaults and then swapping is worse than waiting a
+  round trip for them.
+- **A changed selection rebuilds the chooser.** Each item's tick is written when
+  the item is built, and `initCatalogTab` has already built a panel full of
+  defaults by then — hence `rebuildColumnsPanel()`, which RESET also uses.
+- Unknown keys are filtered on read, so a column this build has dropped cannot
+  come back from an older stored selection, and a selection that filters down to
+  nothing falls back to the defaults rather than drawing two fixed columns with
+  no explanation.
 
 ## CSS (`admin.css`)
 

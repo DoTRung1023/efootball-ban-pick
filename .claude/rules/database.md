@@ -18,6 +18,10 @@ paths:
   may grant or revoke either flag. See `admin-dashboard.md`.
 - `app_settings` — key/value, one row so far: `console_password`, the bcrypt hash of
   the shared console password.
+- `user_settings` — per-account console preferences, one row per (user, key),
+  value a JSON column. So far one key: `catalogColumns`. Allow-listed and
+  shape-checked in `src/features/admin/preferences.js`, which also creates the
+  table on boot.
 - `email_verifications` — one live confirmation link per account: the SHA-256 of the
   token (never the token), the address it was minted for, an expiry and a
   `consumed_at`. `users.email_verified` is the flag `/api/signin` refuses on.

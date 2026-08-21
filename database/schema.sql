@@ -165,6 +165,29 @@ CREATE TABLE IF NOT EXISTS email_verifications (
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------
+-- 1d. USER_SETTINGS  (per-account console preferences)
+-- One row per (account, setting). So far one key: `catalogColumns`, the CATALOG
+-- tab's column selection, which used to live in the browser's sessionStorage
+-- and therefore died with the tab. Stored per account so the choice follows the
+-- admin to the next sign-in and to any other machine.
+-- The key is allow-listed and the value shape-checked in
+-- `src/features/admin/preferences.js` before anything is written — this is a
+-- JSON column reachable from a browser.
+-- Created by `ensureUserSettingsTable` on boot if missing.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id       INT UNSIGNED NOT NULL,
+  setting_key   VARCHAR(64)  NOT NULL,
+  setting_value JSON         NOT NULL,
+  updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (user_id, setting_key),
+  CONSTRAINT fk_user_settings_user
+    FOREIGN KEY (user_id) REFERENCES users (id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
 -- 2. PLAYERS  (user's personal squad roster)
 -- Migration for existing databases:
 --   ALTER TABLE players

@@ -3,15 +3,27 @@
 
    Two are fixed: the row number, and the player's name. A table you can hide
    the name from is a list of numbers, and the row number is what makes a
-   paginated view legible at all. Everything else is optional, and the choice
-   is remembered for the tab's lifetime in sessionStorage — the same store the
-   console token uses, so it survives a reload and dies with the tab.
+   paginated view legible at all. Everything else is optional, and **the choice
+   belongs to the admin account, not to the browser**: it is stored server-side
+   under `user_settings.catalogColumns` and read back when the console session
+   opens, so the same columns are there on the next sign-in and on a different
+   machine. It lived in `sessionStorage` before, which made "my columns" a
+   property of one page load.
+
+   The selection in memory is still the authority *during* a session — a write
+   that fails leaves the table as chosen rather than snapping back — so the
+   server is where it is saved, not where it is read from on every render.
 
    `field` is the key the API returns, and `csv` is the header the export
    writes; one row here therefore describes the column everywhere it appears.
    ============================================================ */
 
-const STORE = "efb_console_catalog_cols";
+import { apiFetch, apiSend } from "./adminApi.js";
+
+const SETTING_KEY = "catalogColumns";
+/* Toggling four columns is four clicks and one write. The panel stays open
+   while you pick, so the debounce is generous. */
+const SAVE_DEBOUNCE_MS = 500;
 
 /** `render` receives the raw value and the whole row; it returns cell HTML. */
 export const CATALOG_COLUMNS = [
@@ -40,27 +52,53 @@ const DEFAULT_ON = CATALOG_COLUMNS.filter((c) => c.fixed || c.on).map((c) => c.k
     older build must not resurrect a column this one has dropped. */
 const known = (key) => CATALOG_COLUMNS.some((c) => c.key === key);
 
-function read() {
+let selected = new Set(DEFAULT_ON);
+let saveTimer = null;
+
+/**
+ * Reads this admin's stored columns and applies them.
+ *
+ * Called once, after the console session opens and **before** the first render,
+ * so the CATALOG tab never shows the default columns and then swaps. A failure
+ * is silent on purpose: the defaults are a working table, and a dashboard that
+ * opens with an error about a view preference is worse than one that opens.
+ *
+ * Returns whether anything changed, so the caller knows if the column chooser
+ * it already built needs rebuilding.
+ */
+export async function loadColumnPrefs() {
+  let stored;
   try {
-    const raw = JSON.parse(sessionStorage.getItem(STORE) || "null");
-    if (!Array.isArray(raw)) return null;
-    const picked = raw.filter(known);
-    return picked.length ? picked : null;
+    const { preferences } = await apiFetch("/api/admin/preferences");
+    stored = preferences?.[SETTING_KEY];
   } catch {
-    return null;
+    return false;
   }
+  if (!Array.isArray(stored)) return false;
+
+  /* A stored selection from an older build must not resurrect a column this
+     one has dropped, and one that filters down to nothing is not a selection —
+     it would leave a table of two fixed columns and no way to tell why. */
+  const picked = stored.filter(known);
+  if (!picked.length) return false;
+
+  const before = [...selected].sort().join();
+  selected = new Set(picked);
+  FIXED.forEach((key) => selected.add(key));
+  return [...selected].sort().join() !== before;
 }
 
-let selected = new Set(read() || DEFAULT_ON);
-/* The fixed ones are not negotiable, including against a hand-edited store. */
-FIXED.forEach((key) => selected.add(key));
-
 function persist() {
-  try {
-    sessionStorage.setItem(STORE, JSON.stringify([...selected]));
-  } catch {
-    /* private mode, or a full quota — the choice just does not outlive the page */
-  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    /* Fire and forget. `apiSend` rejects on a failed write and there is nothing
+       useful to say about it here — the columns on screen are already what was
+       asked for, and the next toggle tries again. */
+    apiSend("/api/admin/preferences", "PUT", {
+      key: SETTING_KEY,
+      value: [...selected],
+    }).catch(() => {});
+  }, SAVE_DEBOUNCE_MS);
 }
 
 /** The visible columns, always in the order declared above. */

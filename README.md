@@ -321,7 +321,8 @@ signed, expiring token in an `x-admin-token` header.
 | Game plans | `GET`/`POST /api/game-plans` · `PUT`/`DELETE /api/game-plans/:id` · `GET /api/game-plans/:id/players` · `PUT /api/game-plans/:id/players/:slot` · `PUT /api/game-plans/:id/swap` |
 | Room | `GET /api/rooms/mine` · `GET /api/rooms/:code` · `POST /api/rooms/:code/` + `presence` `leave` `start` `config` `chat` `ready` `kick-guest` `ban` `ban-confirm` `picks` `picks-confirm` `match-step` `post-match` |
 | Console — session | `POST /api/admin/session` (password → token) · `GET /api/admin/me` |
-| Console — read | `GET /api/admin/` + `stats` `rooms` `rooms/:code` `scrape-logs` `users` `data-quality` `console-password` |
+| Console — read | `GET /api/admin/` + `stats` `rooms` `rooms/:code` `scrape-logs` `users` `data-quality` `console-password` `preferences` |
+| Console — write | `PUT /api/admin/preferences` — this admin's own console settings |
 | Console — master only | `PATCH /api/admin/users/:id/` + `role` `master` `password` · `PUT /api/admin/console-password` |
 | Console — scrape | `POST /api/admin/scrape` · `POST /api/admin/scrape/stop` · `GET /api/admin/scrape/status` |
 | Images | `GET /img/card/:id.png` |

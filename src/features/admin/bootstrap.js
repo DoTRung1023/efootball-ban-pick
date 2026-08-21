@@ -31,6 +31,7 @@ import db from "#lib/db.js";
 import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
 import { describeError } from "#lib/http.js";
 import { loadConsolePassword } from "./consolePassword.js";
+import { ensureUserSettingsTable } from "./preferences.js";
 
 const BCRYPT_ROUNDS = 12;
 const DEFAULT_USERNAME = "admin";
@@ -96,6 +97,7 @@ export async function ensureConsoleAdmin() {
 
   try {
     await ensureMasterColumn();
+    await ensureUserSettingsTable();
     /* Before any of the branches below — the gate needs an answer whether or
        not an admin account is seeded on this boot. */
     await loadConsolePassword();

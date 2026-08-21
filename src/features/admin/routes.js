@@ -26,6 +26,7 @@ import {
   rotateConsolePassword,
   usesConsolePassword,
 } from "./consolePassword.js";
+import { preferenceError, readPreferences, writePreference } from "./preferences.js";
 
 const router = Router();
 
@@ -240,6 +241,36 @@ router.get("/users", asyncHandler(async (req, res) => {
  * Two ways to lock everyone out, both refused here: demoting yourself (you are
  * standing on the page you would lose), and demoting the last admin left.
  */
+// ── Per-admin preferences ────────────────────────────────────
+// Always the caller's own, never an id from the request: one admin has no
+// business setting another's columns. Any admin may use these — they are a view
+// setting, not a privilege.
+
+router.get("/preferences", asyncHandler(async (req, res) => {
+  try {
+    res.json({ preferences: await readPreferences(req.admin.uid) });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
+/** PUT `{ key, value }` — one setting at a time, allow-listed and shape-checked
+    in `preferences.js`. A rejected key is a 400 rather than a silent no-op:
+    the console would otherwise go on showing a choice it never stored. */
+router.put("/preferences", asyncHandler(async (req, res) => {
+  const key = String(req.body?.key || "");
+  const value = req.body?.value;
+  const invalid = preferenceError(key, value);
+  if (invalid) return res.status(400).json({ error: invalid });
+
+  try {
+    await writePreference(req.admin.uid, key, value);
+    res.json({ key });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
 /**
  * Is the caller a master admin *right now*?
  *

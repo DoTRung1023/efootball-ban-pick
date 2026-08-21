@@ -253,14 +253,26 @@ function buildColumnsPanel() {
   reset.addEventListener("click", (ev) => {
     ev.stopPropagation();
     resetColumns();
-    el("acColsPanel")?.remove();
-    el("acColsWrap").appendChild(buildColumnsPanel());
+    rebuildColumnsPanel();
     closeDdPanel("acColsPanel", "acColsBtn");
     loadCatalog();
   });
   panel.appendChild(reset);
 
   return panel;
+}
+
+/**
+ * Redraws the chooser from the current selection.
+ *
+ * Each item's tick is written once, when the item is built, so anything that
+ * changes the selection from outside this panel has to rebuild it. Two callers:
+ * RESET, and the console applying this admin's stored columns — which arrive
+ * after `initCatalogTab` has already wired a panel full of defaults.
+ */
+export function rebuildColumnsPanel() {
+  el("acColsPanel")?.remove();
+  el("acColsWrap").appendChild(buildColumnsPanel());
 }
 
 /* ── CSV export ───────────────────────────────────────────── */
