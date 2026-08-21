@@ -111,8 +111,14 @@ Three things in it are easy to break by touching only one side:
   that arithmetic — emit it three times and the shift is wrong.
 - **The falling cards are swapped in place, not re-rendered.** Every `--fall-*` custom
   property is written once by the JS; rebuilding the layer when `/api/top-players`
-  returns would restart all twelve animations at once, which is the only moment the
+  returns would restart all fourteen animations at once, which is the only moment the
   effect would be noticed. `swapFallingCards` only rewrites `img.src`.
+- **Lane and phase are both shuffled, and depth is sorted.** The cards are appended in
+  ascending depth so that DOM order — which for absolutely positioned siblings *is* paint
+  order — puts near cards over far ones. Lane and vertical phase are then dealt out from
+  shuffled indices, or that same sort would stack every large card down one side of the
+  screen and along the bottom. Even phases are also what stop fourteen random delays
+  piling six cards in one corner and leaving the top of the page empty.
 - **`prefers-reduced-motion` turns all of it off**, in `auth.css` and nowhere else. A
   second copy of that rule in JS is how it ends up honoured in one place and not the
   other.

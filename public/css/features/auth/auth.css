@@ -10,11 +10,9 @@ html, body {
   overflow-x: hidden;
 }
 
-/* A column, not a centred box: the form is capped at 460px but the player
-   strip below it runs the full width of the viewport, so the two are
-   siblings. `justify-content: center` would clip the top of the column on a
-   short viewport and make the brand unreachable — `margin: auto` on the
-   wrapper centres the same way and stays scrollable. */
+/* A column with the wrapper centred by `margin: auto` rather than by
+   `justify-content: center` — the latter clips the top of an over-tall
+   column, which put the brand out of reach on a short viewport. */
 body {
   font-family: var(--font-main);
   background: var(--bg);
@@ -52,9 +50,9 @@ body {
   position: absolute;
   top: 0;
   left: var(--fall-x);
-  /* `min(…, 22vw)` is what keeps a 96px card from covering a third of a
-     320px phone — the JS picks a size in px and the viewport caps it. */
-  width: min(var(--fall-size), 22vw);
+  /* The JS picks a size in px and the viewport caps it: 34vw stops a 196px
+     card from covering a third of a 320px phone. */
+  width: min(var(--fall-size), 34vw);
   aspect-ratio: 240 / 339;   /* the card art's own ratio, as in ban/pick */
   opacity: 0;
   will-change: transform, opacity;
@@ -65,27 +63,53 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  /* Card art is the only thing on this page carrying a hue, and at full
-     saturation twelve of them read as a second theme. Applied to the image,
-     not declared as a colour — there is still no literal outside tokens.css. */
-  filter: saturate(0.45) brightness(0.7);
+  /* Pushed past 1 on purpose — the card art is the only colour this screen
+     has, and at native saturation it goes muddy behind a navy page. Applied
+     to the image, not declared as a colour: there is still no literal
+     outside tokens.css. */
+  filter: saturate(1.35) contrast(1.05);
 }
 
-/* Falls past the bottom edge and is clipped there rather than fading out:
-   a fade would read as vanishing, and these are meant to be falling. The
-   ramp at the start happens above the fold, so nothing pops into view. */
+/* Falls past the bottom edge and is clipped there rather than fading out: a
+   fade would read as vanishing, and these are meant to be falling. The ramp
+   at the start happens above the fold, so nothing pops into view.
+
+   The vertical steps are deliberately proportional to the time steps — the
+   span is 155vh, so 30% of the animation has to be 46.5vh or the card visibly
+   changes speed mid-fall under `linear`. Only the horizontal sway and the
+   tumble are non-uniform, which is what makes it read as a card fluttering
+   down rather than a sprite on a rail. */
 @keyframes cardFall {
   0% {
     opacity: 0;
-    transform: translate3d(0, -30vh, 0) rotate(var(--fall-tilt));
+    transform: translate3d(0, -35vh, 0) rotate(var(--fall-tilt));
   }
   6% {
     opacity: var(--fall-opacity);
   }
+  30% {
+    transform:
+      translate3d(var(--fall-sway), 11.5vh, 0)
+      rotate(calc(var(--fall-tilt) + var(--fall-spin) * 0.35));
+  }
+  60% {
+    transform:
+      translate3d(calc(var(--fall-sway) * -1), 58vh, 0)
+      rotate(calc(var(--fall-tilt) + var(--fall-spin) * 0.7));
+  }
   100% {
     opacity: var(--fall-opacity);
-    transform: translate3d(var(--fall-drift), 115vh, 0) rotate(var(--fall-spin));
+    transform:
+      translate3d(var(--fall-drift), 120vh, 0)
+      rotate(calc(var(--fall-tilt) + var(--fall-spin)));
   }
+}
+
+/* Bigger cards need fewer of them: at 480px and under, fourteen overlapping
+   at 34vw each is soup rather than weather. The JS still builds all fourteen
+   — which ones survive is a viewport question, so it is answered here. */
+@media (max-width: 480px) {
+  .falling-card:nth-child(n + 9) { display: none; }
 }
 
 /* ============================================================
@@ -96,10 +120,11 @@ body {
   z-index: 10;
   width: 100%;
   max-width: 460px;
-  /* Takes the free space above and below, which is what centres the form
-     inside the column without `justify-content` clipping anything. */
+  /* Takes the free space above and below, which is what centres the column
+     without `justify-content` clipping the brand off the top of a short
+     viewport the way it used to. */
   margin: auto 0;
-  padding: 24px 16px;
+  padding: 24px 16px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -481,14 +506,11 @@ body {
 /* ============================================================
    FEATURED PLAYERS STRIP
    ============================================================ */
-/* Full-bleed, and above the falling layer (z 0) but below the sign-up modal
-   (z 200). Its 16px top plus the wrapper's 24px bottom is the 40px the
-   spacing scale asks for between two major sections. */
+/* Sits inside the wrapper, so it is exactly as wide as the form card above
+   it and lines up with both its edges. The wrapper's own 20px gap is what
+   puts it just below the box. */
 .featured-strip {
-  position: relative;
-  z-index: 10;
   width: 100%;
-  padding: 16px 0 40px;
   overflow: hidden;
 }
 

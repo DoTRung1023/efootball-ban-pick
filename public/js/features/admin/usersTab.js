@@ -11,6 +11,12 @@
    courtesy and never the check: every role write is re-authorised against the
    database, so a hand-made request from a plain admin is refused too.
 
+   **The role is stated once, in ACCESS, and it is coloured by rung** — the
+   accent for a master, full-strength text for an admin, the muted rung for
+   everyone else. It used to be a pill beside the username as well, which put
+   the same word in two columns of the same row; the buttons that act on the
+   role live here, so the word does too.
+
    **RESET PW does not ask for a password.** The server generates one, emails it
    to the address on the account and never returns it here, so this table can
    report where it went and nothing more. That makes it irreversible from the
@@ -50,6 +56,14 @@ function roleLabel(user) {
   return user.is_admin ? "ADMIN" : "USER";
 }
 
+/** The three rungs, and the class that colours each. Kept beside `roleLabel` so
+    a new rung cannot be added in one place and missed in the other. */
+const ROLE_CLASS = { MASTER: "is-master", ADMIN: "is-admin", USER: "is-user" };
+
+const roleTag = (user, isSelf) =>
+  `<span class="access-role ${ROLE_CLASS[roleLabel(user)]}">${roleLabel(user)}</span>` +
+  (isSelf ? ` <span class="access-you">· YOU</span>` : "");
+
 const grantBtn = (id, attr, value, label) =>
   `<button class="role-btn" data-user-id="${id}" data-${attr}="${value}">${label}</button>`;
 
@@ -67,10 +81,12 @@ const revokeBtn = (id, attr, value, label) =>
  * deliberate steps instead of one.
  */
 function accessCell(user, isSelf, canManage) {
-  if (!canManage) return `<span class="access-static">${roleLabel(user)}</span>`;
+  /* Every row states its role, whoever is looking. A plain admin sees only
+     this; a master sees it followed by what can be done about it. */
+  const parts = [roleTag(user, isSelf)];
+  if (!canManage) return parts.join(" ");
 
   const id = Number(user.id);
-  const parts = [];
 
   /* Your own sign-in password is changed under Edit Profile, not from a table
      of other people's accounts. `data-revoke-label` is what `armConfirm` puts
@@ -84,7 +100,6 @@ function accessCell(user, isSelf, canManage) {
                title="Generates a new password and emails it to ${escapeHtml(user.email)}">RESET PW</button>`;
 
   if (isSelf) {
-    parts.push(`<span class="access-static">${roleLabel(user)} · YOU</span>`);
     if (user.is_master_admin) parts.push(revokeBtn(id, "make-master", "0", "STAND DOWN"));
     return parts.join(" ");
   }
@@ -121,18 +136,6 @@ export async function loadUsers() {
 
     tbody.innerHTML = d.users.map((u) => {
       const isSelf = Number(u.id) === Number(selfId);
-      /* One pill, not two — master implies admin, and a row reading
-         "ADMIN MASTER" says nothing the second word did not. Every row carries
-         one now, including the plain accounts: a blank next to a name is not
-         readable as "no special role", it is just blank, and to a master the
-         ACCESS column opposite shows buttons rather than a label — so this pill
-         is the only place most rows say what they are. USER is the quietest of
-         the three by design; see the ladder in `admin.css`. */
-      const pill = u.is_master_admin
-        ? ` <span class="role-pill is-master">MASTER</span>`
-        : u.is_admin
-          ? ` <span class="role-pill">ADMIN</span>`
-          : ` <span class="role-pill is-user">USER</span>`;
       /* An unconfirmed address is why that account cannot sign in, and why a
          password reset would be mailed somewhere nobody has proved they read.
          Both questions get asked at this table, so the answer belongs in it. */
@@ -141,7 +144,7 @@ export async function loadUsers() {
         : ` <span class="role-pill is-unverified" title="This address was never confirmed — the account cannot sign in">UNCONFIRMED</span>`;
       return `
       <tr>
-        <td>${escapeHtml(u.username)}${pill}</td>
+        <td>${escapeHtml(u.username)}</td>
         <td class="td-dim">${escapeHtml(u.email)}${verify}</td>
         <td>${fmtNum(u.playerCount)}</td>
         <td>${fmtNum(u.planCount)}</td>

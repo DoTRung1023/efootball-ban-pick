@@ -574,13 +574,9 @@ body {
 }
 
 /* ── Role pill ──────────────────────────────────────────────── */
-/* MASTER wears the accent; ADMIN stays neutral. One accented thing per screen,
-   and on the USERS tab this is it. */
-.role-pill.is-master {
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  background: transparent;
-}
+/* One variant left: UNCONFIRMED beside an email. The MASTER/ADMIN/USER pills
+   that used to sit beside a username are gone — the role is stated once, in the
+   ACCESS column, where the buttons that change it are. */
 
 .role-pill {
   display: inline-block;
@@ -593,15 +589,6 @@ body {
   background: var(--fill-strong);
   color: var(--text-dim);
   border: 1px solid var(--border);
-}
-
-/* The third rung, and the quietest: no fill, hairline edge, dim label. The
-   ladder is MASTER (accent outline) > ADMIN (filled neutral) > USER (outline
-   only), so a table that is mostly plain accounts still reads as mostly quiet
-   and the two that matter stand out of it. */
-.role-pill.is-user {
-  background: transparent;
-  color: var(--text-muted);
 }
 
 /* Unconfirmed email. Not red: red means banned or destructive in this system
@@ -639,7 +626,26 @@ body {
   background: var(--danger-fill);
 }
 
-.access-static {
+/* The role, in the column that acts on it, coloured by rung: the accent for a
+   master, full-strength text for an admin, the muted rung for everyone else.
+   Three steps of one ladder rather than three hues — red means banned or
+   destructive in this system and nothing else (DESIGN.md §3), so a role can
+   never wear it.
+
+   This is where the USERS tab spends the accent, and it is now the only place
+   on the tab that does: the pills beside the username used to spend it too. */
+.access-role {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.access-role.is-master { color: var(--accent); }
+.access-role.is-admin  { color: var(--text); }
+.access-role.is-user   { color: var(--text-muted); }
+
+/* Your own row. Dim on purpose — it is a note about the reader, not the role. */
+.access-you {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.05em;
