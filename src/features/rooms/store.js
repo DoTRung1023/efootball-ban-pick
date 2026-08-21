@@ -290,6 +290,17 @@ export function isActiveDraft(entry) {
   return String(entry.status || "") === ROOM_STATUS.DRAFTING;
 }
 
+/**
+ * The room for `code`, or null — the lookup that does **not** create one.
+ *
+ * `ensureRoomEntry` is the players' way in and mints a room on first sight,
+ * which is right for a code somebody is joining and wrong for one somebody is
+ * only looking at: the console would conjure an empty room for every typo.
+ */
+export function findRoomEntry(code) {
+  return roomPresence.get(code) || null;
+}
+
 /** Rooms are listed until they are closed or have gone quiet. Admin display only —
     this hides a stale room from the dashboard, it does not end it. */
 export function listActiveRooms(now = Date.now()) {

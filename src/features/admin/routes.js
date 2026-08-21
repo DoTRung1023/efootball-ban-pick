@@ -2,7 +2,15 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
 import { asyncHandler, describeError } from "#lib/http.js";
-import { isActiveDraft, listActiveRooms, roomPhase } from "#features/rooms/index.js";
+import {
+  findRoomEntry,
+  isActiveDraft,
+  isValidRoomCode,
+  listActiveRooms,
+  normalizeRoomCodeParam,
+  roomPhase,
+  serializeRoomEntry,
+} from "#features/rooms/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
   clearFailures,
@@ -126,6 +134,42 @@ router.get("/rooms", (_req, res) => {
   }));
   rooms.sort((a, b) => a.idleSec - b.idleSec);
   res.json({ rooms });
+});
+
+/**
+ * One room in full — what the ROOMS tab's detail panel renders.
+ *
+ * **The console inspects a room from here rather than by opening `/room/<code>`.**
+ * That page has exactly two seats and claims one on load, so the old WATCH link
+ * into it was answered with 409 "Room already has an active host" — and on a
+ * room with an empty guest seat it would have done something worse than fail,
+ * by seating the admin in a chair a player was about to sit in. Nothing on this
+ * route writes.
+ *
+ * Unlike `GET /rooms` it does **not** hide a room that has gone quiet: that
+ * list is a dashboard and quiet means uninteresting, but this is an
+ * inspection, and a room nobody has beaten in two minutes is exactly the one an
+ * admin has clicked through to look at. Only `closed` and never-existed are
+ * 404s here.
+ *
+ * The body is the same `serializeRoomEntry` the players' own snapshot uses,
+ * plus the three fields only a dashboard wants. Re-serializing it here would be
+ * a second copy of twenty fields to keep in step with the first.
+ */
+router.get("/rooms/:code", (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  const entry = isValidRoomCode(code) ? findRoomEntry(code) : null;
+  if (!entry) {
+    return res.status(404).json({ error: "That room is not in memory — it ended, or the server restarted." });
+  }
+  res.json({
+    room: {
+      ...serializeRoomEntry(entry),
+      code,
+      phase: roomPhase(entry),
+      idleSec: Math.floor((Date.now() - entry.updatedAt) / 1000),
+    },
+  });
 });
 
 router.get("/scrape-logs", asyncHandler(async (req, res) => {

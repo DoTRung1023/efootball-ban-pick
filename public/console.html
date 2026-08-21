@@ -165,7 +165,8 @@
           </div>
           <div class="panel-footer-hint">
             Rooms live in server memory — this list empties on a restart, and hides a room
-            that has been quiet for 90 seconds without ending it.
+            that has been quiet for 90 seconds without ending it. WATCH inspects a room
+            read-only; it does not take a seat in it.
           </div>
         </div>
       </section>
@@ -243,6 +244,20 @@
       </section>
 
     </div><!-- /dashboard -->
+
+    <!-- Room inspection, opened by WATCH on the ROOMS tab. Read-only: the room
+         page has two seats and claims one on load, so the console cannot look at
+         a draft by opening it. See features/admin/roomDetail.js. -->
+    <div id="roomDetail" class="rd-overlay" hidden>
+      <div class="rd-card" role="dialog" aria-modal="true" aria-labelledby="roomDetailTitle">
+        <div class="rd-header">
+          <span class="rd-code td-mono" id="roomDetailTitle">—</span>
+          <span id="roomDetailPhase"></span>
+          <button type="button" id="roomDetailClose" class="btn btn--ghost btn--sm rd-close">CLOSE</button>
+        </div>
+        <div class="rd-body" id="roomDetailBody"></div>
+      </div>
+    </div>
 
     <script type="module" src="/js/pages/console.js"></script>
   </body>

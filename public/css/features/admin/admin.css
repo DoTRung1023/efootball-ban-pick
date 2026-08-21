@@ -680,6 +680,7 @@ body {
 
 /* ── Link button (WATCH, pesdb id) ──────────────────────────── */
 .link-btn {
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -695,6 +696,154 @@ body {
 }
 .link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
 
+/* ── Room detail (WATCH) ────────────────────────────────────── */
+/* Read-only inspection of one live room. The scrim is `--scrim` and nothing
+   more: no blur, no shadow — see DESIGN.md §12. `[hidden]` at the top of this
+   sheet is what closes it, and it outranks the `display: flex` below. */
+.rd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.rd-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-active);
+  border-radius: var(--radius);
+  width: min(880px, 100%);
+  margin: auto;
+}
+
+.rd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  /* Opaque by rule — the body scrolls under it. */
+  background: var(--bg-card-solid);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.rd-code { font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
+.rd-close { margin-left: auto; }
+
+.rd-body { padding: 16px; }
+
+.rd-section { margin-top: 20px; }
+
+.rd-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+/* Host on the left, guest on the right — the same arrangement as the draft. */
+.rd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rd-col { min-width: 0; }
+
+.rd-seat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--surface-sunken);
+}
+.rd-seat.is-empty { color: var(--text-dim); }
+
+.rd-seat-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.rd-seat-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 2px 0 8px;
+  overflow-wrap: anywhere;
+}
+
+/* Label/value pairs. Two columns so the values line up down the panel. */
+.rd-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  font-size: 12px;
+}
+.rd-facts dt { color: var(--text-dim); }
+.rd-facts dd { overflow-wrap: anywhere; }
+.rd-facts--wide { grid-template-columns: repeat(2, auto 1fr); }
+
+.rd-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.rd-col:first-child > .rd-col-head:first-child { margin-top: 0; }
+
+.rd-flag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.rd-flag.is-on { color: var(--accent); border-color: var(--accent); }
+
+.rd-sub { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+.rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
+
+.rd-chips { display: flex; flex-direction: column; gap: 4px; }
+
+.rd-chip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: 12px;
+}
+.rd-chip.is-hole { color: var(--text-dim); font-style: italic; }
+.rd-chip-name { overflow-wrap: anywhere; }
+.rd-chip-meta { color: var(--text-dim); white-space: nowrap; }
+
+.rd-schedule { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.rd-turn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-dim);
+}
+/* The accent, used once on this panel. */
+.rd-turn.is-current { color: var(--accent); border-color: var(--accent); }
+
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -706,6 +855,11 @@ body {
 }
 
 @media (max-width: 700px) {
+  /* Host above guest rather than beside it — two columns of player chips do not
+     survive a phone. */
+  .rd-grid { grid-template-columns: 1fr; }
+  .rd-facts--wide { grid-template-columns: auto 1fr; }
+  .rd-overlay { padding: 12px 8px; }
   .admin-nav { gap: 12px; padding: 0 12px; }
   .admin-nav-brand div { display: none; }
   .panel-actions { flex-wrap: wrap; justify-content: flex-end; }

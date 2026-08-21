@@ -6,4 +6,12 @@
  * reaching into the file directly.
  */
 export { default as roomRoutes } from "./routes.js";
-export { isActiveDraft, listActiveRooms, roomPhase } from "./store.js";
+export {
+  findRoomEntry,
+  isActiveDraft,
+  isValidRoomCode,
+  listActiveRooms,
+  normalizeRoomCodeParam,
+  roomPhase,
+  serializeRoomEntry,
+} from "./store.js";
