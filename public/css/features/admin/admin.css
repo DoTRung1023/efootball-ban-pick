@@ -387,7 +387,10 @@ body {
   gap: 8px;
 }
 
-.panel-footer-hint {
+/* A panel's standing note. It sits at the foot of a panel by default — hence
+   the top border — and `.is-top` flips it to the head, which is where a hint
+   belongs on any panel whose table can run to hundreds of rows. */
+.panel-hint {
   padding: 10px 16px;
   font-size: 12px;
   color: var(--text-dim);
@@ -395,7 +398,13 @@ body {
   background: var(--scrim);
   line-height: 1.5;
 }
-.panel-footer-hint code {
+
+.panel-hint.is-top {
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-hint code {
   font-family: monospace;
   color: var(--text);
   background: var(--fill);

@@ -140,12 +140,22 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | ROOMS | live rooms, phase pill, idle time, WATCH button | 10 s |
 | USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
 
-**Every row carries a role pill, plain accounts included.** A blank beside a name
-does not read as "no special role", it just reads as blank — and to a master the
-ACCESS column opposite holds buttons rather than a label, so the pill is the only
-place most rows say what they are. For the same reason `roleLabel` answers `USER`
-rather than the em-dash it used to: `—` in a column of real values reads as
-missing data, when what it means is an account with no console access.
+**The role is stated once, in ACCESS, coloured by rung** — `.access-role.is-master`
+wears the accent, `.is-admin` full-strength text, `.is-user` the muted rung, and
+every row gets one whoever is looking. A master sees it followed by the buttons
+that act on it, which is the argument for that column: the word and the controls
+that change it belong together. It was briefly a pill beside the username as
+well, which put the same word twice in one row.
+
+`roleLabel` answers `USER` rather than the em-dash it used to: `—` in a column of
+real values reads as missing data, when what it means is an account with no
+console access. The column header is **ACCOUNT**, not USER, so a plain row does
+not read `USER · USER`.
+
+**The USERS hint sits above the table, not below it** (`.panel-hint.is-top`). As a
+footer it sat under every row the table had drawn, which on an installation with
+a few hundred accounts is somewhere nobody scrolls to. The other two panels keep
+theirs at the foot, where their content is short and fixed.
 | CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser, CSV export | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
@@ -353,10 +363,10 @@ page does not own is `shared/filterPanel.css`, linked between tokens and
 page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
-(`.status-pill.is-running/done/stalled`), `.role-pill` — a three-rung ladder,
-MASTER (accent outline) > ADMIN (filled neutral) > USER (`.is-user`, outline
-only), so a table that is mostly plain accounts reads as mostly quiet — plus
-`.is-unverified` for an unconfirmed address, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
+(`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
+`.is-unverified` for an unconfirmed address — `.access-role` (the three role
+rungs: accent, text, muted), `.panel-hint` (`.is-top` flips its rule to the
+bottom edge for a panel that wants the note at the head), `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
 password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column

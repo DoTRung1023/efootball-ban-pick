@@ -107,7 +107,7 @@
             <div id="dataQualityBody" class="dq-list">
               <div class="dq-row dq-empty">Loading…</div>
             </div>
-            <div class="panel-footer-hint">
+            <div class="panel-hint">
               Run <code>npm run scrape:missing</code> to refetch detail pages for players with empty fields.
             </div>
           </div>
@@ -173,7 +173,7 @@
               </tbody>
             </table>
           </div>
-          <div class="panel-footer-hint">
+          <div class="panel-hint">
             Rooms live in server memory — this list empties on a restart, and hides a room
             that has been quiet for 90 seconds without ending it. WATCH inspects a room
             read-only; it does not take a seat in it.
@@ -191,6 +191,13 @@
               <button id="consolePwBtn" class="btn btn--ghost btn--sm" hidden>CONSOLE PASSWORD</button>
               <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
             </div>
+          </div>
+          <!-- Above the table, not below it. As a footer it sat under every row
+               the table had drawn, and a console with a few hundred accounts put
+               it somewhere nobody scrolls to — which is the opposite of a hint. -->
+          <div class="panel-hint is-top" id="usersHint">
+            The first admin is created by the server on first run; every one after that is
+            promoted here. You cannot remove your own access, or the last admin's.
           </div>
           <p id="usersNotice" class="panel-notice" hidden></p>
           <div class="table-wrap">
@@ -212,10 +219,6 @@
                 <tr><td colspan="6" class="td-empty">Loading…</td></tr>
               </tbody>
             </table>
-          </div>
-          <div class="panel-footer-hint" id="usersHint">
-            The first admin is created by the server on first run; every one after that is
-            promoted here. You cannot remove your own access, or the last admin's.
           </div>
         </div>
       </section>

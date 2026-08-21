@@ -309,8 +309,12 @@ it an exception rather than a second theme:
 
 - it declares **no colour** — the effect is `opacity`, `transform` and a `filter` on the
   art itself, and there is still no literal outside `tokens.css`;
-- **no gradient, glow, shadow or backdrop blur** — the form card is the same flat
-  `--bg-elevated` panel as everywhere else, and no text ever sits on moving art;
+- **no gradient, glow, shadow or `backdrop-filter`** — the form card is the same flat
+  `--bg-elevated` panel as everywhere else, and no text ever sits on moving art. The
+  falling art does carry a `filter: blur()`, which is not the banned thing: a
+  `backdrop-filter` samples and frosts whatever sits *behind* a panel, while this
+  blurs the decorative image itself, as depth of field. Nothing is frosted, and no
+  surface in the system gained a blur;
 - it is **off entirely under `prefers-reduced-motion`**, along with the page's two
   entrance transitions.
 

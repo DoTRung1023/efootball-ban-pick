@@ -47,6 +47,13 @@ body {
 /* Every custom property below is written by `signInBackdrop.js`, one set per
    card. `top: 0` is the origin the keyframes translate away from. */
 .falling-card {
+  /* Fallback for the one custom property that is read inside a `filter`
+     list: an unset `var()` there invalidates the *whole* declaration at
+     computed-value time, so a missing blur would silently take the
+     saturation with it and the backdrop would go grey. The rest of the
+     `--fall-*` set fails visibly and needs no default. */
+  --fall-blur: 2.4px;
+
   position: absolute;
   top: 0;
   left: var(--fall-x);
@@ -63,11 +70,18 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  /* Pushed past 1 on purpose — the card art is the only colour this screen
-     has, and at native saturation it goes muddy behind a navy page. Applied
-     to the image, not declared as a colour: there is still no literal
-     outside tokens.css. */
-  filter: saturate(1.35) contrast(1.05);
+  /* Saturation is pushed past 1 on purpose — the card art is the only colour
+     this screen has, and at native saturation it goes muddy behind a navy
+     page. Applied to the image, not declared as a colour: there is still no
+     literal outside tokens.css.
+
+     The blur is depth-of-field, scaled by the same `depth` that drives size,
+     speed and opacity, so the far cards are the soft ones. Note it sits on
+     the `img` while the animation sits on the parent: the filter is constant
+     per card, so the blurred bitmap rasterises once and the parent then just
+     transforms that cached texture. Move the blur up onto `.falling-card`
+     and it has to be recomputed every frame of the fall. */
+  filter: saturate(1.35) contrast(1.05) blur(var(--fall-blur));
 }
 
 /* Falls past the bottom edge and is clipped there rather than fading out: a

@@ -110,12 +110,13 @@ function renderFallingCards(players) {
     const el = document.createElement("div");
     el.className = "falling-card";
 
-    /* Depth drives size, speed and opacity together: a bigger card reads as
-       nearer, so it has to fall faster and sit more solid. Vary one without
-       the others and the layer goes flat. */
+    /* Depth drives size, speed, opacity and blur together: a bigger card reads
+       as nearer, so it has to fall faster, sit more solid and be the sharper
+       one. Vary any of them without the rest and the layer goes flat. */
     const size = 96 + depth * 100;     // 96–196px
     const duration = 40 - depth * 16;  // 40s far → 24s near
     const opacity = 0.24 + depth * 0.34;
+    const blur = 3.6 - depth * 2.4;    // 3.6px far → 1.2px near
 
     const px = (n) => `${n.toFixed(0)}px`;
     el.style.setProperty("--fall-x", `${(lanes[i] * lane + Math.random() * lane * 0.7).toFixed(2)}%`);
@@ -126,6 +127,7 @@ function renderFallingCards(players) {
     const phase = (phases[i] + Math.random()) / FALLING_CARD_COUNT;
     el.style.setProperty("--fall-delay", `-${(phase * duration).toFixed(1)}s`);
     el.style.setProperty("--fall-opacity", opacity.toFixed(2));
+    el.style.setProperty("--fall-blur", `${blur.toFixed(1)}px`);
     /* Sway is the mid-fall flutter, drift is where it ends up. Sway is the
        larger of the two on purpose — a card that only drifts falls in a
        straight diagonal, which reads as sliding rather than falling. */
