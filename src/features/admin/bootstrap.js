@@ -108,8 +108,13 @@ export async function ensureConsoleAdmin() {
         console.error(`admin bootstrap: ADMIN_PASSWORD must be at least ${PASSWORD_MIN} characters — skipped.`);
         return;
       }
-      const { created } = await upsertAdmin({ username, email: envEmail, password: envPassword });
-      console.log(`Master admin ${created ? "created" : "updated"} from ADMIN_EMAIL/ADMIN_PASSWORD: ${envEmail}`);
+      /* Silent on purpose. This branch runs on **every** boot, and it printed a
+         line every time saying the env pair had been applied — which is what
+         setting the env pair means. Nothing here is news to whoever wrote it,
+         and it put an admin's email in the log on each restart. The one message
+         this file still prints is branch 2's, where the password is generated
+         and the log is the only place it will ever exist. */
+      await upsertAdmin({ username, email: envEmail, password: envPassword });
       return;
     }
 
