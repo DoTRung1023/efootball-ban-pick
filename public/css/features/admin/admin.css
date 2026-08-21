@@ -342,8 +342,18 @@ body {
   min-height: 16px;
 }
 
-.stat-sub.is-pos { color: var(--text); }
-.stat-sub.is-warn { color: var(--text-muted); }
+/* Good news and a nag, which as `--text` and `--text-muted` were the same
+   sentence in two brightnesses. */
+.stat-sub.is-pos { color: var(--hue-green); }
+.stat-sub.is-warn { color: var(--hue-amber); }
+
+/* The tile's number takes a hue only when the number *has* a state: rooms in
+   flight, and a catalog whose last scrape either finished or did not. A count
+   of players or accounts is a count, and stays white — a hue there would be
+   decoration, which is the one thing the console palette is not for. */
+.stat-value.is-live { color: var(--hue-blue); }
+.stat-value.is-ok   { color: var(--hue-green); }
+.stat-value.is-warn { color: var(--hue-amber); }
 
 /* ── 2-column panel grid ────────────────────────────────────── */
 .panel-grid-2 {
@@ -546,11 +556,16 @@ body {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
 }
-.phase-pill.is-ban    { background: var(--danger-fill); color: var(--danger); border: 1px solid var(--danger-line); }
-.phase-pill.is-pick   { background: var(--fill-strong); color: var(--text); border: 1px solid var(--line-hover); }
-.phase-pill.is-lobby  { background: var(--fill-strong); color: var(--text-dim); border: 1px solid var(--border); }
-.phase-pill.is-ready  { background: var(--fill-strong); color: var(--text); border: 1px solid var(--line-hover); }
-.phase-pill.is-done   { background: var(--fill-strong); color: var(--text-muted); border: 1px solid var(--border); }
+/* One hue per phase, in the order a draft goes through them: lobby is waiting,
+   bans are destructive (the app's red, and the one hue that already meant this),
+   picks are the long middle, ready is the pause before kickoff, done is done.
+   Five states on one screen at once is exactly the case the console palette
+   exists for — as five weights of grey they were unreadable at a glance. */
+.phase-pill.is-lobby  { background: var(--hue-blue-fill);   color: var(--hue-blue);   border: 1px solid var(--hue-blue-line); }
+.phase-pill.is-ban    { background: var(--danger-fill);     color: var(--danger);     border: 1px solid var(--danger-line); }
+.phase-pill.is-pick   { background: var(--hue-violet-fill); color: var(--hue-violet); border: 1px solid var(--hue-violet-line); }
+.phase-pill.is-ready  { background: var(--hue-amber-fill);  color: var(--hue-amber);  border: 1px solid var(--hue-amber-line); }
+.phase-pill.is-done   { background: var(--hue-green-fill);  color: var(--hue-green);  border: 1px solid var(--hue-green-line); }
 
 /* ── Status pills ───────────────────────────────────────────── */
 .status-pill {
@@ -561,9 +576,12 @@ body {
   padding: 2px 7px;
   border-radius: var(--radius-sm);
 }
-.status-pill.is-running  { background: var(--fill-strong); color: var(--text); border: 1px solid var(--line-hover); }
-.status-pill.is-done     { background: var(--fill); color: var(--text-dim); border: 1px solid var(--border); }
-.status-pill.is-stalled  { background: var(--danger-fill); color: var(--danger); border: 1px solid var(--danger-line); }
+/* Running borrows the same blue as a job in flight elsewhere on this page;
+   done the same green as a finished draft; stalled stays red, because a scrape
+   that died is a fault and red means fault here. */
+.status-pill.is-running  { background: var(--hue-blue-fill);  color: var(--hue-blue);  border: 1px solid var(--hue-blue-line); }
+.status-pill.is-done     { background: var(--hue-green-fill); color: var(--hue-green); border: 1px solid var(--hue-green-line); }
+.status-pill.is-stalled  { background: var(--danger-fill);    color: var(--danger);    border: 1px solid var(--danger-line); }
 
 /* ── Card type badge ────────────────────────────────────────── */
 .card-type-badge {
@@ -649,9 +667,9 @@ body {
   letter-spacing: 0.05em;
 }
 
-.access-role.is-master { color: var(--accent); }
-.access-role.is-admin  { color: var(--text); }
-.access-role.is-user   { color: var(--text-muted); }
+.access-role.is-master { color: var(--role-master); }
+.access-role.is-admin  { color: var(--role-admin); }
+.access-role.is-user   { color: var(--role-user); }
 
 /* ── The row wears its rung ─────────────────────────────────── */
 /* Same three steps applied to every cell, so the accounts that carry power are
@@ -666,9 +684,21 @@ body {
    deliberate for the buttons — a control is not data, and a MAKE ADMIN button
    in accent on a master's row would read as the one thing on the screen asking
    to be pressed. */
-.admin-table tbody tr.role-row.is-master td { color: var(--accent); }
-.admin-table tbody tr.role-row.is-admin td  { color: var(--text); }
-.admin-table tbody tr.role-row.is-user td   { color: var(--text-muted); }
+.admin-table tbody tr.role-row.is-master td {
+  color: var(--role-master);
+  background: var(--role-master-fill);
+}
+.admin-table tbody tr.role-row.is-admin td {
+  color: var(--role-admin);
+  background: var(--role-admin-fill);
+}
+.admin-table tbody tr.role-row.is-user td { color: var(--role-user); }
+
+/* The hover wash sits earlier in this sheet and would take a tinted row's
+   colour away under the pointer, which reads as the row going out rather than
+   lighting up. Same hue, one rung stronger. */
+.admin-table tbody tr.role-row.is-master:hover td { background: var(--role-master-fill-strong); }
+.admin-table tbody tr.role-row.is-admin:hover td  { background: var(--role-admin-fill-strong); }
 
 /* Your own row. Dim on purpose — it is a note about the reader, not the role. */
 .access-you {
@@ -734,8 +764,10 @@ body {
   background: var(--text-muted);
   transition: width 0.5s ease;
 }
-.dq-bar.is-ok { background: var(--text); }
-.dq-bar.is-warn { background: var(--text-muted); }
+/* Healthy, watch it, broken — the same three-step reading as everywhere else on
+   this page. As white / grey / red the first two were the same signal twice. */
+.dq-bar.is-ok   { background: var(--hue-green); }
+.dq-bar.is-warn { background: var(--hue-amber); }
 .dq-bar.is-bad  { background: var(--danger); }
 
 .dq-empty { color: var(--text-dim); justify-content: center; }

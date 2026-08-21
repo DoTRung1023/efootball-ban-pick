@@ -55,6 +55,60 @@
   --text:       #FFFFFF;
   --text-muted: #8B91A8;
 
+  /* ── Console hues ─────────────────────────────────────────────────────
+     **One screen is allowed a palette: /console.** Everywhere else the rule
+     above holds — one accent, red for destructive, neutrals for the rest —
+     because everywhere else is a game, and a game screen has one thing that
+     matters at a time. A dashboard is the opposite: five kinds of state on
+     screen at once, all equally true, and telling them apart by weight alone
+     is what made it read as a wall of grey.
+
+     Each hue means one thing and is never used decoratively:
+
+       blue    an account with console access · a job that is running
+       violet  the pick phase
+       amber   ready to start · a warning that is not yet a failure
+       green   finished, healthy, done
+       lime    the master admin (the app accent, and still the top rung)
+       red     banned, stalled, broken — `--danger`, unchanged
+
+     Values are picked against `--bg-elevated`, where they are used: the
+     dimmest of them measures 7.6:1 as text, so all four stay legible at the
+     12px this dashboard sets. The `-fill` rungs are the same hue at 12% for a
+     surface, `-line` at 40% for a border, `-fill-strong` at 20% for the hover
+     of a filled row — a tint has to survive being hovered or the row loses its
+     colour under the pointer.                                              */
+  --hue-blue:            #62B6FF;
+  --hue-blue-fill:       rgba(98, 182, 255, 0.12);
+  --hue-blue-fill-strong: rgba(98, 182, 255, 0.20);
+  --hue-blue-line:       rgba(98, 182, 255, 0.40);
+
+  --hue-violet:          #B39DFF;
+  --hue-violet-fill:     rgba(179, 157, 255, 0.12);
+  --hue-violet-line:     rgba(179, 157, 255, 0.40);
+
+  --hue-amber:           #FFC46B;
+  --hue-amber-fill:      rgba(255, 196, 107, 0.12);
+  --hue-amber-line:      rgba(255, 196, 107, 0.40);
+
+  --hue-green:           #5BE9A6;
+  --hue-green-fill:      rgba(91, 233, 166, 0.12);
+  --hue-green-line:      rgba(91, 233, 166, 0.40);
+
+  --accent-fill:         rgba(198, 241, 53, 0.12);
+  --accent-fill-strong:  rgba(198, 241, 53, 0.20);
+
+  /* Role, by name rather than by hue, so the USERS table asks for a meaning and
+     the palette above answers. The master keeps the app's own accent: it is the
+     top rung, and the one row on that screen that should stop you. */
+  --role-master:             var(--accent);
+  --role-master-fill:        var(--accent-fill);
+  --role-master-fill-strong: var(--accent-fill-strong);
+  --role-admin:              var(--hue-blue);
+  --role-admin-fill:         var(--hue-blue-fill);
+  --role-admin-fill-strong:  var(--hue-blue-fill-strong);
+  --role-user:               var(--text-muted);
+
   /* ── Shape ─────────────────────────────────────────────────────────── */
   --radius-sm:   6px;
   --radius:      8px;

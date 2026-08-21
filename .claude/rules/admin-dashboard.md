@@ -365,7 +365,12 @@ of one page load. The shape to keep:
 
 ## CSS (`admin.css`)
 
-Colours come from `shared/tokens.css` like every other page. The one sheet this
+Colours come from `shared/tokens.css` like every other page — **including the
+console hues, which are this page's alone**: blue (access / running), violet
+(pick), amber (ready / warning), green (done / healthy), on top of the app's lime
+and red. `DESIGN.md` §3.4b is the contract: a hue means one thing, colour states
+rather than counts, and controls stay neutral. Nothing here may introduce a
+colour that is not one of those tokens. The one sheet this
 page does not own is `shared/filterPanel.css`, linked between tokens and
 `admin.css`: the sort/filter dropdown chrome moved there out of
 `features/catalog/catalog.css` when the CATALOG tab became a consumer on a second

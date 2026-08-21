@@ -192,6 +192,46 @@ Names the feature sheets already speak, pointed at the palette. They survive bec
 opaque — that is the point. Sticky headers and floating panels sit over live content, and
 a menu you can read the page through is unreadable, not layered.
 
+### 3.4b The console palette — the one screen with more than one hue
+
+Everywhere else in this app §3 holds as written: one accent, red for
+destructive, neutrals for everything else. **`/console` is the exception, and
+the reason is what a dashboard is.** A game screen has one thing that matters at
+a time, which is what "one accent per screen" is built for. The console shows
+five kinds of state at once — a draft's phase, a scrape's outcome, a catalog's
+health, an account's role — all equally true, none of them the one thing you are
+being asked to do. Told apart by weight alone they read as a wall of grey, which
+is exactly what happened.
+
+```css
+--hue-blue:   #62B6FF;   /* console access · a job running        */
+--hue-violet: #B39DFF;   /* the pick phase                        */
+--hue-amber:  #FFC46B;   /* ready to start · a warning, not a fault */
+--hue-green:  #5BE9A6;   /* finished, healthy, done               */
+/* lime stays --accent (the master admin), red stays --danger (banned, stalled) */
+```
+
+Each carries `-fill` (12%, a surface), `-line` (40%, a border) and, where a whole
+row is tinted, `-fill-strong` (20%, its hover — a tint has to survive the pointer
+or the row looks like it went out). `--role-master` / `--role-admin` /
+`--role-user` are semantic aliases on top, so the USERS table asks for a meaning
+and the palette answers.
+
+**Three rules that keep this from becoming decoration:**
+
+1. **A hue means one thing.** Blue is access-or-running on every tab it appears
+   on. If a new state needs a colour, it takes the hue that already means that,
+   or it does not get one.
+2. **Colour states, not counts.** LIVE ROOMS goes blue when rooms are live and
+   `LAST SCRAPE` goes green or amber by its outcome; PLAYERS IN CATALOG and
+   REGISTERED USERS stay white, because a number with no state has nothing to
+   say in colour.
+3. **Controls stay neutral.** Buttons never take a hue from the row they sit in.
+   The accent is the app's "act here" signal, and a MAKE ADMIN button in lime on
+   a master's row would read as the one thing on screen asking to be pressed.
+
+This palette does not travel. `home`, `room` and `signin` keep §3 as it stands.
+
 ### 3.5 Contrast — measured
 
 Every pair below was computed from the hex values, not eyeballed. The floor is 4.5:1.
@@ -202,9 +242,17 @@ Every pair below was computed from the hex values, not eyeballed. The floor is 4
 | `--text-muted` | 6.03 | 5.60 | 4.55 |
 | `--danger` | 6.53 | 6.07 | 4.93 |
 | `--accent` | 14.40 | 13.38 | 10.87 |
+| `--hue-blue` | 8.67 | 8.05 | 6.55 |
+| `--hue-violet` | 8.25 | 7.66 | 6.23 |
+| `--hue-amber` | 12.00 | 11.15 | 9.06 |
+| `--hue-green` | 12.26 | 11.39 | 9.26 |
 
 `--on-accent` on `--accent` — the one pair that is not text-on-surface — is **14.40:1**.
 White on `--accent` would be 1.31:1, which is why the rule against it is absolute.
+
+The console hues were picked against `--bg-elevated`, where they are used; the
+dimmest of them measures **7.66:1** there, so all four clear the floor at the 12px
+that dashboard sets.
 
 Worst body-text pair in the system: **4.55:1**, `--text-muted` on `--bg-input`. That is
 close to the floor, so do not lighten a background or darken `--text-muted` without

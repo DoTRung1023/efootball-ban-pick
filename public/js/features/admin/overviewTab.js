@@ -25,6 +25,13 @@ const BAD_PCT = 10;
 
 const setText = (id, text) => { document.getElementById(id).textContent = text; };
 
+/** A tile's number wears a hue only when the number has a state — see the note
+    beside `.stat-value.is-live` in `admin.css`. */
+function setTone(id, tone = "") {
+  const el = document.getElementById(id);
+  el.className = tone ? `stat-value ${tone}` : "stat-value";
+}
+
 function setSub(id, text, variant = "") {
   const el = document.getElementById(id);
   el.textContent = text;
@@ -42,6 +49,7 @@ async function loadStats() {
       d.newUsersThisWeek > 0 ? "is-pos" : "");
 
     setText("statRooms", fmtNum(d.activeRoomCount));
+    setTone("statRooms", d.activeRoomCount > 0 ? "is-live" : "");
     setSub("statRoomsSub",
       d.draftRoomCount > 0 ? `${d.draftRoomCount} in draft` : "none in draft",
       d.draftRoomCount > 0 ? "is-pos" : "");
@@ -49,9 +57,11 @@ async function loadStats() {
     if (d.lastScrape) {
       const state = scrapeRunState(d.lastScrape);
       setText("statScrape", fmtRelative(d.lastScrape.started_at));
-      setSub("statScrapeSub", `${d.lastScrape.scrape_type} · ${state}`, state === "done" ? "" : "is-warn");
+      setTone("statScrape", state === "done" ? "is-ok" : "is-warn");
+      setSub("statScrapeSub", `${d.lastScrape.scrape_type} · ${state}`, state === "done" ? "is-pos" : "is-warn");
     } else {
       setText("statScrape", "never");
+      setTone("statScrape", "is-warn");
       setSub("statScrapeSub", "run npm run scrape", "is-warn");
     }
   } catch {
