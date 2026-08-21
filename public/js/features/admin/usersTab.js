@@ -11,6 +11,11 @@
    courtesy and never the check: every role write is re-authorised against the
    database, so a hand-made request from a plain admin is refused too.
 
+   **RESET PW does not ask for a password.** The server generates one, emails it
+   to the address on the account and never returns it here, so this table can
+   report where it went and nothing more. That makes it irreversible from the
+   console's point of view — hence the same two-click arming as a role change.
+
    Lockouts the server refuses, and this table therefore does not offer:
    demoting yourself, demoting the last admin, revoking access from a master
    without standing them down first, and standing down the last master.
@@ -21,7 +26,7 @@
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, getSessionUserId, isSessionMaster } from "./adminApi.js";
 import { fmtDate, fmtNum, tableMessage } from "./format.js";
-import { initPasswordModal, openConsolePasswordForm, openUserPasswordForm } from "./passwordModal.js";
+import { initPasswordModal, openConsolePasswordForm } from "./passwordModal.js";
 
 const USER_ROWS = 50;
 const COLS = 6;
@@ -65,11 +70,15 @@ function accessCell(user, isSelf, canManage) {
   const parts = [];
 
   /* Your own sign-in password is changed under Edit Profile, not from a table
-     of other people's accounts. */
+     of other people's accounts. `data-revoke-label` is what `armConfirm` puts
+     back when the arming times out — without it the button would disarm into
+     reading "REVOKE". */
   const resetPw = isSelf
     ? ""
     : `<button class="role-btn is-pw" data-reset-pw="${id}"
-               data-username="${escapeHtml(user.username)}">RESET PW</button>`;
+               data-revoke-label="RESET PW"
+               data-username="${escapeHtml(user.username)}"
+               title="Generates a new password and emails it to ${escapeHtml(user.email)}">RESET PW</button>`;
 
   if (isSelf) {
     parts.push(`<span class="access-static">${roleLabel(user)} · YOU</span>`);
@@ -114,10 +123,16 @@ export async function loadUsers() {
       const pill = u.is_master_admin
         ? ` <span class="role-pill is-master">MASTER</span>`
         : u.is_admin ? ` <span class="role-pill">ADMIN</span>` : "";
+      /* An unconfirmed address is why that account cannot sign in, and why a
+         password reset would be mailed somewhere nobody has proved they read.
+         Both questions get asked at this table, so the answer belongs in it. */
+      const verify = u.email_verified
+        ? ""
+        : ` <span class="role-pill is-unverified" title="This address was never confirmed — the account cannot sign in">UNCONFIRMED</span>`;
       return `
       <tr>
         <td>${escapeHtml(u.username)}${pill}</td>
-        <td class="td-dim">${escapeHtml(u.email)}</td>
+        <td class="td-dim">${escapeHtml(u.email)}${verify}</td>
         <td>${fmtNum(u.playerCount)}</td>
         <td>${fmtNum(u.planCount)}</td>
         <td class="td-dim">${fmtDate(u.created_at)}</td>
@@ -180,6 +195,46 @@ async function setRole(btn) {
   }
 }
 
+/**
+ * Generates and mails a new password for one account.
+ *
+ * Nothing comes back but where it went: `delivered: false` means the server
+ * has no SMTP host and printed the password to its log instead, which is a
+ * different sentence to say and not an error to hide — somebody has to know
+ * the account's password changed and where to read it.
+ */
+async function resetPassword(btn) {
+  clearTimeout(confirmTimer);
+  const username = btn.dataset.username;
+  btn.disabled = true;
+  btn.textContent = "SENDING…";
+  try {
+    const { email, delivered } = await apiSend(
+      `/api/admin/users/${Number(btn.dataset.resetPw)}/password`,
+      "PATCH",
+      {},
+    );
+    notice(
+      delivered
+        ? `New password emailed to ${email}.`
+        : `Password reset for ${username}, but no mail server is configured — the new password is in the server log.`,
+    );
+    loadUsers();
+  } catch (err) {
+    /* The password is unchanged when the send fails — the server writes it only
+       after the mail is away — so this really is "nothing happened", and the
+       button goes all the way back to disarmed. Restoring the label without
+       clearing `armed` would leave one reading RESET PW that fires on a single
+       click; the success path never notices because `loadUsers` replaces the
+       row underneath it. */
+    notice(err.message, true);
+    delete btn.dataset.armed;
+    btn.classList.remove("is-armed");
+    btn.disabled = false;
+    btn.textContent = "RESET PW";
+  }
+}
+
 export function initUsersTab() {
   initPasswordModal();
 
@@ -207,11 +262,11 @@ export function initUsersTab() {
     const reset = e.target.closest("[data-reset-pw]");
     if (reset) {
       notice("");
-      openUserPasswordForm({
-        userId: Number(reset.dataset.resetPw),
-        username: reset.dataset.username,
-        onDone: (msg) => notice(msg),
-      });
+      if (reset.dataset.armed !== "1") {
+        armConfirm(reset);
+        return;
+      }
+      resetPassword(reset);
       return;
     }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
-import { asyncHandler, describeError } from "#lib/http.js";
+import { asyncHandler, describeError, requestBaseUrl } from "#lib/http.js";
 import {
   findRoomEntry,
   isActiveDraft,
@@ -11,7 +11,8 @@ import {
   roomPhase,
   serializeRoomEntry,
 } from "#features/rooms/index.js";
-import { PASSWORD_MIN } from "#features/auth/index.js";
+import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
+import { newPasswordEmail, sendMail } from "#features/mail/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
   clearFailures,
@@ -215,7 +216,8 @@ router.get("/scrape-logs", asyncHandler(async (req, res) => {
 router.get("/users", asyncHandler(async (req, res) => {
   try {
     const [users] = await db.query(
-      `SELECT u.id, u.username, u.email, u.created_at, u.is_admin, u.is_master_admin,
+      `SELECT u.id, u.username, u.email, u.email_verified,
+              u.created_at, u.is_admin, u.is_master_admin,
               COUNT(DISTINCT p.id) AS playerCount,
               COUNT(DISTINCT gp.id) AS planCount
        FROM users u
@@ -363,32 +365,61 @@ router.patch("/users/:id/master", asyncHandler(async (req, res) => {
 }));
 
 /**
- * PATCH `{ password }` — a master resets another account's sign-in password.
+ * PATCH — a master resets another account's sign-in password.
  *
- * The "the user forgot their password" path, and the only way to set one on an
- * account created through Google OAuth, whose `password` column is NULL.
+ * **The body carries nothing.** The password is generated here and emailed to
+ * the address on the account; it is never chosen by the master, never returned
+ * to the console, and never displayed. Two things follow from that, and both
+ * are the point:
  *
- * It is worth naming what this is: a master admin can take over any account on
- * the installation. That is ordinary for an admin console and it is the reason
- * the route is master-gated rather than admin-gated.
+ *   - a master cannot pick a weak password for somebody else, and cannot learn
+ *     the one they set — taking over an account means locking its owner out of
+ *     it noisily, rather than borrowing it quietly;
+ *   - an account whose email does not work cannot be reset from here at all.
+ *     The way back for the built-in admin is `ADMIN_EMAIL`/`ADMIN_PASSWORD` and
+ *     a restart, as it has always been; for anyone else it is fixing the
+ *     address first.
+ *
+ * Still the "they forgot it" path, and still the only way to give a Google
+ * OAuth account — whose `password` column is NULL — a password at all. And
+ * still worth naming: a master admin can take over any account on the
+ * installation, which is why this is master-gated rather than admin-gated.
  */
 router.patch("/users/:id/password", asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
-  const password = String(req.body?.password || "");
   if (!targetId) return res.status(400).json({ error: "Unknown user." });
-  if (password.length < PASSWORD_MIN) {
-    return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN} characters.` });
-  }
 
   try {
     if (!(await requireMaster(req, res, "reset an account password"))) return;
 
-    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const [result] = await db.query("UPDATE users SET password = ? WHERE id = ?", [hash, targetId]);
-    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
+    const [[user]] = await db.query(
+      "SELECT id, username, email FROM users WHERE id = ?",
+      [targetId],
+    );
+    if (!user) return res.status(404).json({ error: "Unknown user." });
 
-    res.json({ userId: targetId });
+    const password = generatePassword();
+    const { subject, text } = newPasswordEmail({
+      username: user.username,
+      password,
+      signInUrl: `${requestBaseUrl(req)}/signin`,
+    });
+
+    /* **Send before writing.** A transport that refuses throws here, and the
+       account is left with the password it already had — which is the whole
+       reason this is not one UPDATE. The other order would mint a password
+       that exists in no inbox and no database in readable form, and the only
+       way back from that is `.env` and a restart. */
+    const { delivered } = await sendMail({ to: user.email, subject, text });
+
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await db.query("UPDATE users SET password = ? WHERE id = ?", [hash, targetId]);
+
+    res.json({ userId: targetId, email: user.email, delivered });
   } catch (err) {
+    /* A refused send reaches this as a plain Error whose message is already
+       written for a person; `sendAdminError` answers 500 with it, which is what
+       the USERS tab prints. */
     sendAdminError(res, err);
   }
 }));

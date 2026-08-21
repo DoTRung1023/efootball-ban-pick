@@ -112,6 +112,14 @@
             </button>
           </form>
 
+          <!-- Sign-in refused because the address was never confirmed, or a
+               sign-up that just went out. The one place on this page that can
+               ask for another link. -->
+          <div class="verify-notice" id="verifyNotice" hidden>
+            <p class="verify-text" id="verifyText"></p>
+            <button type="button" class="verify-resend" id="verifyResend">RESEND LINK</button>
+          </div>
+
           <p class="signup-prompt">
             Don't have an account?
             <a href="#" class="signup-link">Create one</a>

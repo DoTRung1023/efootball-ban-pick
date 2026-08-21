@@ -8,6 +8,7 @@
 import { initPlayers } from '@/features/auth/signInBackdrop.js';
 import { initForm, initPasswordToggle } from '@/features/auth/signInForm.js';
 import { initSignupModal } from '@/features/auth/signUpModal.js';
+import { applyVerifyStatus, initVerifyNotice } from '@/features/auth/verifyNotice.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { takePendingToast } from '@/shared/ui/pendingToast.js';
 
@@ -21,4 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initPasswordToggle();
   initForm();
   initSignupModal();
+  initVerifyNotice();
+
+  /* `/verify-email` redirects here with what it made of the token. The param is
+     stripped afterwards so a reload — or a bookmark of what is now just the
+     sign-in page — does not replay a stale verdict. */
+  const status = new URLSearchParams(window.location.search).get("verified");
+  if (status) {
+    applyVerifyStatus(status);
+    window.history.replaceState({}, "", window.location.pathname);
+  }
 });

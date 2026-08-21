@@ -544,6 +544,15 @@ body {
   border: 1px solid var(--border);
 }
 
+/* Unconfirmed email. Not red: red means banned or destructive in this system
+   and nothing else (DESIGN.md §3), and an address nobody has clicked yet is
+   unfinished rather than dangerous. The difference is shape — a dashed edge on
+   the same neutral pill. */
+.role-pill.is-unverified {
+  background: transparent;
+  border-style: dashed;
+}
+
 /* ── Access column ──────────────────────────────────────────── */
 .role-btn {
   font-family: var(--font-main);
@@ -782,6 +791,17 @@ body {
   color: var(--text);
   border-color: var(--line-active);
   background: var(--fill);
+}
+
+/* Armed, it joins the destructive palette: the generated password is emailed
+   and never shown here, so the second click cannot be taken back from this
+   table. This rule has to sit *after* the neutral hover above — same
+   specificity, and the pointer is still on the button when it arms. */
+.role-btn.is-pw.is-armed,
+.role-btn.is-pw.is-armed:hover {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
 }
 
 /* ── Room detail (WATCH) ────────────────────────────────────── */

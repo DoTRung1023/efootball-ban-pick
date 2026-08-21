@@ -22,7 +22,8 @@
     "cheerio": "^1.0.0",
     "dotenv": "^17.4.2",
     "express": "^4.21.2",
-    "mysql2": "^3.22.0"
+    "mysql2": "^3.22.0",
+    "nodemailer": "^9.0.5"
   },
   "imports": {
     "#features/*": "./src/features/*",

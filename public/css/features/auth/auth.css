@@ -489,6 +489,59 @@ body {
 .toast.success { border-color: var(--line-active); color: var(--text); }
 
 /* ============================================================
+   EMAIL CONFIRMATION NOTICE
+
+   Sits between the form and the sign-up prompt, hidden until a sign-in is
+   refused for an unconfirmed address. Deliberately neutral rather than
+   danger-red: nothing went wrong, there is one step left. The accent on this
+   screen is already spent on SIGN IN.
+   ============================================================ */
+.verify-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--fill-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.verify-notice[hidden] { display: none; }
+
+.verify-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.verify-resend {
+  align-self: flex-start;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--line-hover);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.verify-resend:hover:not(:disabled) {
+  background: var(--fill);
+  border-color: var(--line-active);
+}
+
+.verify-resend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================
    VALIDATION STATES
    ============================================================ */
 .field-input.invalid {

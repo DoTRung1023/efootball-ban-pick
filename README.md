@@ -68,11 +68,26 @@ survives restarts.
 > admin. That is a reasonable trade for a solo or trusted-team install and a poor one
 > for a public host; there, leave `ADMIN_CONSOLE_PASSWORD` unset.
 
+**Signing up takes a confirmed email.** A new account is created unverified and mailed a
+link; sign-in refuses it — correct password and all — until that link is clicked. The
+sign-in page carries the strip that explains it and a RESEND button. Changing your email
+under Edit Profile makes the new address unconfirmed too, and the next sign-in needs it.
+Accounts that existed before this feature are backfilled as confirmed on the boot that
+adds the column, so nobody is locked out by the upgrade.
+
 **Master admins** (`users.is_master_admin`) are the only accounts that may grant or
 revoke console access, reset another account's password, designate another master, or
 change the console password. A plain admin sees the same USERS table with the controls
 replaced by labels. The account named by `ADMIN_EMAIL` is restored as a master on every
 boot, so a database can never end up with admins and nobody able to change who they are.
+
+**A password reset is generated, not typed.** RESET PW in the USERS tab mints a password,
+emails it to the address on that account and never shows it to the master who pressed the
+button — so a takeover is loud rather than quiet, and nobody picks `password1` for
+somebody else. It sends before it writes: if the mail cannot go out, the account keeps the
+password it had. An account whose email does not work therefore cannot be reset from the
+console; for the built-in admin the way back is still `ADMIN_EMAIL` + `ADMIN_PASSWORD` and
+a restart.
 
 **The first admin is built in.** Start the server against a database with no admin
 in it and it creates one, printing the generated password to the log exactly once:
@@ -154,6 +169,23 @@ ADMIN_CONSOLE_PASSWORD=
 ADMIN_CONSOLE_PASSWORD_RESET=
 ```
 
+**Email** — the app sends two messages: the confirmation link at sign-up, and the
+password a master admin generates from the console. Leave `SMTP_HOST` unset and both are
+printed to the server log instead, which is a working dev mode: the flow runs end to end
+and every screen says plainly that no mail went out.
+
+```
+SMTP_HOST=                       # e.g. smtp.gmail.com — unset means "print to the log"
+SMTP_PORT=587                    # 465 is TLS-on-connect; anything else uses STARTTLS
+SMTP_USER=
+SMTP_PASS=                       # for Gmail this is an app password, not the account one
+MAIL_FROM="eFootball Ban & Pick <you@example.com>"
+APP_BASE_URL=                    # origin used in emailed links; required behind a proxy
+```
+
+`APP_BASE_URL` is the one that bites in production: without it links are built from the
+request's own host, and a proxy terminating TLS makes that `http://`.
+
 Optional Cloudflare R2 card-image cache. Without it the server redirects
 `/img/card/:id.png` straight to pesdb.net; with it, images are cached as
 `cards/f<pesdb_id>.png`. Setting `R2_PUBLIC_BASE_URL` makes the server 302 to your CDN
@@ -224,10 +256,12 @@ src/
 │   ├── admin/                # console: routes, session tokens, master admins,
 │   │                         #   the shared console password, first-admin bootstrap,
 │   │                         #   and the child-process scrape runner
-│   ├── auth/                 # sign-up, sign-in, profile
+│   ├── auth/                 # sign-up, sign-in, profile, email confirmation
 │   ├── gamePlans/            # saved 23-player plans
 │   ├── ingestion/            # scrape.js + scrapeMissing.js — npm-script entry points,
 │   │                         #   deliberately no barrel: nothing imports them
+│   ├── mail/                 # the one SMTP transport + the two messages sent;
+│   │                         #   no SMTP_HOST means "print to the server log"
 │   ├── media/                # /img/card/:id.png — R2 cache or pesdb redirect
 │   ├── players/              # catalog + squad; catalogQuery.js holds SORT_MAP and
 │   │                         #   the WHERE/ORDER BY builders
@@ -281,7 +315,7 @@ signed, expiring token in an `x-admin-token` header.
 | Area | Endpoints |
 |---|---|
 | Health | `GET /api/health` |
-| Auth | `POST /api/signup` · `POST /api/signin` · `PUT /api/profile` |
+| Auth | `POST /api/signup` · `POST /api/signin` · `PUT /api/profile` · `POST /api/verify-email/resend` |
 | Catalog | `GET /api/players` · `/api/players/filter-options` · `/api/players/distinct` · `/api/top-players` |
 | Squad | `GET`/`POST`/`DELETE /api/my-players` |
 | Game plans | `GET`/`POST /api/game-plans` · `PUT`/`DELETE /api/game-plans/:id` · `GET /api/game-plans/:id/players` · `PUT /api/game-plans/:id/players/:slot` · `PUT /api/game-plans/:id/swap` |
@@ -291,10 +325,16 @@ signed, expiring token in an `x-admin-token` header.
 | Console — master only | `PATCH /api/admin/users/:id/` + `role` `master` `password` · `PUT /api/admin/console-password` |
 | Console — scrape | `POST /api/admin/scrape` · `POST /api/admin/scrape/stop` · `GET /api/admin/scrape/status` |
 | Images | `GET /img/card/:id.png` |
+| Email | `GET /verify-email?token=…` — redirects to `/signin?verified=<status>` |
 
 Everything under `/api/admin` except `POST /session` requires the token. The
 master-only routes re-read `is_master_admin` from the database on every call rather
 than trusting the token's claim — a token outlives a demotion by up to eight hours.
+
+`POST /api/signin` answers **403 `{ needsVerification: true }`** when the password is
+right and the address was never confirmed — checked after the password, so it is never a
+fact about an account the caller cannot open. `POST /api/verify-email/resend` answers 200
+whatever it finds, for the same reason.
 
 **`GET /api/players`** takes:
 

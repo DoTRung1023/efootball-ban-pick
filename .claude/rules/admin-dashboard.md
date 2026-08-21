@@ -121,7 +121,7 @@ effect at the next sign-in, not mid-session.
 | `overviewTab.js`, `roomsTab.js`, `usersTab.js`, `catalogTab.js` | one module per tab |
 | `roomDetail.js` | the read-only room inspection panel behind WATCH |
 | `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on |
-| `passwordModal.js` | one modal, two forms: console password, and a user reset |
+| `passwordModal.js` | the console-password form. It carried a second form — a master typing a password for somebody else — until resets became generated-and-emailed and there was nothing left to type |
 | `index.js` | `initConsole()` |
 
 `initConsole` wires every tab **before** calling `resume`, so a stored token can
@@ -234,10 +234,24 @@ re-authorised server-side:
   outlives its tab by up to eight hours, and a borrowed screen should not change
   the lock every admin uses. Existing tokens stay valid: this rotates the way
   *in*, not the sessions already through the door.
-- **`PATCH /users/:id/password`** lets a master reset any account's sign-in
-  password — the "they forgot it" path, and the only way to set one on a Google
-  OAuth account whose `password` column is NULL. Worth naming: this means a master
-  can take over any account on the installation, which is why it is master-gated.
+- **`PATCH /users/:id/password`** resets an account's sign-in password. **The body
+  carries nothing**: the password is generated server-side, emailed to the address
+  on the account, and never returned to the console. A master cannot choose a weak
+  password for somebody else and cannot learn the one they set — taking over an
+  account means locking its owner out of it loudly rather than borrowing it
+  quietly. Still the "they forgot it" path and still the only way to give a Google
+  OAuth account, whose `password` column is NULL, a password at all.
+
+  **It sends before it writes.** A transport that refuses throws, and the account
+  keeps the password it already had; the other order would mint a password that
+  exists in no inbox and in no readable form. The trade — an account whose email
+  does not work cannot be reset from here — is deliberate, and the way back for the
+  built-in admin is still `ADMIN_EMAIL`/`ADMIN_PASSWORD` and a restart.
+
+  The response is `{ userId, email, delivered }` and the USERS tab says which of
+  the two happened: `delivered: false` means no `SMTP_HOST` is configured and the
+  password went to the server log. Because none of it can be undone from this
+  table, RESET PW is armed by a first click like the destructive role buttons.
 
 ## Admin API routes
 
@@ -257,6 +271,10 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   and `idleSec`. Reuses the players' own snapshot rather than re-listing twenty
   fields, which would be a second copy to keep in step. 404 when the code is not
   in memory. See **WATCH** above.
+- `GET /users` also returns `email_verified`; the tab marks an unconfirmed address
+  with a dashed UNCONFIRMED pill, which is both why that account cannot sign in and
+  why a reset would be mailed somewhere nobody has proved they read. Not red —
+  unfinished is not destructive (DESIGN.md §3).
 - `GET /scrape-logs?limit=N`, `GET /users?limit=N` — `readLimit` clamps to 1…50;
   a negative or NaN limit falls back to the default rather than reaching SQL.
 - `PATCH /users/:id/role` — `{ isAdmin }`. Master-only. **Ways to lock everyone
@@ -269,7 +287,8 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   too. Standing *yourself* down is allowed, unlike revoking your own access: it is
   how a master hands the role on, the account keeps console access, and the
   last-master check keeps somebody in the role.
-- `PATCH /users/:id/password` — `{ password }`. Master-only. See above.
+- `PATCH /users/:id/password` — no body. Master-only. Generates the password,
+  emails it, then writes it. See above.
 - `GET /console-password` → `{ configured }`, `PUT /console-password` —
   `{ currentPassword, newPassword }`. Master-only. See above.
 

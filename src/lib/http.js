@@ -20,6 +20,21 @@ export function requireUserIdQuery(req, res, extra = {}) {
   return userId;
 }
 
+/**
+ * Absolute origin to build a link that will be read outside the browser.
+ *
+ * `APP_BASE_URL` wins where it is set, and on a deployment behind a proxy it
+ * has to be: `req.protocol` reports the hop into the proxy, so a site served
+ * over HTTPS mints `http://` links unless Express is told to trust the
+ * forwarding headers. Falling back to the request's own host is what lets a dev
+ * machine send a working link with nothing configured at all.
+ */
+export function requestBaseUrl(req) {
+  const configured = String(process.env.APP_BASE_URL || "").trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  return `${req.protocol}://${req.get("host")}`;
+}
+
 /** Maps a MySQL duplicate-key error on the users table to the offending field. */
 export function duplicateUserField(err) {
   return String(err?.message || "").includes("uq_users_email") ? "email" : "username";

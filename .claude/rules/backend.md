@@ -5,9 +5,9 @@ paths:
 
 # Backend (`src/`)
 
-Grouped by feature. `server.js` is a ~38-line composition root: JSON/urlencoded
-middleware, the card-image handler, router mounts, static serving from `public/`, then
-`notFoundHandler` + `errorHandler`.
+Grouped by feature. `server.js` is a ~45-line composition root: JSON/urlencoded
+middleware, the card-image handler, `/verify-email`, router mounts, static serving from
+`public/`, then `notFoundHandler` + `errorHandler`.
 
 Each feature exposes its surface through an `index.js` barrel, and `server.js` imports
 only barrels. Cross-folder imports use the `#features/…` / `#lib/…` aliases from the
@@ -25,6 +25,11 @@ Router mounts:
 | `/api/admin` | `#features/admin/index.js` | `features/admin/routes.js` |
 | `/` (page routes) | — | `src/pages.js` |
 
+Two handlers are registered directly on `app` rather than through a mount, both because
+the URL is read by something outside this app: `/img/card/:id.png` (an `<img src>`) and
+`/verify-email` (a link in an email, exported from the auth barrel as `verifyEmailPage`).
+Neither belongs under `/api`, and neither is a page.
+
 `src/pages.js` is the one router outside `features/`, and deliberately so: it maps every
 page URL to one of four static HTML files and holds no domain logic, so it belongs to the
 composition root rather than to a feature. `server.js` imports it as `./pages.js`.
@@ -38,8 +43,11 @@ too, or a reload on it 404s.
 Supporting modules:
 
 - `lib/db.js` — mysql2 connection pool, exported as default.
-- `lib/http.js` — `asyncHandler`, `requireUserIdQuery`,
+- `lib/http.js` — `asyncHandler`, `requireUserIdQuery`, `requestBaseUrl`,
   `duplicateUserField`, `describeError`, `errorHandler`, `notFoundHandler`.
+  `requestBaseUrl(req)` builds the origin for a link that will be read outside the
+  browser; **set `APP_BASE_URL` behind a proxy**, or `req.protocol` reports the hop
+  into it and every emailed link comes out `http://`.
   **Log with `describeError(err)`, never bare `err.message`** — mysql2 connection
   failures have an empty message and put the cause in `err.code`, so `err.message`
   alone prints nothing and hides outages like `ECONNREFUSED`.
@@ -55,6 +63,17 @@ Supporting modules:
 - `features/admin/bootstrap.js` — `ensureConsoleAdmin()`, called from `server.js`
   inside the `listen` callback and **deliberately not awaited**: the app must boot
   with or without a database. It is the reason a fresh install has an admin at all.
+- `features/auth/verification.js` — `ensureAuthSchema()`, awaited **before**
+  `ensureConsoleAdmin()` in that same callback, and that order is load-bearing: the
+  seeder writes `email_verified` on the account it restores, and on a database created
+  before confirmation existed the column is added right here. Both swallow their own
+  failures, so a database that is down still leaves a server that boots.
+- `features/mail/` — the one SMTP transport (`transport.js`) and the two messages the
+  app sends (`templates.js`). **`sendMail` either delivers or throws**, and returns
+  `{ delivered }` where `false` means "printed to the server log because `SMTP_HOST` is
+  unset" — a real mode, not a stub, and the reason every caller has three sentences
+  rather than two. Callers that have not written to the database yet send *first*: see
+  the password reset in `admin-dashboard.md`.
 - `lib/paths.js` — `ROOT_DIR` and `PUBLIC_DIR`. `ROOT_DIR` was module-private until
   the scraper's resume file needed it; deriving the root anywhere else is how that
   file ended up being written to a percent-encoded directory that did not exist.

@@ -1,13 +1,18 @@
 /* ============================================================
-   One modal, two password forms
+   The console-password form
 
-   Rotating the shared console password, and a master resetting somebody's
-   account password. They differ only in what they call the field, whether a
-   current password is asked for, and where they PUT/PATCH — so they share a
-   form rather than being two near-identical ones.
+   One job: rotating the shared password that unlocks /console. It used to
+   carry a second form — a master typing a new password for somebody else's
+   account — and that is gone on purpose: a reset now generates its own
+   password and emails it, so there is nothing for a human to type. See the
+   PATCH `/users/:id/password` route.
 
-   Nothing here is a permission check. The buttons that open this are hidden
-   from a non-master, but both endpoints re-read the database and refuse a
+   What is left is still shaped as a configurable form (`open({…})`) rather
+   than being inlined, because the "current password" field is conditional and
+   the submit path already handles it.
+
+   Nothing here is a permission check. The button that opens this is hidden
+   from a non-master, but the endpoint re-reads the database and refuses a
    caller who is not a master, which is the check that counts.
    ============================================================ */
 
@@ -57,20 +62,6 @@ export function openConsolePasswordForm({ hasExisting, onDone }) {
         newPassword: next,
       }),
     done: "Console password updated.",
-    onDone,
-  });
-}
-
-/** Reset another account's sign-in password. */
-export function openUserPasswordForm({ userId, username, onDone }) {
-  open({
-    title: `Reset password`,
-    sub: `Sets a new sign-in password for ${username}. They are not told — pass it on yourself.`,
-    newLabel: "New password",
-    needsCurrent: false,
-    send: (_current, next) =>
-      apiSend(`/api/admin/users/${userId}/password`, "PATCH", { password: next }),
-    done: `Password reset for ${username}.`,
     onDone,
   });
 }

@@ -16,36 +16,25 @@
  * fresh one per installation, which is the one thing a shipped credential can
  * never be.
  *
- * **Both accounts above are seeded as master admins**, and rule 1 restores that
- * on every boot. Only a master may grant or revoke console access, so if the
+ * **Both accounts above are seeded as master admins and as email-verified.**
+ * Rule 1 restores both on every boot. Verified is not a convenience: sign-in
+ * refuses an unconfirmed address, and an account seeded from `.env` has no
+ * inbox to click a link in — `admin@localhost` least of all — so without it the
+ * recovery path would mint an admin that cannot sign in. Only a master may grant or revoke console access, so if the
  * `.env` account were a plain admin a mis-click in the USERS tab could leave a
  * database with admins and no way to change who they are. Restarting with
  * `ADMIN_EMAIL` set is the recovery path, and it only works if it grants master.
  */
 
-import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
-import { PASSWORD_MIN } from "#features/auth/index.js";
+import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
 import { describeError } from "#lib/http.js";
 import { loadConsolePassword } from "./consolePassword.js";
 
 const BCRYPT_ROUNDS = 12;
 const DEFAULT_USERNAME = "admin";
 const DEFAULT_EMAIL = "admin@localhost";
-
-/* No 0/O/1/I/l — this password gets read off a terminal and typed back in. */
-const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-const GROUPS = 4;
-const GROUP_LEN = 5;
-
-function generatePassword() {
-  const bytes = crypto.randomBytes(GROUPS * GROUP_LEN);
-  const chars = [...bytes].map((b) => ALPHABET[b % ALPHABET.length]);
-  return Array.from({ length: GROUPS }, (_, i) =>
-    chars.slice(i * GROUP_LEN, (i + 1) * GROUP_LEN).join(""),
-  ).join("-");
-}
 
 function banner(lines) {
   const width = Math.max(...lines.map((l) => l.length));
@@ -86,13 +75,15 @@ async function upsertAdmin({ username, email, password }) {
 
   if (existing) {
     await db.query(
-      "UPDATE users SET password = ?, is_admin = 1, is_master_admin = 1 WHERE id = ?",
+      `UPDATE users SET password = ?, is_admin = 1, is_master_admin = 1, email_verified = 1
+       WHERE id = ?`,
       [hash, existing.id],
     );
     return { id: existing.id, created: false };
   }
   const [result] = await db.query(
-    "INSERT INTO users (username, email, password, is_admin, is_master_admin) VALUES (?, ?, ?, 1, 1)",
+    `INSERT INTO users (username, email, password, is_admin, is_master_admin, email_verified)
+     VALUES (?, ?, ?, 1, 1, 1)`,
     [username, email, hash],
   );
   return { id: result.insertId, created: true };

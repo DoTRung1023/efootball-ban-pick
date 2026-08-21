@@ -8,6 +8,7 @@
 import { showToast } from "@/shared/ui/toast.js";
 import { setPendingToast } from "@/shared/ui/pendingToast.js";
 import { bindPasswordToggle } from "./passwordToggle.js";
+import { hideVerifyNotice, showVerifyNotice } from "./verifyNotice.js";
 
 function validateField(input) {
   const value = input.value.trim();
@@ -74,6 +75,7 @@ export function initForm() {
 
     btn.classList.add("loading");
     btn.disabled = true;
+    hideVerifyNotice();
 
     try {
       const res = await fetch("/api/signin", {
@@ -89,6 +91,15 @@ export function initForm() {
 
       if (!res.ok) {
         showToast(data.error || "Sign in failed.", "error");
+        /* The password was right and the address was not confirmed. Say the
+           second part where the answer to it is — a toast that fades leaves
+           somebody re-typing a password that was never the problem. */
+        if (data.needsVerification) {
+          showVerifyNotice(
+            "This account still needs its email address confirmed. The link was sent when the account was created.",
+            usernameInput.value.trim(),
+          );
+        }
         btn.classList.remove("loading");
         btn.disabled = false;
         return;

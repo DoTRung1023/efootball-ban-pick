@@ -1,12 +1,15 @@
 /* ============================================================
    Sign-up modal — POST /api/signup
 
-   Creating an account does not sign you in; on success the modal closes and
-   the user signs in through the form behind it.
+   Creating an account does not sign you in, and now it cannot: the new account
+   is unverified, and sign-in refuses one until the emailed link is clicked. So
+   the modal closes onto the strip that explains that, carrying the username
+   with it so RESEND has a subject.
    ============================================================ */
 
 import { showToast } from "@/shared/ui/toast.js";
 import { bindPasswordToggle } from "./passwordToggle.js";
+import { showVerifyNotice } from "./verifyNotice.js";
 
 export function initSignupModal() {
   const overlay   = document.getElementById("signupOverlay");
@@ -143,7 +146,10 @@ export function initSignupModal() {
         return;
       }
 
-      showToast("Account created! You can now sign in.", "success");
+      /* The server's message, not one of ours: only it knows whether the mail
+         actually went out or was printed to the log for want of an SMTP host. */
+      showToast(data.message, "success");
+      showVerifyNotice(data.message, document.getElementById("su-username").value.trim());
       setTimeout(() => closeModal(), 1800);
     } catch {
       showToast("Network error. Please try again.", "error");

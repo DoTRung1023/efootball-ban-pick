@@ -78,6 +78,11 @@ CREATE TABLE IF NOT EXISTS users (
   id           INT UNSIGNED    NOT NULL AUTO_INCREMENT,
   username     VARCHAR(50)     NOT NULL,
   email        VARCHAR(255)    NOT NULL,
+  -- 0 until the address is proved by clicking the link sent at sign-up.
+  -- `/api/signin` refuses an account with this at 0, whatever the password:
+  -- the console emails generated passwords to this address, so an unproved
+  -- one is a way to have somebody else's reset delivered to you.
+  email_verified TINYINT(1)    NOT NULL DEFAULT 0,
   -- NULL when the account was created via Google OAuth
   password     VARCHAR(255)    NULL,
   -- grants the /console dashboard; the console still re-checks the password
@@ -98,6 +103,13 @@ CREATE TABLE IF NOT EXISTS users (
 -- (src/features/admin/bootstrap.js) and every admin after that is granted from
 -- the console's USERS tab. This still works as a last resort:
 --   UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
+
+-- Existing DBs created before email confirmation:
+--   ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER email;
+--   UPDATE users SET email_verified = 1;   -- accounts that predate the feature
+-- `ensureAuthSchema` (src/features/auth/verification.js) does both itself on
+-- the next boot, backfill included, so an existing database heals rather than
+-- locking every account — admins too — out of sign-in.
 
 -- Existing DBs created before master admins:
 --   ALTER TABLE users ADD COLUMN is_master_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;
@@ -120,6 +132,36 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (setting_key)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
+-- 1c. EMAIL_VERIFICATIONS  (one live confirmation link per account)
+-- Only the SHA-256 of the token is stored — the token itself exists in the
+-- email and nowhere else, so this table confirms nobody's address if it leaks.
+-- Rows are marked `consumed_at` rather than deleted, so a second click on a
+-- spent link reads as "already confirmed" instead of as a broken one, and
+-- minting a new link deletes that user's earlier rows so RESEND can never
+-- leave two live links behind.
+-- `email` is the address the link was minted for: if the account's email
+-- changed since, the token is dead rather than confirming an address its owner
+-- never agreed to.
+-- Created by `ensureAuthSchema` on boot if missing.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  user_id     INT UNSIGNED  NOT NULL,
+  token_hash  CHAR(64)      NOT NULL,
+  email       VARCHAR(255)  NOT NULL,
+  expires_at  DATETIME      NOT NULL,
+  consumed_at DATETIME      NULL,
+  created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_ev_token (token_hash),
+  KEY idx_ev_user (user_id),
+  CONSTRAINT fk_ev_user
+    FOREIGN KEY (user_id) REFERENCES users (id)
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------

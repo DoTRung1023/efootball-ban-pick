@@ -36,7 +36,8 @@ Code is grouped **by feature, not by file type**.
 
 - `src/` — backend. `server.js` is the composition root; `features/<name>/` each expose
   their public surface through an `index.js` barrel (`admin`, `auth`, `gamePlans`,
-  `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`, `cli.js`.
+  `mail`, `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`,
+  `cli.js`.
   `ingestion` has **no** barrel — both its files are npm-script entry points that nothing
   imports, so a barrel there would have no consumer. `src/pages.js` is the one router
   outside `features/` — it maps every page URL to one of four static HTML files and
@@ -178,7 +179,7 @@ automatically when a matching file is read:
 | --- | --- |
 | `checks.md` | `npm run check` — what each static check covers and its limits |
 | `backend.md` | `src/**` |
-| `auth.md` | sign-in / sign-up / profile, and the `efb_user` session |
+| `auth.md` | sign-in / sign-up / profile, the `efb_user` session, email confirmation and the `mail` feature |
 | `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
 | `database.md` | schema, `db.js`, catalog queries, scrapers |
 | `admin-dashboard.md` | `/console` page, its access model and its API |

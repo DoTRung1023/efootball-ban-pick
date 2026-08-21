@@ -18,6 +18,11 @@ paths:
   may grant or revoke either flag. See `admin-dashboard.md`.
 - `app_settings` — key/value, one row so far: `console_password`, the bcrypt hash of
   the shared console password.
+- `email_verifications` — one live confirmation link per account: the SHA-256 of the
+  token (never the token), the address it was minted for, an expiry and a
+  `consumed_at`. `users.email_verified` is the flag `/api/signin` refuses on.
+  Created and backfilled by `ensureAuthSchema` in `src/features/auth/verification.js`
+  — see `auth.md` for why the backfill only runs on the boot that adds the column.
 
 **Two tables/columns are created by the server, not by `schema.sql` alone**, because
 an existing database would otherwise serve a broken console until somebody ran the
