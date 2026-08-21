@@ -2,24 +2,37 @@
    The console session token and the fetch wrapper that carries it
 
    A token is minted by `POST /api/admin/session` against the signed-in account
-   (`users.is_admin` + the account password) and lives in sessionStorage, so it
-   survives a reload but not a new tab. It travels in the `x-admin-token` header
-   rather than the query string, which keeps it out of URLs, logs and history.
+   (`users.is_admin` + a password) and lives in sessionStorage, so it survives a
+   reload but not a new tab. It travels in the `x-admin-token` header rather than
+   the query string, which keeps it out of URLs, logs and history.
+
+   Which password the gate wants is the server's business, not this module's:
+   with `ADMIN_CONSOLE_PASSWORD` set it is one shared console password, without
+   it the account's own. Nothing here needs to know which.
    ============================================================ */
 
 const TOKEN_STORE = "efb_admin_token";
 
 let token = sessionStorage.getItem(TOKEN_STORE) || "";
 let sessionUserId = null;
+let sessionIsMaster = false;
 
 /** Whose console session this is — the USERS tab refuses to demote that row. */
 export function getSessionUserId() {
   return sessionUserId;
 }
 
+/** Whether this session may change roles at all. **Display only** — the server
+    re-reads the database on every role write, so hiding a button here is a
+    courtesy and never the check. */
+export function isSessionMaster() {
+  return sessionIsMaster;
+}
+
 export function clearToken() {
   token = "";
   sessionUserId = null;
+  sessionIsMaster = false;
   sessionStorage.removeItem(TOKEN_STORE);
 }
 
@@ -39,6 +52,7 @@ export async function openSession(userId, password) {
     if (!r.ok) return { ok: false, error: data.error || "Could not open the console." };
     token = data.token;
     sessionUserId = userId;
+    sessionIsMaster = Boolean(data.isMaster);
     sessionStorage.setItem(TOKEN_STORE, token);
     return { ok: true, username: data.username };
   } catch {
@@ -54,6 +68,7 @@ export async function resumeSession() {
     if (!r.ok) { clearToken(); return null; }
     const session = await r.json();
     sessionUserId = session.userId;
+    sessionIsMaster = Boolean(session.isMaster);
     return session;
   } catch {
     return null;

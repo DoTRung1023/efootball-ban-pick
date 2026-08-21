@@ -523,6 +523,14 @@ body {
 }
 
 /* ── Role pill ──────────────────────────────────────────────── */
+/* MASTER wears the accent; ADMIN stays neutral. One accented thing per screen,
+   and on the USERS tab this is it. */
+.role-pill.is-master {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: transparent;
+}
+
 .role-pill {
   display: inline-block;
   font-size: 12px;

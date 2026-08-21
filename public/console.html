@@ -27,7 +27,11 @@
         </div>
         <p class="gate-identity" id="gateIdentity"></p>
         <form id="gateForm">
-          <input id="gatePassword" type="password" class="gate-input" placeholder="Confirm your password" autocomplete="current-password" />
+          <!-- "Console password" covers both modes: the shared
+               ADMIN_CONSOLE_PASSWORD when one is configured, this account's own
+               password when it is not. The server decides; the gate does not
+               advertise which, and does not need to. -->
+          <input id="gatePassword" type="password" class="gate-input" placeholder="Console password" autocomplete="off" />
           <button type="submit" id="gateSubmit" class="btn btn--primary gate-btn">UNLOCK CONSOLE</button>
         </form>
         <p id="gateError" class="gate-error"></p>
@@ -196,7 +200,7 @@
               </tbody>
             </table>
           </div>
-          <div class="panel-footer-hint">
+          <div class="panel-footer-hint" id="usersHint">
             The first admin is created by the server on first run; every one after that is
             promoted here. You cannot remove your own access, or the last admin's.
           </div>

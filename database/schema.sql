@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS users (
   password     VARCHAR(255)    NULL,
   -- grants the /console dashboard; the console still re-checks the password
   is_admin     TINYINT(1)      NOT NULL DEFAULT 0,
+  -- master admins are the only accounts that may grant or revoke either flag.
+  -- Seeded from ADMIN_EMAIL on every boot, so there is always one way back in.
+  is_master_admin TINYINT(1)   NOT NULL DEFAULT 0,
   created_at   TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   PRIMARY KEY (id),
@@ -95,6 +98,11 @@ CREATE TABLE IF NOT EXISTS users (
 -- (src/features/admin/bootstrap.js) and every admin after that is granted from
 -- the console's USERS tab. This still works as a last resort:
 --   UPDATE users SET is_admin = 1 WHERE email = 'you@example.com';
+
+-- Existing DBs created before master admins:
+--   ALTER TABLE users ADD COLUMN is_master_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;
+-- `ensureConsoleAdmin` adds this column itself if it is missing, so an existing
+-- database heals on the next boot rather than serving a broken console.
 
 -- ------------------------------------------------------------
 -- 2. PLAYERS  (user's personal squad roster)

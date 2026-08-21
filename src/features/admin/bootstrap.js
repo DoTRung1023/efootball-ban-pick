@@ -15,6 +15,12 @@
  * There is deliberately no default password baked into the repo: rule 2 mints a
  * fresh one per installation, which is the one thing a shipped credential can
  * never be.
+ *
+ * **Both accounts above are seeded as master admins**, and rule 1 restores that
+ * on every boot. Only a master may grant or revoke console access, so if the
+ * `.env` account were a plain admin a mis-click in the USERS tab could leave a
+ * database with admins and no way to change who they are. Restarting with
+ * `ADMIN_EMAIL` set is the recovery path, and it only works if it grants master.
  */
 
 import crypto from "node:crypto";
@@ -48,6 +54,27 @@ function banner(lines) {
   console.log(`└${rule}┘`);
 }
 
+/**
+ * Adds `is_master_admin` to a database created before master admins existed.
+ *
+ * MySQL has no `ADD COLUMN IF NOT EXISTS`, so the column is looked up first.
+ * This runs on every boot and is a no-op on all but one of them; the
+ * alternative is a console that answers 500 to every USERS read until somebody
+ * finds the `ALTER` in `schema.sql`.
+ */
+async function ensureMasterColumn() {
+  const [[{ cnt }]] = await db.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'users'
+       AND column_name = 'is_master_admin'`,
+  );
+  if (cnt) return;
+  await db.query(
+    "ALTER TABLE users ADD COLUMN is_master_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin",
+  );
+  console.log("admin bootstrap: added users.is_master_admin");
+}
+
 /** Creates the account, or promotes and re-passwords the one already there. */
 async function upsertAdmin({ username, email, password }) {
   const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -57,11 +84,14 @@ async function upsertAdmin({ username, email, password }) {
   );
 
   if (existing) {
-    await db.query("UPDATE users SET password = ?, is_admin = 1 WHERE id = ?", [hash, existing.id]);
+    await db.query(
+      "UPDATE users SET password = ?, is_admin = 1, is_master_admin = 1 WHERE id = ?",
+      [hash, existing.id],
+    );
     return { id: existing.id, created: false };
   }
   const [result] = await db.query(
-    "INSERT INTO users (username, email, password, is_admin) VALUES (?, ?, ?, 1)",
+    "INSERT INTO users (username, email, password, is_admin, is_master_admin) VALUES (?, ?, ?, 1, 1)",
     [username, email, hash],
   );
   return { id: result.insertId, created: true };
@@ -73,6 +103,8 @@ export async function ensureConsoleAdmin() {
   const username = process.env.ADMIN_USERNAME || DEFAULT_USERNAME;
 
   try {
+    await ensureMasterColumn();
+
     // 1. An explicitly configured admin is enforced on every boot.
     if (envEmail && envPassword) {
       if (envPassword.length < PASSWORD_MIN) {
@@ -80,7 +112,7 @@ export async function ensureConsoleAdmin() {
         return;
       }
       const { created } = await upsertAdmin({ username, email: envEmail, password: envPassword });
-      console.log(`Console admin ${created ? "created" : "updated"} from ADMIN_EMAIL/ADMIN_PASSWORD: ${envEmail}`);
+      console.log(`Master admin ${created ? "created" : "updated"} from ADMIN_EMAIL/ADMIN_PASSWORD: ${envEmail}`);
       return;
     }
 

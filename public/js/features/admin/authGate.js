@@ -3,9 +3,13 @@
 
    Three things have to be true, and the gate checks them in this order:
    the browser holds a signed-in session, that account has `is_admin`, and the
-   password is re-entered here. The first is a redirect, the last two are the
-   server's answer to `POST /api/admin/session` — this module never decides
+   console password is entered here. The first is a redirect, the last two are
+   the server's answer to `POST /api/admin/session` — this module never decides
    for itself whether someone is an admin.
+
+   That third one is one shared password (`ADMIN_CONSOLE_PASSWORD`) where the
+   server has one configured, and the account's own password where it does not.
+   Which it is never reaches this file, so the field is labelled for both.
 
    `initGate` wires the form; `resume` runs the silent re-auth. They are
    separate so the caller can finish wiring the dashboard before a stored token

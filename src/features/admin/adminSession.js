@@ -6,13 +6,28 @@
  * in every access log and browser history entry that saw the URL.
  *
  * Access is now a property of the account: `users.is_admin`. Opening the console
- * re-confirms the password (step-up auth — a stolen `efb_user` in localStorage is
+ * re-confirms a password (step-up auth — a stolen `efb_user` in localStorage is
  * not enough), and the server answers with a signed token carrying the user id
  * and an expiry. The token travels in the `x-admin-token` header, so it stays out
  * of URLs.
  *
+ * **Which password that is depends on `ADMIN_CONSOLE_PASSWORD`.** Set it and the
+ * gate takes that one console password from every admin instead of making each
+ * of them retype their own account password; leave it unset and the account
+ * password is used, exactly as before. There is no default, so an install that
+ * configures nothing keeps the stronger behaviour rather than falling back to a
+ * value printed in this repo.
+ *
+ * The trade is the one `ADMIN_KEY` used to make and it is worth stating plainly:
+ * a single shared secret has no identity behind it. `efb_user` is unsigned, so
+ * with the console password in hand a caller can open a session as **any** admin
+ * id, master admins included. It is a fine trade for a solo or trusted-team
+ * deployment and a poor one for a public host — there, leave the variable unset.
+ *
  * The token is stateless: revoking `is_admin` takes effect at its next sign-in,
- * not mid-session. TOKEN_TTL_MS bounds that window.
+ * not mid-session. TOKEN_TTL_MS bounds that window. Role *changes* are therefore
+ * authorised against the database at write time rather than against `mst` below,
+ * which is only ever used to decide what the USERS tab draws.
  */
 
 import crypto from "node:crypto";
@@ -27,11 +42,39 @@ const SECRET = process.env.ADMIN_SECRET || crypto.randomBytes(32).toString("hex"
 const sign = (payload) =>
   crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
 
-export function mintAdminToken({ id, username }) {
+export function mintAdminToken({ id, username, is_master_admin: isMaster }) {
   const payload = Buffer.from(
-    JSON.stringify({ uid: id, username, exp: Date.now() + TOKEN_TTL_MS }),
+    JSON.stringify({
+      uid: id,
+      username,
+      /* Display only — see the note above. Every route that acts on a role
+         re-reads the database instead of trusting this. */
+      mst: Boolean(isMaster),
+      exp: Date.now() + TOKEN_TTL_MS,
+    }),
   ).toString("base64url");
   return `${payload}.${sign(payload)}`;
+}
+
+/* ── The shared console password ──────────────────────────── */
+
+const CONSOLE_PASSWORD = process.env.ADMIN_CONSOLE_PASSWORD || "";
+
+/** Whether the gate takes one shared password rather than each account's own. */
+export function usesConsolePassword() {
+  return CONSOLE_PASSWORD.length > 0;
+}
+
+/**
+ * Compares against `ADMIN_CONSOLE_PASSWORD` without leaking its length or
+ * content through timing. Both sides are hashed first because
+ * `timingSafeEqual` throws on a length mismatch, and the length of the real
+ * password is itself something worth not giving away.
+ */
+export function consolePasswordMatches(candidate) {
+  if (!CONSOLE_PASSWORD) return false;
+  const digest = (v) => crypto.createHash("sha256").update(String(v)).digest();
+  return crypto.timingSafeEqual(digest(candidate), digest(CONSOLE_PASSWORD));
 }
 
 /** The claims of a token this server signed and that has not expired, else null. */

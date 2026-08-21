@@ -14,10 +14,12 @@ import {
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
   clearFailures,
+  consolePasswordMatches,
   lockoutSeconds,
   mintAdminToken,
   recordFailure,
   requireAdmin,
+  usesConsolePassword,
 } from "./adminSession.js";
 
 const router = Router();
@@ -50,7 +52,7 @@ router.post("/session", asyncHandler(async (req, res) => {
 
   try {
     const [[user]] = await db.query(
-      "SELECT id, username, password, is_admin FROM users WHERE id = ?",
+      "SELECT id, username, password, is_admin, is_master_admin FROM users WHERE id = ?",
       [userId],
     );
 
@@ -67,13 +69,26 @@ router.post("/session", asyncHandler(async (req, res) => {
       });
     }
 
-    if (!(await bcrypt.compare(password, user.password ?? ""))) {
+    /* One shared console password when `ADMIN_CONSOLE_PASSWORD` is set,
+       otherwise this account's own — see the note in `adminSession.js`. The
+       lockout counts either kind of failure and is keyed by account, so the
+       shared password does not turn into a shared five attempts. */
+    const ok = usesConsolePassword()
+      ? consolePasswordMatches(password)
+      : await bcrypt.compare(password, user.password ?? "");
+    if (!ok) {
       recordFailure(user.id);
-      return res.status(401).json({ error: "Incorrect password." });
+      return res.status(401).json({
+        error: usesConsolePassword() ? "Incorrect console password." : "Incorrect password.",
+      });
     }
 
     clearFailures(user.id);
-    res.json({ token: mintAdminToken(user), username: user.username });
+    res.json({
+      token: mintAdminToken(user),
+      username: user.username,
+      isMaster: Boolean(user.is_master_admin),
+    });
   } catch (err) {
     console.error("admin session error:", describeError(err));
     res.status(500).json({ error: "Something went wrong. Please try again." });
@@ -86,7 +101,12 @@ router.use(requireAdmin);
 /** Silent re-auth on load: proves the stored token is still good. `userId` is
     what lets the USERS tab know which row is you, and refuse to demote it. */
 router.get("/me", (req, res) => {
-  res.json({ userId: req.admin.uid, username: req.admin.username, expiresAt: req.admin.exp });
+  res.json({
+    userId: req.admin.uid,
+    username: req.admin.username,
+    isMaster: Boolean(req.admin.mst),
+    expiresAt: req.admin.exp,
+  });
 });
 
 // ── Dashboard data ───────────────────────────────────────────
@@ -188,7 +208,7 @@ router.get("/scrape-logs", asyncHandler(async (req, res) => {
 router.get("/users", asyncHandler(async (req, res) => {
   try {
     const [users] = await db.query(
-      `SELECT u.id, u.username, u.email, u.created_at, u.is_admin,
+      `SELECT u.id, u.username, u.email, u.created_at, u.is_admin, u.is_master_admin,
               COUNT(DISTINCT p.id) AS playerCount,
               COUNT(DISTINCT gp.id) AS planCount
        FROM users u
@@ -211,6 +231,47 @@ router.get("/users", asyncHandler(async (req, res) => {
  * Two ways to lock everyone out, both refused here: demoting yourself (you are
  * standing on the page you would lose), and demoting the last admin left.
  */
+/**
+ * Is the caller a master admin *right now*?
+ *
+ * Read from the database rather than from the token's `mst` claim, and the
+ * difference is the point: a token stays valid for up to eight hours after the
+ * account behind it is demoted, so trusting the claim would leave a revoked
+ * master able to hand the role back to themselves for the rest of the day.
+ *
+ * Under `ADMIN_CONSOLE_PASSWORD` this is the only thing standing between an
+ * ordinary admin and a role change — and it is not much, because the shared
+ * password lets a caller open a session under any admin id they like. That
+ * limitation belongs to the shared-password mode, not to this check; see the
+ * note at the top of `adminSession.js`.
+ */
+async function isMasterAdmin(userId) {
+  const [[row]] = await db.query(
+    "SELECT is_master_admin FROM users WHERE id = ?",
+    [Number(userId)],
+  );
+  return Boolean(row?.is_master_admin);
+}
+
+/** 403 unless the caller is a master, in the words the USERS tab prints as-is. */
+async function requireMaster(req, res) {
+  if (await isMasterAdmin(req.admin.uid)) return true;
+  res.status(403).json({ error: "Only a master admin can change roles." });
+  return false;
+}
+
+/**
+ * PATCH `{ isAdmin }` — grant or revoke console access.
+ *
+ * **Four ways to end up with a console nobody can administer, all refused:**
+ * demoting yourself (you are standing on the page you would lose), demoting the
+ * last admin, demoting a master admin (clear the master flag first, so losing
+ * the role is always a deliberate two-step), and — via `/master` below —
+ * clearing the last master.
+ *
+ * The last-admin check is not theoretical: a token outlives the account's role
+ * by up to eight hours, so a revoked admin can still reach this route.
+ */
 router.patch("/users/:id/role", asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
   const makeAdmin = Boolean(req.body?.isAdmin);
@@ -221,10 +282,17 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
   }
 
   try {
+    if (!(await requireMaster(req, res))) return;
+
     if (!makeAdmin) {
       const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
       if (cnt <= 1) {
         return res.status(400).json({ error: "The last admin cannot be removed." });
+      }
+      if (await isMasterAdmin(targetId)) {
+        return res.status(400).json({
+          error: "Remove master admin from this account before revoking its access.",
+        });
       }
     }
 
@@ -240,8 +308,48 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
   }
 }));
 
-// ── Running a scrape ─────────────────────────────────────────
-// The runner owns the concurrency rule; these routes only report its answer.
+/**
+ * PATCH `{ isMaster }` — designate or stand down a master admin.
+ *
+ * Granting master implies console access, so it grants `is_admin` in the same
+ * statement: a master who is not an admin could not open the console to use the
+ * role, and would read as a bug rather than as a policy.
+ *
+ * Standing yourself down is allowed — unlike revoking your own access — because
+ * it is how a master hands the role on and it cannot lock the console: the
+ * account keeps `is_admin`, and the last-master check below keeps somebody in
+ * the role. `ADMIN_EMAIL` restores itself on the next boot regardless.
+ */
+router.patch("/users/:id/master", asyncHandler(async (req, res) => {
+  const targetId = Number(req.params.id);
+  const makeMaster = Boolean(req.body?.isMaster);
+  if (!targetId) return res.status(400).json({ error: "Unknown user." });
+
+  try {
+    if (!(await requireMaster(req, res))) return;
+
+    if (!makeMaster) {
+      const [[{ cnt }]] = await db.query(
+        "SELECT COUNT(*) AS cnt FROM users WHERE is_master_admin = 1",
+      );
+      if (cnt <= 1) {
+        return res.status(400).json({ error: "The last master admin cannot stand down." });
+      }
+    }
+
+    const [result] = await db.query(
+      makeMaster
+        ? "UPDATE users SET is_master_admin = 1, is_admin = 1 WHERE id = ?"
+        : "UPDATE users SET is_master_admin = 0 WHERE id = ?",
+      [targetId],
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
+
+    res.json({ userId: targetId, isMaster: makeMaster });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
 
 router.post("/scrape", asyncHandler(async (req, res) => {
   const mode = String(req.body?.mode || "");
