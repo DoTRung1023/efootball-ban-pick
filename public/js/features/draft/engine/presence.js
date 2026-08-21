@@ -112,8 +112,7 @@ async function registerPresence() {
       paintErrorView({
         modifier: isHostLock ? "is-host-lock" : isRoomFull ? "is-room-full" : "is-access-denied",
         title: isHostLock ? "Host slot taken" : isRoomFull ? "Room is full" : "Access denied",
-        icon: false,
-        leaveText: "Back to home",
+          leaveText: "Back to home",
         message: isHostLock
           ? "This room already has an active host. Use the invite link to join as a guest."
           : isRoomFull

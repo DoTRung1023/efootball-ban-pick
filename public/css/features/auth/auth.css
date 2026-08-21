@@ -156,37 +156,6 @@ body {
   user-select: none;
 }
 
-.brand-logo {
-  position: relative;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--fill);
-  padding: 4px;
-}
-
-.logo-icon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  font-size: 26px;
-  line-height: 1;
-  display: none;
-}
-
-.logo-img[style*="display: none"] ~ .logo-icon { display: block; }
-
 .brand-text {
   display: flex;
   flex-direction: column;
@@ -208,18 +177,6 @@ body {
   letter-spacing: 0.05em;
   color: var(--text-dim);
   margin-top: 2px;
-}
-
-.brand-badge {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--text);
-  background: var(--fill-strong);
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  align-self: flex-start;
 }
 
 /* ============================================================

@@ -34,7 +34,6 @@
     <!-- Error -->
     <div id="viewError" class="view view--fullscreen" hidden>
       <div class="centered-box centered-box--error" id="errorBox">
-        <div class="error-state-icon" id="errorStateIcon" hidden>⛔</div>
         <h2 class="error-title" id="errorTitle" hidden>Room closed</h2>
         <p class="error-text" id="errorMessage"></p>
         <a class="btn" id="errorLeaveBtn" href="/">Leave room</a>
@@ -44,7 +43,7 @@
     <!-- Abandoned (for future socket: room:abandoned) -->
     <div id="viewAbandoned" class="view view--fullscreen" hidden>
       <div class="centered-box abandoned-box">
-        <div class="abandoned-icon" aria-hidden="true">🏆</div>
+        <svg class="abandoned-icon" width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#award" /></svg>
         <h2 class="abandoned-title">Draft ended</h2>
         <p class="abandoned-msg" id="abandonedMessage"></p>
         <a class="btn btn--primary" href="/">Back to home</a>
@@ -336,24 +335,16 @@
                     <div class="ban-phase-controls">
                       <div class="team-search-bar">
                         <div class="team-search-wrap">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                          </svg>
+                          <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#search" /></svg>
                           <input type="text" id="banSearch" placeholder="Search opponent players..." autocomplete="off" />
                         </div>
 
                         <div class="sort-group">
                           <div class="ap-dd-wrap" id="banSortWrap">
                             <button class="ap-dd-btn" id="banSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line>
-                                <line x1="8" y1="18" x2="21" y2="18"></line>
-                                <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
-                              </svg>
+                              <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#sort" /></svg>
                               <span id="banSortLabel">Overall Max</span>
-                              <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                              </svg>
+                              <svg class="dd-chevron" width="11" height="11" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                             </button>
                             <div class="ap-dd-panel sort-dd-panel" id="banSortPanel"></div>
                           </div>
@@ -364,13 +355,9 @@
 
                         <div class="ap-dd-wrap" id="banPosWrap">
                           <button class="ap-dd-btn" id="banPosBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                            </svg>
+                            <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#filter" /></svg>
                             <span>FILTER</span>
-                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
+                            <svg class="dd-chevron" width="11" height="11" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                           </button>
                           <div class="ap-dd-panel filter-dd-panel" id="banPosPanel"></div>
                         </div>
@@ -480,23 +467,15 @@
                     <div class="pick-phase-controls">
                       <div class="team-search-bar">
                         <div class="team-search-wrap">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                          </svg>
+                          <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#search" /></svg>
                           <input type="text" id="pickSearch" placeholder="Search your squad..." autocomplete="off">
                         </div>
                         <div class="sort-group">
                           <div class="ap-dd-wrap" id="pickSortWrap">
                             <button class="ap-dd-btn" id="pickSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line>
-                                <line x1="8" y1="18" x2="21" y2="18"></line>
-                                <polyline points="3 6 4.5 8 6 6"></polyline><polyline points="3 12 4.5 14 6 12"></polyline>
-                              </svg>
+                              <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#sort" /></svg>
                               <span id="pickSortLabel">Overall Max</span>
-                              <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                              </svg>
+                              <svg class="dd-chevron" width="11" height="11" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                             </button>
                             <div class="ap-dd-panel sort-dd-panel" id="pickSortPanel"></div>
                           </div>
@@ -507,13 +486,9 @@
 
                         <div class="ap-dd-wrap" id="pickFilterWrap">
                           <button class="ap-dd-btn" id="pickFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                            </svg>
+                            <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#filter" /></svg>
                             <span>FILTER</span>
-                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
+                            <svg class="dd-chevron" width="11" height="11" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                           </button>
                           <div class="ap-dd-panel filter-dd-panel" id="pickFilterPanel"></div>
                         </div>
@@ -546,16 +521,14 @@
                            adjust the formation it came with. -->
                       <div class="pick-plan-row">
                         <button class="btn btn--small pick-load-plan-btn" id="pickLoadPlanBtn" type="button">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"></path>
-                          </svg>
+                          <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#folder" /></svg>
                           <span>LOAD GAME PLAN</span>
                         </button>
                         <div class="pick-formation-wrap">
                           <button class="pick-formation-btn" id="pickFormationBtn" type="button" aria-haspopup="true" aria-expanded="false">
                             <span class="pick-formation-hash">#</span>
                             <span id="pickFormationLabel">4-3-3</span>
-                            <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                            <svg class="dd-chevron" width="11" height="11" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                           </button>
                           <div class="pick-formation-panel" id="pickFormationPanel" hidden></div>
                         </div>
@@ -620,7 +593,7 @@
                            their status and nothing else. -->
                       <div class="pick-opp-grid" id="pickOppGrid"></div>
                       <div class="pick-opp-locked" id="pickOppLocked" hidden>
-                        <span class="pick-opp-locked-icon" aria-hidden="true">🔒</span>
+                        <svg class="pick-opp-locked-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#lock" /></svg>
                         <p class="pick-opp-locked-title">PICKS HIDDEN</p>
                         <p class="pick-opp-locked-status" id="pickOppLockedStatus">Still picking</p>
                       </div>
@@ -734,6 +707,10 @@
         </form>
       </section>
       <button type="button" class="room-chat-launcher" id="chatLauncher" aria-expanded="false" aria-controls="chatPanel" aria-label="Room chat">
+        <!-- The one icon not in `/icons/sprite.svg`, and deliberately so: it is
+             two-tone, and `.room-chat-icon path/circle` in shell.css colours the
+             two parts separately. A sprite <use> renders into a shadow tree that
+             those selectors cannot reach, so this icon has to stay inline. -->
         <svg class="room-chat-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M12 3.2c-5.08 0-9.2 3.5-9.2 7.8 0 2.45 1.34 4.64 3.44 6.07l-.7 3.73 4.05-2.15c.77.15 1.58.23 2.41.23 5.08 0 9.2-3.5 9.2-7.88S17.08 3.2 12 3.2Z" />
           <circle cx="8.3" cy="11" r="1.2" />

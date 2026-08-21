@@ -152,7 +152,7 @@ too slow, run it in the background and wait — do not turn the dials.
 
 Interrupted? `.scrape-state.json` holds mode, page, row and running totals,
 written after every batch. **Re-run the same command** — it prints
-`▶ Resuming interrupted <mode> scrape…`. To abandon a resume instead, reset the
+`RESUME  Resuming interrupted <mode> scrape…`. To abandon a resume instead, reset the
 file to `{}` (and remember §1: no in-DB backup is taken on a resume).
 
 ## 6. After the run

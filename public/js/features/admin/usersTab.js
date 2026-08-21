@@ -12,20 +12,18 @@
    database, so a hand-made request from a plain admin is refused too.
 
    ACCESS holds the role word; ACTIONS holds the buttons, in three fixed slots
-   so they line up down the table; **your own row is marked by a YOU badge in a
-   last, unheaded column**, hard against the right edge. It used to be `· YOU`
-   trailing the role, which put a fact about the *reader* inside the column that
-   states the *account's* role and made that one cell read two ways. Every cell carries a `data-label`, which is
-   what the card layout below 620px prints in front of its value — see the
-   responsive block in `admin.css`. A plain admin sees the role and an empty
-   ACTIONS column — hiding the controls is a courtesy and never the check.
+   so they line up down the table; the last column is unheaded and holds one
+   YOU badge, on your own row. `· YOU` used to trail the role, which put a fact
+   about the *reader* inside the column that states the *account's* role. Every
+   cell carries a `data-label` — what the card layout below 620px prints in
+   front of its value; see the responsive block in `admin.css`.
 
    **The whole row is coloured by rung** — the accent for a master, full-strength
    text for an admin, the muted rung for everyone else — so which accounts carry
    power is answerable by scanning the table rather than by reading one column.
-   The row's class carries it; the cells inherit. It used to be a pill beside the username as well, which put
-   the same word in two columns of the same row; the buttons that act on the
-   role live here, so the word does too.
+   The row's class carries it; the cells inherit. The word was briefly a pill
+   beside the username as well, which put it in two columns of one row; the
+   buttons that act on the role live here, so the word does too.
 
    **RESET PW does not ask for a password.** The server generates one, emails it
    to the address on the account and never returns it here, so this table can
@@ -57,21 +55,17 @@ function notice(message, isError = false) {
   el.hidden = !message;
 }
 
-/** What this account currently is, in one word. Three rungs, and the third is a
-    word rather than the em-dash it used to be: "—" reads as missing data in a
-    column of real values, when what it means is a plain account with no console
-    access — which is most of them, and is a fact about the row like any other. */
+/** What this account currently is, in one word. The third rung is a word rather
+    than the em-dash it used to be: "—" reads as missing data in a column of real
+    values, when what it means is an account with no console access. */
 function roleLabel(user) {
   if (user.is_master_admin) return "MASTER";
   return user.is_admin ? "ADMIN" : "USER";
 }
 
-/** The three rungs, and the class that colours each. Kept beside `roleLabel` so
-    a new rung cannot be added in one place and missed in the other. */
+/** The class that colours each rung. Kept beside `roleLabel` so a new rung
+    cannot be added in one place and missed in the other. */
 const ROLE_CLASS = { MASTER: "is-master", ADMIN: "is-admin", USER: "is-user" };
-
-const roleTag = (user) =>
-  `<span class="access-role ${ROLE_CLASS[roleLabel(user)]}">${roleLabel(user)}</span>`;
 
 const grantBtn = (id, attr, value, label) =>
   `<button class="role-btn" data-user-id="${id}" data-${attr}="${value}">${label}</button>`;
@@ -147,6 +141,7 @@ export async function loadUsers() {
 
     tbody.innerHTML = d.users.map((u) => {
       const isSelf = Number(u.id) === Number(selfId);
+      const role = roleLabel(u);
       /* An unconfirmed address is why that account cannot sign in, and why a
          password reset would be mailed somewhere nobody has proved they read.
          Both questions get asked at this table, so the answer belongs in it. */
@@ -157,13 +152,13 @@ export async function loadUsers() {
          cells inherit it, dimmed ones included; the pills and the buttons keep
          their own colours, being controls rather than data. */
       return `
-      <tr class="role-row ${ROLE_CLASS[roleLabel(u)]}">
+      <tr class="role-row ${ROLE_CLASS[role]}">
         <td data-label="ACCOUNT">${escapeHtml(u.username)}</td>
         <td class="td-dim" data-label="EMAIL">${escapeHtml(u.email)}${verify}</td>
         <td class="col-lo" data-label="SQUAD">${fmtNum(u.playerCount)}</td>
         <td class="col-lo" data-label="PLANS">${fmtNum(u.planCount)}</td>
         <td class="td-dim col-mid" data-label="JOINED">${fmtDate(u.created_at)}</td>
-        <td data-label="ACCESS">${roleTag(u)}</td>
+        <td data-label="ACCESS"><span class="access-role ${ROLE_CLASS[role]}">${role}</span></td>
         <td data-label="ACTIONS">${canManage ? actionsCell(u, isSelf) : ""}</td>
         <td class="col-you" data-label="">${isSelf ? `<span class="role-pill is-you">YOU</span>` : ""}</td>
       </tr>`;

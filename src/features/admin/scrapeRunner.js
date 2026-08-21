@@ -121,8 +121,8 @@ export async function startScrape(mode) {
     run.endedAt = Date.now();
     run.exitCode = code;
     pushLine(run, run.stopped
-      ? "■ Stopped. The next run resumes from where this one left off."
-      : code === 0 ? "✅ Finished." : `Exited with ${signal || `code ${code}`}.`);
+      ? "STOPPED  The next run resumes from where this one left off."
+      : code === 0 ? "DONE  Finished." : `Exited with ${signal || `code ${code}`}.`);
   });
 
   return { ok: true };

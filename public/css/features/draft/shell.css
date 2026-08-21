@@ -75,10 +75,6 @@
   background: var(--bg);
 }
 
-.error-state-icon {
-  display: none !important;
-}
-
 .error-title {
   margin: 2px 0 0;
   font-family: var(--font-display);
@@ -254,7 +250,7 @@
 
 /* Abandoned */
 
-.abandoned-icon { font-size: 40px; margin-bottom: 8px; }
+.abandoned-icon { display: block; color: var(--text-muted); margin-bottom: 8px; }
 
 .abandoned-title {
   font-family: var(--font-display);

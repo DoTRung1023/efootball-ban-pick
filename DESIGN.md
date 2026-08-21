@@ -313,6 +313,62 @@ want `--radius`.
 
 ---
 
+## 5a. Icons
+
+**Every icon in the app is a `<symbol>` in `public/icons/sprite.svg`, and nothing
+else draws one.** There is no icon inside a page, a stylesheet or a template
+string; a site names one:
+
+```html
+<svg width="14" height="14" viewBox="0 0 24 24"><use href="/icons/sprite.svg#plus" /></svg>
+```
+
+```js
+import { icon } from "@/shared/icons/icon.js";
+icon("check", { size: 13, className: "sort-check" })
+```
+
+The set is **Feather (MIT)**: 24×24, monoline, `stroke="currentColor"`, no fill,
+`fill="none"`. Keep new icons in that family.
+
+**What belongs to the sprite, and what belongs to the site:**
+
+| The sprite decides | The site decides |
+| --- | --- |
+| geometry, `viewBox` | `width`/`height` — one number, icons are square |
+| `stroke-width` | `class`, and the colour it inherits |
+
+`stroke-width` is the important half of that split. It used to be written per
+site, across 83 inline copies of 26 actual shapes, and it drifted exactly as you
+would expect: close at 2.5 **and** 3, search at 2.5 **and** 2, grid at 2 **and**
+1.5 — the same icon at two weights on one screen, with no way to fix it in one
+place. Do not put `stroke`, `fill` or `stroke-width` back on a call site.
+
+**No `stroke-linecap` / `stroke-linejoin`.** The set has always rendered with
+butt caps and miter joins. Adding round would restyle every icon at once.
+
+**Colour comes from `currentColor`**, so an icon is whatever colour the thing it
+sits in is — which keeps icons inside §3 and out of the token file's way. Do not
+give an icon a colour of its own.
+
+**One icon is allowed to stay inline, and it is not a grandfather clause.**
+`.room-chat-icon` is two-tone — `shell.css` colours its `path` and its `circle`
+separately — and a sprite `<use>` renders into a shadow tree that a page's CSS
+selectors cannot reach. Any icon needing more than one colour has the same
+problem and the same answer. Everything else goes in the sprite.
+
+**No emoji.** A pictograph is somebody else's art, it renders differently on
+every platform, and it cannot take a token colour. The UI had three (⛔ 🏆 🔒)
+and has none. Monochrome typographic marks are not emoji and are fine where an
+icon would be heavier than the job: `content: "✓"` on a pseudo-element, the
+`↑`/`↓` sort-direction glyphs.
+
+`npm run check` fails on a `<use>` naming a symbol the sprite does not define,
+on a symbol nothing uses, and on a site that draws its own geometry — see
+`.claude/rules/checks.md`.
+
+---
+
 ## 6. Spacing
 
 - **40px** between major sections.

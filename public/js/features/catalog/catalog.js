@@ -1,6 +1,7 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
 import { hasFullOvrPair, ovrPairInnerHtml } from './ovr.js';
+import { icon } from '@/shared/icons/icon.js';
 import { posClass } from '@/shared/players/positions.js';
 import { SORT_CATEGORIES } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
@@ -184,8 +185,8 @@ function makeCatalogRow(player) {
   addBtn.className = `cr-add-btn ${isAdded ? "added" : ""}`;
   addBtn.title     = isAdded ? "Remove from team" : "Add to team";
   addBtn.innerHTML = isAdded
-    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
-    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    ? icon("check")
+    : icon("plus");
 
   addBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -262,7 +263,7 @@ function markAdded(btn, pesdbId) {
   btn.disabled  = false;
   btn.className = "cr-add-btn added";
   btn.title     = "Remove from team";
-  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+  btn.innerHTML = icon("check");
   catalog.addedPesdbIds.add(String(pesdbId));
 }
 
@@ -270,7 +271,7 @@ function markRemoved(btn, pesdbId) {
   btn.disabled  = false;
   btn.className = "cr-add-btn";
   btn.title     = "Add to team";
-  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  btn.innerHTML = icon("plus");
   catalog.addedPesdbIds.delete(String(pesdbId));
 }
 
@@ -328,9 +329,7 @@ function buildSortPanel() {
     item.className    = `sort-option${cat.key === catalog.sortCategory ? " active" : ""}`;
     item.dataset.sort = cat.key;
     item.innerHTML    = `<span>${cat.label}</span>
-      <svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>`;
+      ${icon("check", { size: 13, className: "sort-check" })}`;
     item.addEventListener("click", () => {
       applySort(cat.key);
       closeDdPanel("sortPanel", "sortDropBtn", "sortDropWrap");

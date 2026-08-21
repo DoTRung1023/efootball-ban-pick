@@ -22,6 +22,7 @@
 
 import { escapeHtml } from "./playerMeta.js";
 
+import { icon } from "@/shared/icons/icon.js";
 const POS_LIST = ["GK","CB","LB","RB","DMF","CMF","LMF","RMF","AMF","LWF","RWF","SS","CF"];
 
 /** The six sets and twelve scalar fields every filter state object carries. */
@@ -208,7 +209,7 @@ function wireAttributeMultiselects(panel, optionsByKey, configs) {
 /* ── markup ─────────────────────────────────────────────────────── */
 
 const chevron =
-  `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+  icon("chevron-down", { size: 11 });
 
 const multiselect = (wrapId, btnId, labelId, panelId, allLabel) => `
     <div class="pos-multiselect" id="${wrapId}">

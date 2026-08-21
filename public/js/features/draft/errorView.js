@@ -31,13 +31,11 @@ const ERROR_VIEW_MODIFIERS = [
  * @param {object}  o
  * @param {string?} o.modifier  one of ERROR_VIEW_MODIFIERS, or null for none
  * @param {string?} o.title     heading text; null hides the heading
- * @param {string|boolean} o.icon  a glyph to set, `true` to reveal whatever the
- *                                 markup already has, `false` to hide it
  * @param {string}  o.leaveText button label
  * @param {string?} o.message   body text; null leaves it untouched
  * @param {boolean} o.show      call showView("viewError") — default true
  */
-export function paintErrorView({ modifier = null, title = null, icon = false, leaveText, message = null, show = true }) {
+export function paintErrorView({ modifier = null, title = null, leaveText, message = null, show = true }) {
   const view = document.getElementById("viewError");
   if (view) {
     view.classList.remove(...ERROR_VIEW_MODIFIERS);
@@ -48,12 +46,6 @@ export function paintErrorView({ modifier = null, title = null, icon = false, le
   if (titleEl) {
     if (title) titleEl.textContent = title;
     titleEl.hidden = !title;
-  }
-
-  const iconEl = document.getElementById("errorStateIcon");
-  if (iconEl) {
-    if (typeof icon === "string" && icon) iconEl.textContent = icon;
-    iconEl.hidden = !icon;
   }
 
   const btn = document.getElementById("errorLeaveBtn");

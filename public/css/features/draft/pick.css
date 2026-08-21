@@ -1059,8 +1059,8 @@
 }
 
 .pick-opp-locked-icon {
-  font-size: 20px;
-  line-height: 1;
+  display: block;
+  color: var(--text-muted);
   opacity: 0.7;
 }
 

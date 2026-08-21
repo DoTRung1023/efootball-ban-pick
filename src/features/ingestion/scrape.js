@@ -130,7 +130,7 @@ async function fetchHTML(url, attempt = 1) {
     if (attempt < RETRY_MAX && isRetryableFetchError(err)) {
       const exp    = Math.min(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), 60_000);
       const wait   = exp + Math.floor(Math.random() * 750);
-      process.stdout.write(`\n  ⚠ network error – waiting ${Math.round(wait / 1000)}s…\n`);
+      process.stdout.write(`\n  WARN  network error – waiting ${Math.round(wait / 1000)}s…\n`);
       await sleep(wait);
       return fetchHTML(url, attempt + 1);
     }
@@ -140,7 +140,7 @@ async function fetchHTML(url, attempt = 1) {
 
   if (res.status === 429) {
     const wait = Math.min(attempt * 15_000, 60_000);
-    process.stdout.write(`\n  ⚠ 429 – waiting ${wait / 1000}s…\n`);
+    process.stdout.write(`\n  WARN  429 – waiting ${wait / 1000}s…\n`);
     await sleep(wait);
     if (attempt < RETRY_MAX) return fetchHTML(url, attempt + 1);
     throw new Error("Rate-limited after max retries. Run again in a few minutes.");
@@ -340,7 +340,7 @@ async function enrichBatch(players) {
       await pacePlayerRate();
       try { return await enrichPlayer(p.pesdb_id); }
       catch (err) {
-        console.error(`\n  ⚠ detail fetch failed (id ${p.pesdb_id}): ${err.message}`);
+        console.error(`\n  WARN  detail fetch failed (id ${p.pesdb_id}): ${err.message}`);
         return null;
       }
     }),
@@ -348,7 +348,7 @@ async function enrichBatch(players) {
 }
 
 async function backupCatalog() {
-  console.log("💾 Backing up players_catalog → players_catalog_backup…");
+  console.log("BACKUP  Backing up players_catalog → players_catalog_backup…");
   await db.query("DROP TABLE IF EXISTS players_catalog_backup");
   await db.query("CREATE TABLE players_catalog_backup AS SELECT * FROM players_catalog");
   const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM players_catalog_backup");
@@ -448,13 +448,13 @@ function writeProgressLine(done, total, page, elapsedSec) {
 // ─── Full scrape ─────────────────────────────────────────────────────────────
 
 async function runFull(logId, resumeState) {
-  console.log("📦 Mode: FULL  (list by overall_rating + Dream Team detail per player)");
+  console.log("MODE  Mode: FULL  (list by overall_rating + Dream Team detail per player)");
 
   let firstHTML = null;
   try {
     firstHTML = await fetchHTML(pageURL(1));
   } catch (err) {
-    console.error(`\n  ⚠ list fetch failed (page 1): ${err.message}`);
+    console.error(`\n  WARN  list fetch failed (page 1): ${err.message}`);
   }
 
   const total    = firstHTML ? detectTotal(firstHTML) : null;
@@ -478,7 +478,7 @@ async function runFull(logId, resumeState) {
       try {
         html = await fetchHTML(pageURL(nextPage));
       } catch (err) {
-        console.error(`\n  ⚠ list fetch failed (page ${nextPage}): ${err.message}`);
+        console.error(`\n  WARN  list fetch failed (page ${nextPage}): ${err.message}`);
         await sleep(PAGE_DELAY_MS);
         continue;
       }
@@ -489,18 +489,18 @@ async function runFull(logId, resumeState) {
     if (list.length === 0) {
       let recovered = false;
       for (let a = 1; a <= EMPTY_PAGE_RETRY_MAX; a++) {
-        process.stdout.write(`\n  ⚠ empty page ${nextPage} – retry ${a}/${EMPTY_PAGE_RETRY_MAX}…\n`);
+        process.stdout.write(`\n  WARN  empty page ${nextPage} – retry ${a}/${EMPTY_PAGE_RETRY_MAX}…\n`);
         await sleep(EMPTY_PAGE_RETRY_DELAY_MS * a);
         try {
           const retryHTML = await fetchHTML(pageURL(nextPage));
           list = parsePlayers(retryHTML);
           if (list.length > 0) { recovered = true; break; }
         } catch (err) {
-          console.error(`  ⚠ list fetch failed (page ${nextPage}, retry ${a}): ${err.message}`);
+          console.error(`  WARN  list fetch failed (page ${nextPage}, retry ${a}): ${err.message}`);
         }
       }
       if (!recovered) {
-        console.error(`\n  ⚠ giving up on empty page ${nextPage}; continuing…`);
+        console.error(`\n  WARN  giving up on empty page ${nextPage}; continuing…`);
         nextPage++;
         rowInPage = 0;
         await sleep(PAGE_DELAY_MS);
@@ -558,7 +558,7 @@ async function runIncremental(logId, cutoffId, lastFinishedAt = null, resumeStat
   const sinceDay = lastFinishedAt
     ? new Date(lastFinishedAt).toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
-  console.log(`📬 Mode: INCREMENTAL  (new players since ${sinceDay})`);
+  console.log(`MODE  Mode: INCREMENTAL  (new players since ${sinceDay})`);
   console.log(`   Cutoff pesdb_id: ${cutoffId.toLocaleString()}\n`);
 
   let buffer            = [];
@@ -576,7 +576,7 @@ async function runIncremental(logId, cutoffId, lastFinishedAt = null, resumeStat
       // sort=id DESC so newest (highest) IDs appear first
       html = await fetchHTML(pageURL(page, "id", true));
     } catch (err) {
-      console.error(`\n  ⚠ list fetch failed (page ${page}): ${err.message}`);
+      console.error(`\n  WARN  list fetch failed (page ${page}): ${err.message}`);
       await sleep(PAGE_DELAY_MS);
       continue;
     }
@@ -653,7 +653,7 @@ async function main() {
     // full uses `nextPage`, incremental uses `page`
     const page = savedState.nextPage ?? savedState.page ?? "?";
     const row  = (savedState.rowInPage ?? 0) > 0 ? `, row ${savedState.rowInPage}` : "";
-    console.log(`▶ Resuming interrupted ${savedState.mode} scrape (page ${page}${row})…`);
+    console.log(`RESUME  Resuming interrupted ${savedState.mode} scrape (page ${page}${row})…`);
   }
 
   const lastLog = await getLastLog();
@@ -689,7 +689,7 @@ async function main() {
       ? "No new players found."
       : `${result.totalUpserted.toLocaleString()} players upserted.`;
 
-  console.log(`\n✅ Done!  ${label}  (${elapsed}s)`);
+  console.log(`\nDONE  ${label}  (${elapsed}s)`);
 
   if (process.env.SCRAPE_SHOW_LOGS === "1") {
     const [logs] = await db.query(

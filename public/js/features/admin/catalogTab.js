@@ -17,6 +17,7 @@
    ============================================================ */
 
 import { CARD_IMG, escapeHtml } from "@/shared/players/playerMeta.js";
+import { icon } from "@/shared/icons/icon.js";
 import { SORT_CATEGORIES } from "@/shared/players/sort.js";
 import {
   buildPlayerFilterPanel,
@@ -53,17 +54,17 @@ function sortValue() {
   return state.sortDir === "asc" ? cat.ascVal : cat.descVal;
 }
 
-function catalogUrl(limit, offset) {
+function catalogUrl(offset) {
   const params = playerFilterParams(
     state,
-    new URLSearchParams({ limit, offset, sortBy: sortValue() }),
+    new URLSearchParams({ limit: PAGE_SIZE, offset, sortBy: sortValue() }),
   );
   if (state.search) params.set("q", state.search);
   return `/api/players?${params}`;
 }
 
-async function fetchPlayers(limit, offset) {
-  const r = await fetch(catalogUrl(limit, offset));
+async function fetchPlayers(offset) {
+  const r = await fetch(catalogUrl(offset));
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
   return d.players || [];
@@ -108,7 +109,7 @@ export async function loadCatalog() {
 
   const offset = state.page * PAGE_SIZE;
   try {
-    const players = await fetchPlayers(PAGE_SIZE, offset);
+    const players = await fetchPlayers(offset);
     const hasMore = players.length === PAGE_SIZE;
 
     el("catalogPrev").disabled = state.page === 0;
@@ -163,9 +164,7 @@ function buildSortPanel() {
     item.className = `sort-option${cat.key === state.sortCategory ? " active" : ""}`;
     item.dataset.sort = cat.key;
     item.innerHTML = `<span>${escapeHtml(cat.label)}</span>
-      <svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>`;
+      ${icon("check", { size: 13, className: "sort-check" })}`;
     item.addEventListener("click", () => {
       state.sortCategory = cat.key;
       updateSortUi();

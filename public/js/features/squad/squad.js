@@ -1,6 +1,7 @@
 import { CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
 import { bindPlayerHoverCard } from '@/shared/ui/playerHoverCard.js';
+import { icon } from '@/shared/icons/icon.js';
 import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
          tiebreakPositionLineThenName, compareByPositionLine } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState,
@@ -167,18 +168,12 @@ function renderSquad() {
     grid.innerHTML = `
       <div class="team-empty">
         <div class="team-empty-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
-          </svg>
+          ${icon("user-plus", { size: 30 })}
         </div>
         <h3>YOUR PLAYERS LIST IS EMPTY</h3>
         <p>Add players from the catalog to build your players list.</p>
         <button class="add-player-btn" id="emptyAddBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
+          ${icon("plus")}
           ADD PLAYER
         </button>
       </div>`;
@@ -216,8 +211,7 @@ function makeSquadCard(player) {
   const delBtn = document.createElement("button");
   delBtn.className  = "pc-delete-btn";
   delBtn.title      = "Remove player";
-  delBtn.innerHTML  = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  delBtn.innerHTML  = icon("close", { size: 10 });
   delBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     deletePlayers([player.id]);
@@ -355,7 +349,7 @@ function buildSquadSortPanel() {
     item.className  = `sort-option squad-sort-option${cat.key === squad.sortKey ? " active" : ""}`;
     item.dataset.sort = cat.key;
     item.innerHTML  = `<span>${cat.label}</span>
-      <svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+      ${icon("check", { size: 13, className: "sort-check" })}`;
     item.addEventListener("click", () => {
       squad.sortKey = cat.key;
       updateSquadSortUI();

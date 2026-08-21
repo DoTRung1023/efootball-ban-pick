@@ -348,7 +348,6 @@ export function initLobby() {
     paintErrorView({
       modifier: null,
       title: null,
-      icon: false,
       leaveText: "Leave room",
       message: "Invalid room code.",
     });

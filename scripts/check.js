@@ -33,8 +33,9 @@ import * as domIds from "./checks/domIds.js";
 import * as debugLeftovers from "./checks/debugLeftovers.js";
 import * as deadCss from "./checks/deadCss.js";
 import * as infoToggle from "./checks/infoToggle.js";
+import * as icons from "./checks/icons.js";
 
-const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle];
+const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle, icons];
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Everything the checks share, gathered once. */
@@ -101,9 +102,17 @@ const FIXTURE = {
 <script type="module" src="/js/pages/home.js"></script>
 </head><body>
 <div id="grid" class="thing-card"></div>
+<svg width="14" height="14" viewBox="0 0 24 24"><use href="/icons/sprite.svg#plus" /></svg>
 <a href="/about">about</a>
 <div class="player-grid info-hidden"><div class="pc-footer"></div></div>
 </body></html>`,
+
+  "public/icons/sprite.svg":
+    `<svg xmlns="http://www.w3.org/2000/svg">\n` +
+    `  <symbol id="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">\n` +
+    `    <line x1="12" y1="5" x2="12" y2="19" />\n` +
+    `    <line x1="5" y1="12" x2="19" y2="12" />\n` +
+    `  </symbol>\n</svg>\n`,
 
   "public/css/app.css":
     `.thing-card { color: red; }\n` +
@@ -186,6 +195,13 @@ const DEFECTS = [
     file: "public/js/features/thing/thing.js",
     from: "export function initThing() {",
     to: "export function initThing() {\n  console.log('here');",
+  },
+  {
+    expect: "icons",
+    what: "a <use> naming a symbol the sprite does not define",
+    file: "public/home.html",
+    from: 'sprite.svg#plus',
+    to: 'sprite.svg#pluss',
   },
   {
     expect: "dead-css",

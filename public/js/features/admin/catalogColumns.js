@@ -14,9 +14,8 @@
    that fails leaves the table as chosen rather than snapping back — so the
    server is where it is saved, not where it is read from on every render.
 
-   `key` is the key the API returns; one row here describes the column
-   everywhere it appears. Each also carried a `csv` header while the tab had an
-   export button — that went with the button, since nothing else read it.
+   `key` is the key the API returns, so one row here describes the column
+   everywhere it appears.
    ============================================================ */
 
 import { apiFetch, apiSend } from "./adminApi.js";
@@ -26,7 +25,7 @@ const SETTING_KEY = "catalogColumns";
    while you pick, so the debounce is generous. */
 const SAVE_DEBOUNCE_MS = 500;
 
-/** `render` receives the raw value and the whole row; it returns cell HTML. */
+/** `fixed` cannot be switched off; `on` is in the default selection. */
 export const CATALOG_COLUMNS = [
   { key: "rank",          label: "#",             fixed: true },
   { key: "name",          label: "PLAYER",        fixed: true },

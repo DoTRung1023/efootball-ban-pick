@@ -628,6 +628,14 @@ body {
   border-style: dashed;
 }
 
+/* YOU, on your own row. Neutral for the same reason UNCONFIRMED is: the accent
+   is already spent on the ACCESS word and the master row's tint. */
+.role-pill.is-you {
+  margin-left: 0;
+  background: var(--fill);
+  color: var(--text);
+}
+
 /* ── Access column ──────────────────────────────────────────── */
 .role-btn {
   font-family: var(--font-main);
@@ -720,20 +728,8 @@ body {
 .role-slot { display: block; min-width: 0; }
 .role-slot .role-btn { width: 100%; }
 
-/* ── Your own row ───────────────────────────────────────────── */
-/* One badge in the last column, which is unheaded and takes whatever width the
-   row has left, so YOU lands against the right edge on every account instead of
-   at a different x per row. It reads as a note about the reader rather than as
-   part of the role, which is what `· YOU` inside the ACCESS cell could not do.
-
-   Neutral, like UNCONFIRMED: the accent is spent on the ACCESS word and the
-   master's row tint, and a second accent here would compete with it. */
-.role-pill.is-you {
-  margin-left: 0;
-  background: var(--fill);
-  color: var(--text);
-}
-
+/* Your own row, in the unheaded last column. That column takes whatever width
+   the row has left, so the badge lands at one x down the whole table. */
 .admin-table td.col-you,
 .admin-table th.col-you {
   text-align: right;

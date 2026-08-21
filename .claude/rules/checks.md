@@ -29,6 +29,7 @@ Exit codes: `0` clean, `1` a check failed, `2` the name you passed matches nothi
 | `debug-leftovers` | `debugger` and `console.log` in **client** code (`src/` prints legitimately) |
 | `dead-css` | class selectors no markup can match |
 | `info-toggle` | a SHOW INFO / HIDE INFO selector that resizes the card instead of just showing and hiding its footer |
+| `icons` | a `<use>` naming a symbol `public/icons/sprite.svg` does not define, a symbol nothing uses, and an `<svg>` that draws its own geometry instead of referencing the sprite |
 
 **Casing is the one that matters most.** macOS is case-insensitive and deployment
 is not, so `@/shared/ui/Toast.js` works on the dev machine and 404s in production.
@@ -44,7 +45,7 @@ was never actually measuring. **A green run only means something if the checks a
 still capable of going red.**
 
 `npm run check:self` builds a tiny fixture project in a temp dir, asserts all
-seven checks pass on it, then plants one defect at a time and asserts the matching
+nine checks pass on it, then plants one defect at a time and asserts the matching
 check catches it. If you add a check, add its defect to `DEFECTS` in
 `scripts/check.js` — a check with no defect entry is not covered, and the
 self-test will not tell you so.
@@ -81,6 +82,15 @@ self-test will not tell you so.
   exists, and both would be deliberate rather than the drift this catches.
   `display` is deliberately allowed — `display: none` on the footer *is* the
   mechanism.
+- `icons` is what makes referencing an icon by name safer than pasting its
+  geometry, and without it the swap would have been a downgrade: a wrong `#name`
+  renders **nothing at all**, silently, which is a failure mode the inline
+  version could not have had. It reads three ways — name used but undefined,
+  symbol defined but unused, geometry drawn outside the sprite — and the second
+  one earned its place on the first run, catching a symbol added for an emoji
+  that turned out to be dead code. Its one allowed inline exception
+  (`.room-chat-icon`, two-tone) is a named entry in the check, so adding another
+  means arguing for it in the source.
 - None of this checks behaviour. It cannot tell you the draft still works — for
   that, run one.
 

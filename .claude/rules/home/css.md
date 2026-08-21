@@ -29,7 +29,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
 - `squad.css` — `.main-content` (centered container, `max-width: 1400px; margin: 0 auto`
   — no `flex: 1`, that is owned by `.content-scroll` in `base.css`), tab panels, squad
   toolbar (search bar, sort/filter, select mode, empty state).
-- `plans.css` — game plans panel, plan cards, plan toolbar, plan detail modal.
+- `gamePlans.css` — game plans panel, plan cards, plan toolbar, plan detail modal.
   - **Plan detail columns**: `.plan-left-col` (Starting XI) `flex: 0 1 55%` — may shrink;
     `.plan-mid-col` (bench) `flex: 0 0 200px` — a **fixed** width, not a percentage,
     because the bench grid is 2 × 82 px and a percentage column clips the second card

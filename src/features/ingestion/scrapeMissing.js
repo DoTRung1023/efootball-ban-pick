@@ -29,7 +29,7 @@ async function fetchAllSiteIds() {
   const total     = detectTotal(firstHTML);
   const estPages  = total ? Math.ceil(total / 35) : 1300;
 
-  console.log(`🌐 Scanning list pages…`);
+  console.log(`SCAN  Scanning list pages…`);
   console.log(`   ${total?.toLocaleString() ?? "?"} players · ~${estPages} pages\n`);
 
   const ids = new Set();
@@ -41,7 +41,7 @@ async function fetchAllSiteIds() {
       html = await fetchHTML(pageURL(page));
     } catch (err) {
       // fetchHTML already retried internally (RETRY_MAX times) — skip this page.
-      console.error(`\n  ⚠ list fetch failed (page ${page}): ${err.message}`);
+      console.error(`\n  WARN  list fetch failed (page ${page}): ${err.message}`);
       await sleep(PAGE_DELAY);
       continue;
     }
@@ -50,17 +50,17 @@ async function fetchAllSiteIds() {
     if (list.length === 0) {
       let recovered = false;
       for (let attempt = 1; attempt <= EMPTY_PAGE_RETRIES; attempt++) {
-        process.stdout.write(`\n  ⚠ empty page ${page} – retry ${attempt}/${EMPTY_PAGE_RETRIES}…\n`);
+        process.stdout.write(`\n  WARN  empty page ${page} – retry ${attempt}/${EMPTY_PAGE_RETRIES}…\n`);
         await sleep(PAGE_DELAY * attempt);
         try {
           list = parsePlayers(await fetchHTML(pageURL(page)));
           if (list.length > 0) { recovered = true; break; }
         } catch (err) {
-          console.error(`  ⚠ fetch error on retry ${attempt}: ${err.message}`);
+          console.error(`  WARN  fetch error on retry ${attempt}: ${err.message}`);
         }
       }
       if (!recovered) {
-        console.error(`\n  ⚠ giving up on page ${page}; continuing…`);
+        console.error(`\n  WARN  giving up on page ${page}; continuing…`);
         continue;
       }
     }
@@ -92,13 +92,13 @@ async function main() {
   const missing = [];
   for (const id of siteIds) if (!dbIds.has(id)) missing.push(id);
 
-  console.log(`\n🔎 Diff`);
+  console.log(`\nDIFF  Diff`);
   console.log(`   Site ids: ${siteIds.size.toLocaleString()} (site says: ${siteTotal?.toLocaleString() ?? "?"})`);
   console.log(`   DB ids:   ${dbIds.size.toLocaleString()}`);
   console.log(`   Missing:  ${missing.length.toLocaleString()}\n`);
 
   if (missing.length === 0) {
-    console.log("✅ Nothing to do.");
+    console.log("DONE  Nothing to do.");
     await db.end();
     return;
   }
@@ -107,7 +107,7 @@ async function main() {
   let done      = 0;
   const startTime = Date.now();
 
-  console.log("🩹 Enriching missing players…\n");
+  console.log("FILL  Enriching missing players…\n");
 
   for (let bi = 0; bi < missing.length; bi += CONCURRENCY) {
     const batch   = missing.slice(bi, bi + CONCURRENCY).map((id) => ({ pesdb_id: id }));
@@ -131,7 +131,7 @@ async function main() {
 
   process.stdout.write("\n");
   const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`\n✅ Done!  Missing players processed: ${missing.length.toLocaleString()}  (${elapsed}s)`);
+  console.log(`\nDONE  Missing players processed: ${missing.length.toLocaleString()}  (${elapsed}s)`);
 
   await db.end();
 }

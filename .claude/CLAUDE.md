@@ -72,6 +72,11 @@ Code is grouped **by feature, not by file type**.
   reads its variables) and `shared/controls.css` **last**, because its focus ring has to
   beat the feature sheets that set `outline: none`; on the home page `responsive.css`
   still comes after it.
+- `public/icons/` — `sprite.svg`, **the** icon set: one `<symbol>` per icon and the
+  only place icon geometry or `stroke-width` is written. Sites reference it by name
+  (`<use href="/icons/sprite.svg#plus" />`); `public/js/shared/icons/icon.js` is the
+  same thing for the eighteen icons built inside template strings. `npm run check`
+  fails on a name the sprite does not define. See `DESIGN.md` §5a.
 - `scripts/` — `check.js` (the `npm run check` runner and its self-test) and
   `checks/`, one file per check plus a shared `lib.js`. Node-only tooling; it is
   not served, and the checks scan `public/js` and `src` but not themselves.
@@ -96,6 +101,12 @@ scales, elevation, motion, and copy-paste component recipes. Read it before writ
 CSS or markup with a visual result, and before acting on any "make it look better /
 more modern" request. Do not introduce a colour, radius, or spacing value that is not on
 one of its ladders.
+
+**All icons live in `public/icons/sprite.svg`** and are referenced by name — there
+is no `<svg>` with path data in a page, a stylesheet or a template string, and no
+emoji anywhere in the UI. `DESIGN.md` §5a says what the sprite owns (geometry,
+`stroke-width`) versus the call site (size, class, inherited colour), and names the
+one icon allowed to stay inline and why.
 
 **All colour lives in `public/css/shared/tokens.css`**, linked first on every page; there
 is no hex or `rgba()` literal anywhere else in the codebase, CSS or JS.

@@ -140,6 +140,7 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | OVERVIEW | four tiles, catalog health, last 8 scrape runs | 60 s |
 | ROOMS | live rooms, phase pill, idle time, WATCH button | 10 s |
 | USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
+| CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser | on activation |
 
 **The whole row is coloured by rung**: `tr.role-row.is-master` puts the accent on
 every cell, `.is-admin` full-strength text, `.is-user` the muted rung — so which
@@ -162,20 +163,16 @@ real values reads as missing data, when what it means is an account with no
 console access. The column header is **ACCOUNT**, not USER, so a plain row does
 not read `USER · USER`.
 
-**Your own row is marked by a YOU badge in a last, unheaded column** (`.col-you`,
-right-aligned, so the badge lands against the row's right edge on every account —
-measured 12px in at 1440 → 320). It was `· YOU` trailing the role, which put a
-fact about the *reader* inside the column that states the *account's* role. The
-badge is `.role-pill`, neutral like UNCONFIRMED: the accent is already spent on
-the ACCESS word and the master row's tint. In the card layout below 620px it
-drops its label gutter and the empty cell on everyone else's row is
-`display: none`, so only your card gains a line.
+**Your own row carries a YOU badge in a last, unheaded column** (`.col-you`,
+right-aligned so the badge sits at one x down the table). It was `· YOU` trailing
+the role, which put a fact about the *reader* in the column that states the
+*account's* role. Below 620px the cell drops its label gutter, and on everyone
+else's row it is `display: none` rather than an empty line in every card.
 
 **The USERS hint sits above the table, not below it** (`.panel-hint.is-top`). As a
 footer it sat under every row the table had drawn, which on an installation with
 a few hundred accounts is somewhere nobody scrolls to. The other two panels keep
 theirs at the foot, where their content is short and fixed.
-| CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
 `refreshMs` and skips entirely when `document.hidden`, so a background tab costs
@@ -195,14 +192,9 @@ not drift into offering different options. The filter→query-string mapping is
 `playerFilterParams`, extracted from `features/catalog/catalog.js` when this tab
 became its second caller.
 
-Columns are the console's own, in `catalogColumns.js`. `#` and PLAYER are fixed —
-a table you can hide the name from is a list of numbers — and the other fourteen
-are optional, defaulting to the eight the tab always showed. The choice lives in
-`sessionStorage`, the same store the console token uses, so it survives a reload
-and dies with the tab. A stored key naming a column this build no longer has is
-dropped on read. The tab **has no CSV export** — the button, `exportCsv`, and the
-per-column `csv` header it was the only reader of all went together; nothing on
-the page turns the table into a file.
+Columns are the console's own, in `catalogColumns.js`: `#` and PLAYER fixed, the
+other fourteen optional and eight of them on by default. Where the selection is
+stored, and why, is **CATALOG columns belong to the account** below.
 
 With every column on, the table is wider than the panel. `.table-wrap` already
 had `overflow-x: auto`, but `.admin-table { width: 100% }` was squeezing the

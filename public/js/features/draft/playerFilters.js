@@ -33,6 +33,7 @@ import {
   REGION_OPTIONS,
 } from "./constants.js";
 import { LEAGUE_OPTIONS } from "./filterOptions.js";
+import { icon } from "@/shared/icons/icon.js";
 import { getPlayerCardValue } from "./players.js";
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 
@@ -178,7 +179,7 @@ function multiSectionHtml(st, prefix, f) {
       <div class="pos-multiselect">
         <button class="pos-ms-btn ${selected.length ? "has-pos-filter" : ""}" id="${msBtnId(prefix, f.id)}" type="button">
           <span>${escapeHtml(msLabel(selected, f.allText, f.max))}</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          ${icon("chevron-down", { size: 11 })}
         </button>
         <div class="pos-ms-panel" id="${msPanelId(prefix, f.id)}" data-options="${escapeHtml(optionsKey(f))}">${msItemsHtml(f.options(), selected, `${prefix}-${f.attr}`)}</div>
       </div>

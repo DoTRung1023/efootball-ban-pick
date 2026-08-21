@@ -355,7 +355,7 @@ hidden input behind the BAN PER SIDE stepper) was not covered by any of the four
 old blocks and now is. It is `hidden` / `display: none`, so this is invisible —
 verified as the only element that changed.
 
-## Parity with `home/catalog.css`
+## Parity with `features/catalog/catalog.css`
 
 The ban page uses `.ap-dd-btn`, `.sort-dir-btn`, `.filter-input`, `.range-pair`,
 `.filter-clear-btn`, `.filter-group-label` etc. These are defined in `ban.css` and kept

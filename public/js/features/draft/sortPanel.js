@@ -17,6 +17,7 @@
    ============================================================ */
 
 import { SORT_CATEGORIES } from "@/shared/players/sort.js";
+import { icon } from "@/shared/icons/icon.js";
 import { escapeHtml } from "./utils.js";
 
 /**
@@ -34,7 +35,7 @@ export function sortCategoryLabel(key) {
 
 /** The check mark used by every sort panel in the app. */
 const CHECK_SVG =
-  `<svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+  icon("check", { size: 13, className: "sort-check" });
 
 /**
  * Fills a sort panel. `dataAttr` is the attribute the phase's click handler

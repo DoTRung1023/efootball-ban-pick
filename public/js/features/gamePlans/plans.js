@@ -7,6 +7,7 @@ import { SORT_CATEGORIES, tiebreakOverallDescThenName, ovrMaxForSort,
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
          getPlayerFilterOptions } from '@/shared/players/filterPanel.js';
 import { getUser } from '@/shared/lib/session.js';
+import { icon } from '@/shared/icons/icon.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { showConfirm } from '@/shared/ui/confirm.js';
 import { closeDdPanel, toggleDdPanel } from '@/shared/ui/dropdown.js';
@@ -142,10 +143,7 @@ function renderPlansGrid(userId) {
     grid.innerHTML = `
       <div class="plans-empty">
         <div class="plans-empty-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-          </svg>
+          ${icon("grid", { size: 28 })}
         </div>
         <h3>NO GAME PLANS YET</h3>
         <p>Click <strong>NEW PLAN</strong> to create your first game plan.</p>
@@ -162,11 +160,7 @@ function renderPlansGrid(userId) {
     card.innerHTML = `
       <div class="plan-checkbox"></div>
       <button class="plan-delete-btn" title="Delete plan" aria-label="Delete plan">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-        </svg>
+        ${icon("trash", { size: 13 })}
       </button>
       <div class="plan-name">${escapeHtml(plan.name)}</div>
       <div class="plan-formation-tag">${escapeHtml(normalizeFormation(plan.formation))}</div>
@@ -441,9 +435,7 @@ function makePitchSlotEl(slot, player, posLabel) {
         <img class="pitch-card-img" src="${hasImg ? CARD_IMG(player.pesdb_id) : ANON_PLAYER_IMG}" loading="lazy"
              onerror="if(this.dataset.fallbackApplied==='1')return;this.dataset.fallbackApplied='1';this.src='${ANON_PLAYER_IMG}';" alt="" />
         <button class="pitch-remove-btn" title="Remove">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          ${icon("close", { size: 9 })}
         </button>
       </div>`;
     el.querySelector(".pitch-remove-btn").addEventListener("click", (e) => {
@@ -475,9 +467,7 @@ function makeBenchSlotEl(slot, player, posLabel) {
         <img class="pitch-card-img" src="${hasImg ? CARD_IMG(player.pesdb_id) : ANON_PLAYER_IMG}" loading="lazy"
              onerror="if(this.dataset.fallbackApplied==='1')return;this.dataset.fallbackApplied='1';this.src='${ANON_PLAYER_IMG}';" alt="" />
         <button class="pitch-remove-btn" title="Remove">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          ${icon("close", { size: 9 })}
         </button>
       </div>`;
     el.querySelector(".pitch-remove-btn").addEventListener("click", (e) => {
@@ -653,7 +643,7 @@ function buildPpSortPanel() {
     item.className    = `sort-option pp-sort-opt${key === ppState.sortCategory ? " active" : ""}`;
     item.dataset.sort = key;
     item.innerHTML    = `<span>${label}</span>
-      <svg class="sort-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+      ${icon("check", { size: 13, className: "sort-check" })}`;
     item.addEventListener("click", () => {
       ppState.sortCategory = key;
       updatePpSortUI();

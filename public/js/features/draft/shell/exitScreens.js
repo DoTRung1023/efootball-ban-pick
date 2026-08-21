@@ -12,11 +12,10 @@ const EXIT_COUNTDOWN_SECONDS = 10;
 /**
  * Shows #viewError with a countdown that returns the user to the home page.
  * `message(secs)` renders the body text for each remaining second.
- * `icon` is a glyph, or `true` to keep whatever the markup already shows.
  * `note` is repeated on the page the countdown lands on — this screen explains
  * itself, the home page does not, and nobody chose to be sent there.
  */
-function showExitCountdown({ title, icon, message, note }) {
+function showExitCountdown({ title, message, note }) {
   /* The room is over and the countdown is already walking the user out — both
      it and "Back to home" would otherwise trip the unload guard, which still
      sees the phase the room was in when it ended. */
@@ -32,7 +31,6 @@ function showExitCountdown({ title, icon, message, note }) {
   paintErrorView({
     modifier: "is-room-closed",
     title,
-    icon,
     leaveText: "Back to home",
     message: message(secs),
   });
@@ -55,7 +53,6 @@ function showExitCountdown({ title, icon, message, note }) {
 export function showRoomClosed(message = "Room is closed.") {
   showExitCountdown({
     title: "Room closed",
-    icon: true, // keep the glyph the markup already carries
     message: (secs) => `${message} Returning to home in ${secs}s…`,
     note: message,
   });
