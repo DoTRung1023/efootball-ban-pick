@@ -44,12 +44,15 @@
     <div id="dashboard" class="dashboard" hidden>
 
       <nav class="admin-nav">
+        <!-- The same wordmark the home topbar wears, at the same sizes: this is
+             the same app, and a masthead of its own would read as a different
+             product. CONSOLE beside it is what says which page you are on. -->
         <div class="admin-nav-brand">
-          <img src="/logo/logo.png" alt="logo" class="admin-nav-logo" />
-          <div>
+          <div class="admin-brand-mark">
             <span class="brand-game">eFOOTBALL</span>
-            <span class="brand-sub">CONSOLE</span>
+            <span class="brand-sub">BAN &amp; PICK</span>
           </div>
+          <span class="admin-brand-tag">CONSOLE</span>
         </div>
         <div class="admin-nav-tabs">
           <button class="admin-tab is-active" data-tab="overview">OVERVIEW</button>
@@ -61,6 +64,9 @@
           <span class="admin-badge">
             <span class="admin-dot"></span>
             <span id="adminUser">ADMIN</span>
+            <!-- MASTER or ADMIN, filled by the gate from the session it opened.
+                 Hidden until then so it cannot flash a role nobody has. -->
+            <span class="admin-role" id="adminRole" hidden></span>
           </span>
           <button id="exitConsoleBtn" class="btn btn--ghost btn--sm">EXIT</button>
         </div>

@@ -16,7 +16,7 @@
    can reveal it.
    ============================================================ */
 
-import { clearToken, openSession, resumeSession } from "./adminApi.js";
+import { clearToken, isSessionMaster, openSession, resumeSession } from "./adminApi.js";
 
 /**
  * Opens the dashboard, once.
@@ -30,6 +30,15 @@ function reveal(username) {
   if (!overlay) return false;
   overlay.remove();
   document.getElementById("adminUser").textContent = (username || "ADMIN").toUpperCase();
+
+  /* Which of the two kinds of admin you are, beside your name — the USERS tab
+     shows a plain admin the same table with the controls replaced by labels,
+     and this is what says why. Read from the session both callers have already
+     opened, not from `efb_user`, which is unsigned and only a display hint. */
+  const role = document.getElementById("adminRole");
+  role.textContent = isSessionMaster() ? "MASTER" : "ADMIN";
+  role.hidden = false;
+
   document.getElementById("dashboard").hidden = false;
   return true;
 }

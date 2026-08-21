@@ -177,10 +177,43 @@ body {
   flex-shrink: 0;
 }
 
-.admin-nav-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+/* The home topbar's wordmark, reproduced rather than shared: there is no
+   bundler, so `pages/home/base.css` is not on this page and its `.topbar-brand`
+   rule is not available here. The two must be changed together — the point of
+   these four declarations is that they equal home's. */
+.admin-brand-mark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.admin-nav-brand .brand-game {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.admin-nav-brand .brand-sub {
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Which page you are on. Deliberately **not** the accent: on this page the
+   accent belongs to `.btn--primary` (DESIGN.md §9), and a masthead that wore it
+   would take it from whatever action the current tab is offering. Weight and a
+   filled chip carry it instead. */
+.admin-brand-tag {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  background: var(--fill-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  white-space: nowrap;
 }
 
 .admin-nav-tabs {
@@ -226,6 +259,19 @@ body {
   border-radius: var(--radius-sm);
   padding: 4px 10px;
 }
+
+/* The role beside the name. Neutral for the same reason as the tag above, and
+   because this badge is on screen for every tab while the USERS table spends
+   the accent on its own MASTER pills — two accents on one screen otherwise. */
+.admin-role {
+  padding-left: 7px;
+  border-left: 1px solid var(--line-hover);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.admin-role[hidden] { display: none; }
 
 .admin-dot {
   width: 7px;
@@ -968,16 +1014,13 @@ body {
   .rd-grid { grid-template-columns: 1fr; }
   .rd-facts--wide { grid-template-columns: auto 1fr; }
   .rd-overlay { padding: 12px 8px; }
-  .admin-nav { gap: 12px; padding: 0 12px; }
-  .admin-nav-brand div { display: none; }
-  .panel-actions { flex-wrap: wrap; justify-content: flex-end; }
-  .search-input { width: 100%; }
-}
-
-/* Below this the three nav blocks no longer fit on one line, so the tab strip
-   takes a row of its own and scrolls sideways. It used to be `display: none`,
-   which left the console unnavigable on a phone. */
-@media (max-width: 600px) {
+  .admin-nav { gap: 12px; }
+  /* **The tab strip takes a row of its own from here down, not from 600.** This
+     rung used to hide the wordmark and leave a 28px logo in the corner, which
+     is the only reason brand + tabs + account ever fit on one 700px line. With
+     the home wordmark there instead, they do not: measured at 700 the account
+     badge and EXIT ran 88px past the edge. The rung the wrap belongs at is the
+     width where the three blocks stop fitting, and that width moved. */
   .admin-nav {
     height: auto;
     flex-wrap: wrap;
@@ -992,7 +1035,36 @@ body {
   }
   .admin-nav-tabs::-webkit-scrollbar { display: none; }
   .admin-nav-right { margin-left: auto; }
+  /* The same trim the home topbar makes at 768, made here at the width where
+     this nav goes compact: the wordmark shrinks and its second line goes, which
+     is what keeps the account badge beside the brand rather than on a third
+     row of its own. */
+  .admin-nav-brand .brand-game { font-size: 20px; }
+  .admin-nav-brand .brand-sub { display: none; }
+  .panel-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .search-input { width: 100%; }
+}
+
+/* The nav wrap that used to live here moved up to 700 — see the note there.
+   What is left is panel density, which is a different question to nav fit. */
+@media (max-width: 600px) {
   .stats-row { grid-template-columns: 1fr 1fr; }
   .tab-panel { padding: 12px; gap: 12px; }
   .stat-value { font-size: 28px; }
+}
+
+/* A phone. Measured at 320 the wordmark, the account badge and EXIT do not fit
+   on one row together, and the nav grew a third one; CONSOLE alone is what the
+   corner is for at this width, and it is the half that says where you are.
+   480 rather than a rung of this sheet's own: it is the number the home
+   topbar and the sign-in card already break at. */
+@media (max-width: 480px) {
+  .admin-brand-mark { display: none; }
+  /* Measured at 320: CONSOLE, the account badge and EXIT came to ~317px inside
+     a 296px content box, so the badge and EXIT took a third row. These three
+     give back ~21px between them — the pulsing dot is decoration, and the two
+     paddings are the cheapest px on the row. */
+  .admin-nav { padding: 10px 8px; }
+  .admin-dot { display: none; }
+  .admin-badge { padding: 4px 8px; }
 }

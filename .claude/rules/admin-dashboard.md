@@ -333,9 +333,40 @@ once and the console was one long scroll with a tab bar that appeared to do
 nothing. `features/draft/base.css` carries the same rule for the same reason.
 Never style a panel's `display` without checking which of the two wins.
 
-Breakpoints: `1100 → 860 → 700 → 600`. At 600 the nav wraps and **the tab strip
-takes a row of its own and scrolls sideways** — it used to be `display: none`,
-which left the console with no navigation at all on a phone.
+Breakpoints: `1100 → 860 → 700 → 600 → 480`. **At 700** the nav wraps and the tab
+strip takes a row of its own and scrolls sideways — it used to be `display: none`,
+which left the console with no navigation at all on a phone. That wrap lived at
+600 while the brand was a 28px logo with the wordmark hidden; the home wordmark is
+wider, and at 700 the account badge and EXIT measured 88px past the edge. **The
+rung belongs at the width where the three nav blocks stop fitting, and that width
+moved with the brand.** 700 also trims the wordmark to 20px and drops its second
+line, the way the home topbar does at 768.
+
+**480 is the phone rung** (the number home and sign-in already use, not one of this
+sheet's own): the wordmark goes entirely and the CONSOLE tag is the corner, and the
+badge gives back ~21px — its pulsing dot and two paddings — because at 320 the tag,
+badge and EXIT came to ~317px inside a 296px content box and took a third row.
+
+## The masthead says which page this is
+
+`.admin-nav-brand` reproduces the home topbar's wordmark — same 22px/12px stack,
+no image — with a `.admin-brand-tag` reading CONSOLE beside it, and the account
+badge carries `#adminRole` (MASTER or ADMIN) next to the name. Two consequences
+worth keeping:
+
+- **The wordmark is a copy, not a shared rule.** There is no bundler, so
+  `pages/home/base.css` is not on this page and `.topbar-brand` is unavailable
+  here. The four declarations under `.admin-nav-brand` exist to equal home's;
+  change one and change the other.
+- **Neither the tag nor the role wears the accent.** On this page the accent
+  belongs to `.btn--primary` (DESIGN.md §9), and the USERS tab already spends it
+  on the MASTER pills in its own table — a masthead that wore it too would leave
+  three accented things on one screen. The tag is a filled neutral chip; the role
+  is dim text behind a hairline.
+
+`authGate.reveal` fills the role from `isSessionMaster()` — the session the gate
+just opened, re-read from the database server-side — and never from `efb_user`,
+which is unsigned and only ever a display hint.
 
 The data-quality bar is a true percentage with a 3 % floor so a handful of rows is
 still visible. It used to be scaled 8×, which drew a bar four times longer than the
