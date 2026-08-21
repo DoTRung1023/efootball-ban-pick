@@ -1,27 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   The project's icon set. One <symbol> per icon; nothing else draws an icon.
+  Feather (MIT) — keep new icons in that family. Full rules: DESIGN.md §5a.
 
   Used as:  <svg width="14" height="14" viewBox="0 0 24 24"><use href="/icons/sprite.svg#plus" /></svg>
   From JS:  icon("plus", { size: 14 })   —  @/shared/icons/icon.js
 
-  Size and class are the call site's; there is no wrapper class to remember.
+  This file owns geometry, viewBox and stroke-width. The call site owns size,
+  class, and the colour the icon inherits through `currentColor`. Do not put
+  stroke, fill or stroke-width back on a call site — that is how the inline
+  copies drifted to two weights of the same icon.
 
-  Rules for this file:
-  - 24x24 viewBox, monoline, `stroke="currentColor"` so the icon takes the
-    colour of whatever it sits in. No fill, no second colour, no hex — colour
-    is the caller's, and every colour in this project comes from tokens.css.
-  - `stroke-width` lives here and only here. It used to be written per site,
-    which is how close ended up at 2.5 and 3, search at 2.5 and 2, and grid at
-    2 and 1.5 — the same icon at two weights on the same screen.
-  - No stroke-linecap/linejoin: the set has always rendered with butt caps and
-    miter joins, and adding round here would restyle all 82 sites at once.
-  - Add an icon by adding a <symbol>. `npm run check` fails on a <use> whose
-    name is not in this file, so a typo cannot ship as a blank space.
-
-  Feather (MIT) is the source family; keep new icons in that style.
--->
-<svg xmlns="http://www.w3.org/2000/svg">
+  No stroke-linecap/linejoin: the set renders with butt caps and miter joins.
+--><svg xmlns="http://www.w3.org/2000/svg">
 
   <symbol id="chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
     <polyline points="6 9 12 15 18 9"/>

@@ -1170,15 +1170,6 @@ body {
 @media (max-width: 860px) {
   .panel-grid-2 { grid-template-columns: 1fr; }
   .search-input { width: 140px; }
-  /* **Columns leave in priority order, counts first.** Every one of these
-     tables sets `white-space: nowrap`, so a narrow viewport cannot shrink them
-     — it can only scroll them sideways, and a table you have to drag to read
-     is the thing being complained about. What goes is what a console can be
-     read without: SQUAD/PLANS on USERS, DURATION on the scrape log, IDLE on
-     rooms. Identity, state and the controls stay. */
-  /* Fixed slots are a wide-screen nicety; here the buttons take their own
-     width and the empty slots collapse. */
-  .role-actions { grid-template-columns: repeat(3, auto); }
 }
 
 @media (max-width: 700px) {
