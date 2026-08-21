@@ -548,6 +548,14 @@ body {
   display: flex;
   gap: var(--strip-gap);
   width: max-content;
+  /* Headroom for the hover scale. `.featured-strip` has to keep `overflow:
+     hidden` for the marquee, and it clips at its padding box — which without
+     this sat exactly on the cards' bottom edge, so a hovered card lost 2.5px
+     of itself. The padding goes on the track rather than on the strip so the
+     label above does not move, and it is vertical only: the loop shifts by a
+     percentage of this element's *width*, which horizontal padding would
+     change. */
+  padding: 6px 0;
   animation: stripScroll 48s linear infinite;
   will-change: transform;
 }

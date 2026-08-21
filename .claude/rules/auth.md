@@ -108,7 +108,12 @@ Three things in it are easy to break by touching only one side:
   holds the list twice; *n* cards carry *n-1* gaps inside a copy but *n* gaps between the
   two, so half the track is half a gap short of one period and the strip creeps sideways
   on every lap. `renderStripPlayers` emitting the list exactly twice is the other half of
-  that arithmetic — emit it three times and the shift is wrong.
+  that arithmetic — emit it three times and the shift is wrong. The track's `padding`
+  is vertical-only for the same reason: the shift is a percentage of the track's own
+  width, so horizontal padding would silently change the loop's period. That padding is
+  there to give the hover scale somewhere to grow — `.featured-strip` must keep
+  `overflow: hidden` for the marquee, and it clips at its padding box, which without the
+  headroom sat exactly on the cards' bottom edge and shaved 2.5px off a hovered card.
 - **The falling cards are swapped in place, not re-rendered.** Every `--fall-*` custom
   property is written once by the JS; rebuilding the layer when `/api/top-players`
   returns would restart all fourteen animations at once, which is the only moment the
