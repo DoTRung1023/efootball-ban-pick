@@ -162,11 +162,20 @@ real values reads as missing data, when what it means is an account with no
 console access. The column header is **ACCOUNT**, not USER, so a plain row does
 not read `USER · USER`.
 
+**Your own row is marked by a YOU badge in a last, unheaded column** (`.col-you`,
+right-aligned, so the badge lands against the row's right edge on every account —
+measured 12px in at 1440 → 320). It was `· YOU` trailing the role, which put a
+fact about the *reader* inside the column that states the *account's* role. The
+badge is `.role-pill`, neutral like UNCONFIRMED: the accent is already spent on
+the ACCESS word and the master row's tint. In the card layout below 620px it
+drops its label gutter and the empty cell on everyone else's row is
+`display: none`, so only your card gains a line.
+
 **The USERS hint sits above the table, not below it** (`.panel-hint.is-top`). As a
 footer it sat under every row the table had drawn, which on an installation with
 a few hundred accounts is somewhere nobody scrolls to. The other two panels keep
 theirs at the foot, where their content is short and fixed.
-| CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser, CSV export | on activation |
+| CATALOG | paginated `/api/players` browser, search, sort, filter, column chooser | on activation |
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
 `refreshMs` and skips entirely when `document.hidden`, so a background tab costs
@@ -191,8 +200,9 @@ a table you can hide the name from is a list of numbers — and the other fourte
 are optional, defaulting to the eight the tab always showed. The choice lives in
 `sessionStorage`, the same store the console token uses, so it survives a reload
 and dies with the tab. A stored key naming a column this build no longer has is
-dropped on read. CSV export follows the **visible** columns, so the file matches
-the table rather than always being all fifteen fields.
+dropped on read. The tab **has no CSV export** — the button, `exportCsv`, and the
+per-column `csv` header it was the only reader of all went together; nothing on
+the page turns the table into a file.
 
 With every column on, the table is wider than the panel. `.table-wrap` already
 had `overflow-x: auto`, but `.admin-table { width: 100% }` was squeezing the

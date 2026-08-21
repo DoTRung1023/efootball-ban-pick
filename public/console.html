@@ -237,10 +237,14 @@
                   <th class="col-mid">JOINED</th>
                   <th>ACCESS</th>
                   <th>ACTIONS</th>
+                  <!-- The YOU badge, and nothing else. Headed blank because the
+                       badge names itself, and last so that it lands against the
+                       right edge of the row on every account. -->
+                  <th class="col-you"></th>
                 </tr>
               </thead>
               <tbody id="usersBody">
-                <tr><td colspan="7" class="td-empty">Loading…</td></tr>
+                <tr><td colspan="8" class="td-empty">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -293,8 +297,6 @@
                   </svg>
                 </button>
               </div>
-
-              <button id="exportCsvBtn" class="btn btn--ghost btn--sm">EXPORT CSV</button>
             </div>
           </div>
           <!-- `table-wrap` already scrolls on the x axis; with the optional

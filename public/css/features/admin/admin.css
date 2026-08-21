@@ -601,9 +601,10 @@ body {
 }
 
 /* ── Role pill ──────────────────────────────────────────────── */
-/* One variant left: UNCONFIRMED beside an email. The MASTER/ADMIN/USER pills
-   that used to sit beside a username are gone — the role is stated once, in the
-   ACCESS column, where the buttons that change it are. */
+/* Two variants: UNCONFIRMED beside an email, and YOU at the right edge of your
+   own row. The MASTER/ADMIN/USER pills that used to sit beside a username are
+   gone — the role is stated once, in the ACCESS column, where the buttons that
+   change it are. */
 
 .role-pill {
   display: inline-block;
@@ -719,12 +720,24 @@ body {
 .role-slot { display: block; min-width: 0; }
 .role-slot .role-btn { width: 100%; }
 
-/* Your own row. Dim on purpose — it is a note about the reader, not the role. */
-.access-you {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
+/* ── Your own row ───────────────────────────────────────────── */
+/* One badge in the last column, which is unheaded and takes whatever width the
+   row has left, so YOU lands against the right edge on every account instead of
+   at a different x per row. It reads as a note about the reader rather than as
+   part of the role, which is what `· YOU` inside the ACCESS cell could not do.
+
+   Neutral, like UNCONFIRMED: the accent is spent on the ACCESS word and the
+   master's row tint, and a second accent here would compete with it. */
+.role-pill.is-you {
+  margin-left: 0;
+  background: var(--fill);
+  color: var(--text);
+}
+
+.admin-table td.col-you,
+.admin-table th.col-you {
+  text-align: right;
+  padding-left: 0;
 }
 
 .panel-notice {
@@ -1272,6 +1285,13 @@ body {
   }
 
   .admin-table:not(.catalog-table) td[data-label="EMAIL"] { max-width: none; }
+
+  /* A card is one account, so the badge is a corner mark on it rather than a
+     labelled field: no 84px label gutter, and the cell is dropped entirely on
+     the rows that are not yours instead of leaving an empty line in each. */
+  .admin-table:not(.catalog-table) td.col-you { justify-content: flex-end; }
+  .admin-table:not(.catalog-table) td.col-you::before { content: none; }
+  .admin-table:not(.catalog-table) td.col-you:empty { display: none; }
 
   /* A card is a row; the row tint has to cover the whole card. */
   .admin-table:not(.catalog-table) tbody tr.role-row.is-master td,

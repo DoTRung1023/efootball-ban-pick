@@ -14,8 +14,9 @@
    that fails leaves the table as chosen rather than snapping back — so the
    server is where it is saved, not where it is read from on every render.
 
-   `field` is the key the API returns, and `csv` is the header the export
-   writes; one row here therefore describes the column everywhere it appears.
+   `key` is the key the API returns; one row here describes the column
+   everywhere it appears. Each also carried a `csv` header while the tab had an
+   export button — that went with the button, since nothing else read it.
    ============================================================ */
 
 import { apiFetch, apiSend } from "./adminApi.js";
@@ -27,22 +28,22 @@ const SAVE_DEBOUNCE_MS = 500;
 
 /** `render` receives the raw value and the whole row; it returns cell HTML. */
 export const CATALOG_COLUMNS = [
-  { key: "rank",          label: "#",             csv: null,            fixed: true },
-  { key: "name",          label: "PLAYER",        csv: "name",          fixed: true },
-  { key: "position",      label: "POS",           csv: "position",      on: true },
-  { key: "overall",       label: "OVR",           csv: "overall",       on: true },
-  { key: "overall_max",   label: "MAX",           csv: "overall_max",   on: true },
-  { key: "card_type",     label: "CARD TYPE",     csv: "card_type",     on: true },
-  { key: "club",          label: "CLUB",          csv: "club",          on: true },
-  { key: "id",            label: "PESDB ID",      csv: "pesdb_id",      on: true },
-  { key: "league",        label: "LEAGUE",        csv: "league" },
-  { key: "nationality",   label: "NATIONALITY",   csv: "nationality" },
-  { key: "region",        label: "REGION",        csv: "region" },
-  { key: "foot",          label: "FOOT",          csv: "foot" },
-  { key: "playing_style", label: "PLAYING STYLE", csv: "playing_style" },
-  { key: "height",        label: "HEIGHT",        csv: "height" },
-  { key: "weight",        label: "WEIGHT",        csv: "weight" },
-  { key: "age",           label: "AGE",           csv: "age" },
+  { key: "rank",          label: "#",             fixed: true },
+  { key: "name",          label: "PLAYER",        fixed: true },
+  { key: "position",      label: "POS",           on: true },
+  { key: "overall",       label: "OVR",           on: true },
+  { key: "overall_max",   label: "MAX",           on: true },
+  { key: "card_type",     label: "CARD TYPE",     on: true },
+  { key: "club",          label: "CLUB",          on: true },
+  { key: "id",            label: "PESDB ID",      on: true },
+  { key: "league",        label: "LEAGUE" },
+  { key: "nationality",   label: "NATIONALITY" },
+  { key: "region",        label: "REGION" },
+  { key: "foot",          label: "FOOT" },
+  { key: "playing_style", label: "PLAYING STYLE" },
+  { key: "height",        label: "HEIGHT" },
+  { key: "weight",        label: "WEIGHT" },
+  { key: "age",           label: "AGE" },
 ];
 
 const FIXED = CATALOG_COLUMNS.filter((c) => c.fixed).map((c) => c.key);

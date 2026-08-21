@@ -12,7 +12,10 @@
    database, so a hand-made request from a plain admin is refused too.
 
    ACCESS holds the role word; ACTIONS holds the buttons, in three fixed slots
-   so they line up down the table. Every cell carries a `data-label`, which is
+   so they line up down the table; **your own row is marked by a YOU badge in a
+   last, unheaded column**, hard against the right edge. It used to be `· YOU`
+   trailing the role, which put a fact about the *reader* inside the column that
+   states the *account's* role and made that one cell read two ways. Every cell carries a `data-label`, which is
    what the card layout below 620px prints in front of its value — see the
    responsive block in `admin.css`. A plain admin sees the role and an empty
    ACTIONS column — hiding the controls is a courtesy and never the check.
@@ -42,7 +45,7 @@ import { fmtDate, fmtNum, tableMessage } from "./format.js";
 import { initPasswordModal, openConsolePasswordForm } from "./passwordModal.js";
 
 const USER_ROWS = 50;
-const COLS = 7;
+const COLS = 8;
 const CONFIRM_MS = 4000;
 
 let confirmTimer = null;
@@ -67,9 +70,8 @@ function roleLabel(user) {
     a new rung cannot be added in one place and missed in the other. */
 const ROLE_CLASS = { MASTER: "is-master", ADMIN: "is-admin", USER: "is-user" };
 
-const roleTag = (user, isSelf) =>
-  `<span class="access-role ${ROLE_CLASS[roleLabel(user)]}">${roleLabel(user)}</span>` +
-  (isSelf ? ` <span class="access-you">· YOU</span>` : "");
+const roleTag = (user) =>
+  `<span class="access-role ${ROLE_CLASS[roleLabel(user)]}">${roleLabel(user)}</span>`;
 
 const grantBtn = (id, attr, value, label) =>
   `<button class="role-btn" data-user-id="${id}" data-${attr}="${value}">${label}</button>`;
@@ -161,8 +163,9 @@ export async function loadUsers() {
         <td class="col-lo" data-label="SQUAD">${fmtNum(u.playerCount)}</td>
         <td class="col-lo" data-label="PLANS">${fmtNum(u.planCount)}</td>
         <td class="td-dim col-mid" data-label="JOINED">${fmtDate(u.created_at)}</td>
-        <td data-label="ACCESS">${roleTag(u, isSelf)}</td>
+        <td data-label="ACCESS">${roleTag(u)}</td>
         <td data-label="ACTIONS">${canManage ? actionsCell(u, isSelf) : ""}</td>
+        <td class="col-you" data-label="">${isSelf ? `<span class="role-pill is-you">YOU</span>` : ""}</td>
       </tr>`;
     }).join("");
   } catch {

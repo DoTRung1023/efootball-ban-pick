@@ -1,5 +1,5 @@
 /* ============================================================
-   CATALOG — paginated browser over the scraped player catalog + CSV export
+   CATALOG — paginated browser over the scraped player catalog
 
    Reads the public `/api/players`, not an admin route, so these fetches are the
    only ones on the page that carry no console token.
@@ -32,7 +32,6 @@ import { CATALOG_COLUMNS, isColumnOn, resetColumns, toggleColumn, visibleColumns
 import { cardTypeBadge, tableMessage } from "./format.js";
 
 const PAGE_SIZE = 25;
-const EXPORT_LIMIT = 5000;
 
 /** Filter fields plus the paging and sort state the panel does not own. */
 const state = {
@@ -275,43 +274,6 @@ export function rebuildColumnsPanel() {
   el("acColsWrap").appendChild(buildColumnsPanel());
 }
 
-/* ── CSV export ───────────────────────────────────────────── */
-
-/**
- * Exports the current sort, search and filters — every page of them, not the
- * one on screen — and the **visible columns**, so the file matches the table
- * that was exported rather than always being all fifteen fields.
- */
-async function exportCsv(btn) {
-  const label = btn.textContent;
-  const columns = visibleColumns().filter((c) => c.csv);
-  btn.disabled = true;
-  btn.textContent = "EXPORTING…";
-  try {
-    const players = await fetchPlayers(EXPORT_LIMIT, 0);
-    const csv = [
-      columns.map((c) => c.csv).join(","),
-      ...players.map((p) =>
-        columns.map((c) => `"${String(p[c.key] ?? "").replace(/"/g, '""')}"`).join(","),
-      ),
-    ].join("\n");
-
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `catalog_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    /* Revoking in the same tick cancels the download in Safari. */
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-    btn.textContent = label;
-  } catch {
-    btn.textContent = "EXPORT FAILED";
-    setTimeout(() => { btn.textContent = label; }, 2000);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 /* ── Wiring ───────────────────────────────────────────────── */
 
 export function initCatalogTab() {
@@ -374,6 +336,4 @@ export function initCatalogTab() {
     state.page++;
     loadCatalog();
   });
-
-  el("exportCsvBtn").addEventListener("click", (e) => exportCsv(e.currentTarget));
 }
