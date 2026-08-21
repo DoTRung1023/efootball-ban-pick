@@ -653,6 +653,23 @@ body {
 .access-role.is-admin  { color: var(--text); }
 .access-role.is-user   { color: var(--text-muted); }
 
+/* ── The row wears its rung ─────────────────────────────────── */
+/* Same three steps applied to every cell, so the accounts that carry power are
+   answerable by scanning the table rather than by reading one column. Written
+   against `td` rather than `tr` because `.admin-table td` sets a colour of its
+   own, and a colour on the row would lose to it.
+
+   `.td-dim` (email, joined) **does** follow it — three classes and four
+   elements outrank a lone `.td-dim`, and a row that is uniformly its rung is
+   the point. What does not follow it: the pills and the buttons, whose rules
+   apply to the element itself rather than being inherited from `td`. That is
+   deliberate for the buttons — a control is not data, and a MAKE ADMIN button
+   in accent on a master's row would read as the one thing on the screen asking
+   to be pressed. */
+.admin-table tbody tr.role-row.is-master td { color: var(--accent); }
+.admin-table tbody tr.role-row.is-admin td  { color: var(--text); }
+.admin-table tbody tr.role-row.is-user td   { color: var(--text-muted); }
+
 /* Your own row. Dim on purpose — it is a note about the reader, not the role. */
 .access-you {
   font-size: 12px;

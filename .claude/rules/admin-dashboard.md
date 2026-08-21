@@ -140,9 +140,18 @@ OVERVIEW *and* again on their own tabs, with a second row template each.
 | ROOMS | live rooms, phase pill, idle time, WATCH button | 10 s |
 | USERS | 50 newest accounts, squad/plan counts, and the ACCESS column | on activation |
 
-**The role is stated once, in ACCESS, coloured by rung** — `.access-role.is-master`
-wears the accent, `.is-admin` full-strength text, `.is-user` the muted rung, and
-every row gets one whoever is looking. A master sees it followed by the buttons
+**The whole row is coloured by rung**: `tr.role-row.is-master` puts the accent on
+every cell, `.is-admin` full-strength text, `.is-user` the muted rung — so which
+accounts carry power is answerable by scanning the table, not by reading one
+column. The rule is written against `td`, because `.admin-table td` sets a colour
+and a rule on the row would lose to it; it outranks `.td-dim`, so a dimmed cell
+follows its row. The pills and the buttons keep their own colours — their rules
+apply to the element rather than being inherited — and for the buttons that is
+the point: a MAKE ADMIN in accent on a master's row would read as the one thing
+on screen asking to be pressed.
+
+The role word itself is stated once, in ACCESS (`.access-role`), and every row
+gets one whoever is looking. A master sees it followed by the buttons
 that act on it, which is the argument for that column: the word and the controls
 that change it belong together. It was briefly a pill beside the username as
 well, which put the same word twice in one row.
@@ -364,8 +373,8 @@ page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-
 `.panel-grid-2`, `.admin-table` (sticky thead), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
-`.is-unverified` for an unconfirmed address — `.access-role` (the three role
-rungs: accent, text, muted), `.panel-hint` (`.is-top` flips its rule to the
+`.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
+role rungs — accent, text, muted — on the word and on the whole row), `.panel-hint` (`.is-top` flips its rule to the
 bottom edge for a panel that wants the note at the head), `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the

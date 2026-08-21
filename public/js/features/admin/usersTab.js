@@ -11,9 +11,10 @@
    courtesy and never the check: every role write is re-authorised against the
    database, so a hand-made request from a plain admin is refused too.
 
-   **The role is stated once, in ACCESS, and it is coloured by rung** — the
-   accent for a master, full-strength text for an admin, the muted rung for
-   everyone else. It used to be a pill beside the username as well, which put
+   **The whole row is coloured by rung** — the accent for a master, full-strength
+   text for an admin, the muted rung for everyone else — so which accounts carry
+   power is answerable by scanning the table rather than by reading one column.
+   The row's class carries it; the cells inherit. It used to be a pill beside the username as well, which put
    the same word in two columns of the same row; the buttons that act on the
    role live here, so the word does too.
 
@@ -142,8 +143,11 @@ export async function loadUsers() {
       const verify = u.email_verified
         ? ""
         : ` <span class="role-pill is-unverified" title="This address was never confirmed — the account cannot sign in">UNCONFIRMED</span>`;
+      /* The rung colours every cell in the row, not just the ACCESS word. The
+         cells inherit it, dimmed ones included; the pills and the buttons keep
+         their own colours, being controls rather than data. */
       return `
-      <tr>
+      <tr class="role-row ${ROLE_CLASS[roleLabel(u)]}">
         <td>${escapeHtml(u.username)}</td>
         <td class="td-dim">${escapeHtml(u.email)}${verify}</td>
         <td>${fmtNum(u.playerCount)}</td>
