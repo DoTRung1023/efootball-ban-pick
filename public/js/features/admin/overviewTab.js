@@ -13,12 +13,49 @@ import { fmtDate, fmtDuration, fmtNum, fmtRelative, scrapeRunState, scrapeStatus
 const SCRAPE_ROWS = 8;
 const SCRAPE_COLS = 6;
 
-/** The four COUNT queries behind /data-quality, in the order they are shown. */
-const QUALITY_ROWS = [
-  { key: "missingStyle",      label: "Missing playing style" },
-  { key: "missingRegion",     label: "Missing region" },
-  { key: "missingOverallMax", label: "Missing overall max" },
-  { key: "dupPesdbId",        label: "Duplicate pesdb_id" },
+/**
+ * Catalog health, grouped the way the three kinds of problem differ.
+ *
+ * `MISSING` is every nullable column in `players_catalog`, not a chosen four:
+ * a gap the panel does not name is a gap nobody goes looking for. `IMPOSSIBLE`
+ * is data that cannot be true whatever the source says. `REFERENCES` is a row
+ * elsewhere pointing at a card that is not here, which is the only group whose
+ * failures are visible to a player.
+ *
+ * Labels live here rather than on the server, which returns counts only.
+ */
+const QUALITY_GROUPS = [
+  {
+    title: "Missing fields",
+    from: "missing",
+    rows: [
+      ["name", "Name"], ["position", "Position"], ["overall", "Overall"],
+      ["overall_max", "Overall max"], ["club", "Club"], ["league", "League"],
+      ["nationality", "Nationality"], ["height", "Height"], ["weight", "Weight"],
+      ["age", "Age"], ["card_type", "Card type"], ["region", "Region"],
+      ["foot", "Foot"], ["playing_style", "Playing style"],
+    ],
+  },
+  {
+    title: "Impossible values",
+    from: "integrity",
+    rows: [
+      ["maxBelowBase", "Max rating below base"],
+      ["overall", "Rating out of range"],
+      ["age", "Age out of range"],
+      ["height", "Height out of range"],
+      ["weight", "Weight out of range"],
+      ["untrimmedName", "Name has stray spaces"],
+    ],
+  },
+  {
+    title: "Broken references",
+    from: "references",
+    rows: [
+      ["orphanSquadPlayers", "Squad rows with no card"],
+      ["orphanShowcase", "Showcase entries with no card"],
+    ],
+  },
 ];
 
 const BAD_PCT = 10;
@@ -76,8 +113,7 @@ async function loadDataQuality() {
     const total = d.total || 1;
     let flagged = 0;
 
-    body.innerHTML = QUALITY_ROWS.map(({ key, label }) => {
-      const count = d[key] || 0;
+    const row = (label, count) => {
       flagged += count;
       const pct = (count / total) * 100;
       const barClass = count === 0 ? "is-ok" : pct >= BAD_PCT ? "is-bad" : "is-warn";
@@ -91,6 +127,12 @@ async function loadDataQuality() {
           <span class="dq-pct">${pct.toFixed(2)}%</span>
           <span class="dq-bar-wrap"><span class="dq-bar ${barClass}" style="width:${width.toFixed(1)}%"></span></span>
         </div>`;
+    };
+
+    body.innerHTML = QUALITY_GROUPS.map(({ title, from, rows }) => {
+      const counts = d[from] || {};
+      return `<div class="dq-group-title">${escapeHtml(title)}</div>`
+        + rows.map(([key, label]) => row(label, counts[key] || 0)).join("");
     }).join("");
 
     setSub("statCatalogSub",

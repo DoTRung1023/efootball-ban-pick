@@ -59,6 +59,7 @@
           <button class="admin-tab" data-tab="rooms">ROOMS</button>
           <button class="admin-tab" data-tab="users">USERS</button>
           <button class="admin-tab" data-tab="catalog">CATALOG</button>
+          <button class="admin-tab" data-tab="showcase">SHOWCASE</button>
         </div>
         <div class="admin-nav-right">
           <span class="admin-badge">
@@ -148,23 +149,44 @@
           </div>
         </div>
 
-        <!-- What the sign-in page shows, and the pool an empty seat is
-             auto-banned from. Rebuilt here rather than on a timer — the
-             catalog only moves when a scrape runs. -->
+      </section>
+
+      <!-- ── SHOWCASE ────────────────────────────────────────── -->
+      <!-- What the sign-in page shows, and the pool a seat with no account is
+           auto-banned from. Its own tab because it is now edited here, not just
+           inspected: the picker below searches the catalog and the list is
+           saved by hand. REBUILD is still the way back to the automatic top 30. -->
+      <section class="tab-panel" data-panel="showcase" hidden>
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">SIGN-IN SHOWCASE</span>
+            <span class="panel-title">SHOWCASE LIST</span>
             <div class="panel-actions">
               <span id="topPlayersMeta" class="tp-meta">—</span>
+              <button id="topPlayersSaveBtn" class="btn btn--primary btn--sm" disabled>SAVE</button>
               <button id="topPlayersRefreshBtn" class="btn btn--ghost btn--sm">REBUILD</button>
             </div>
           </div>
+
+          <div class="tp-pick">
+            <div class="tp-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
+              <input id="topPlayersSearch" class="field-input tp-search-input" type="search"
+                     placeholder="Search the catalog to add a player" autocomplete="off">
+            </div>
+            <div id="topPlayersResults" class="tp-results" hidden></div>
+          </div>
+
           <div id="topPlayersBody" class="tp-list">
             <div class="tp-empty">Loading…</div>
           </div>
+
+          <div id="topPlayersWarn" class="tp-warn" hidden></div>
+
           <div class="panel-hint">
             The sign-in page reads this stored list instead of ranking the whole
-            catalog on every load. Rebuild after a scrape to pick up new cards.
+            catalog on every load, and a seat with no account is auto-banned out
+            of it. Search to add, click a name to remove, then SAVE. REBUILD
+            replaces the list with the automatic top 30.
           </div>
         </div>
       </section>

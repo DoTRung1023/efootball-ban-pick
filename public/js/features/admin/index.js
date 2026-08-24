@@ -15,7 +15,7 @@ import { initOverviewTab } from "./overviewTab.js";
 import { initRoomsTab } from "./roomsTab.js";
 import { initScrapeControl, resumeScrapeWatch } from "./scrapeControl.js";
 import { initTabs, startTabs } from "./tabs.js";
-import { initTopPlayersControl, loadTopPlayers } from "./topPlayersControl.js";
+import { initTopPlayersControl } from "./topPlayersControl.js";
 import { initUsersTab } from "./usersTab.js";
 
 export function initConsole() {
@@ -46,7 +46,6 @@ export function initConsole() {
     if (await loadColumnPrefs()) rebuildColumnsPanel();
     startTabs();
     resumeScrapeWatch();
-    loadTopPlayers();
   };
 
   /* Only now can the dashboard open — by the form, or by the stored token. */

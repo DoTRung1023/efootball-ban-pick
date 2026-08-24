@@ -24,7 +24,27 @@
 import db from "#lib/db.js";
 
 const EXCLUDED_TOP_PLAYER_IDS = [8554076, 8554053];
+
+/** How many the automatic ranking takes. */
 export const TOP_PLAYER_LIMIT = 30;
+
+/**
+ * How many a hand-picked list may hold. Higher than the automatic 30 because
+ * curating is the case where you want room to add favourites the ranking
+ * missed; `rank_no` is a TINYINT so the table itself tops out far above this.
+ */
+export const TOP_PLAYER_MAX = 50;
+
+/**
+ * Below this the console warns, and does not block.
+ *
+ * The pool is the bannable board for a seat with no account, so a very short
+ * list makes a thin draft for that opponent. It cannot break one: an unknown
+ * squad size is skipped by `maxBansForSquads`, and `topBannableFrom` forfeits
+ * the turn rather than stalling when it runs out of targets. A full squad is
+ * the number an admin should be thinking in, so that is what it compares to.
+ */
+export const TOP_PLAYER_ADVISED_MIN = 23;
 
 /**
  * Computes the pool from the catalog. The expensive path — prefer
@@ -90,35 +110,84 @@ export async function ensureTopPlayersSchema() {
    the same rows over the top of one another. */
 let rebuilding = null;
 
+/**
+ * Writes `players` over whatever the snapshot holds, in the order given.
+ *
+ * Replace, not upsert: a shorter new list has to shrink the table, or
+ * yesterday's ranks 31-40 would survive underneath today's top 30. Both the
+ * automatic rebuild and a hand-picked save land here, so there is one
+ * definition of what "the snapshot is now this" means.
+ */
+async function replaceSnapshot(players) {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query("DELETE FROM top_players_snapshot");
+    if (players.length) {
+      await conn.query(
+        "INSERT INTO top_players_snapshot (rank_no, pesdb_id, name) VALUES ?",
+        [players.map((p, i) => [i + 1, p.id, p.name])],
+      );
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 /** Recomputes the pool and replaces the snapshot. Returns the new list. */
 export async function refreshTopPlayers() {
   if (rebuilding) return rebuilding;
 
   rebuilding = (async () => {
     const players = await topCatalogPlayers();
-    const conn = await db.getConnection();
-    try {
-      /* Replace, not upsert: a shorter new list has to shrink the table, or
-         yesterday's ranks 31-40 would survive underneath today's top 30. */
-      await conn.beginTransaction();
-      await conn.query("DELETE FROM top_players_snapshot");
-      if (players.length) {
-        await conn.query(
-          "INSERT INTO top_players_snapshot (rank_no, pesdb_id, name) VALUES ?",
-          [players.map((p, i) => [i + 1, p.id, p.name])],
-        );
-      }
-      await conn.commit();
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
-    }
+    await replaceSnapshot(players);
     return players;
   })().finally(() => { rebuilding = null; });
 
   return rebuilding;
+}
+
+/**
+ * Replaces the pool with a hand-picked list, in the order given.
+ *
+ * Ids the catalog does not know are dropped rather than stored: the snapshot
+ * carries the name so the console and the sign-in page never have to join back
+ * to the catalog, and a row whose name we cannot resolve would be a card that
+ * renders as blank everywhere it appears.
+ *
+ * **An empty list is refused.** `readTopPlayers` treats an empty snapshot as
+ * "not built yet" and rebuilds it automatically, so saving nothing would look
+ * like it worked and then silently come back as the automatic thirty. Clearing
+ * the list is what REBUILD is for, and it says so.
+ *
+ * Returns the stored list so the caller can render exactly what landed.
+ */
+export async function setTopPlayers(ids) {
+  const wanted = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean))]
+    .slice(0, TOP_PLAYER_MAX);
+  if (!wanted.length) {
+    throw new Error("Pick at least one player, or press REBUILD to go back to the automatic list.");
+  }
+
+  const [rows] = await db.query(
+    "SELECT pesdb_id AS id, name FROM players_catalog WHERE pesdb_id IN (?)",
+    [wanted],
+  );
+  const nameById = new Map(rows.map((r) => [String(r.id), r.name]));
+
+  /* Ordered by `wanted`, not by what the database returned: the admin chose
+     the order and `rank_no` is what preserves it. */
+  const players = wanted.filter((id) => nameById.has(id)).map((id) => ({ id, name: nameById.get(id) }));
+  if (!players.length) {
+    throw new Error("None of those players are in the catalog.");
+  }
+
+  await replaceSnapshot(players);
+  return players;
 }
 
 /** Reads the snapshot as it stands. Empty array when nothing is stored — no
@@ -151,6 +220,8 @@ export async function topPlayersStatus() {
     count: rows.length,
     refreshedAt: rows.length ? new Date(rows[0].refreshed_at).toISOString() : null,
     limit: TOP_PLAYER_LIMIT,
+    max: TOP_PLAYER_MAX,
+    advisedMin: TOP_PLAYER_ADVISED_MIN,
     players: rows.map((r) => ({ id: String(r.id), name: r.name })),
   };
 }

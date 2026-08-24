@@ -12,7 +12,7 @@ import {
   serializeRoomEntry,
 } from "#features/rooms/index.js";
 import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
-import { refreshTopPlayers, topPlayersStatus } from "#features/players/index.js";
+import { refreshTopPlayers, setTopPlayers, topPlayersStatus } from "#features/players/index.js";
 import { newPasswordEmail, sendMail } from "#features/mail/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
@@ -532,23 +532,121 @@ router.post("/top-players/refresh", asyncHandler(async (_req, res) => {
   res.json(await topPlayersStatus());
 }));
 
+/**
+ * PUT body: { ids: [pesdb_id, …] } — the hand-picked list, in display order.
+ *
+ * Separate verb from the rebuild below it on purpose. REBUILD *computes* the
+ * list and is idempotent; this *replaces* it with a choice, and the two want to
+ * be distinguishable in a log. A bad pick is recoverable by pressing REBUILD,
+ * which is why this needs no confirmation step.
+ */
+router.put("/top-players", asyncHandler(async (req, res) => {
+  try {
+    await setTopPlayers(req.body?.ids);
+  } catch (err) {
+    /* The two refusals `setTopPlayers` raises are both the admin's input, not
+       a fault: an empty list, or ids the catalog does not know. */
+    return res.status(400).json({ error: err.message });
+  }
+  res.json(await topPlayersStatus());
+}));
+
+/**
+ * Catalog health: what is missing, what is impossible, and what points at
+ * nothing.
+ *
+ * **One scan, not one per column.** Every gap and every range test is a
+ * `SUM(condition)` in a single pass over ~42k rows. The version before this ran
+ * a separate `COUNT(*)` per question and only asked four of them; asking
+ * fifteen that way would have been fifteen scans.
+ *
+ * **The duplicate-`pesdb_id` row is gone.** `players_catalog` carries
+ * `UNIQUE KEY uq_catalog_pesdb_id`, so that count was structurally incapable of
+ * returning anything but zero — a permanently green row that told an admin
+ * nothing. The database enforces it; the dashboard does not need to re-ask.
+ *
+ * **The bounds are set to impossible, not unusual.** A first pass used 15-50
+ * for age and flagged two cards at 14 — but the age curve runs smoothly from
+ * 14 (2 cards) through 15 (43) to 50 (1), so those are real youth and veteran
+ * cards and the check was wrong, not the data. A range test that fires on
+ * legitimate rows trains an admin to ignore the panel.
+ *
+ * A duplicate-card test was written and removed for the same reason. Grouping
+ * on name + card type + max rating reported 3,441 "duplicates", and the largest
+ * was seventeen Mbappé Trending cards at 97 — distinct weekly reissues with
+ * distinct ids, all legitimate. It was noise wearing a warning's clothes.
+ *
+ * `name <> TRIM(name)` earns its place instead: `topCatalogPlayers` de-dupes
+ * the showcase pool by joining on `name`, so one stray space silently splits a
+ * player into two entries there.
+ *
+ * The reference checks are the ones that matter most and were not here at all.
+ * A squad row or a showcase entry pointing at a card the catalog no longer has
+ * is a blank in somebody's team or on the sign-in page, and neither is visible
+ * from anywhere else in this console.
+ */
 router.get("/data-quality", asyncHandler(async (_req, res) => {
   try {
-    const [
-      [[{ total }]],
-      [[{ missingStyle }]],
-      [[{ missingRegion }]],
-      [[{ missingOverallMax }]],
-      [[{ dupCount }]],
-    ] = await Promise.all([
-      db.query("SELECT COUNT(*) AS total FROM players_catalog"),
-      db.query("SELECT COUNT(*) AS missingStyle FROM players_catalog WHERE playing_style IS NULL OR playing_style = ''"),
-      db.query("SELECT COUNT(*) AS missingRegion FROM players_catalog WHERE region IS NULL OR region = ''"),
-      db.query("SELECT COUNT(*) AS missingOverallMax FROM players_catalog WHERE overall_max IS NULL"),
-      db.query("SELECT COUNT(*) AS dupCount FROM (SELECT pesdb_id FROM players_catalog GROUP BY pesdb_id HAVING COUNT(*) > 1) t"),
+    const [[stats], [[orphanSquad]], [[orphanShowcase]]] = await Promise.all([
+      db.query(`
+        SELECT COUNT(*) AS total,
+               SUM(name         IS NULL OR name         = '') AS m_name,
+               SUM(position     IS NULL OR position     = '') AS m_position,
+               SUM(club         IS NULL OR club         = '') AS m_club,
+               SUM(league       IS NULL OR league       = '') AS m_league,
+               SUM(nationality  IS NULL OR nationality  = '') AS m_nationality,
+               SUM(card_type    IS NULL OR card_type    = '') AS m_card_type,
+               SUM(region       IS NULL OR region       = '') AS m_region,
+               SUM(foot         IS NULL OR foot         = '') AS m_foot,
+               SUM(playing_style IS NULL OR playing_style = '') AS m_playing_style,
+               SUM(overall     IS NULL) AS m_overall,
+               SUM(overall_max IS NULL) AS m_overall_max,
+               SUM(height      IS NULL) AS m_height,
+               SUM(weight      IS NULL) AS m_weight,
+               SUM(age         IS NULL) AS m_age,
+               SUM(overall IS NOT NULL AND overall_max IS NOT NULL
+                   AND overall_max < overall)                    AS i_maxBelowBase,
+               SUM(overall IS NOT NULL AND (overall < 30  OR overall > 125))  AS i_overall,
+               SUM(age     IS NOT NULL AND (age     < 10  OR age     > 70))   AS i_age,
+               SUM(height  IS NOT NULL AND (height  < 120 OR height  > 230))  AS i_height,
+               SUM(weight  IS NOT NULL AND (weight  < 30  OR weight  > 170))  AS i_weight,
+               SUM(name <> TRIM(name))                                        AS i_untrimmedName
+        FROM players_catalog`),
+
+      /* A saved squad pointing at a card the catalog no longer has. `pesdb_id`
+         is nullable there for hand-added players, so only linked rows count. */
+      db.query(`
+        SELECT COUNT(*) AS n
+        FROM players p LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
+        WHERE p.pesdb_id IS NOT NULL AND c.pesdb_id IS NULL`),
+
+      /* The same for the showcase pool, which renders on the sign-in page. */
+      db.query(`
+        SELECT COUNT(*) AS n
+        FROM top_players_snapshot s LEFT JOIN players_catalog c ON c.pesdb_id = s.pesdb_id
+        WHERE c.pesdb_id IS NULL`),
+
     ]);
 
-    res.json({ total, missingStyle, missingRegion, missingOverallMax, dupPesdbId: dupCount });
+    const row = stats[0] || {};
+    const n = (v) => Number(v || 0);
+    const group = (prefix, keys) =>
+      Object.fromEntries(keys.map((k) => [k, n(row[`${prefix}_${k}`])]));
+
+    res.json({
+      total: n(row.total),
+      missing: group("m", [
+        "name", "position", "overall", "overall_max", "club", "league", "nationality",
+        "height", "weight", "age", "card_type", "region", "foot", "playing_style",
+      ]),
+      integrity: group("i", [
+        "maxBelowBase", "overall", "age", "height", "weight", "untrimmedName",
+      ]),
+      references: {
+        orphanSquadPlayers: n(orphanSquad?.n),
+        orphanShowcase: n(orphanShowcase?.n),
+      },
+    });
   } catch (err) {
     sendAdminError(res, err);
   }

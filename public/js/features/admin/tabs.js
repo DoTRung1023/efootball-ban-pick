@@ -1,5 +1,5 @@
 /* ============================================================
-   OVERVIEW · ROOMS · USERS · CATALOG
+   OVERVIEW · ROOMS · USERS · CATALOG · SHOWCASE
 
    One registry drives everything: which panel is shown, what each tab fetches
    on activation, and how often — if at all — it refetches while it is the tab
@@ -11,6 +11,7 @@
 import { loadCatalog } from "./catalogTab.js";
 import { loadOverview } from "./overviewTab.js";
 import { loadRooms } from "./roomsTab.js";
+import { loadTopPlayers } from "./topPlayersControl.js";
 import { loadUsers } from "./usersTab.js";
 
 /* Rooms are in-memory and cheap to read, so they poll fast. The overview costs
@@ -20,6 +21,9 @@ const TABS = {
   rooms:    { load: loadRooms,    refreshMs: 10000 },
   users:    { load: loadUsers },
   catalog:  { load: loadCatalog },
+  /* No `refreshMs`: this tab is an editor, and a poll would throw away a
+     half-built list under the admin's cursor. */
+  showcase: { load: loadTopPlayers },
 };
 
 const DEFAULT_TAB = "overview";
