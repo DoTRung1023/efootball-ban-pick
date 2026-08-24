@@ -941,24 +941,47 @@ body {
 
 .tp-result:hover:not(:disabled) .tp-result-tag { color: var(--accent); }
 
-/* A picked chip is a button now: the whole thing removes, so the × is a mark
-   rather than a second target inside it. */
+/* A picked chip carries two actions — promote and remove — so it is a
+   container, not a button. It was one button that removed on click; that made
+   the whole chip a destructive target and left no room for the promote action
+   that position 1 needs. Nested buttons are invalid, hence the span. */
 .tp-chip--pick {
-  cursor: pointer;
   font-family: var(--font-body);
+  padding-right: 3px;
 }
 
-.tp-chip--pick:hover {
-  border-color: var(--danger-line);
-  background: var(--danger-fill);
-}
-
-.tp-x {
-  color: var(--text-muted);
+/* Both actions, sized to a real target rather than to the glyph. */
+.tp-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
 }
 
-.tp-chip--pick:hover .tp-x { color: var(--danger); }
+.tp-act:hover {
+  background: var(--fill-strong);
+  color: var(--text);
+}
+
+.tp-act--remove:hover {
+  background: var(--danger-fill);
+  color: var(--danger);
+}
+
+.tp-act:active { transform: scale(0.9); }
+
+/* The header meta doubles as the error line: a refused save has to be visible
+   where the SAVE button is, not in a toast that has already gone. */
+.tp-meta.is-error { color: var(--danger); }
 
 .tp-warn {
   margin: 0 16px 12px;

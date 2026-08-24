@@ -34,6 +34,12 @@ const state = {
   limit: 30,
   max: 50,
   advisedMin: 23,
+  /* Held in state, not written straight to the DOM. The first version wrote
+     the message in a `catch` and then called `renderMeta()` in the `finally`,
+     which rewrote the same element from state in the same tick — so a refused
+     save produced no message at all, and SAVE stayed lit because the list was
+     still dirty. It read as "nothing happened" rather than "that failed". */
+  error: null,
 };
 
 const idsOf = (list) => list.map((p) => p.id).join(",");
@@ -45,9 +51,13 @@ const isFull = () => state.picked.length >= state.max;
 function renderMeta() {
   const n = state.picked.length;
   const when = state.refreshedAt ? `rebuilt ${fmtRelative(state.refreshedAt)}` : "not built yet";
-  el("topPlayersMeta").textContent = isDirty()
-    ? `${n} of ${state.max} · unsaved changes`
-    : `${n} of ${state.max} · ${when}`;
+  const meta = el("topPlayersMeta");
+  meta.textContent = state.error
+    ? state.error
+    : isDirty()
+      ? `${n} of ${state.max} · unsaved changes`
+      : `${n} of ${state.max} · ${when}`;
+  meta.classList.toggle("is-error", Boolean(state.error));
   el("topPlayersSaveBtn").disabled = !isDirty();
 }
 
@@ -70,13 +80,28 @@ function renderList() {
     body.innerHTML = `<div class="tp-empty">Nothing picked yet. Search above, or press REBUILD.</div>`;
     return;
   }
-  body.innerHTML = state.picked.map((p, i) => `
-    <button type="button" class="tp-chip tp-chip--pick" data-remove="${escapeHtml(p.id)}"
-            title="Remove ${escapeHtml(p.name)}">
+  /* A container with two buttons, not one button that removes. Position is
+     load-bearing — `topBannableFrom` auto-bans the first entry a seat has not
+     already lost — so promoting a card has to be reachable without emptying
+     everything above it. Nested buttons are invalid, hence the span. */
+  body.innerHTML = state.picked.map((p, i) => {
+    const id = escapeHtml(p.id);
+    const name = escapeHtml(p.name);
+    const promote = i === 0 ? "" : `
+      <button type="button" class="tp-act" data-top="${id}"
+              title="Move to the top" aria-label="Move ${name} to the top of the list">
+        ${icon("arrow-up", { size: 11 })}
+      </button>`;
+    return `
+    <span class="tp-chip tp-chip--pick">
       <span class="tp-rank">${i + 1}</span>
-      <span class="tp-name">${escapeHtml(p.name)}</span>
-      ${icon("close", { size: 11, className: "tp-x" })}
-    </button>`).join("");
+      <span class="tp-name">${name}</span>${promote}
+      <button type="button" class="tp-act tp-act--remove" data-remove="${id}"
+              title="Remove" aria-label="Remove ${name} from the list">
+        ${icon("close", { size: 11 })}
+      </button>
+    </span>`;
+  }).join("");
 }
 
 function renderAll() {
@@ -129,12 +154,23 @@ async function runSearch(q) {
 
 function addPlayer(id, name) {
   if (isFull() || state.picked.some((p) => p.id === id)) return;
+  state.error = null;
   state.picked = [...state.picked, { id, name }];
   renderAll();
   runSearch(el("topPlayersSearch").value);   // repaint ADDED / FULL tags
 }
 
+/** Promotes one entry to rank 1; the rest keep their relative order. */
+function moveToTop(id) {
+  const hit = state.picked.find((p) => p.id === id);
+  if (!hit) return;
+  state.error = null;
+  state.picked = [hit, ...state.picked.filter((p) => p.id !== id)];
+  renderAll();
+}
+
 function removePlayer(id) {
+  state.error = null;
   state.picked = state.picked.filter((p) => p.id !== id);
   renderAll();
   runSearch(el("topPlayersSearch").value);
@@ -144,6 +180,7 @@ function removePlayer(id) {
 function adopt(status) {
   state.picked = (status.players || []).map((p) => ({ id: String(p.id), name: p.name }));
   state.saved = [...state.picked];
+  state.error = null;
   state.refreshedAt = status.refreshedAt;
   state.limit = status.limit ?? state.limit;
   state.max = status.max ?? state.max;
@@ -166,13 +203,14 @@ async function withButton(btn, busyLabel, work) {
   const label = btn.textContent;
   btn.disabled = true;
   btn.textContent = busyLabel;
+  state.error = null;
   try {
     adopt(await work());
   } catch (err) {
-    el("topPlayersMeta").textContent = err.message || "failed";
+    state.error = err.message || "That did not save. Try again.";
   } finally {
     btn.textContent = label;
-    renderMeta();                            // re-derives `disabled` from dirty
+    renderMeta();                            // renders the error and re-derives `disabled`
   }
 }
 
@@ -186,8 +224,10 @@ export function initTopPlayersControl() {
 
   /* Delegated, because both lists are rebuilt on every change. */
   el("topPlayersBody").addEventListener("click", (e) => {
-    const hit = e.target.closest("[data-remove]");
-    if (hit) removePlayer(hit.dataset.remove);
+    const promote = e.target.closest("[data-top]");
+    if (promote) { moveToTop(promote.dataset.top); return; }
+    const remove = e.target.closest("[data-remove]");
+    if (remove) removePlayer(remove.dataset.remove);
   });
 
   el("topPlayersResults").addEventListener("click", (e) => {
