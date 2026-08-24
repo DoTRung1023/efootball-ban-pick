@@ -6,10 +6,10 @@
    it. Nothing here gates sign-in, and nothing here carries information — if
    both layers failed to render, the page would still work.
 
-   The fallback list renders immediately so the page is never empty, then
-   `/api/top-players` swaps in real data if it returns something different.
-   Both layers draw from the same `/img/card/:id.png` URLs, so the falling
-   cards cost no requests the strip has not already made.
+   Both layers draw from `/api/top-players` — the list an admin curates in the
+   console's SHOWCASE tab — and from the same `/img/card/:id.png` URLs, so the
+   falling cards cost no requests the strip has not already made. If that call
+   gives nothing, neither layer draws.
 
    This is the one screen in the app allowed ambient motion — see DESIGN.md
    §7. `prefers-reduced-motion` drops the falling layer and stops the strip;
@@ -18,53 +18,16 @@
 
 import { CARD_IMG } from "@/shared/players/playerMeta.js";
 
-/* Mirrors `/api/top-players` — the top 30 Epic/Highlight players by
-   overall_max, one card per name. Only ever seen if that call fails: the
-   server now serves the same list out of `top_players_snapshot`, so a
-   rebuild from the console is what moves the real one. Regenerate this by
-   hand after a rebuild if you want the offline copy to match. */
-const FALLBACK_PLAYERS = [
-  { id: "89136409091415",   name: "Lionel Messi"       },
-  { id: "89137214427270",   name: "Eden Hazard"        },
-  { id: "89136677522134",   name: "George Best"        },
-  { id: "89136140651034",   name: "Zlatan Ibrahimović" },
-  { id: "88040387119495",   name: "Pelé"               },
-  { id: "88039581945329",   name: "Franco Baresi"      },
-  { id: "88039581945324",   name: "Franz Beckenbauer"  },
-  { id: "88039581945323",   name: "Johan Cruyff"       },
-  { id: "106778255821223",  name: "Erling Haaland"     },
-  { id: "106773692401975",  name: "Vinícius Júnior"    },
-  { id: "106771008057263",  name: "Victor Osimhen"     },
-  { id: "89138019757152",   name: "Bruno Fernandes"    },
-  { id: "89134261635137",   name: "Luis Suárez"        },
-  { id: "89133993205152",   name: "Neymar Jr"          },
-  { id: "89133724764840",   name: "Gareth Bale"        },
-  { id: "88041460993514",   name: "Ruud Gullit"        },
-  { id: "88041460993461",   name: "Luís Figo"          },
-  { id: "88040655690467",   name: "Jaap Stam"          },
-  { id: "88040655554922",   name: "Gerd Müller"        },
-  { id: "88040655554414",   name: "Gianfranco Zola"    },
-  { id: "88040387251641",   name: "Carles Puyol"       },
-  { id: "88040387126189",   name: "Pepe"               },
-  { id: "88040387126185",   name: "Franck Ribéry"      },
-  { id: "88040387120247",   name: "Petr Čech"          },
-  { id: "88040387119839",   name: "Michel Platini"     },
-  { id: "88040387118554",   name: "Samuel Eto'o"       },
-  { id: "88040387118039",   name: "Gianluigi Buffon"   },
-  { id: "88039850384095",   name: "Marcel Desailly"    },
-  { id: "88039850289220",   name: "Raphaël Varane"     },
-  { id: "88039581948647",   name: "Peter Schmeichel"   },
-];
-
+/** The showcase pool, or an empty list. Both layers are decorative, so there
+    is nothing to fall back *to* — see `initPlayers`. */
 async function fetchTopPlayers() {
   try {
     const res = await fetch("/api/top-players");
-    if (!res.ok) throw new Error("API error");
+    if (!res.ok) return [];
     const { players } = await res.json();
-    if (!players?.length) throw new Error("empty");
-    return players;
+    return players?.length ? players : [];
   } catch {
-    return FALLBACK_PLAYERS;
+    return [];
   }
 }
 
@@ -156,23 +119,6 @@ function renderFallingCards(players) {
   });
 }
 
-/* Swapped in place rather than re-rendered: rebuilding the layer would restart
-   every animation, and twelve cards snapping back to the top of the viewport
-   at once is the one moment this effect would be noticed. */
-function swapFallingCards(players) {
-  const layer = document.getElementById("fallingCards");
-  if (!layer) return;
-
-  [...layer.children].forEach((el, i) => {
-    const img = el.querySelector("img");
-    if (!img) return;
-    const player = players[i % players.length];
-    el.hidden = false;  // a fallback card whose art 404'd
-    img.alt = "";
-    img.src = CARD_IMG(player.id);
-  });
-}
-
 function renderStripPlayers(players) {
   const strip = document.getElementById("stripPlayers");
   if (!strip) return;
@@ -191,23 +137,27 @@ function renderStripPlayers(players) {
   });
 }
 
+/**
+ * Fetch once, render once.
+ *
+ * This used to paint a hardcoded copy of the list first and then swap the real
+ * one in over the top. That cost a full strip re-render and fourteen fresh
+ * `/img/card/:id.png` requests on a normal load — against the one endpoint in
+ * the app that bills per miss — and it only skipped that work when the stored
+ * list happened to match the built-in one exactly. Now that the list is
+ * curated from the console, matching is not something to design around.
+ *
+ * An empty answer renders nothing, deliberately. Both layers are decoration;
+ * the page works without either, and the alternative is showing a visitor a
+ * list of players an admin has already taken down. `initPlayers` is not
+ * awaited by `pages/signin.js`, so the form never waits on this.
+ */
 export async function initPlayers() {
-  // Render fallback immediately so the UI isn't empty
-  renderFallingCards(FALLBACK_PLAYERS);
-  renderStripPlayers(FALLBACK_PLAYERS);
-
-  /* Swap in the real data if it differs from the built-in copy.
-     Compare the WHOLE list, not `players[0]`: both lists start with the same
-     highest-rated card, so a first-element check reported "unchanged" every
-     time and the fetched list was silently thrown away — the page showed the
-     hardcoded copy forever, however stale it got. */
   const players = await fetchTopPlayers();
-  const same = players.length === FALLBACK_PLAYERS.length &&
-    players.every((p, i) => p.id === FALLBACK_PLAYERS[i].id);
-  if (same) return;
+  /* Also the guard for the renderers: both index with `i % players.length`,
+     which is NaN on an empty list. */
+  if (!players.length) return;
 
-  const strip = document.getElementById("stripPlayers");
-  if (strip) strip.innerHTML = "";
+  renderFallingCards(players);
   renderStripPlayers(players);
-  swapFallingCards(players);
 }

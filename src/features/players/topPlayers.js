@@ -12,7 +12,7 @@
  * `topCatalogPlayers` is not cheap. It anti-joins `players_catalog` against
  * itself on `name` to keep one card per player, over ~42k rows — **measured at
  * 293ms**, and the sign-in page ran it on every single page load. The snapshot
- * turns that into a thirty-row read of a primary key.
+ * turns that into a short primary-key read.
  *
  * The snapshot is refreshed **on demand from the console**, not on a timer: the
  * catalog only changes when a scrape runs, so anything automatic would either
@@ -113,8 +113,8 @@ let rebuilding = null;
 /**
  * Writes `players` over whatever the snapshot holds, in the order given.
  *
- * Replace, not upsert: a shorter new list has to shrink the table, or
- * yesterday's ranks 31-40 would survive underneath today's top 30. Both the
+ * Replace, not upsert: a shorter new list has to shrink the table, or the tail
+ * of a longer one would survive underneath it. Both the
  * automatic rebuild and a hand-picked save land here, so there is one
  * definition of what "the snapshot is now this" means.
  */
@@ -199,7 +199,7 @@ async function storedTopPlayers() {
   return rows;
 }
 
-/** What both callers use. A thirty-row primary-key read, or one rebuild. */
+/** What both callers use. A primary-key read of the stored list, or one rebuild. */
 export async function readTopPlayers() {
   const rows = await storedTopPlayers();
   if (rows.length) return rows.map((r) => ({ id: String(r.id), name: r.name }));
@@ -211,8 +211,8 @@ export async function readTopPlayers() {
  *
  * Carries the players themselves, not just a count. The panel exists to show an
  * admin which names are live right now, and a count alone left it printing
- * "Loading…" forever over a perfectly healthy snapshot. It is the same thirty
- * rows the sign-in page reads, so it costs nothing to include them.
+ * "Loading…" forever over a perfectly healthy snapshot. They are the same rows
+ * the sign-in page reads, so it costs nothing to include them.
  */
 export async function topPlayersStatus() {
   const rows = await storedTopPlayers();

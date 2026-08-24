@@ -12,11 +12,13 @@ paths:
   (BIGINT, up to 15 digits for newer cards). Carries a `(name, overall_max)` index
   purely for the top-N rebuild below, which joins the table to itself on `name`;
   without it that join is a scan and the rebuild goes from ~50 ms to 293 ms.
-- `top_players_snapshot` — the materialised top 30: what the sign-in page shows and
-  what an expired empty seat is auto-banned from. Ranking it live costs 293 ms and
+- `top_players_snapshot` — the materialised showcase pool: what the sign-in page shows
+  and what an expired empty seat is auto-banned from. Up to 50 rows, either the
+  automatic top 30 or a list curated in the console's SHOWCASE tab. Ranking it live costs 293 ms and
   the sign-in page was paying that on **every load**; stored, the read is ~1.5 ms.
-  Rebuilt on demand from the console, never on a timer — the catalog only moves when
-  a scrape runs. Empty self-heals on first read. `src/features/players/topPlayers.js`
+  Rebuilt or hand-picked from the console, never on a timer — the catalog only moves
+  when a scrape runs. Empty self-heals on first read, which is why saving an empty
+  list is refused rather than stored. `src/features/players/topPlayers.js`
   owns it and creates it on boot.
 - `players` — user roster; links to `players_catalog.pesdb_id` via nullable FK.
 - `game_plans` / `game_plan_players` — up to 20 plans per user; slots 1–11 = LINEUP,
