@@ -150,7 +150,8 @@
                           <div class="lv-duration-field" id="banDurationField">
                             <input type="number" class="lv-duration-input" id="lobbyBanDurationInput"
                                    min="0" max="900" step="1" value="120"
-                                   inputmode="numeric" aria-describedby="banDurationHint">
+                                   inputmode="numeric" aria-label="Ban duration in seconds"
+                                   aria-describedby="banDurationHint">
                             <span class="lv-duration-unit">sec</span>
                             <span class="lv-duration-nolimit">No limit</span>
                             <button type="button" class="lv-unlimited-btn" id="lobbyBanUnlimitedBtn"
@@ -171,7 +172,8 @@
                           <div class="lv-duration-field" id="pickDurationField">
                             <input type="number" class="lv-duration-input" id="lobbyPickDurationInput"
                                    min="0" max="1200" step="1" value="300"
-                                   inputmode="numeric" aria-describedby="pickDurationHint">
+                                   inputmode="numeric" aria-label="Pick duration in seconds"
+                                   aria-describedby="pickDurationHint">
                             <span class="lv-duration-unit">sec</span>
                             <span class="lv-duration-nolimit">No limit</span>
                             <button type="button" class="lv-unlimited-btn" id="lobbyPickUnlimitedBtn"
@@ -336,7 +338,7 @@
                       <div class="team-search-bar">
                         <div class="team-search-wrap">
                           <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#search" /></svg>
-                          <input type="text" id="banSearch" placeholder="Search opponent players..." autocomplete="off" />
+                          <input type="text" id="banSearch" placeholder="Search opponent players..." aria-label="Search the opponent's players" autocomplete="off" />
                         </div>
 
                         <div class="sort-group">
@@ -468,7 +470,7 @@
                       <div class="team-search-bar">
                         <div class="team-search-wrap">
                           <svg width="13" height="13" aria-hidden="true" viewBox="0 0 24 24"><use href="/icons/sprite.svg#search" /></svg>
-                          <input type="text" id="pickSearch" placeholder="Search your squad..." autocomplete="off">
+                          <input type="text" id="pickSearch" placeholder="Search your squad..." aria-label="Search your squad" autocomplete="off">
                         </div>
                         <div class="sort-group">
                           <div class="ap-dd-wrap" id="pickSortWrap">
@@ -702,7 +704,8 @@
         </header>
         <div class="chat-log" id="chatLog"></div>
         <form class="chat-compose" id="chatForm">
-          <input type="text" id="chatInput" maxlength="500" placeholder="Type a message..." autocomplete="off" />
+          <input type="text" id="chatInput" maxlength="500" placeholder="Type a message..."
+                 aria-label="Type a message" autocomplete="off" />
           <button type="submit" class="btn btn--small btn--primary">Send</button>
         </form>
       </section>

@@ -32,7 +32,8 @@
                ADMIN_CONSOLE_PASSWORD when one is configured, this account's own
                password when it is not. The server decides; the gate does not
                advertise which, and does not need to. -->
-          <input id="gatePassword" type="password" class="gate-input" placeholder="Console password" autocomplete="off" />
+          <input id="gatePassword" type="password" class="gate-input" placeholder="Console password"
+                 aria-label="Console password" autocomplete="off" />
           <button type="submit" id="gateSubmit" class="btn btn--primary gate-btn">UNLOCK CONSOLE</button>
         </form>
         <p id="gateError" class="gate-error"></p>
@@ -171,7 +172,8 @@
             <div class="tp-search">
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
               <input id="topPlayersSearch" class="field-input tp-search-input" type="search"
-                     placeholder="Search the catalog to add a player" autocomplete="off">
+                     placeholder="Search the catalog to add a player"
+                     aria-label="Search the catalog to add a player" autocomplete="off">
             </div>
             <div id="topPlayersResults" class="tp-results" hidden></div>
           </div>
@@ -280,7 +282,8 @@
           <div class="panel-header">
             <span class="panel-title">PLAYER CATALOG</span>
             <div class="panel-actions">
-              <input id="catalogSearch" type="text" class="search-input" placeholder="Find by name…" />
+              <input id="catalogSearch" type="text" class="search-input" placeholder="Find by name…"
+                     aria-label="Find a player by name" />
 
               <!-- Sort: the same category list and direction toggle as My
                    Players, driven by shared/players/sort.js. -->
