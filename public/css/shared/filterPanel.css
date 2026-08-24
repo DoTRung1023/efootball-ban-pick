@@ -425,3 +425,11 @@
   background: var(--danger-fill);
   border-color: var(--danger-line);
 }
+/* A press should be acknowledged. `scale` and not `translateY` because these
+   do not lift on hover, so there is no lift to put back down. 0.98 is a
+   couple of pixels at these sizes: enough to read as a push, not enough to
+   reflow a neighbour. `transform` only, so it stays on the compositor. */
+.sort-dir-btn:active {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}

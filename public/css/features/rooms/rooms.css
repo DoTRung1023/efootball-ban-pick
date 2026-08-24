@@ -58,6 +58,7 @@
    `tabular-nums` and a fixed tracking keep the block from jumping width when
    NEW CODE swaps the characters. */
 .rooms-code-display {
+  font-family: var(--font-mono);
   font-size: 56px;
   font-weight: 800;
   line-height: 1;
@@ -311,4 +312,13 @@
 .rooms-code-paste-btn:hover {
   color: var(--text);
   border-color: var(--line-hover);
+}
+/* A press should be acknowledged. `scale` and not `translateY` because these
+   do not lift on hover, so there is no lift to put back down. 0.98 is a
+   couple of pixels at these sizes: enough to read as a push, not enough to
+   reflow a neighbour. `transform` only, so it stays on the compositor. */
+.rooms-create-cta:active:not(:disabled),
+.rooms-join-cta:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
 }

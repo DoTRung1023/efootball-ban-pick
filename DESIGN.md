@@ -263,17 +263,35 @@ re-running the numbers.
 ## 4. Typography
 
 ```css
---font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
+--font-body:    "Geist", -apple-system, "Segoe UI", sans-serif;
 --font-main:    var(--font-body);
 --font-display: var(--font-body);
+--font-mono:    "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 ```
 
-**One family.** Inter, loaded from Google Fonts in all four HTML files at
-`wght@400;500;600;700;800`. Orbitron is gone.
+**One family for text, one for numbers.** Geist and Geist Mono, loaded from Google Fonts
+in all four HTML files at `wght@400;500;600;700;800`. Orbitron is gone.
+
+This replaced Inter, and what Inter had going for it is worth recording, because it was
+not an accident: Inter is efhub's own UI face, so the app matched eFootball's real hub.
+**That link is what the change cost.** Geist is narrower and more mechanical at the same
+size, which suits a draft board better than a general-purpose UI face, and unlike Inter
+it has a mono sibling.
 
 `--font-display` is the same stack under a role name. It marks text that is set uppercase
 and tracked out — nav labels, kickers, badges — which is a typesetting choice, not a
 family. Keeping the name keeps that intent legible in the CSS.
+
+**`--font-mono` is not decoration, and it is not for code.** A draft screen is mostly
+numbers that change in place: a countdown ticking every second, an overall rating being
+compared against the one beside it, `7/23` picked, a room code one player reads aloud
+while the other types it. Proportional digits reflow as they tick, and `I` / `l` / `1`
+and `O` / `0` in a six-character room code is a real misread, not a hypothetical one.
+
+Every number the user has to **compare, transcribe, or watch change** belongs in this
+face. Prose does not. The thirteen sites using it are listed by
+`grep -rn "font-mono" public/css/`; before this, three different mono stacks were
+hand-written across those files and one of them named a font nothing loaded.
 
 **Size scale.** Five rungs, all in px. `rem` sizing is gone; every declaration was
 converted and snapped to the nearest rung.

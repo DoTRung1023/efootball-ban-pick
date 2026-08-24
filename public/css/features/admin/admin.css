@@ -28,6 +28,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -296,6 +297,7 @@ body {
 /* ── Dashboard layout ───────────────────────────────────────── */
 .dashboard {
   min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
 }
 
 .tab-panel {
@@ -330,7 +332,7 @@ body {
 }
 
 .stat-value {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 35.2px;
   font-weight: 700;
   color: var(--text);
@@ -417,7 +419,7 @@ body {
 }
 
 .panel-hint code {
-  font-family: monospace;
+  font-family: var(--font-mono);
   color: var(--text);
   background: var(--fill);
   padding: 1px 5px;
@@ -477,7 +479,7 @@ body {
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
   color: var(--text-dim);
@@ -541,7 +543,7 @@ body {
 }
 
 .td-mono {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.05em;
   color: var(--text);
@@ -1319,4 +1321,13 @@ body {
      hidden here too — it is now gone at every width.) */
   .admin-nav { padding: 10px 8px; }
   .admin-badge { padding: 4px 8px; }
+}
+/* A press should be acknowledged. `scale` and not `translateY` because these
+   do not lift on hover, so there is no lift to put back down. 0.98 is a
+   couple of pixels at these sizes: enough to read as a push, not enough to
+   reflow a neighbour. `transform` only, so it stays on the compositor. */
+.btn:active:not(:disabled),
+.gate-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
 }

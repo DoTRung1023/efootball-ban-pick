@@ -42,8 +42,10 @@
   justify-content: flex-start;
   padding: 0;
   height: 100vh;
+  height: 100dvh;
   height: 100svh;
   max-height: 100vh;
+  max-height: 100dvh;
   max-height: 100svh;
 }
 
@@ -418,7 +420,10 @@
    text baseline so it centres in the ring like the numerals do. */
 .timer-infinity { display: block; }
 
+/* Mono as well as tabular: the countdown is the one number on screen that
+   changes every second, and it sits inside a fixed ring. */
 .timer-inner {
+  font-family: var(--font-mono);
   font-size: 20px;
   font-weight: 700;
   line-height: 1;
@@ -1020,6 +1025,7 @@
   bottom: calc(100% + 10px);
   width: min(330px, calc(100vw - 32px));
   height: min(420px, calc(100vh - 120px));
+  height: min(420px, calc(100dvh - 120px));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;
@@ -1148,7 +1154,7 @@
 
 @media (max-width: 620px) {
   .room-chat { right: 12px; bottom: 12px; }
-  .room-chat-panel { height: min(60vh, calc(100vh - 110px)); }
+  .room-chat-panel { height: min(60vh, calc(100vh - 110px)); height: min(60dvh, calc(100dvh - 110px)); }
 }
 
 /* The log's scrollbar, same 5px treatment the rest of the page uses. It rode in

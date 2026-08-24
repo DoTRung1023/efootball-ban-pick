@@ -140,18 +140,31 @@
   --scrim:       rgba(0, 0, 0, 0.72);        /* modal / overlay backdrops  */
 
   /* ── Type ─────────────────────────────────────────────────────────────
-     One family: Inter, which is efhub's own UI face — loaded at
-     wght@400;500;600;700;800 in all four pages. --font-display is the
-     same stack under a role name: it marks text that is set uppercase
-     and tracked out (nav tabs, kickers, badges, buttons), which is a
-     typesetting choice, not a family.
+     Geist for the interface, Geist Mono for anything numeric.
+
+     This replaced Inter, and the thing Inter had going for it is worth
+     recording: it is efhub's own UI face, so the app matched eFootball's
+     real hub. That link is what the change costs. Geist is a touch
+     narrower and more mechanical at the same size, which suits a draft
+     board better than a general-purpose UI face, and it brings a mono
+     sibling that Inter does not have.
+
+     --font-display is the same family under a role name: it marks text
+     set uppercase and tracked out (nav tabs, kickers, badges, buttons),
+     which is a typesetting choice, not a family.
+
+     --font-mono is NOT decorative. A draft screen is mostly numbers that
+     change in place — a countdown, an overall rating, 7/23 picked, a room
+     code being read aloud. Proportional digits reflow as they tick, and
+     `1` next to `l` in a room code is a genuine misread. Every number the
+     user has to compare or transcribe belongs in this face.
 
      efhub also ships eFootballSans and eFootballStencil for its own
-     branding. Those are Konami's faces, not ours to redistribute, and
-     Inter is what carries its actual interface — so Inter is the match. */
-  --font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
+     branding. Those are Konami's faces, not ours to redistribute. */
+  --font-body:    "Geist", -apple-system, "Segoe UI", sans-serif;
   --font-main:    var(--font-body);
   --font-display: var(--font-body);
+  --font-mono:    "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* ── Motion ───────────────────────────────────────────────────────────
      150ms ease, hover states only. The turn timer is the one element

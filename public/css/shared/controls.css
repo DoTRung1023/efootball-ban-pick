@@ -63,3 +63,32 @@ summary:focus-visible,
 .team-search-bar {
   border-radius: var(--radius-pill);
 }
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   Four animations ran forever with nothing in front of them: `timerPulse`
+   (shell), `lsPulse` (lobby), `dotPulse` (console) and `skelPulse` (player
+   cards). The timer one is the worst of them, because it pulses once a second
+   for the whole of the ban phase and then again for the whole of the pick
+   phase, which is exactly the "thing that will not stop moving" this setting
+   exists to turn off. `auth.css` handled its own falling cards; nothing else
+   did.
+
+   This sheet is linked last on every page, so the block belongs here: it has
+   to outrank the feature sheet that declared the animation.
+
+   `0.01ms` rather than `none`, and `iteration-count: 1` rather than `0`, so
+   every animation still *runs* and still lands on its end state. Entrance
+   animations (`panelIn`, `popupIn`, `thumbAppear`, `cardSlideIn`) therefore
+   finish instantly with the element visible, rather than never starting and
+   leaving it at `opacity: 0`. Turning animation off entirely is how a
+   reduced-motion switch hides half a UI. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
