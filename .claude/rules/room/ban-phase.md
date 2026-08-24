@@ -59,7 +59,10 @@ Ban phase right panel: `.ban-phase-right` sidebar with two `.ban-side-section` b
 (bans-on-me / my-bans) and a `.ban-side-actions` footer. Each section header contains a
 `.ban-opponent-badge` pill showing the username, a colored presence dot
 (`.ban-opponent-dot.is-online`), and a status text (`· is choosing...` /
-`· confirmed ✓` / `· left the room`).
+`· confirmed` + a `check` icon / `· left the room`). `paintBadge` writes that
+status with `innerHTML`, not `textContent`, because the confirmed branch carries
+an icon — every value is a literal from the ladder in `renderOpponentBadge`; the
+username goes through `textContent` on the line above it.
 
 **Keep the two sections structurally identical — head + badge + strip, nothing else.**
 Both are `flex: 1` (basis 0), so they always get the same height, but anything extra

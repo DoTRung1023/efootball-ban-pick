@@ -357,15 +357,50 @@ separately — and a sprite `<use>` renders into a shadow tree that a page's CSS
 selectors cannot reach. Any icon needing more than one colour has the same
 problem and the same answer. Everything else goes in the sprite.
 
-**No emoji.** A pictograph is somebody else's art, it renders differently on
-every platform, and it cannot take a token colour. The UI had three (⛔ 🏆 🔒)
-and has none. Monochrome typographic marks are not emoji and are fine where an
-icon would be heavier than the job: `content: "✓"` on a pseudo-element, the
-`↑`/`↓` sort-direction glyphs.
+**The name must be a literal.** `icon(dir === "asc" ? "arrow-up" : "arrow-down")`
+reads fine and is invisible to the `icons` check, which scans for a quoted name
+directly after `icon(`. Put the conditional *around* two calls instead. The
+check caught six of these the day the sort arrows moved into the sprite.
+
+**No emoji, and no typographic mark standing in for an icon.** A pictograph is
+somebody else's art, it renders differently on every platform, and it cannot
+take a token colour. The UI had eight of them — and they were written as HTML
+entities (`&#128065;`, `&#127787;&#65039;`, `&#9203;`) rather than literal
+characters, which is how they outlived two passes that grepped for emoji and
+came back clean. **Grep the entity range too**, not just the codepoints.
+
+The rule extends past emoji to every non-ASCII mark doing an icon's job: `✓`
+`↑` `↓` `∞` `▶` `●` `✕` `←` are symbols in the sprite now, not characters in a
+string.
+
+**Punctuation is not a mark.** `·` between two fields, `—` in a sentence, `…`
+on a truncation, `→` inside a tooltip or an `<option>` label all stay text —
+and the last two have no choice, because a `title` attribute and an `<option>`
+cannot hold an element.
+
+### The generated folder
+
+`public/icons/svg/` holds one standalone `.svg` per symbol. It is **generated**:
+`npm run icons` writes it, the `iconFiles` check fails the moment it drifts, and
+every file carries a "do not edit" banner on line one. The sprite is still the
+only place geometry is written.
+
+It earns its place by doing the one thing a sprite cannot. A `<use>` renders
+into a shadow tree, so it can never be a CSS pseudo-element — which is what the
+three `content: "✓"` ticks were. They are now:
+
+```css
+background: var(--text);
+mask: url("/icons/svg/check.svg") center / contain no-repeat;
+```
+
+— the only form of a tick that takes a token colour. Reach for a loose file
+**only** in a pseudo-element; anything a page or a module draws goes through
+the sprite.
 
 `npm run check` fails on a `<use>` naming a symbol the sprite does not define,
-on a symbol nothing uses, and on a site that draws its own geometry — see
-`.claude/rules/checks.md`.
+on a symbol nothing uses, on a site that draws its own geometry, and on a
+generated file that no longer matches the sprite — see `.claude/rules/checks.md`.
 
 ---
 

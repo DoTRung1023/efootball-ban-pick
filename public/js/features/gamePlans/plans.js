@@ -603,7 +603,7 @@ function updatePpSortUI() {
      because a closed panel shows nothing about what is set. The ban and pick
      toolbars never had one. */
   if (dirBtn)  dirBtn.style.display  = "flex";
-  if (dirIcon) dirIcon.textContent   = ppState.sortDir === "desc" ? "↓" : "↑";
+  if (dirIcon) dirIcon.innerHTML = ppState.sortDir === "desc" ? icon("arrow-down", { size: 13 }) : icon("arrow-up", { size: 13 });
   if (dirBtn) {
     dirBtn.title = cat
       ? (ppState.sortDir === "desc" ? cat.descTip : cat.ascTip)

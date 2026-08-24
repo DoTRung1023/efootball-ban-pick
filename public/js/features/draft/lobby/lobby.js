@@ -48,6 +48,7 @@ import { fetchFilterOptions } from '@/features/draft/filterOptions.js';
 
 import { scheduleLobbyConfigPush } from './config.js';
 
+import { icon } from '@/shared/icons/icon.js';
 /** Rate-limits the "only host can edit" toast on the read-only settings panel. */
 let readonlySettingsToastAt = 0;
 
@@ -166,13 +167,16 @@ function renderLobby() {
   if (guestStatusEl) {
     const guestLive = opponentLiveness(room.guest);
     const guestHere = guestLive === "connected" || guestLive === "away";
-    guestStatusEl.textContent = !room.guest
+    /* `innerHTML` because the leading dot is an icon now. Every branch is a
+       literal from this ladder — the guest's name is written elsewhere. */
+    const dot = icon("dot", { size: 8, className: "ls-conn-dot" });
+    guestStatusEl.innerHTML = !room.guest
       ? ""
       : guestLive === "gone"
-        ? "● connection lost"
+        ? `${dot}connection lost`
         : guestLive === "reconnecting"
-          ? "● reconnecting…"
-          : room.ready?.guest ? "● ready" : "● connected";
+          ? `${dot}reconnecting…`
+          : room.ready?.guest ? `${dot}ready` : `${dot}connected`;
     guestStatusEl.classList.toggle("player-slot-status--ok", Boolean(room.guest) && guestHere);
   }
 

@@ -111,7 +111,7 @@ Split into 8 focused files, loaded in order via `<link>` tags.
     `.plan-formation-trigger` / `.plan-formation-panel` / `.plan-formation-option`
     are kept identical to `.pick-formation-btn` / `-panel` / its buttons in
     `css/features/draft/pick.css` — same padding, radius, font, the same
-    `content: "✓"` tick on `::after`, the same `#` prefix in the trigger. Verified
+    masked `check.svg` tick on `::after`, the same `#` prefix in the trigger. Verified
     by diffing 50 computed properties plus the rendered panel width across the two
     pages. If you change one, change the other — with **three** exceptions, each
     for a reason local to its page:

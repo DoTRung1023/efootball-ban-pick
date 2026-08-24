@@ -11,6 +11,7 @@ import { normalizeSortValue } from "@/features/draft/playerQuery.js";
 import { renderDraftFilterPanel } from "@/features/draft/playerFilters.js";
 import { renderSortPanel, sortCategoryLabel } from "@/features/draft/sortPanel.js";
 
+import { icon } from "@/shared/icons/icon.js";
 export function renderBanToolbar() {
   const sortSelect = document.getElementById("banSort");
   const posSelect = document.getElementById("banPosition");
@@ -28,7 +29,7 @@ export function renderBanToolbar() {
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
   sortLabel.textContent = sortCategoryLabel(baseKey);
-  if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
+  if (sortDirIcon) sortDirIcon.innerHTML = dir === "asc" ? icon("arrow-up", { size: 13 }) : icon("arrow-down", { size: 13 });
 
   renderSortPanel(sortPanel, baseKey, "data-ban-sort-cat");
   renderDraftFilterPanel(posPanel, state, "ban", posBtn);

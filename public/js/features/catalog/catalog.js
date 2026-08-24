@@ -71,7 +71,7 @@ function updateSortUI() {
 
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
-    dirIcon.textContent  = catalog.sortDir === "desc" ? "↓" : "↑";
+    dirIcon.innerHTML = catalog.sortDir === "desc" ? icon("arrow-down", { size: 13 }) : icon("arrow-up", { size: 13 });
     dirBtn.title = cat
       ? (catalog.sortDir === "desc" ? cat.descTip : cat.ascTip)
       : "Toggle sort direction";
@@ -440,9 +440,9 @@ function openPlayerPopup(player, rowAddBtn) {
   const fromSquad = (rowAddBtn === null);
   const isAdded   = fromSquad || catalog.addedPesdbIds.has(String(player.id));
   addBtn.disabled    = false;
-  addBtn.textContent = fromSquad  ? "− REMOVE FROM TEAM"
-    : isAdded ? "✓ IN TEAM — click to remove"
-    : "+ ADD TO TEAM";
+  addBtn.innerHTML = fromSquad  ? `${icon("minus", { size: 13 })}REMOVE FROM TEAM`
+    : isAdded ? `${icon("check", { size: 13 })}IN TEAM — click to remove`
+    : `${icon("plus", { size: 13 })}ADD TO TEAM`;
   addBtn.classList.toggle("added", isAdded);
 
   overlay.classList.add("open");
@@ -486,7 +486,7 @@ export function initPlayerPopup() {
       // Add to team
       addBtn.disabled = true;
       await addPlayerToSquad(popupCurrentPlayer, popupCurrentAddBtn);
-      addBtn.textContent = "✓ IN TEAM — click to remove";
+      addBtn.innerHTML = `${icon("check", { size: 13 })}IN TEAM — click to remove`;
       addBtn.classList.add("added");
       addBtn.disabled = false;
     }

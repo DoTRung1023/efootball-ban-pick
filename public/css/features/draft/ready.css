@@ -160,7 +160,8 @@
 }
 
 .sm-chip-mark {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
 }
 

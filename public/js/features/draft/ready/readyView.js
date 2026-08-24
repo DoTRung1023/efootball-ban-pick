@@ -35,6 +35,7 @@ import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
+import { icon } from '@/shared/icons/icon.js';
 const LINEUP_SIZE = 11;
 /* `footer: false` — the art alone, no detail strip under it. The card already
    prints the name, the position and both ratings; the strip repeated the region
@@ -192,7 +193,7 @@ const stepChipHtml = (step, done) => {
   const label = step ? (done ? step.chip.on : step.chip.off) : "FINISHED";
   return `
   <span class="sm-chip ${done ? "is-ready" : "is-waiting"}">
-    <span class="sm-chip-mark" aria-hidden="true">${done ? "✓" : "•"}</span>${label}
+    <span class="sm-chip-mark" aria-hidden="true">${done ? icon("check", { size: 11 }) : icon("dot", { size: 7 })}</span>${label}
   </span>`;
 };
 
@@ -259,8 +260,15 @@ function renderStepFooter(step, room, theirSide, mine, theirs) {
        pressing it changed the word and kept its accent — you could not tell at
        a glance whether you had answered. `data-pressed` is read by `ready.css`
        on the same selector and cannot lose that fight. */
-    const label = mine ? `${step.label} ✓ · UNDO` : step.label;
-    if (btn.textContent !== label) btn.textContent = label;
+    /* The tick is an icon, so the label is markup and `textContent` can no
+       longer be the idempotence guard — `innerHTML` round-trips through the
+       parser and would not compare equal to what we wrote. `dataset.label`
+       holds the string we last set and keeps this a no-op on every poll. */
+    const label = mine ? `${step.label}${icon("check", { size: 11 })}· UNDO` : step.label;
+    if (btn.dataset.label !== label) {
+      btn.innerHTML = label;
+      btn.dataset.label = label;
+    }
     btn.dataset.pressed = mine ? "1" : "0";
     btn.setAttribute("aria-pressed", mine ? "true" : "false");
   }

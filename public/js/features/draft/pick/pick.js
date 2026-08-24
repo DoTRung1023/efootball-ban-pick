@@ -7,6 +7,7 @@ import { renderSortPanel, sortCategoryLabel } from '@/features/draft/sortPanel.j
 import { normalizeMySquadPlayerForDraft } from '@/features/draft/players.js';
 import { showToast, getUser } from '@/features/draft/utils.js';
 
+import { icon } from '@/shared/icons/icon.js';
 /**
  * Position groups for the tab bar.
  *
@@ -45,7 +46,7 @@ export function renderPickToolbar() {
   const dir = sortVal.endsWith("_asc") ? "asc" : "desc";
   const baseKey = sortVal.replace(/_(asc|desc)$/, "");
   sortLabel.textContent = sortCategoryLabel(baseKey);
-  if (sortDirIcon) sortDirIcon.textContent = dir === "asc" ? "↑" : "↓";
+  if (sortDirIcon) sortDirIcon.innerHTML = dir === "asc" ? icon("arrow-up", { size: 13 }) : icon("arrow-down", { size: 13 });
 
   renderSortPanel(sortPanel, baseKey, "data-pick-sort-cat");
   renderDraftFilterPanel(filterPanel, state, "pick", filterBtn);

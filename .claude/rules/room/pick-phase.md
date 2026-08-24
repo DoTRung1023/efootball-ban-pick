@@ -278,8 +278,8 @@ missing. `renderConfirmPicks` drives both it and `#pickConfirmHint`:
 
 | Squad | Confirmed | Button | Hint |
 | --- | --- | --- | --- |
-| incomplete | — | `CONFIRM PICKS ▶`, **disabled** | `Pick all 23 players to confirm · 5/23` |
-| full | no | `CONFIRM PICKS ▶` | empty, or `Opponent is ready and waiting for you` |
+| incomplete | — | `CONFIRM PICKS` + `play` icon, **disabled** | `Pick all 23 players to confirm · 5/23` |
+| full | no | `CONFIRM PICKS` + `play` icon | empty, or `Opponent is ready and waiting for you` |
 | any | yes | `UN-CONFIRM` | `Waiting for <name>…` (amber) |
 | any | both | `UN-CONFIRM` | `Both squads confirmed — starting…` |
 

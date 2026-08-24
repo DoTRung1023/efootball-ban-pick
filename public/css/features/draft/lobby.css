@@ -171,6 +171,10 @@
   text-align: inherit;
 }
 
+/* Inline, not a flex child: `.ls-conn` centres its text by `text-align`, which
+   a flex container would stop honouring. */
+.ls-conn-dot { vertical-align: -1px; margin-right: 4px; }
+
 .ls-player--host .ls-conn { color: var(--text); }
 
 .player-slot-status--ok { color: var(--text) !important; }
@@ -477,6 +481,9 @@
 .lv-stepper-btn {
   width: 36px;
   height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--text);
   border: 0;
@@ -606,6 +613,8 @@
    ragged. A control that only modifies the value beside it belongs beside it. */
 .lv-unlimited-btn {
   align-self: stretch;
+  display: flex;
+  align-items: center;
   padding: 0 12px;
   border: 0;
   border-left: 1px solid var(--border);
@@ -689,7 +698,7 @@
 
 .lv-reveal-card:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.lv-reveal-icon { font-size: 20px; flex-shrink: 0; line-height: 1.2; }
+.lv-reveal-icon { width: 20px; height: 20px; flex-shrink: 0; }
 
 .lv-reveal-body {
   display: flex;

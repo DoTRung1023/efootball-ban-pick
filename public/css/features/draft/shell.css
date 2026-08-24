@@ -181,6 +181,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border: 1px solid var(--border);
   background:
     var(--bg-elevated);
@@ -413,6 +414,10 @@
    which was defensible when it sat alone in the top-left corner and is not now
    that it shares a slot with a 12px identity chip. It is still the only
    tabular-nums element in the header, and still the only one that turns red. */
+/* `paintUnlimitedTimer` swaps the digits for an icon; `block` keeps it off the
+   text baseline so it centres in the ring like the numerals do. */
+.timer-infinity { display: block; }
+
 .timer-inner {
   font-size: 20px;
   font-weight: 700;
@@ -650,11 +655,27 @@
 /* Completed step — green checkmark */
 
 .stage-progress-dot.is-completed::before {
-  content: '✓';
+  content: "";
   background: var(--bg-elevated);
   border-color: var(--line-active);
-  color: var(--text);
-  font-size: 12px;
+}
+
+/* The tick rides on ::after, not on ::before. ::before *is* the circle — its
+   `background` is the circle fill — and a mask replaces exactly that. So the
+   circle keeps ::before and the mark gets its own layer on top, centred on the
+   34px circle (30px + 2px border each side) that starts below the dot's 4px of
+   padding. Same arithmetic as the connector line at the top of this file. */
+.stage-progress-dot.is-completed::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 34px;
+  background: var(--text);
+  -webkit-mask: url("/icons/svg/check.svg") center / 13px 13px no-repeat;
+          mask: url("/icons/svg/check.svg") center / 13px 13px no-repeat;
 }
 
 /* Active step — a solid disc, larger than the rest.

@@ -88,7 +88,7 @@
                   <div class="ls-role">HOST</div>
                   <div class="ls-name" id="lobbyHostName">—</div>
                   <div class="ls-squad" id="lobbyHostSquad" hidden></div>
-                  <div class="ls-conn" id="lobbyHostStatus">● connected</div>
+                  <div class="ls-conn" id="lobbyHostStatus"><svg class="ls-conn-dot" width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#dot" /></svg>connected</div>
                 </div>
               </div>
 
@@ -97,8 +97,8 @@
                 <div class="room-code-label">ROOM CODE</div>
                 <div class="room-code-big" id="lobbyCodeDisplay">—</div>
                 <div class="ls-btns">
-                  <button type="button" class="btn btn--ghost ls-btn" id="copyCodeBtn">⊞ COPY CODE</button>
-                  <button type="button" class="btn btn--ghost ls-btn" id="copyInviteBtn">⌁ INVITE LINK</button>
+                  <button type="button" class="btn btn--ghost ls-btn" id="copyCodeBtn"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#copy" /></svg>COPY CODE</button>
+                  <button type="button" class="btn btn--ghost ls-btn" id="copyInviteBtn"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#link" /></svg>INVITE LINK</button>
                 </div>
               </div>
 
@@ -127,9 +127,9 @@
                         <div class="lv-field-group">
                           <div class="lv-field-label">BAN PER SIDE</div>
                           <div class="lv-stepper">
-                            <button type="button" class="lv-stepper-btn" id="banCountMinus" aria-label="Decrease bans">−</button>
+                            <button type="button" class="lv-stepper-btn" id="banCountMinus" aria-label="Decrease bans"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#minus" /></svg></button>
                             <span class="lv-stepper-val" id="banCountVal">3</span>
-                            <button type="button" class="lv-stepper-btn" id="banCountPlus" aria-label="Increase bans">+</button>
+                            <button type="button" class="lv-stepper-btn" id="banCountPlus" aria-label="Increase bans"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#plus" /></svg></button>
                           </div>
                           <input type="number" id="lobbyBansInput" min="0" value="3" hidden>
                           <!-- Written by renderLobby only when the squads impose a cap.
@@ -155,7 +155,7 @@
                             <span class="lv-duration-nolimit">No limit</span>
                             <button type="button" class="lv-unlimited-btn" id="lobbyBanUnlimitedBtn"
                                     aria-pressed="false" title="No time limit for this phase"
-                                    aria-label="Unlimited ban time">&#8734;</button>
+                                    aria-label="Unlimited ban time"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#infinity" /></svg></button>
                           </div>
                           <div class="lv-field-hint" id="banDurationHint">5–900 seconds</div>
                         </div>
@@ -176,7 +176,7 @@
                             <span class="lv-duration-nolimit">No limit</span>
                             <button type="button" class="lv-unlimited-btn" id="lobbyPickUnlimitedBtn"
                                     aria-pressed="false" title="No time limit for this phase"
-                                    aria-label="Unlimited pick time">&#8734;</button>
+                                    aria-label="Unlimited pick time"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#infinity" /></svg></button>
                           </div>
                           <div class="lv-field-hint" id="pickDurationHint">5–1200 seconds</div>
                         </div>
@@ -187,14 +187,14 @@
                         <input type="hidden" id="lobbyBanOrderInput" value="simultaneous">
                         <div class="lv-reveal-cards lv-reveal-cards--pair" id="lobbyBanOrderPanel">
                           <button type="button" class="lv-reveal-card is-selected" data-lobby-ban-order-option="simultaneous">
-                            <span class="lv-reveal-icon">&#9203;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#clock" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">SIMULTANEOUS</span>
                               <span class="lv-reveal-d">Both ban at once, then confirm</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-ban-order-option="alternating">
-                            <span class="lv-reveal-icon">&#128260;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#refresh" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">ALTERNATING</span>
                               <span class="lv-reveal-d">One ban each, turn by turn</span>
@@ -211,21 +211,21 @@
                         <input type="hidden" id="lobbyBanRevealModeInput" value="instant">
                         <div class="lv-reveal-cards" id="lobbyBanRevealModePanel">
                           <button type="button" class="lv-reveal-card is-selected" data-lobby-ban-reveal-mode-option="instant">
-                            <span class="lv-reveal-icon">&#128065;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#eye" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">INSTANT</span>
                               <span class="lv-reveal-d">Show their bans as they land</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-ban-reveal-mode-option="blur">
-                            <span class="lv-reveal-icon">&#127787;&#65039;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#cloud" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">BLUR</span>
                               <span class="lv-reveal-d">Blur their bans, show the count</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-ban-reveal-mode-option="hidden">
-                            <span class="lv-reveal-icon">&#128274;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#lock" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">HIDDEN</span>
                               <span class="lv-reveal-d">Show nothing until they confirm</span>
@@ -239,21 +239,21 @@
                         <input type="hidden" id="lobbyRevealModeInput" value="instant">
                         <div class="lv-reveal-cards" id="lobbyRevealModePanel">
                           <button type="button" class="lv-reveal-card is-selected" data-lobby-reveal-mode-option="instant">
-                            <span class="lv-reveal-icon">&#128065;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#eye" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">INSTANT</span>
                               <span class="lv-reveal-d">Show picks after each turn</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="blur">
-                            <span class="lv-reveal-icon">&#127787;&#65039;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#cloud" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">BLUR</span>
                               <span class="lv-reveal-d">Blur their cards, show progress</span>
                             </span>
                           </button>
                           <button type="button" class="lv-reveal-card" data-lobby-reveal-mode-option="hidden">
-                            <span class="lv-reveal-icon">&#128274;</span>
+                            <svg class="lv-reveal-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#lock" /></svg>
                             <span class="lv-reveal-body">
                               <span class="lv-reveal-name">HIDDEN</span>
                               <span class="lv-reveal-d">Show nothing but their status</span>
@@ -349,7 +349,7 @@
                             <div class="ap-dd-panel sort-dd-panel" id="banSortPanel"></div>
                           </div>
                           <button class="sort-dir-btn" id="banSortDirBtn" type="button" title="Toggle direction">
-                            <span id="banSortDirIcon">↓</span>
+                            <span id="banSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
                           </button>
                         </div>
 
@@ -480,7 +480,7 @@
                             <div class="ap-dd-panel sort-dd-panel" id="pickSortPanel"></div>
                           </div>
                           <button class="sort-dir-btn" id="pickSortDirBtn" type="button" title="Toggle direction">
-                            <span id="pickSortDirIcon">↓</span>
+                            <span id="pickSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
                           </button>
                         </div>
 
@@ -564,7 +564,7 @@
                            waited on). -->
                       <div class="pick-bottom-actions">
                         <span class="pick-confirm-hint" id="pickConfirmHint"></span>
-                        <button class="btn btn--primary pick-confirm-btn" id="confirmPicksBtn" type="button">CONFIRM PICKS ▶</button>
+                        <button class="btn btn--primary pick-confirm-btn" id="confirmPicksBtn" type="button">CONFIRM PICKS<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#play" /></svg></button>
                       </div>
                     </div>
                   </div>
@@ -698,7 +698,7 @@
       <section class="room-chat-panel" id="chatPanel" aria-label="Room chat" hidden>
         <header class="room-chat-head">
           <span class="room-chat-title">ROOM CHAT</span>
-          <button type="button" class="room-chat-close" id="chatCloseBtn" aria-label="Close chat">&#10005;</button>
+          <button type="button" class="room-chat-close" id="chatCloseBtn" aria-label="Close chat"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#close" /></svg></button>
         </header>
         <div class="chat-log" id="chatLog"></div>
         <form class="chat-compose" id="chatForm">

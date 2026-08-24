@@ -116,8 +116,12 @@ guard.
   `pick-phase.md` for what each mode conceals. The old trigger+panel dropdown pattern
   is gone — `renderLobby()` toggles `is-selected` on each card directly, and the
   existing click-delegation in `initLobby()` handles selection.
-  - The BLUR card's icon is `🌫️` **with the U+FE0F variation selector**. U+1F32B is
-    `Emoji_Presentation=No`, so bare it renders as a monochrome text glyph.
+  - The card icons are sprite symbols — `eye` / `cloud` / `lock` for the reveal
+    modes, `clock` / `refresh` for BAN ORDER. They were emoji (👁 🌫️ 🔒 ⏳ 🔄),
+    written as HTML entities, and `.lv-reveal-icon` sized them with `font-size`;
+    it now sets `width`/`height` and the icon inherits the card's colour. A new
+    card names a symbol in `public/icons/sprite.svg`, never a pictograph — see
+    `DESIGN.md` §5a.
 
 Layout:
 

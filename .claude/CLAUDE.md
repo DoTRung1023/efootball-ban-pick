@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # start dev server with auto-reload (node --watch)
 npm start            # start production server
 npm run check        # static gate: imports, path casing, bindings, cycles, dom ids, dead CSS
+npm run icons        # regenerate public/icons/svg/ from sprite.svg (check fails if stale)
 npm run check:self   # prove those checks can still fail
 npm run scrape       # full or incremental player catalog update
 npm run scrape:missing  # repair gaps: diff site vs DB, fill missing entries
@@ -75,11 +76,19 @@ Code is grouped **by feature, not by file type**.
 - `public/icons/` — `sprite.svg`, **the** icon set: one `<symbol>` per icon and the
   only place icon geometry or `stroke-width` is written. Sites reference it by name
   (`<use href="/icons/sprite.svg#plus" />`); `public/js/shared/icons/icon.js` is the
-  same thing for the eighteen icons built inside template strings. `npm run check`
-  fails on a name the sprite does not define. See `DESIGN.md` §5a.
+  same thing for the 13 icons built inside template strings, across 42 call sites.
+  The name must be a **literal** — a conditional inside `icon(…)` is invisible to
+  the check. `svg/` beside it is **generated** (`npm run icons`): one standalone
+  file per symbol, for the one case a sprite cannot serve — a CSS pseudo-element,
+  which renders `<use>` into an unreachable shadow tree. `npm run check` fails on a
+  name the sprite does not define and on a generated file that has drifted from it.
+  See `DESIGN.md` §5a.
 - `scripts/` — `check.js` (the `npm run check` runner and its self-test) and
-  `checks/`, one file per check plus a shared `lib.js`. Node-only tooling; it is
-  not served, and the checks scan `public/js` and `src` but not themselves.
+  `checks/`, one file per check plus a shared `lib.js`. `buildIcons.js` writes
+  `public/icons/svg/`, and `iconSprite.js` is the sprite parser it shares with the
+  `iconFiles` check, so the generator and its verifier can never disagree about
+  what a file should contain. Node-only tooling; it is not served, and the checks
+  scan `public/js` and `src` but not themselves.
 - `database/schema.sql` — MySQL schema.
 
 **Path aliases** — there is no bundler, so each alias is resolved by the platform itself:
@@ -103,10 +112,14 @@ more modern" request. Do not introduce a colour, radius, or spacing value that i
 one of its ladders.
 
 **All icons live in `public/icons/sprite.svg`** and are referenced by name — there
-is no `<svg>` with path data in a page, a stylesheet or a template string, and no
-emoji anywhere in the UI. `DESIGN.md` §5a says what the sprite owns (geometry,
-`stroke-width`) versus the call site (size, class, inherited colour), and names the
-one icon allowed to stay inline and why.
+is no `<svg>` with path data in a page, a stylesheet or a template string, no emoji
+anywhere in the UI, and **no non-ASCII mark standing in for an icon**: `✓` `↑` `↓`
+`∞` `▶` `●` `✕` `←` are all symbols now. Punctuation is not a mark — `·` `—` `…`
+stay text, and `→` inside a `title` or an `<option>` has to, since neither can hold
+an element. Emoji were last found written as HTML **entities** (`&#128065;`), which
+is how they survived earlier greps; check that range too. `DESIGN.md` §5a says what
+the sprite owns (geometry, `stroke-width`) versus the call site (size, class,
+inherited colour), and names the one icon allowed to stay inline and why.
 
 **All colour lives in `public/css/shared/tokens.css`**, linked first on every page; there
 is no hex or `rgba()` literal anywhere else in the codebase, CSS or JS.

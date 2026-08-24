@@ -145,7 +145,7 @@ function reload() {
 function updateSortUi() {
   const cat = SORT_CATEGORIES.find((c) => c.key === state.sortCategory);
   el("acSortLabel").textContent = cat ? cat.label.toUpperCase() : "SORT";
-  el("acSortDirIcon").textContent = state.sortDir === "desc" ? "↓" : "↑";
+  el("acSortDirIcon").innerHTML = state.sortDir === "desc" ? icon("arrow-down", { size: 13 }) : icon("arrow-up", { size: 13 });
   el("acSortDirBtn").title = cat
     ? (state.sortDir === "desc" ? cat.descTip : cat.ascTip)
     : "Toggle sort direction";

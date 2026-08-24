@@ -92,7 +92,9 @@ body {
 }
 
 .gate-back {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 6px;
   font-size: 12px;
   color: var(--text-dim);

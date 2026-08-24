@@ -30,6 +30,7 @@ Exit codes: `0` clean, `1` a check failed, `2` the name you passed matches nothi
 | `dead-css` | class selectors no markup can match |
 | `info-toggle` | a SHOW INFO / HIDE INFO selector that resizes the card instead of just showing and hiding its footer |
 | `icons` | a `<use>` naming a symbol `public/icons/sprite.svg` does not define, a symbol nothing uses, and an `<svg>` that draws its own geometry instead of referencing the sprite |
+| `iconFiles` | a file in the generated `public/icons/svg/` that no longer matches the sprite it was written from — edited by hand, or left behind when a symbol changed and `npm run icons` was not re-run |
 
 **Casing is the one that matters most.** macOS is case-insensitive and deployment
 is not, so `@/shared/ui/Toast.js` works on the dev machine and 404s in production.
@@ -91,6 +92,21 @@ self-test will not tell you so.
   that turned out to be dead code. Its one allowed inline exception
   (`.room-chat-icon`, two-tone) is a named entry in the check, so adding another
   means arguing for it in the source.
+
+  It reads a **literal** name — the quoted string straight after `icon(`, or the
+  `#name` in a `<use>`. `icon(dir === "asc" ? "arrow-up" : "arrow-down")` is
+  therefore invisible to it, and the "symbol defined but unused" arm is what
+  surfaces that: the name silently stops being checked. Write the conditional
+  around two `icon()` calls.
+- `iconFiles` exists because `public/icons/svg/` is generated, and a generated
+  folder that nobody verifies is just a second copy of the geometry with a
+  slower rot. It regenerates every file in memory and compares bytes.
+
+  It also asserts the parse found **every** symbol, which is not paranoia: the
+  first parser returned 33 of 34, because the sprite's own header comment
+  contains the literal text `<symbol>` and the tag regex matched it, swallowing
+  the first icon into a match with no id. A generator that silently skips an
+  icon is worse than no generator.
 - None of this checks behaviour. It cannot tell you the draft still works — for
   that, run one.
 

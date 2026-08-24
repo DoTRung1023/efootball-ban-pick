@@ -545,11 +545,13 @@ Key blocks:
     the left of a wide column, measured 365 px clear of the nearest clip at
     1024 px. Its green twin on the home page anchors `right: 0` instead, for a
     reason that is entirely local to that layout; see `home/css.md`.
-  - The tick is `button::after { content: "✓" }` toggled by `opacity`, **not**
-    markup: `renderFormationPanel` builds the buttons once and thereafter only
-    flips `is-active`, so a marker in the HTML would have to be rebuilt each
-    render. U+2713 is `Emoji_Presentation=No`, so it renders as a text glyph with
-    no variation selector needed — unlike the fog emoji in `pickView.js`.
+  - The tick is `button::after` toggled by `opacity`, **not** markup:
+    `renderFormationPanel` builds the buttons once and thereafter only flips
+    `is-active`, so a marker in the HTML would have to be rebuilt each render.
+    It draws with `mask: url("/icons/svg/check.svg")` over
+    `background: var(--text)` — a sprite `<use>` renders into a shadow tree and
+    cannot be a pseudo-element, which is the whole reason the generated
+    per-icon folder exists. See `DESIGN.md` §5a.
 - `.pick-pos-tabs` / `.pick-pos-tab` / `.is-active` — tab bar with `--text`
   accent on the active tab.
 - `.pick-phase-grid` — same `player-card` component as `.ban-phase-grid`, and

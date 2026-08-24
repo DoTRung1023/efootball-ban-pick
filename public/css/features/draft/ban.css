@@ -169,6 +169,10 @@
   margin-left: auto;
 }
 
+/* The confirmed state ends in a tick icon; nudge it onto the text's optical
+   baseline, which `vertical-align: middle` sits a shade above. */
+.ban-opponent-status-text svg { vertical-align: -1px; }
+
 .ban-opponent-status-text.is-confirmed {
   color: var(--text);
 }

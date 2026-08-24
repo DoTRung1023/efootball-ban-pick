@@ -34,8 +34,11 @@ import * as debugLeftovers from "./checks/debugLeftovers.js";
 import * as deadCss from "./checks/deadCss.js";
 import * as infoToggle from "./checks/infoToggle.js";
 import * as icons from "./checks/icons.js";
+import * as iconFiles from "./checks/iconFiles.js";
+import { fileFor } from "./iconSprite.js";
 
-const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle, icons];
+const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle, icons,
+  iconFiles];
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Everything the checks share, gathered once. */
@@ -113,6 +116,14 @@ const FIXTURE = {
     `    <line x1="12" y1="5" x2="12" y2="19" />\n` +
     `    <line x1="5" y1="12" x2="19" y2="12" />\n` +
     `  </symbol>\n</svg>\n`,
+
+  /* Built with the generator's own helper rather than pasted: if `fileFor`
+     changes shape, the fixture moves with it and the self-test keeps testing
+     the check instead of a stale copy of last month's output format. */
+  "public/icons/svg/plus.svg": fileFor({
+    attrs: 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"',
+    body: '<line x1="12" y1="5" x2="12" y2="19" />\n<line x1="5" y1="12" x2="19" y2="12" />',
+  }),
 
   "public/css/app.css":
     `.thing-card { color: red; }\n` +
@@ -202,6 +213,20 @@ const DEFECTS = [
     file: "public/home.html",
     from: 'sprite.svg#plus',
     to: 'sprite.svg#pluss',
+  },
+  {
+    expect: "icons",
+    what: "icon geometry in a bare string, with no <svg> wrapper to catch it",
+    file: "public/js/features/thing/thing.js",
+    from: "export function initThing()",
+    to: "const EYE = `<path d=\"M1 12s4-8 11-8\"/>`;\nexport function initThing()",
+  },
+  {
+    expect: "iconFiles",
+    what: "a generated icon file edited by hand instead of regenerated",
+    file: "public/icons/svg/plus.svg",
+    from: 'stroke-width="2"',
+    to: 'stroke-width="3"',
   },
   {
     expect: "dead-css",

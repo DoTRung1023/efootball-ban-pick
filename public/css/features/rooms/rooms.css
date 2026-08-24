@@ -210,6 +210,10 @@
    two line up even though the guest side carries an extra row. */
 .rooms-create-cta {
   margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 14px;
   border: none;

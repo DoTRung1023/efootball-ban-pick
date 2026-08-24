@@ -19,6 +19,7 @@ import { getBanListPlayers, getPickListPlayers } from '@/features/draft/playerQu
 import { START_MATCH_STATUSES } from '@/features/draft/constants.js';
 import { isUnlimitedDuration } from '@/features/draft/state.js';
 
+import { icon } from '@/shared/icons/icon.js';
 const FALLBACK_TURN_SECONDS = 60;
 const TIMER_TICK_MS = 250;
 const LOW_TIME_SECONDS = 10;   // when the clock turns red — styling only
@@ -161,7 +162,10 @@ function paintTimer(secondsLeft, durationSec) {
   const ring = document.getElementById("timerRing");
   const isLow = secondsLeft <= LOW_TIME_SECONDS;
 
-  if (inner) inner.textContent = String(secondsLeft);
+  if (inner) {
+    inner.textContent = String(secondsLeft);
+    delete inner.dataset.mark;   // hand the slot back from paintUnlimitedTimer
+  }
   if (ring) {
     const pct = Math.min(1, secondsLeft / durationSec) * 100;
     ring.classList.toggle("is-low", isLow);
@@ -173,7 +177,13 @@ function paintTimer(secondsLeft, durationSec) {
 function paintUnlimitedTimer() {
   const inner = document.getElementById("timerInner");
   const ring = document.getElementById("timerRing");
-  if (inner && inner.textContent !== "∞") inner.textContent = "∞";
+  /* `dataset.mark` rather than reading the node back: the countdown writes
+     `textContent`, so after a swap the element holds an icon whose text is
+     empty — indistinguishable from a blank slot. */
+  if (inner && inner.dataset.mark !== "infinity") {
+    inner.innerHTML = icon("infinity", { size: 20, className: "timer-infinity" });
+    inner.dataset.mark = "infinity";
+  }
   if (ring) {
     ring.classList.remove("is-low");
     ring.style.setProperty("--timer-progress", "100%");

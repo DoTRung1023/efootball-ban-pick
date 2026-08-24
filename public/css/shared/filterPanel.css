@@ -26,6 +26,8 @@
   flex-shrink: 0;
 }
 
+.sort-dir-btn > span { display: flex; align-items: center; }
+
 .sort-dir-btn {
   display: flex;
   align-items: center;

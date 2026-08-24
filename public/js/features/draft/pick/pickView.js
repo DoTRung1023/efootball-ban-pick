@@ -35,6 +35,7 @@ import { getPickFormation } from '@/features/draft/gamePlans.js';
 import { pickLimit } from '@/features/draft/engine/draftFlow.js';
 import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
+import { icon } from '@/shared/icons/icon.js';
 const LINEUP_SIZE = 11;
 
 /* ── Pitch slot sizing ─────────────────────────────────────────
@@ -403,7 +404,7 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
   const theirConfirmed = Boolean(room.picksConfirmed?.[theirSide]);
 
   btn.disabled = !full && !confirmed;
-  btn.textContent = confirmed ? "UN-CONFIRM" : "CONFIRM PICKS ▶";
+  btn.innerHTML = confirmed ? "UN-CONFIRM" : `CONFIRM PICKS${icon("play", { size: 12 })}`;
   btn.classList.toggle("is-confirmed", confirmed);
 
   if (!hint) return;

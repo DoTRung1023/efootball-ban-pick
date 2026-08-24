@@ -25,6 +25,7 @@ import { normalizeRevealMode } from '@/features/draft/state.js';
 import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
 import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
+import { icon } from '@/shared/icons/icon.js';
 const EMPTY_SLOT_HTML = `<div class="ban-side-empty-slot"></div>`;
 
 /* ── Ban slot sizing ───────────────────────────────────────────────
@@ -179,7 +180,10 @@ function paintBadge({ dotId, nameId, statusId }, { online, name, status, statusC
   if (dot) dot.classList.toggle("is-online", online);
   if (nameEl && name) nameEl.textContent = name.toUpperCase();
   if (statusEl) {
-    statusEl.textContent = status;
+    /* `innerHTML`, not `textContent`: the confirmed status carries a tick icon.
+       Every value comes from the fixed ladder above — no seat data reaches it,
+       the username goes through `nameEl.textContent` on the line before. */
+    statusEl.innerHTML = status;
     statusEl.className = statusClass;
   }
 }
@@ -214,7 +218,7 @@ function renderOpponentBadge(theirInfo, theirConfirmed) {
       : liveness === "reconnecting"
         ? "· reconnecting..."
         : theirConfirmed
-          ? "· confirmed ✓"
+          ? `· confirmed ${icon("check", { size: 11 })}`
           : liveness === "away"
             ? "· tabbed away"
             : "· is choosing...";
@@ -243,7 +247,9 @@ function renderMyBadge(myInfo, myConfirmed) {
     {
       online: !offline,
       name: myInfo?.username || "You",
-      status: offline ? "· reconnecting..." : myConfirmed ? "· confirmed ✓" : "· is choosing...",
+      status: offline
+        ? "· reconnecting..."
+        : myConfirmed ? `· confirmed ${icon("check", { size: 11 })}` : "· is choosing...",
       statusClass: offline ? STATUS_OFFLINE : myConfirmed ? STATUS_CONFIRMED : STATUS_BASE,
     },
   );

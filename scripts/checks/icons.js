@@ -40,6 +40,14 @@ const INLINE_ALLOWED = new Map([
 
 const GEOMETRY = /<(path|circle|rect|polyline|polygon|line)\b/;
 
+/** Comments may talk about `<path>` without drawing one. */
+function stripComments(src) {
+  return src
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+}
+
 export function run(ctx) {
   const { root, publicDir, jsFiles } = ctx;
   const failures = [];
@@ -77,6 +85,22 @@ export function run(ctx) {
       failures.push(
         `${relPath(root, file)}: inline <svg> draws its own geometry — add it to ${SPRITE_REL} `
         + `and reference it by name`,
+      );
+    }
+
+    /* (3b) geometry with no <svg> around it for the rule above to find.
+
+       `passwordToggle.js` held its two eyes as bare `<path>`/`<circle>` strings
+       and wrote them into an existing <svg> with innerHTML — which replaced the
+       <use> already in that element, so one click took the icon out of the
+       sprite for good. Every rule above looked right and none of them fired.
+       Strip the comments and the legitimate <svg> blocks; anything still
+       drawing after that is geometry with nowhere to hide. */
+    const bare = stripComments(src).replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/g, "");
+    if (GEOMETRY.test(bare)) {
+      failures.push(
+        `${relPath(root, file)}: SVG geometry in a string with no <svg> wrapper — put the shape `
+        + `in ${SPRITE_REL} and swap the <use> href instead of writing innerHTML`,
       );
     }
   }

@@ -320,7 +320,7 @@ function updateSquadSortUI() {
      toolbars never had one. */
   if (dirBtn && dirIcon) {
     dirBtn.style.display = "flex";
-    dirIcon.textContent  = squad.sortDir === "desc" ? "↓" : "↑";
+    dirIcon.innerHTML = squad.sortDir === "desc" ? icon("arrow-down", { size: 13 }) : icon("arrow-up", { size: 13 });
   }
   document.querySelectorAll(".squad-sort-option").forEach(el => {
     el.classList.toggle("active", el.dataset.sort === squad.sortKey);
