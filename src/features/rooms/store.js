@@ -155,7 +155,17 @@ export function ensureRoomEntry(code) {
   return entry;
 }
 
-function makeMessageId() {
+/**
+ * `<millis>-<6 base36 chars>`. Sortable by creation and unique enough for ids
+ * that only have to stay distinct inside one room's lifetime.
+ *
+ * Exported because two callers need exactly this and both used to spell it out
+ * inline: chat message ids here, and the id for an anonymous seat in
+ * `routes.js`. That is the duplication that drifts — the client mints its own
+ * anon id in `draft/utils.js` and already slices to 10 rather than 8, across a
+ * process boundary where it cannot share this.
+ */
+export function shortId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -188,7 +198,7 @@ export function isKickedFromRoom(entry, userId) {
 
 export function pushUserChat(entry, { senderId, username, message }) {
   appendChat(entry, {
-    id: makeMessageId(),
+    id: shortId(),
     senderId,
     senderName: String(username || "User").trim().slice(0, 50) || "User",
     message: String(message).slice(0, 500),

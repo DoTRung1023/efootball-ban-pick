@@ -25,6 +25,7 @@ import {
   roomPhase,
   roomPresence,
   serializeRoomEntry,
+  shortId,
 } from "./store.js";
 
 const router = Router({ mergeParams: true });
@@ -117,7 +118,7 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
   const participant = {
     id: userId != null && userId !== ""
       ? String(userId)
-      : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      : `anon-${shortId()}`,
     username: String(username || fallbackName).trim().slice(0, 50) || fallbackName,
     lastSeenAt: Date.now(),
     /* Whether that heartbeat came from a backgrounded tab. It expires nobody —

@@ -260,11 +260,32 @@ function renderStepFooter(step, room, theirSide, mine, theirs) {
        pressing it changed the word and kept its accent — you could not tell at
        a glance whether you had answered. `data-pressed` is read by `ready.css`
        on the same selector and cannot lose that fight. */
-    /* The tick is an icon, so the label is markup and `textContent` can no
-       longer be the idempotence guard — `innerHTML` round-trips through the
-       parser and would not compare equal to what we wrote. `dataset.label`
-       holds the string we last set and keeps this a no-op on every poll. */
-    const label = mine ? `${step.label}${icon("check", { size: 11 })}· UNDO` : step.label;
+    /* Two lines once answered: the state you are in over the thing the button
+       does. It used to read `READY ✓ · UNDO` on one line, which said your state
+       and the button's action in the same breath — so the control looked like
+       it was labelled with its own state, and "UNDO" read as part of the word
+       READY rather than as the thing pressing it would do.
+
+       The button is only ever the action. Unpressed that is the step itself
+       (READY / START MATCH / FINISH MATCH); pressed it is always UNDO, and the
+       state moves above it in smaller type.
+
+       The state word is `chip.on` from the step table, already written for the
+       team-head chips — READY / STARTING / FINISHED — so all three steps get
+       this without a fourth field or a branch.
+
+       UNDO is right for all three even though `finish` is `undoable: false` on
+       the server: that flag only blocks walking the room back once *both*
+       sides have answered, and this button is only on screen while yours is
+       the answer being waited on.
+
+       The label is markup, so `textContent` can no longer be the idempotence
+       guard — `innerHTML` round-trips through the parser and would not compare
+       equal to what we wrote. `dataset.label` holds the string we last set. */
+    const label = mine
+      ? `<span class="sm-step-state">${icon("check", { size: 10 })}${step.chip.on}</span>`
+        + `<span class="sm-step-action">UNDO</span>`
+      : `<span class="sm-step-action">${step.label}</span>`;
     if (btn.dataset.label !== label) {
       btn.innerHTML = label;
       btn.dataset.label = label;

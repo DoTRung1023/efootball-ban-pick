@@ -330,15 +330,40 @@
 /* The accent, for as long as this is the one thing to act on. The rule
    reserving it for the turn clock does not bite here: the clock is not on
    screen in this phase and nothing is counting down. */
+/* Column, because the answered state stacks the state word over the action.
+   `min-height` rather than symmetric padding so the button is the same height
+   pressed or not: the footer sits under two squads and must not jump a row
+   when someone presses READY. */
 .sm-step-btn {
+  flex-direction: column;
+  gap: 1px;
+  min-height: 44px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 12px 40px;
+  padding: 6px 40px;
+  line-height: 1.15;
   border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
   border-color: transparent;
+}
+
+/* Muted and small: it is a status readout, not the thing you press. Inherits
+   the button's colour so it stays legible on the accent fill and on the ghost
+   fill after it flips. */
+.sm-step-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  opacity: 0.7;
+}
+
+.sm-step-action {
+  font-size: 14px;
+  letter-spacing: 0.05em;
 }
 
 .sm-step-btn:hover:not(:disabled) { background: var(--accent-hover); }
