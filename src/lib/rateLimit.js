@@ -12,6 +12,9 @@
    becomes per-process and the counts want moving into MySQL or Redis; that is
    noted in DECISIONS.md rather than pre-built.
 
+   Imported by `server.js` and the auth and players routers. Nothing else, and
+   nothing outside `src/` — importing it must stay free of side effects.
+
    **Behind a proxy, set `TRUST_PROXY`.** Otherwise `req.ip` is the proxy for
    every request, all callers share one bucket, and the first busy minute locks
    out everybody. Same failure mode as `APP_BASE_URL` in `http.js`, and the same
@@ -21,14 +24,24 @@
 /** `${policy}:${ip}` -> { count, resetAt }. Swept, so it cannot grow forever. */
 const buckets = new Map();
 
-const SWEEP_MS = 60_000;
+/* Sweeping happens on the way through a request, not on a timer.
 
-/* `unref` so a sweep timer never holds the process open. `scrape.js` imports
-   this transitively and has to be able to exit when it is done. */
-setInterval(() => {
-  const now = Date.now();
+   The first version ran `setInterval(...).unref()` at module scope, which made
+   importing this file start a timer as a side effect — the same thing
+   `lib/cli.js` and the `isMainModule` guard exist to prevent elsewhere in this
+   repo. It is not needed: the map is only ever touched while serving a
+   request, so the request is the only moment it can have grown.
+
+   Every entry is already re-armed on access when its window has closed. The
+   sweep exists solely for addresses that never come back, so it can run on one
+   call in `SWEEP_EVERY` and be exactly as correct. No timer, no `unref`, no
+   import-time side effect. */
+const SWEEP_EVERY = 500;
+let sinceSweep = 0;
+
+function sweepExpired(now) {
   for (const [key, b] of buckets) if (b.resetAt <= now) buckets.delete(key);
-}, SWEEP_MS).unref();
+}
 
 /**
  * A fixed-window limiter. `name` namespaces the bucket, so an IP that has used
@@ -38,6 +51,8 @@ export function rateLimit({ name, windowMs, max }) {
   return function rateLimiter(req, res, next) {
     const now = Date.now();
     const key = `${name}:${req.ip}`;
+
+    if (++sinceSweep >= SWEEP_EVERY) { sinceSweep = 0; sweepExpired(now); }
 
     let bucket = buckets.get(key);
     if (!bucket || bucket.resetAt <= now) {

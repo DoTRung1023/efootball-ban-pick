@@ -120,6 +120,28 @@ export function stripSource(src, { keepStrings = false } = {}) {
  * resolved by a different one: `@/` by the browser's import map, `#…` by Node's
  * `imports` field. Returns null for bare npm specifiers.
  */
+/**
+ * Every module specifier a source imports or re-exports, in source order.
+ *
+ * This was written out four times before it lived here — `cycles.js` and
+ * `boundaries.js` held byte-identical regexes, `imports.js` a third variant
+ * that also understood `import(…)`, and `unusedImports.js` a fourth. That is
+ * how the boundary check ended up blind to dynamic imports while the resolver
+ * check saw them: same question, four answers, drifting apart.
+ *
+ * Static `import`/`export … from` and dynamic `import("…")` both count. Feed
+ * it `stripSource(src, { keepStrings: true })` so a specifier mentioned in a
+ * comment is not treated as a dependency.
+ */
+export function importSpecifiers(src) {
+  const out = [];
+  for (const m of src.matchAll(SPECIFIER)) out.push(m[1] ?? m[2]);
+  return out;
+}
+
+const SPECIFIER =
+  /(?:^|\n)\s*(?:import|export)[\s\S]*?from\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+
 export function makeResolver(root, pkgImports = {}) {
   const publicDir = join(root, "public");
   const jsRoot = join(publicDir, "js");

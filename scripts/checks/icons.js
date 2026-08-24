@@ -26,7 +26,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { relPath } from "./lib.js";
+import { relPath, stripSource } from "./lib.js";
 
 export const name = "icons";
 export const summary = "icon names with no matching symbol";
@@ -39,14 +39,6 @@ const INLINE_ALLOWED = new Map([
 ]);
 
 const GEOMETRY = /<(path|circle|rect|polyline|polygon|line)\b/;
-
-/** Comments may talk about `<path>` without drawing one. */
-function stripComments(src) {
-  return src
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*\/\/.*$/gm, "");
-}
 
 export function run(ctx) {
   const { root, publicDir, jsFiles } = ctx;
@@ -96,7 +88,15 @@ export function run(ctx) {
        sprite for good. Every rule above looked right and none of them fired.
        Strip the comments and the legitimate <svg> blocks; anything still
        drawing after that is geometry with nowhere to hide. */
-    const bare = stripComments(src).replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/g, "");
+    /* `stripSource` and not a regex of our own: `lib.js` documents why the
+       naive /\*…\*\/ form is unsafe (it once blanked 26 lines of live code in
+       scrape.js). `keepStrings` is required here — the geometry this arm hunts
+       for lives *inside* template strings, so blanking strings would hide
+       exactly what we are looking for. HTML comments are handled separately
+       because `stripSource` is a JS scanner. */
+    const bare = stripSource(src, { keepStrings: true })
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/g, "");
     if (GEOMETRY.test(bare)) {
       failures.push(
         `${relPath(root, file)}: SVG geometry in a string with no <svg> wrapper — put the shape `

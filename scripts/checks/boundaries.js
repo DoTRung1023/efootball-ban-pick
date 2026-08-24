@@ -37,31 +37,39 @@
    ============================================================ */
 
 import { readFileSync } from "node:fs";
-import { relPath } from "./lib.js";
+import { importSpecifiers, relPath, stripSource } from "./lib.js";
 
 export const name = "boundaries";
 export const summary = "imports that cross a layer the wrong way";
 
-const IMPORT = /(?:^|\n)\s*(?:import|export)[\s\S]*?from\s*["']([^"']+)["']/g;
+/* The five layers, once. Each row carries both ways of naming the same place:
+   where its files live on disk, and how another module addresses it. Writing
+   the taxonomy twice (a `layerOf` ladder and a near-identical `targetOf` one)
+   meant a sixth layer had to be added in two places with the `kind` strings
+   kept in sync by hand.
+
+   `seg` is the path segment holding the feature name, counted from the repo
+   root for `dir` and from the specifier's own start for `spec`. */
+const LAYERS = [
+  { kind: "client-shared",  dir: "public/js/shared/",   spec: "@/shared/" },
+  { kind: "client-page",    dir: "public/js/pages/",    spec: "@/pages/" },
+  { kind: "client-feature", dir: "public/js/features/", spec: "@/features/", dirSeg: 3, specSeg: 2 },
+  { kind: "server-lib",     dir: "src/lib/",            spec: "#lib/" },
+  { kind: "server-feature", dir: "src/features/",       spec: "#features/", dirSeg: 2, specSeg: 1 },
+];
 
 /** Which layer a repo-relative path belongs to. */
 function layerOf(rel) {
-  if (rel.startsWith("public/js/shared/"))   return { kind: "client-shared" };
-  if (rel.startsWith("public/js/pages/"))    return { kind: "client-page" };
-  if (rel.startsWith("public/js/features/")) return { kind: "client-feature", feature: rel.split("/")[3] };
-  if (rel.startsWith("src/lib/"))            return { kind: "server-lib" };
-  if (rel.startsWith("src/features/"))       return { kind: "server-feature", feature: rel.split("/")[2] };
-  return { kind: "other" };
+  const row = LAYERS.find((l) => rel.startsWith(l.dir));
+  if (!row) return { kind: "other" };
+  return { kind: row.kind, feature: row.dirSeg ? rel.split("/")[row.dirSeg] : undefined };
 }
 
 /** Which layer a specifier points at. Relative specifiers never leave a folder. */
 function targetOf(spec) {
-  if (spec.startsWith("@/shared/"))   return { kind: "client-shared" };
-  if (spec.startsWith("@/pages/"))    return { kind: "client-page" };
-  if (spec.startsWith("@/features/")) return { kind: "client-feature", feature: spec.split("/")[2] };
-  if (spec.startsWith("#lib/"))       return { kind: "server-lib" };
-  if (spec.startsWith("#features/"))  return { kind: "server-feature", feature: spec.split("/")[1], spec };
-  return null;
+  const row = LAYERS.find((l) => spec.startsWith(l.spec));
+  if (!row) return null;
+  return { kind: row.kind, feature: row.specSeg ? spec.split("/")[row.specSeg] : undefined, spec };
 }
 
 export function run(ctx) {
@@ -73,25 +81,27 @@ export function run(ctx) {
     const rel = relPath(root, file);
     const from = layerOf(rel);
     if (from.kind === "other") continue;
-    const src = readFileSync(file, "utf8");
+    /* Stripped, so a specifier named in a comment is not read as a real
+       dependency. This used to scan raw source. */
+    const src = stripSource(readFileSync(file, "utf8"), { keepStrings: true });
 
-    for (const m of src.matchAll(IMPORT)) {
-      const to = targetOf(m[1]);
+    for (const spec of importSpecifiers(src)) {
+      const to = targetOf(spec);
       if (!to) continue;
       checked++;
 
       // 1 + 2 — a base layer reaching up into what is built on it
       if (from.kind === "client-shared" && (to.kind === "client-feature" || to.kind === "client-page")) {
-        failures.push(`${rel}: shared/ imports ${m[1]} — a shared helper may not depend on a feature or a page`);
+        failures.push(`${rel}: shared/ imports ${spec} — a shared helper may not depend on a feature or a page`);
       }
       if (from.kind === "server-lib" && to.kind === "server-feature") {
-        failures.push(`${rel}: lib/ imports ${m[1]} — lib sits underneath the features, not beside them`);
+        failures.push(`${rel}: lib/ imports ${spec} — lib sits underneath the features, not beside them`);
       }
 
       // 3 — sideways on the client
       if (from.kind === "client-feature" && to.kind === "client-feature" && to.feature !== from.feature) {
         failures.push(
-          `${rel}: imports ${m[1]} — features/${from.feature} may not reach into features/${to.feature}; `
+          `${rel}: imports ${spec} — features/${from.feature} may not reach into features/${to.feature}; `
           + `move the shared part to public/js/shared/`,
         );
       }
@@ -100,7 +110,7 @@ export function run(ctx) {
       if (from.kind === "server-feature" && to.kind === "server-feature" && to.feature !== from.feature) {
         if (!/^#features\/[^/]+\/index\.js$/.test(to.spec)) {
           failures.push(
-            `${rel}: imports ${m[1]} — reach another feature through its barrel `
+            `${rel}: imports ${spec} — reach another feature through its barrel `
             + `(#features/${to.feature}/index.js), not a file inside it`,
           );
         }

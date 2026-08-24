@@ -9,7 +9,7 @@
    ============================================================ */
 
 import { readFileSync } from "node:fs";
-import { relPath, stripSource } from "./lib.js";
+import { importSpecifiers, relPath, stripSource } from "./lib.js";
 
 export const name = "cycles";
 export const summary = "import cycles";
@@ -23,8 +23,8 @@ export function run(ctx) {
   for (const file of jsFiles) {
     const src = stripSource(readFileSync(file, "utf8"), { keepStrings: true });
     const deps = new Set();
-    for (const m of src.matchAll(/(?:^|\n)\s*(?:import|export)[\s\S]*?from\s*["']([^"']+)["']/g)) {
-      const target = resolveSpec(m[1], file);
+    for (const spec of importSpecifiers(src)) {
+      const target = resolveSpec(spec, file);
       if (target && known.has(target)) deps.add(target);
     }
     graph.set(file, [...deps]);
