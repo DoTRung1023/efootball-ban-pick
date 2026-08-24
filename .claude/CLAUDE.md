@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+`DESIGN.md` owns how it looks. `DECISIONS.md` owns why it is shaped this way, and what
+is still open — read it before proposing anything architectural, and note §1: **request
+`userId` is trusted, never verified.**
+
 ## Commands
 
 ```bash
@@ -45,34 +49,23 @@ Code is grouped **by feature, not by file type**.
   belongs to the composition root.
 - `public/` — four pages: `home.html` (squad / game plans / rooms), `room.html` (the
   ban-pick draft), `console.html` (the admin console), `signin.html`. Each has an ESM
-  entry file in
-  `public/js/pages/`; the behaviour lives in `public/js/features/<name>/`.
-- `public/js/shared/` — helpers **two or more features import today**; nothing goes here
-  speculatively — and when a module drops back to one consumer it moves out again
-  (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). `players/`
-  (`playerMeta.js`, `positions.js`, `sort.js`, `formations.js`, `filterPanel.js` —
-  which owns the panel, `playerFilterParams` and `hasActivePlayerFilters`, so the
-  filter→query-string mapping has exactly one copy),
-  `ui/` (`toast.js`, `readingTime.js`, `pendingToast.js`, `confirm.js`, `dropdown.js`,
-  `playerHoverCard.js`), `lib/`
-  (`session.js`, `roomCode.js` — both bundles mint room codes: the Rooms tab for the
-  host, the post-match screen for "new match"). `positions.js`
-  is the one module with a single *feature* consumer: `shared/players/sort.js` is the
-  other, so it cannot move down. Import these **directly** — `shared/` deliberately has
-  no barrel files, because with no bundler a barrel makes the browser fetch every module
-  it re-exports.
-- `public/css/` — mirrors `public/js/`: `pages/home/{base,responsive}.css`,
-  `features/<name>/<name>.css`,
-  `shared/{tokens,controls,playerCard,modals,numberInput,playerHoverCard,pitchField,filterPanel}.css`.
-  `shared/filterPanel.css` is the chrome for the sort and filter dropdowns — the
-  other half of `shared/players/filterPanel.js` and `sort.js`. It lived in
-  `features/catalog/catalog.css` while every consumer was on the home page; the
-  console's CATALOG tab made it a second page, so it moved to `shared/`.
-  There is no bundler, so a page's `<link>` tags **are** its cascade — the order in the
-  `<head>` is load-bearing. `shared/tokens.css` must be **first** (every other sheet
-  reads its variables) and `shared/controls.css` **last**, because its focus ring has to
-  beat the feature sheets that set `outline: none`; on the home page `responsive.css`
-  still comes after it.
+  entry file in `public/js/pages/`; behaviour lives in `public/js/features/<name>/`.
+- `public/js/shared/` — helpers **two or more features import today**; nothing goes
+  here speculatively, and when a module drops back to one consumer it moves out again
+  (`ovr.js` went to `features/catalog/`, `constants.js` was inlined). Grouped
+  `players/`, `ui/`, `lib/`, `icons/`. Two things not to undo: `filterPanel.js` owns
+  the panel *and* `playerFilterParams`, so the filter to query-string mapping has one
+  copy; and `positions.js` looks like it has a single feature consumer, but
+  `shared/players/sort.js` is a second, so it cannot move down. Import these **directly** — `shared/` deliberately has no barrels, because
+  with no bundler a barrel makes the browser fetch every module it re-exports.
+- `public/css/` — mirrors `public/js/`: `pages/home/`, `features/<name>/`, `shared/`.
+  `shared/filterPanel.css` is the chrome for the sort and filter dropdowns, the other
+  half of `shared/players/filterPanel.js`; it moved out of `features/catalog/` when the
+  console's CATALOG tab became a second consumer. There is no bundler, so a page's
+  `<link>` tags **are** its cascade and the order in the `<head>` is load-bearing:
+  `shared/tokens.css` **first** (every other sheet reads its variables) and
+  `shared/controls.css` **last**, because its focus ring has to beat the feature sheets
+  that set `outline: none`. On the home page `responsive.css` still comes after it.
 - `public/icons/` — `sprite.svg`, **the** icon set: one `<symbol>` per icon and the
   only place icon geometry or `stroke-width` is written. Sites reference it by name
   (`<use href="/icons/sprite.svg#plus" />`); `public/js/shared/icons/icon.js` is the
@@ -91,16 +84,18 @@ Code is grouped **by feature, not by file type**.
   scan `public/js` and `src` but not themselves.
 - `database/schema.sql` — MySQL schema.
 
-**Path aliases** — there is no bundler, so each alias is resolved by the platform itself:
+**Do not create a new top-level folder, or a new `public/js/shared/` module, without
+asking.** Left alone this grows a `helpers/`, a `types/`, a `constants/` and a
+`services/` inside a month, and `shared/` fills with modules one feature uses. The
+`boundaries` check enforces the direction imports may point; it cannot tell you a
+folder should not exist.
 
-| Alias | Resolves to | Configured in |
-| --- | --- | --- |
-| `@/…` | `public/js/…` | the `<script type="importmap">` in each page's `<head>` |
-| `#features/…`, `#lib/…` | `src/features/…`, `src/lib/…` | the `imports` field in `package.json` |
-
-Node does **not** support `@/`, which is why the backend uses the `#` prefix. `jsconfig.json`
-mirrors both for the editor only. Use an alias whenever an import leaves its own folder;
-keep `./sibling.js` relative.
+**Path aliases** — no bundler, so each is resolved by the platform itself. `@/…` maps to
+`public/js/…` through the `<script type="importmap">` in each page's `<head>`;
+`#features/…` and `#lib/…` map to `src/…` through the `imports` field in `package.json`.
+Node does **not** support `@/`, which is why the backend uses `#`. `jsconfig.json` mirrors
+both for the editor only. Use an alias whenever an import leaves its own folder; keep
+`./sibling.js` relative.
 
 ## Visual design
 
@@ -196,23 +191,7 @@ swaps a column, so it emits its own markings — see `PITCH_MARKS_HTML` in
 
 ## Detailed rules
 
-Topic rules live in `.claude/rules/`. Each carries `paths:` frontmatter and loads
-automatically when a matching file is read:
-
-| Rule | Scope |
-| --- | --- |
-| `checks.md` | `npm run check` — what each static check covers and its limits |
-| `backend.md` | `src/**` |
-| `auth.md` | sign-in / sign-up / profile, the `efb_user` session, email confirmation and the `mail` feature |
-| `responsive-testing.md` | any CSS or page HTML — how to measure a layout change |
-| `database.md` | schema, `db.js`, catalog queries, scrapers |
-| `admin-dashboard.md` | `/console` page, its access model and its API |
-| `home/modules.md`, `home/css.md` | home page JS modules and CSS |
-| `room/modules.md` | room page module map |
-| `room/presence-and-reconnect.md` | presence TTLs, 409 room security, reload cache |
-| `room/draft-shell.md` | `#viewDraft` shell, timer ring, turn schedule |
-| `room/lobby.md` | lobby settings UI + hidden-input pattern |
-| `room/ban-phase.md` | staged bans, state-key diff guard, filter/sort |
-| `room/pick-phase.md` | pick board, formation pitch, the pick pool |
-| `room/ready-phase.md` | Start Match screen |
-| `room/css.md` | the seven room sheets: conventions and component map |
+Topic rules live in `.claude/rules/`, one file per topic. Each carries `paths:`
+frontmatter and **loads itself** when a matching file is opened, so there is no list
+of them here to fall out of date. `ls .claude/rules/**` for the set; `checks.md` and
+`backend.md` are the two worth reading unprompted.

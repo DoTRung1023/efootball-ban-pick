@@ -1,0 +1,38 @@
+# The static gate, on a Linux runner.
+#
+# Running it in CI is not redundant with the Stop hook, and the reason is the
+# filesystem. macOS is case-insensitive, so `import "@/shared/Players/sort.js"`
+# resolves on the machine that wrote it and 404s in production. `npm run check`
+# compares every import against the real casing on disk, but a developer's Mac
+# cannot be the last word on that question. Linux is.
+#
+# `check:self` runs too, because a gate that has quietly lost the ability to
+# fail is worse than no gate: it reports green either way.
+
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The checks themselves import only node builtins, so this is here to
+      # prove the lockfile still resolves rather than to feed them.
+      - run: npm ci
+
+      - name: Static gate
+        run: npm run check
+
+      - name: Prove the checks can still fail
+        run: npm run check:self

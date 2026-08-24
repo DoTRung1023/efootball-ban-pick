@@ -3,6 +3,7 @@ import express from "express";
 import { handleCardImage } from "#features/media/index.js";
 import { PUBLIC_DIR } from "#lib/paths.js";
 import { errorHandler, notFoundHandler } from "#lib/http.js";
+import { cardImageLimiter } from "#lib/rateLimit.js";
 import { adminRoutes, ensureConsoleAdmin } from "#features/admin/index.js";
 import { authRoutes, ensureAuthSchema, verifyEmailPage } from "#features/auth/index.js";
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
@@ -13,11 +14,17 @@ import { roomRoutes } from "#features/rooms/index.js";
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+/* Behind a proxy every request appears to come from the proxy, so the rate
+   limiter would put all of them in one bucket and lock out the world on the
+   first busy minute. Same class of problem as APP_BASE_URL in http.js. */
+const TRUST_PROXY = process.env.TRUST_PROXY;
+if (TRUST_PROXY) app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Card image proxy + R2 cache (frontend uses /img/card/:id.png)
-app.get("/img/card/:id.png", handleCardImage);
+app.get("/img/card/:id.png", cardImageLimiter, handleCardImage);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 

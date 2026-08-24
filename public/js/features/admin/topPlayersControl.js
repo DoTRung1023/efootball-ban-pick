@@ -26,7 +26,7 @@ function renderMeta({ count, refreshedAt, limit }) {
 function renderList(players) {
   const body = el("topPlayersBody");
   if (!players?.length) {
-    body.innerHTML = `<div class="tp-empty">Nothing stored yet — press REBUILD.</div>`;
+    body.innerHTML = `<div class="tp-empty">Nothing stored yet. Press REBUILD.</div>`;
     return;
   }
   body.innerHTML = players.map((p, i) => `

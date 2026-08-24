@@ -410,7 +410,7 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
   if (!hint) return;
   hint.textContent = confirmed
     ? theirConfirmed
-      ? "Both squads confirmed — starting…"
+      ? "Both squads confirmed. Starting…"
       : `Waiting for ${room[theirSide]?.username || "your opponent"}…`
     : full
       ? theirConfirmed ? "Opponent is ready and waiting for you" : ""

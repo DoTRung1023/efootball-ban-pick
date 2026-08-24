@@ -181,10 +181,14 @@ SMTP_USER=
 SMTP_PASS=                       # for Gmail this is an app password, not the account one
 MAIL_FROM="eFootball Ban & Pick <you@example.com>"
 APP_BASE_URL=                    # origin used in emailed links; required behind a proxy
+TRUST_PROXY=                     # hop count or "loopback"; required behind a proxy
 ```
 
-`APP_BASE_URL` is the one that bites in production: without it links are built from the
-request's own host, and a proxy terminating TLS makes that `http://`.
+**Both proxy variables bite in production, for the same reason.** Without
+`APP_BASE_URL`, emailed links are built from the request's own host and a proxy
+terminating TLS makes that `http://`. Without `TRUST_PROXY`, `req.ip` is the proxy for
+every request, so the rate limiter puts the whole internet in one bucket and locks
+everyone out on the first busy minute.
 
 Optional Cloudflare R2 card-image cache. Without it the server redirects
 `/img/card/:id.png` straight to pesdb.net; with it, images are cached as
@@ -387,6 +391,11 @@ serving a broken console until someone runs the `ALTER` by hand.
 - Ban room: toggling player info shifts the grid as the scrollbar appears.
 - A shared `ADMIN_CONSOLE_PASSWORD` is not bound to an identity — see the note in the
   Console section above.
+- **Request `userId` is trusted, never verified.** There is no session middleware and
+  no signed token outside the admin console: `userId` arrives in a query string or body
+  and is taken at face value, so any client can act as any user by changing a number.
+  The largest correctness gap in the project. See `DECISIONS.md` §1.
 - **No runtime tests.** `npm run check` is a static gate (imports, bindings, cycles, DOM
-  ids, dead CSS), not a test suite: it cannot tell you a draft still works. No analytics
+  ids, dead CSS, icons, layer boundaries), not a test suite: it cannot tell you a draft
+  still works. No analytics
   or error monitoring either, and nothing is deployed — no cloud server, database, or CDN.

@@ -51,6 +51,26 @@ Supporting modules:
   **Log with `describeError(err)`, never bare `err.message`** — mysql2 connection
   failures have an empty message and put the cause in `err.code`, so `err.message`
   alone prints nothing and hides outages like `ECONNREFUSED`.
+- `lib/rateLimit.js` — per-IP fixed-window limiting, in memory and dependency-free.
+  Four named policies live there so the numbers can be compared side by side:
+  `authLimiter` (sign-in/sign-up), `emailLimiter` (anything that sends mail),
+  `catalogLimiter` (player reads) and `cardImageLimiter` (the R2 proxy, and the
+  one that actually costs money per miss). Apply them **on the route**, not on
+  the mount: `playerRoutes` and `authRoutes` share the `/api` mount, so a limiter
+  attached there would count a sign-in against the catalog bucket.
+
+  **`/:code/presence` is deliberately not limited.** It is a 500 ms heartbeat, so
+  every client spends 120 requests a minute doing nothing; a threshold low enough
+  to mean anything would end the draft it was protecting.
+
+  **Behind a proxy, set `TRUST_PROXY`** (`server.js` reads it and calls
+  `app.set("trust proxy", …)`). Without it `req.ip` is the proxy for every
+  request, all callers share one bucket, and the first busy minute locks
+  everybody out. Same failure shape as `APP_BASE_URL`, same fix.
+
+  Counts live in the process, so they reset on restart and are per-process. That
+  is the same durability the room store has; if this ever runs as more than one
+  process the counters want moving to MySQL. Noted in `DECISIONS.md`.
 - `features/admin/adminSession.js` — the console gate: signs, verifies and throttles
   admin session tokens. It lives with the one feature that uses it rather than in
   `lib/http.js`, where the shared-key gate it replaced used to sit. See

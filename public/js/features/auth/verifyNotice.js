@@ -41,7 +41,7 @@ export function hideVerifyNotice() {
 export function applyVerifyStatus(status) {
   const messages = {
     ok:      ["Email confirmed. You can sign in now.", "success"],
-    already: ["That address is already confirmed — sign in below.", "info"],
+    already: ["That address is already confirmed. Sign in below.", "info"],
     expired: ["That confirmation link has expired.", "error"],
     stale:   ["That link was sent to an older address for this account.", "error"],
     invalid: ["That confirmation link is not valid.", "error"],

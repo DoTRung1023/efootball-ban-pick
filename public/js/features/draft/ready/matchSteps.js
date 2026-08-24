@@ -55,7 +55,7 @@ export const MATCH_STEPS = [
     hint: {
       idle:     () => "Both ready. Press START MATCH when you kick off in eFootball.",
       waiting:  (them) => `Waiting for ${them} to kick off…`,
-      prompted: (them) => `${them} has kicked off — press START MATCH when you do.`,
+      prompted: (them) => `${them} has kicked off. Press START MATCH when you do.`,
     },
   },
   {
@@ -68,7 +68,7 @@ export const MATCH_STEPS = [
     hint: {
       idle:     () => "Match in progress. Press FINISH MATCH at the final whistle.",
       waiting:  (them) => `Waiting for ${them} to finish…`,
-      prompted: (them) => `${them} has finished — press FINISH MATCH when you are done.`,
+      prompted: (them) => `${them} has finished. Press FINISH MATCH when you are done.`,
     },
   },
 ];

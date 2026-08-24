@@ -52,7 +52,7 @@ function seatCard(label, seat) {
     return `
       <div class="rd-seat is-empty">
         <div class="rd-seat-role">${escapeHtml(label)}</div>
-        <div class="rd-seat-name">— empty —</div>
+        <div class="rd-seat-name">empty</div>
       </div>`;
   }
   const idle = Math.floor((Date.now() - Number(seat.lastSeenAt || 0)) / 1000);
@@ -143,7 +143,7 @@ function render(room) {
 
   el("roomDetailBody").innerHTML = `
     ${room.closed
-      ? `<p class="panel-notice">Room closed — ${escapeHtml(room.closeReason || "no reason given")}</p>`
+      ? `<p class="panel-notice">Room closed: ${escapeHtml(room.closeReason || "no reason given")}</p>`
       : ""}
 
     <div class="rd-grid">

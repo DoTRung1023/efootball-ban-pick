@@ -147,7 +147,7 @@ export async function loadUsers() {
          Both questions get asked at this table, so the answer belongs in it. */
       const verify = u.email_verified
         ? ""
-        : ` <span class="role-pill is-unverified" title="This address was never confirmed — the account cannot sign in">UNCONFIRMED</span>`;
+        : ` <span class="role-pill is-unverified" title="This address was never confirmed. The account cannot sign in">UNCONFIRMED</span>`;
       /* The rung colours every cell in the row, not just the ACCESS word. The
          cells inherit it, dimmed ones included; the pills and the buttons keep
          their own colours, being controls rather than data. */
@@ -241,7 +241,7 @@ async function resetPassword(btn) {
     notice(
       delivered
         ? `New password emailed to ${email}.`
-        : `Password reset for ${username}, but no mail server is configured — the new password is in the server log.`,
+        : `Password reset for ${username}, but no mail server is configured. The new password is in the server log.`,
     );
     loadUsers();
   } catch (err) {

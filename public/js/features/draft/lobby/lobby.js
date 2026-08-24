@@ -210,7 +210,7 @@ function renderLobby() {
         ? `You have ${squadSizes[shortSide]} of ${FIXED_PICKS_PER_SIDE} players`
         : `${room[shortSide]?.username || shortSide} has ${squadSizes[shortSide]} of ${FIXED_PICKS_PER_SIDE} players`
       : maxBans != null && banCountNow > maxBans
-        ? `Too many bans — max ${maxBans} per side`
+        ? `Too many bans. Max ${maxBans} per side`
         : "";
 
   const capHintEl = document.getElementById("banCountCapHint");
@@ -587,7 +587,7 @@ function bindLobbyExit() {
         applyPresenceSnapshot(data.room);
         renderLobby();
       }
-      showToast("Guest removed — they cannot rejoin this room.");
+      showToast("Guest removed. They cannot rejoin this room.");
     } catch {
       showToast("Could not kick guest.");
     }

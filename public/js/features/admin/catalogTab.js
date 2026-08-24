@@ -228,7 +228,7 @@ function buildColumnsPanel() {
   const optional = CATALOG_COLUMNS.filter((c) => !c.fixed);
   const fixedNames = CATALOG_COLUMNS.filter((c) => c.fixed).map((c) => c.label).join(" · ");
 
-  panel.innerHTML = `<div class="filter-section-label">ALWAYS SHOWN — ${escapeHtml(fixedNames)}</div>`;
+  panel.innerHTML = `<div class="filter-section-label">ALWAYS SHOWN: ${escapeHtml(fixedNames)}</div>`;
 
   optional.forEach((col) => {
     const item = document.createElement("div");

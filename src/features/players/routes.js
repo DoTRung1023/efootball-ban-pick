@@ -1,6 +1,7 @@
 import { Router } from "express";
 import db from "#lib/db.js";
 import { asyncHandler, requireUserIdQuery, describeError } from "#lib/http.js";
+import { catalogLimiter } from "#lib/rateLimit.js";
 import {
   CATALOG_COLUMNS,
   DEFAULT_SORT,
@@ -18,7 +19,7 @@ const router = Router();
  * `topPlayers.js` because the rooms feature auto-bans out of the same pool and
  * the two must not drift — see the note there.
  */
-router.get("/top-players", async (_req, res) => {
+router.get("/top-players", catalogLimiter, async (_req, res) => {
   try {
     res.json({ players: await readTopPlayers() });
   } catch {
@@ -27,7 +28,7 @@ router.get("/top-players", async (_req, res) => {
 });
 
 /** Distinct values for autocomplete inputs. */
-router.get("/players/distinct", asyncHandler(async (req, res) => {
+router.get("/players/distinct", catalogLimiter, asyncHandler(async (req, res) => {
   const { field, q = "" } = req.query;
   if (!DISTINCT_FIELDS.includes(field)) {
     return res.status(400).json({ error: "Invalid field" });
@@ -42,7 +43,7 @@ router.get("/players/distinct", asyncHandler(async (req, res) => {
 }));
 
 /** Distinct values for the multiselect filters (Add Player catalog). */
-router.get("/players/filter-options", async (_req, res) => {
+router.get("/players/filter-options", catalogLimiter, async (_req, res) => {
   try {
     const entries = await Promise.all(
       FILTER_OPTION_COLUMNS.map(async (col) => {
@@ -62,7 +63,7 @@ router.get("/players/filter-options", async (_req, res) => {
 });
 
 /** Catalog search for the Add Player modal. */
-router.get("/players", async (req, res) => {
+router.get("/players", catalogLimiter, async (req, res) => {
   try {
     const { sortBy = DEFAULT_SORT, limit = 50, offset = 0 } = req.query;
     const { where, params } = buildCatalogFilter(req.query);

@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
 import { asyncHandler, duplicateUserField, describeError, requestBaseUrl } from "#lib/http.js";
+import { authLimiter, emailLimiter } from "#lib/rateLimit.js";
 import {
   consumeVerificationToken,
   mailConfigured,
@@ -42,7 +43,7 @@ function validatePassword(password) {
     : null;
 }
 
-router.post("/signin", asyncHandler(async (req, res) => {
+router.post("/signin", authLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -89,7 +90,7 @@ router.post("/signin", asyncHandler(async (req, res) => {
   }
 }));
 
-router.post("/signup", asyncHandler(async (req, res) => {
+router.post("/signup", authLimiter, asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -174,7 +175,7 @@ export const verifyEmailPage = asyncHandler(async (req, res) => {
  * addresses are registered here. The mail itself is the only signal, and it
  * only reaches the person who owns the address.
  */
-router.post("/verify-email/resend", asyncHandler(async (req, res) => {
+router.post("/verify-email/resend", emailLimiter, asyncHandler(async (req, res) => {
   const identifier = String(req.body?.username || "").trim();
   const generic = {
     message: mailConfigured()

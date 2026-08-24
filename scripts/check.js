@@ -35,10 +35,11 @@ import * as deadCss from "./checks/deadCss.js";
 import * as infoToggle from "./checks/infoToggle.js";
 import * as icons from "./checks/icons.js";
 import * as iconFiles from "./checks/iconFiles.js";
+import * as boundaries from "./checks/boundaries.js";
 import { fileFor } from "./iconSprite.js";
 
 const CHECKS = [imports, bindings, unusedImports, cycles, domIds, debugLeftovers, deadCss, infoToggle, icons,
-  iconFiles];
+  iconFiles, boundaries];
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Everything the checks share, gathered once. */
@@ -213,6 +214,13 @@ const DEFECTS = [
     file: "public/home.html",
     from: 'sprite.svg#plus',
     to: 'sprite.svg#pluss',
+  },
+  {
+    expect: "boundaries",
+    what: "a shared/ helper reaching back into a feature",
+    file: "public/js/shared/helper.js",
+    from: "export function helper(el) { return el; }",
+    to: "import { initThing } from '@/features/thing/thing.js';\nexport function helper(el) { initThing(); return el; }",
   },
   {
     expect: "icons",

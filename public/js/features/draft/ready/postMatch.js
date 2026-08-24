@@ -99,7 +99,7 @@ export function bindPostMatchOnce() {
     if (await postMatchAction("new-match")) {
       leaveTo(
         `/room/${genRoomCode()}?mode=host`,
-        `New room opened — you are the host.${them ? ` ${them} stays in the old one.` : ""} Share the code to invite someone.`,
+        `New room opened. You are the host.${them ? ` ${them} stays in the old one.` : ""} Share the code to invite someone.`,
       );
     }
   });
@@ -175,7 +175,7 @@ export function renderPostMatch() {
   const text = gone
     ? `${them} started a different match. This room is still yours.`
     : theirs
-      ? `${them} wants a rematch — same players, back to ban settings.`
+      ? `${them} wants a rematch. Same players, back to ban settings.`
       : mine
         ? `Rematch offered. Waiting for ${them} to accept…`
         : "Played it out? Pick what happens next.";
@@ -197,8 +197,8 @@ export function renderPostMatch() {
 export function onRematchAccepted() {
   const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username;
   setPendingToast(them
-    ? `Rematch with ${them} — same players, back to ban settings.`
-    : "Rematch on — back to ban settings.");
+    ? `Rematch with ${them}. Same players, back to ban settings.`
+    : "Rematch on. Back to ban settings.");
   clearRoomPhaseCache(state.room?.code);
   window.location.reload();
 }

@@ -262,7 +262,7 @@ function renderMyBansStatus(myConfirmed, theirConfirmed, solo) {
   if (solo) return;
 
   if (myConfirmed && theirConfirmed) {
-    el.textContent = "Both confirmed — moving to picks!";
+    el.textContent = "Both confirmed. Moving to picks.";
     el.className = "ban-status-hint is-confirmed";
   } else if (myConfirmed) {
     el.textContent = "Waiting for opponent to confirm...";
@@ -299,7 +299,7 @@ function renderTurnHint(solo, isMyTurn, theirName) {
   const el = document.getElementById("draftMyBansStatus");
   if (!el || !solo) return;
   el.textContent = isMyTurn
-    ? "Your turn — pick one player to ban"
+    ? "Your turn. Pick one player to ban"
     : `Waiting for ${theirName || "your opponent"} to ban…`;
   el.className = isMyTurn ? "ban-status-hint is-confirmed" : "ban-status-hint is-waiting";
 }

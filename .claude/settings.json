@@ -3,5 +3,32 @@
     "allow": [
       "Bash(awk -F: '{print $2}')"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f || f=\"\"; case \"$f\" in */public/js/*|*/public/css/*|*/public/*.html|*/src/*) cd \"${CLAUDE_PROJECT_DIR:-.}\" || exit 0; out=$(npm run check 2>&1) || printf '%s' \"$out\" | jq -Rs '{decision:\"block\",reason:(\"npm run check is red after this edit. Fix it before moving on:\\n\"+.)}' ;; esac; }",
+            "timeout": 60,
+            "statusMessage": "npm run check"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" || exit 0; out=$(npm run check 2>&1) || printf '%s' \"$out\" | jq -Rs '{decision:\"block\",reason:(\"npm run check is red. Fix the gate before finishing:\\n\"+.)}'",
+            "timeout": 60,
+            "statusMessage": "npm run check"
+          }
+        ]
+      }
+    ]
   }
 }

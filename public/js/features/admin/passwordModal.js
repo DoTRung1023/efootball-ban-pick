@@ -53,7 +53,7 @@ export function openConsolePasswordForm({ hasExisting, onDone }) {
     title: "Console password",
     sub: hasExisting
       ? "Every admin unlocks the console with this. Changing it does not end sessions that are already open."
-      : "No shared console password is set — admins are unlocking with their own account passwords. Setting one switches that over.",
+      : "No shared console password is set. Admins are unlocking with their own account passwords. Setting one switches that over.",
     newLabel: "New console password",
     needsCurrent: hasExisting,
     send: (current, next) =>
