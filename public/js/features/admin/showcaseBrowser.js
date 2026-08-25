@@ -36,6 +36,16 @@ const el = (id) => document.getElementById(id);
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
 
+/* What a card says on hover. Three states, because a card that does not respond
+   has to say which of the two reasons it is — one is a card you already have,
+   the other is one there is no room for, and dimming alone cannot tell them
+   apart. Both point at the panel where the fix is. */
+const CARD_TIP = {
+  add: "Click to add",
+  picked: "Already chosen — remove it in CHOSEN",
+  full: "The list is full — remove one in CHOSEN",
+};
+
 const state = {
   ...createPlayerFilterState(),
   sortCategory: "overall_max",
@@ -142,7 +152,7 @@ function makeCard(player) {
  * `is-picked` — already on the list. `is-blocked` — the list is full and this
  * one is not on it. Both are inert, and they are drawn differently because
  * they mean opposite things: one is a card you have, the other is a card you
- * cannot have yet.
+ * cannot have yet. Each also carries the sentence that says which.
  *
  * Toggles classes rather than rebuilding, so a repaint costs nothing.
  */
@@ -154,6 +164,10 @@ export function refreshShowcaseMarks() {
     const picked = hooks.isPicked(card.dataset.id);
     card.classList.toggle("is-picked", picked);
     card.classList.toggle("is-blocked", full && !picked);
+    /* Set here rather than in `makeCard`: the reason a card is inert changes
+       as the list does, and this runs on every change. `renderGrid` calls it
+       once a page is built, so a fresh card is never left without one. */
+    card.title = picked ? CARD_TIP.picked : full ? CARD_TIP.full : CARD_TIP.add;
   });
 }
 

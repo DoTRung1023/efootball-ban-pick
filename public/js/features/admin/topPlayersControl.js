@@ -76,16 +76,17 @@ function renderNotice() {
 }
 
 /* One thumb per chosen player, in list order — the same card art the browser
-   below shows, at the ban board's thumb size. This column *is* the indication
-   that a card is on the list; the browser stopped marking its own cards.
+   beside it shows, at the ban board's thumb size.
 
-   No `title` and no hover card. The art is the label, and a tooltip trailing
-   the pointer across fifty thumbs is noise — the name stays on the button for
-   a screen reader, where it costs nothing. */
+   The `title` is the action, not the player: the art already says who this is,
+   and a name trailing the pointer across fifty thumbs was the noise that got
+   the hover card taken out. The name stays on `aria-label`, where a screen
+   reader needs it to tell one Remove button from the next forty-nine. */
 function makeThumb(player) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "sc-thumb";
+  btn.title = "Click to remove";
   btn.setAttribute("aria-label", `Remove ${player.name} from the showcase`);
   btn.appendChild(makePlayerImg(CARD_IMG(player.id), player.name));
 
