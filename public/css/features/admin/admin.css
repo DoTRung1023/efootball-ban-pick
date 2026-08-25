@@ -819,16 +819,20 @@ body {
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
 /* ── SIGN-IN SHOWCASE ────────────────────────────────────────
-   Two columns: a browser over the whole catalog, and beside it the chosen list
-   drawn as card art — the same shape the ban board's MY BANS column has. The
-   browser stopped marking its own cards when that column arrived; a tick on a
-   card and a thumb in a list were the same fact said twice. */
+   Two panels side by side, each its own box: the catalog you browse, and the
+   list you have built drawn as card art — the same shape the ban board's MY
+   BANS column has. They were one panel with a divider down it, which asked the
+   eye to find a seam instead of reading two objects.
+
+   The split runs through the behaviour too. The browser only **adds**; a card
+   already on the list is inert there and comes off from the CHOSEN panel. One
+   target that flips meaning with state is how a mis-click removes the thing
+   you were trying to keep. */
 
 .sc-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 248px;
   gap: 16px;
-  padding: 12px 16px;
 }
 
 /* Block, deliberately not a flex column. As a flex item the grid below gets
@@ -836,11 +840,14 @@ body {
    items are then squeezed to fit and `.pc-img-wrap` — a flex item inside each
    card with nothing stopping it — collapses. Measured: the art fell to a 33px
    strip while the footers stayed whole. Margins for the gaps instead. */
-.sc-main { min-width: 0; }
+.sc-browse {
+  padding: 12px 16px;
+  min-width: 0;
+}
 
-.sc-main .team-search-bar { margin-bottom: 12px; }
+.sc-browse .team-search-bar { margin-bottom: 12px; }
 
-.sc-main .load-more-btn { margin-top: 12px; }
+.sc-browse .load-more-btn { margin-top: 12px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
    search box behind a long grid is the whole reason for an inner scroller. */
@@ -854,12 +861,32 @@ body {
 
 .sc-card { cursor: pointer; }
 
+/* Already on the list. Dimmed like anything inert, but wearing the accent —
+   the two states below mean opposite things and must not look alike: this is
+   a card you have, the next is one you cannot have yet. */
+.sc-card.is-picked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sc-card.is-picked .pc-img-wrap {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* The list is full and this card is not on it: still readable, plainly not
-   available. A card already chosen is never blocked — clicking it is how you
-   make room, and with no SAVE button it is also the only undo. */
+   available, and carrying no accent because it is not yours. */
 .sc-card.is-blocked {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+/* Neither state lifts. `.player-card:hover` scales and draws a border, which
+   on a card that will not respond reads as an invitation. */
+.sc-card.is-picked:hover,
+.sc-card.is-blocked:hover {
+  transform: none;
+  border-color: transparent;
 }
 
 .sc-empty {
@@ -874,8 +901,9 @@ body {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  padding-left: 16px;
-  border-left: 1px solid var(--line-faint);
+  /* Stretched to the browser panel beside it — the two boxes end level, and
+     the strip below takes whatever height is left over. */
+  padding: 12px 16px;
 }
 
 .sc-chosen-head {
@@ -908,7 +936,12 @@ body {
   align-content: flex-start;
   gap: 8px;
   overflow-y: auto;
-  max-height: min(720px, 62vh);
+  /* Takes whatever the panel has left after the head and the notice. The
+     `min-height` is the standard flex escape: without it the strip refuses to
+     shrink below its content and the panel grows instead of scrolling. The
+     thumbs cannot squash the way the cards did — their height is explicit. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Height-driven, like `.ban-phase-thumb`: the card art has a fixed ratio, so
@@ -1310,20 +1343,16 @@ body {
      not. */
   .role-actions { grid-template-columns: repeat(3, auto); }
 
-  /* A 248px column beside a card grid stops paying for itself once the grid
-     is down to three across. CHOSEN goes under the browser and keeps the
-     divider, now a top edge. Its strip loses the tall cap with it — stacked,
-     the two scrollers were fighting for the same viewport. */
+  /* A 248px panel beside a card grid stops paying for itself once the grid is
+     down to three across. CHOSEN goes under the browser, and its strip takes a
+     short cap — stacked, the two scrollers were fighting for the same
+     viewport. */
   .sc-layout { grid-template-columns: minmax(0, 1fr); }
 
-  .sc-chosen {
-    padding-left: 0;
-    padding-top: 12px;
-    border-left: 0;
-    border-top: 1px solid var(--line-faint);
+  .sc-chosen-strip {
+    flex: 0 1 auto;
+    max-height: 220px;
   }
-
-  .sc-chosen-strip { max-height: 220px; }
 }
 
 @media (max-width: 860px) {

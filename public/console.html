@@ -161,15 +161,18 @@
            `POST /api/admin/top-players/refresh` is the way back to the
            automatic top 30. -->
       <section class="tab-panel" data-panel="showcase" hidden>
-        <div class="panel">
+        <div class="sc-layout">
 
-          <!-- Same search, sort and filter controls as My Players and the
+          <!-- Two panels, not one split by a divider: the catalog you browse
+               and the list you have built are different objects, and a shared
+               box asked the eye to find the seam.
+
+               Same search, sort and filter controls as My Players and the
                CATALOG tab — SORT_CATEGORIES and buildPlayerFilterPanel, not
                console-local copies, and the same search field and HIDE INFO
                button as My Players — one copy of that chrome now lives in
                `shared/filterPanel.css`, which this page already links. -->
-          <div class="sc-layout">
-           <div class="sc-main">
+          <div class="panel sc-browse">
             <div class="team-search-bar">
             <div class="team-search-wrap">
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
@@ -205,26 +208,25 @@
               <div class="sc-empty">Search or filter to find cards to add.</div>
             </div>
             <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
-           </div>
-
-           <!-- The chosen list, as card art rather than a mark on the browser
-                below — the same shape the ban board's MY BANS column has. It is
-                the whole indication that a card is on the list; clicking a thumb
-                takes it off. -->
-           <aside class="sc-chosen" aria-label="Chosen players">
-             <div class="sc-chosen-head">
-               <span class="sc-chosen-title">CHOSEN</span>
-               <span class="sc-chosen-count" id="scChosenCount">0 / 50</span>
-             </div>
-             <div class="sc-chosen-strip" id="scChosen"></div>
-
-             <!-- The one line that speaks: a refused write, the cap, or a list
-                  too thin to ban out of. Hidden whenever there is nothing to
-                  say. `aria-live` because nothing else on the page moves when a
-                  save fails — the thumbs snap back and say nothing. -->
-             <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
-           </aside>
           </div>
+
+          <!-- The chosen list, as card art — the same shape the ban board's MY
+               BANS column has. Removal lives here and only here: a card on the
+               list is inert in the browser beside it, so one place adds and one
+               place takes away. -->
+          <aside class="panel sc-chosen" aria-label="Chosen players">
+            <div class="sc-chosen-head">
+              <span class="sc-chosen-title">CHOSEN</span>
+              <span class="sc-chosen-count" id="scChosenCount">0 / 50</span>
+            </div>
+            <div class="sc-chosen-strip" id="scChosen"></div>
+
+            <!-- The one line that speaks: a refused write, the cap, or a list
+                 too thin to ban out of. Hidden whenever there is nothing to
+                 say. `aria-live` because nothing else on the page moves when a
+                 save fails — the thumbs snap back and say nothing. -->
+            <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
+          </aside>
         </div>
       </section>
 

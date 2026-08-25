@@ -11,9 +11,10 @@
    client-side filtering that is honest about that.
 
    This module knows nothing about saving. It renders cards and calls back when
-   one is clicked; `topPlayersControl.js` owns the list itself and draws it as
-   card art in the CHOSEN column. That split is why the grid can repaint from
-   `refreshShowcaseMarks()` without either side reaching into the other.
+   one is *added*; `topPlayersControl.js` owns the list itself, draws it as card
+   art in the CHOSEN panel, and is where removal happens. That split is why the
+   grid can repaint from `refreshShowcaseMarks()` without either side reaching
+   into the other.
    ============================================================ */
 
 import { CARD_IMG, escapeHtml, makePlayerImg, playerDetailSublineHtml }
@@ -47,7 +48,7 @@ const state = {
 };
 
 /** Supplied by the list owner; this module never mutates the picked list. */
-let hooks = { isPicked: () => false, canPick: () => true, onToggle: () => {} };
+let hooks = { isPicked: () => false, canPick: () => true, onAdd: () => {} };
 let searchTimer = null;
 
 const FILTER_IDS = {
@@ -124,27 +125,35 @@ function makeCard(player) {
     `<div class="pc-footer-meta pmeta-in-card pc-footer-detail-only">${playerDetailSublineHtml(player)}</div>`;
   card.appendChild(footer);
 
-  card.addEventListener("click", () => hooks.onToggle(id, player.name));
+  /* Adding is the only thing this grid does. A card already on the list is
+     inert here and comes off from the CHOSEN column instead — one place that
+     adds, one that takes away, rather than a single target whose meaning
+     flips depending on state the card no longer has to explain. */
+  card.addEventListener("click", () => {
+    if (hooks.isPicked(id) || !hooks.canPick()) return;
+    hooks.onAdd(id, player.name);
+  });
   return card;
 }
 
 /**
- * The cap, and nothing else.
+ * The two states a card can be in that are not "click me".
  *
- * A card carried a tick and an accent outline when it was on the list. That
- * indication moved out to the CHOSEN column, so what is left here is the one
- * state the column cannot show: *this* card cannot be added, because the list
- * is full. A card already on the list is never blocked — clicking it is how
- * you make room.
+ * `is-picked` — already on the list. `is-blocked` — the list is full and this
+ * one is not on it. Both are inert, and they are drawn differently because
+ * they mean opposite things: one is a card you have, the other is a card you
+ * cannot have yet.
  *
- * Toggles a class rather than rebuilding, so a repaint costs nothing.
+ * Toggles classes rather than rebuilding, so a repaint costs nothing.
  */
 export function refreshShowcaseMarks() {
   const grid = el("scGrid");
   if (!grid) return;
   const full = !hooks.canPick();
   grid.querySelectorAll(".sc-card").forEach((card) => {
-    card.classList.toggle("is-blocked", full && !hooks.isPicked(card.dataset.id));
+    const picked = hooks.isPicked(card.dataset.id);
+    card.classList.toggle("is-picked", picked);
+    card.classList.toggle("is-blocked", full && !picked);
   });
 }
 

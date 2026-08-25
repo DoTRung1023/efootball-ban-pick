@@ -11,8 +11,8 @@
    a card *is* the edit, it writes, and the mark it leaves is the receipt. Four
    consequences worth knowing:
 
-     - A mis-click is a live change. Its undo is the same click again, which is
-       why a picked card stays clickable even at the cap.
+     - A mis-click is a live change. Its undo is the thumb it just put in the
+       CHOSEN panel: the browser only adds, that panel only removes.
      - Writes are debounced and serialised. Clicking through ten cards sends one
        PUT of the final list, not ten, and a second click during a write re-arms
        the timer rather than racing it.
@@ -189,15 +189,12 @@ export async function loadTopPlayers() {
 }
 
 export function initTopPlayersControl() {
-  /* One click target per card: picked toggles off, unpicked toggles on when
-     there is room. The browser owns finding cards; this owns the list. */
+  /* The browser owns finding cards and only ever adds; this owns the list, and
+     removal is a click on a thumb in the CHOSEN panel. */
   initShowcaseBrowser({
     isPicked: (id) => state.picked.some((p) => p.id === id),
     canPick: () => !isFull(),
-    onToggle: (id, name) => {
-      if (state.picked.some((p) => p.id === id)) removePlayer(id);
-      else addPlayer(id, name);
-    },
+    onAdd: addPlayer,
   });
   renderAll();
 }
