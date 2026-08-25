@@ -19,12 +19,10 @@
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { icon } from "@/shared/icons/icon.js";
 import { apiFetch, apiSend } from "./adminApi.js";
+import { initShowcaseBrowser, refreshShowcaseMarks } from "./showcaseBrowser.js";
 import { fmtRelative } from "./format.js";
 
 const el = (id) => document.getElementById(id);
-
-const SEARCH_DEBOUNCE_MS = 250;
-const SEARCH_LIMIT = 12;
 
 /** `picked` is what SAVE would write; `saved` is what is stored right now. */
 const state = {
@@ -77,7 +75,7 @@ function renderWarning() {
 function renderList() {
   const body = el("topPlayersBody");
   if (!state.picked.length) {
-    body.innerHTML = `<div class="tp-empty">Nothing picked yet. Search above, or press REBUILD.</div>`;
+    body.innerHTML = `<div class="tp-empty">Nothing picked yet. Pick cards from the catalog below, or press REBUILD.</div>`;
     return;
   }
   /* A container with two buttons, not one button that removes. Position is
@@ -108,46 +106,10 @@ function renderAll() {
   renderMeta();
   renderList();
   renderWarning();
-}
-
-/* ── The picker ─────────────────────────────────────────────── */
-
-/* `/api/players` selects `pesdb_id AS id`, so a catalog row's key is `id` and
-   not `pesdb_id` — the snapshot stores that same value. */
-function renderResults(players) {
-  const box = el("topPlayersResults");
-  const already = new Set(state.picked.map((p) => p.id));
-  if (!players.length) {
-    box.hidden = false;
-    box.innerHTML = `<div class="tp-empty">No cards match.</div>`;
-    return;
-  }
-  box.hidden = false;
-  box.innerHTML = players.map((p) => {
-    const inList = already.has(String(p.id));
-    const dis = inList || isFull();
-    return `
-      <button type="button" class="tp-result" data-add="${escapeHtml(String(p.id))}"
-              data-name="${escapeHtml(p.name)}"${dis ? " disabled" : ""}>
-        <span class="tp-result-name">${escapeHtml(p.name)}</span>
-        <span class="tp-result-meta">${escapeHtml(p.position || "")} · ${escapeHtml(String(p.overall_max ?? p.overall ?? ""))}</span>
-        <span class="tp-result-tag">${inList ? "ADDED" : isFull() ? "FULL" : "ADD"}</span>
-      </button>`;
-  }).join("");
-}
-
-async function runSearch(q) {
-  const box = el("topPlayersResults");
-  if (!q.trim()) { box.hidden = true; box.innerHTML = ""; return; }
-  try {
-    const data = await apiFetch(
-      `/api/players?q=${encodeURIComponent(q.trim())}&limit=${SEARCH_LIMIT}&sortBy=overall_max_desc`,
-    );
-    renderResults(data.players || []);
-  } catch {
-    box.hidden = false;
-    box.innerHTML = `<div class="tp-empty">Search failed.</div>`;
-  }
+  /* The grid marks what is already chosen, so it repaints whenever the list
+     does. `refreshShowcaseMarks` toggles classes rather than rebuilding — a
+     rebuild would drop the hover cards bound to each card. */
+  refreshShowcaseMarks();
 }
 
 /* ── State changes ──────────────────────────────────────────── */
@@ -157,7 +119,6 @@ function addPlayer(id, name) {
   state.error = null;
   state.picked = [...state.picked, { id, name }];
   renderAll();
-  runSearch(el("topPlayersSearch").value);   // repaint ADDED / FULL tags
 }
 
 /** Promotes one entry to rank 1; the rest keep their relative order. */
@@ -173,7 +134,6 @@ function removePlayer(id) {
   state.error = null;
   state.picked = state.picked.filter((p) => p.id !== id);
   renderAll();
-  runSearch(el("topPlayersSearch").value);
 }
 
 /** Adopts a server response as the new truth: picked and saved agree again. */
@@ -222,7 +182,18 @@ export function initTopPlayersControl() {
     withButton(e.currentTarget, "SAVING…", () =>
       apiSend("/api/admin/top-players", "PUT", { ids: state.picked.map((p) => p.id) })));
 
-  /* Delegated, because both lists are rebuilt on every change. */
+  /* One click target per card: picked toggles off, unpicked toggles on when
+     there is room. The browser owns finding cards; this owns the list. */
+  initShowcaseBrowser({
+    isPicked: (id) => state.picked.some((p) => p.id === id),
+    canPick: () => !isFull(),
+    onToggle: (id, name) => {
+      if (state.picked.some((p) => p.id === id)) removePlayer(id);
+      else addPlayer(id, name);
+    },
+  });
+
+  /* Delegated, because the list is rebuilt on every change. */
   el("topPlayersBody").addEventListener("click", (e) => {
     const promote = e.target.closest("[data-top]");
     if (promote) { moveToTop(promote.dataset.top); return; }
@@ -230,15 +201,4 @@ export function initTopPlayersControl() {
     if (remove) removePlayer(remove.dataset.remove);
   });
 
-  el("topPlayersResults").addEventListener("click", (e) => {
-    const hit = e.target.closest("[data-add]");
-    if (hit && !hit.disabled) addPlayer(hit.dataset.add, hit.dataset.name);
-  });
-
-  let timer = null;
-  el("topPlayersSearch").addEventListener("input", (e) => {
-    const { value } = e.target;
-    clearTimeout(timer);
-    timer = setTimeout(() => runSearch(value), SEARCH_DEBOUNCE_MS);
-  });
 }

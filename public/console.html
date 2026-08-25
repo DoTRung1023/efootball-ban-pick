@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/css/shared/tokens.css" />
     <link rel="stylesheet" href="/css/shared/filterPanel.css" />
+    <link rel="stylesheet" href="/css/shared/playerCard.css" />
     <link rel="stylesheet" href="/css/features/admin/admin.css" />
     <link rel="stylesheet" href="/css/shared/controls.css" />
   </head>
@@ -168,18 +169,52 @@
             </div>
           </div>
 
-          <div class="tp-pick">
-            <div class="tp-search">
-              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
-              <input id="topPlayersSearch" class="field-input tp-search-input" type="search"
-                     placeholder="Search the catalog to add a player"
-                     aria-label="Search the catalog to add a player" autocomplete="off">
-            </div>
-            <div id="topPlayersResults" class="tp-results" hidden></div>
-          </div>
-
+          <!-- The picked list is the artifact: order is rank, and rank 1 is
+               what an account-less opponent loses first. -->
           <div id="topPlayersBody" class="tp-list">
             <div class="tp-empty">Loading…</div>
+          </div>
+
+          <!-- Browser over the whole catalog. Same search, sort and filter
+               controls as My Players and the CATALOG tab — SORT_CATEGORIES and
+               buildPlayerFilterPanel, not console-local copies. -->
+          <div class="sc-browse">
+            <div class="sc-toolbar">
+              <div class="search-box sc-search">
+                <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
+                <input id="scSearch" type="search" class="search-input" placeholder="Search the catalog…"
+                       aria-label="Search the catalog for a player to add" autocomplete="off" />
+              </div>
+
+              <div class="sort-group">
+                <div class="ap-dd-wrap" id="scSortWrap">
+                  <button class="ap-dd-btn" id="scSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
+                    <span id="scSortLabel">Overall Max</span>
+                    <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
+                  </button>
+                </div>
+                <button class="sort-dir-btn" id="scSortDirBtn" type="button" title="Toggle sort direction">
+                  <span id="scSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
+                </button>
+              </div>
+
+              <div class="ap-dd-wrap" id="scFilterWrap">
+                <button class="ap-dd-btn" id="scFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
+                  <span>FILTER</span>
+                  <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
+                </button>
+              </div>
+
+              <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
+              <span id="scCount" class="sc-count"></span>
+            </div>
+
+            <div id="scGrid" class="player-grid sc-grid">
+              <div class="tp-empty">Search or filter to find cards to add.</div>
+            </div>
+            <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
           </div>
 
           <div id="topPlayersWarn" class="tp-warn" hidden></div>
