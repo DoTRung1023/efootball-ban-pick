@@ -18,9 +18,10 @@
        the timer rather than racing it.
      - A refused write rolls the local list back to what the server confirmed. A
        grid still marking cards the server never accepted would be a lie.
-     - Success says nothing, because the mark already did. `#scWarn` below the
-       grid is the only line that speaks, and it speaks for the three states a
-       mark cannot carry: refused, full, or too thin to ban out of.
+     - Success says nothing, because the thumb already did — a card joins the
+       CHOSEN column the instant you click it. `#scWarn` under that column is
+       the only line that speaks, and it speaks for the three states the column
+       cannot carry: refused, full, or too thin to ban out of.
 
    Order is rank — `topBannableFrom` auto-bans position 1 first — and it is now
    simply the order cards were picked in. REBUILD went with the header; the way
@@ -28,6 +29,8 @@
    the automatic top 30.
    ============================================================ */
 
+import { CARD_IMG, makePlayerImg } from "@/shared/players/playerMeta.js";
+import { icon } from "@/shared/icons/icon.js";
 import { apiFetch, apiSend } from "./adminApi.js";
 import { initShowcaseBrowser, refreshShowcaseMarks } from "./showcaseBrowser.js";
 
@@ -61,7 +64,7 @@ function renderNotice() {
   const n = state.picked.length;
   let text = state.error;
   if (!text && isFull()) {
-    text = `The list is full at ${state.max}. Click a picked card to make room.`;
+    text = `The list is full at ${state.max}. Remove one from CHOSEN to add another.`;
   } else if (!text && n > 0 && n < state.advisedMin) {
     text = `${n} player${n === 1 ? "" : "s"} is fewer than a full squad of `
       + `${state.advisedMin}. A seat with no account bans out of this list, so it will `
@@ -72,8 +75,46 @@ function renderNotice() {
   box.classList.toggle("is-error", Boolean(state.error));
 }
 
+/* One thumb per chosen player, in list order — the same card art the browser
+   below shows, at the ban board's thumb size. This column *is* the indication
+   that a card is on the list; the browser stopped marking its own cards.
+
+   No `title` and no hover card. The art is the label, and a tooltip trailing
+   the pointer across fifty thumbs is noise — the name stays on the button for
+   a screen reader, where it costs nothing. */
+function makeThumb(player) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "sc-thumb";
+  btn.setAttribute("aria-label", `Remove ${player.name} from the showcase`);
+  btn.appendChild(makePlayerImg(CARD_IMG(player.id), player.name));
+
+  const x = document.createElement("span");
+  x.className = "sc-thumb-x";
+  x.innerHTML = icon("close", { size: 11 });
+  btn.appendChild(x);
+
+  btn.addEventListener("click", () => removePlayer(player.id));
+  return btn;
+}
+
+function renderChosen() {
+  el("scChosenCount").textContent = `${state.picked.length} / ${state.max}`;
+  const strip = el("scChosen");
+  strip.replaceChildren();
+  if (!state.picked.length) {
+    const empty = document.createElement("p");
+    empty.className = "sc-chosen-empty";
+    empty.textContent = "Nothing chosen yet. Click a card in the catalog.";
+    strip.appendChild(empty);
+    return;
+  }
+  state.picked.forEach((player) => strip.appendChild(makeThumb(player)));
+}
+
 function renderAll() {
   renderNotice();
+  renderChosen();
   /* The grid marks what is chosen, so it repaints whenever the list changes.
      `refreshShowcaseMarks` toggles classes rather than rebuilding — a rebuild
      would drop the hover cards bound to each card. */
@@ -143,7 +184,7 @@ export async function loadTopPlayers() {
     renderAll();
   } catch {
     state.error = "Could not load the showcase list.";
-    renderNotice();
+    renderAll();
   }
 }
 

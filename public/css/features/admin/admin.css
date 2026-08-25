@@ -819,73 +819,157 @@ body {
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
 /* ── SIGN-IN SHOWCASE ────────────────────────────────────────
-   The whole tab is one browser over the catalog. There is no picked list drawn
-   beside it any more and no SAVE button — a card's own mark is its membership,
-   and a click writes — so what is left is the toolbar, the grid, and the two
-   lines that report on the write. */
+   Two columns: a browser over the whole catalog, and beside it the chosen list
+   drawn as card art — the same shape the ban board's MY BANS column has. The
+   browser stopped marking its own cards when that column arrived; a tick on a
+   card and a thumb in a list were the same fact said twice. */
 
-/* The row itself. Everything in it — the search field, the sort and filter
-   dropdowns, HIDE INFO — is `shared/filterPanel.css`, so this tab's toolbar
-   is the same object My Players has; only the padding that seats it inside a
-   panel is local — `.team-search-bar` supplies the row itself. */
-.sc-toolbar { padding: 12px 16px; }
+.sc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  gap: 16px;
+  padding: 12px 16px;
+}
+
+/* Block, deliberately not a flex column. As a flex item the grid below gets
+   shrunk to the column's height, which makes its height *definite*; the card
+   items are then squeezed to fit and `.pc-img-wrap` — a flex item inside each
+   card with nothing stopping it — collapses. Measured: the art fell to a 33px
+   strip while the footers stayed whole. Margins for the gaps instead. */
+.sc-main { min-width: 0; }
+
+.sc-main .team-search-bar { margin-bottom: 12px; }
+
+.sc-main .load-more-btn { margin-top: 12px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
-   search box behind a long grid is the whole reason for an inner scroller.
-   It was a flat 460px to keep the picked list above it on screen; with that
-   list gone it takes the freed height, bounded by the viewport. */
+   search box behind a long grid is the whole reason for an inner scroller. */
 .sc-grid {
-  padding: 0 16px 12px;
   max-height: min(720px, 62vh);
   overflow-y: auto;
+  /* The box has a definite height, so a part-full grid would stretch its rows
+     to fill it and hand back cards taller than the art. */
+  align-content: start;
 }
 
 .sc-card { cursor: pointer; }
 
-/* The mark sits on the art, where the eye already is when scanning a grid.
-   Hidden until picked rather than dimmed, so an unpicked card carries no
-   decoration at all. */
-.sc-mark {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  z-index: 2;
-}
-
-.sc-card.is-picked .sc-mark { display: inline-flex; }
-
-.sc-card.is-picked .pc-img-wrap {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
 /* The list is full and this card is not on it: still readable, plainly not
-   available. Clicking a picked card always works — that is how you make room,
-   and with no SAVE button it is also the only undo. */
+   available. A card already chosen is never blocked — clicking it is how you
+   make room, and with no SAVE button it is also the only undo. */
 .sc-card.is-blocked {
   opacity: 0.42;
   cursor: not-allowed;
 }
 
 .sc-empty {
-  padding: 12px 16px;
   color: var(--text-dim);
   font-size: 13px;
 }
 
+/* ── The CHOSEN column ── */
+
+.sc-chosen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--line-faint);
+}
+
+.sc-chosen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sc-chosen-title {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.sc-chosen-count {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wraps rather than scrolling sideways. The ban board's strip holds three
+   thumbs and can afford one line; this one holds up to fifty, and a list you
+   have to drag to read is not a list. */
+.sc-chosen-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: min(720px, 62vh);
+}
+
+/* Height-driven, like `.ban-phase-thumb`: the card art has a fixed ratio, so
+   fixing the height and letting the width follow keeps every thumb the same
+   object whatever the column is doing. */
+.sc-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  height: 96px;
+  padding: 0;
+  border: 1px solid var(--line-faint);
+  border-radius: 0;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.sc-thumb img {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+.sc-thumb:hover {
+  border-color: var(--danger-line);
+  transform: scale(1.04);
+  z-index: 1;
+}
+
+/* A thumb has one action, and it is destructive, so it is drawn on hover
+   rather than printed on every card — fifty standing × marks would be fifty
+   things to read past. Keyboard reaches it through `:focus-visible`, which is
+   the only way a tab stop can see an action that lives on the pointer. */
+.sc-thumb-x {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger-fill);
+  color: var(--danger);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.sc-thumb:hover .sc-thumb-x,
+.sc-thumb:focus-visible .sc-thumb-x { opacity: 1; }
+
+.sc-chosen-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* The only line on this tab that ever speaks. Amber advises — the list is
    full, or too thin to ban out of — and red means the last write was refused,
-   which is the one state the grid cannot show on its own. */
+   which is the one state the column cannot show on its own. */
 .sc-warn {
-  margin: 0 16px 12px;
+  margin: 0;
   padding: 8px 12px;
   border: 1px solid var(--hue-amber-line);
   border-radius: var(--radius-sm);
@@ -1225,6 +1309,21 @@ body {
      collapse. Alignment down the column is a wide-screen nicety — fitting is
      not. */
   .role-actions { grid-template-columns: repeat(3, auto); }
+
+  /* A 248px column beside a card grid stops paying for itself once the grid
+     is down to three across. CHOSEN goes under the browser and keeps the
+     divider, now a top edge. Its strip loses the tall cap with it — stacked,
+     the two scrollers were fighting for the same viewport. */
+  .sc-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .sc-chosen {
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: 0;
+    border-top: 1px solid var(--line-faint);
+  }
+
+  .sc-chosen-strip { max-height: 220px; }
 }
 
 @media (max-width: 860px) {

@@ -168,7 +168,9 @@
                console-local copies, and the same search field and HIDE INFO
                button as My Players — one copy of that chrome now lives in
                `shared/filterPanel.css`, which this page already links. -->
-          <div class="sc-toolbar team-search-bar">
+          <div class="sc-layout">
+           <div class="sc-main">
+            <div class="team-search-bar">
             <div class="team-search-wrap">
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
               <input id="scSearch" type="text" placeholder="Search the catalog..."
@@ -199,24 +201,29 @@
             <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
           </div>
 
-          <div id="scGrid" class="player-grid sc-grid">
-            <div class="sc-empty">Search or filter to find cards to add.</div>
-          </div>
-          <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+            <div id="scGrid" class="player-grid sc-grid">
+              <div class="sc-empty">Search or filter to find cards to add.</div>
+            </div>
+            <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+           </div>
 
-          <!-- The one line that speaks: a refused write, the cap, or a list
-               too thin to ban out of. Hidden whenever there is nothing to say.
-               `aria-live` because nothing else on the page moves when a save
-               fails — the grid keeps its marks either way. -->
-          <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
+           <!-- The chosen list, as card art rather than a mark on the browser
+                below — the same shape the ban board's MY BANS column has. It is
+                the whole indication that a card is on the list; clicking a thumb
+                takes it off. -->
+           <aside class="sc-chosen" aria-label="Chosen players">
+             <div class="sc-chosen-head">
+               <span class="sc-chosen-title">CHOSEN</span>
+               <span class="sc-chosen-count" id="scChosenCount">0 / 50</span>
+             </div>
+             <div class="sc-chosen-strip" id="scChosen"></div>
 
-          <div class="panel-hint">
-            The sign-in page reads this stored list instead of ranking the whole
-            catalog on every load, and a seat with no account is auto-banned out
-            of it. Click a card to add it, click it again to remove it — every
-            click saves. <strong>Order matters:</strong> the player at position 1
-            is the first one an account-less opponent loses to an expired turn,
-            and position is simply the order you picked in.
+             <!-- The one line that speaks: a refused write, the cap, or a list
+                  too thin to ban out of. Hidden whenever there is nothing to
+                  say. `aria-live` because nothing else on the page moves when a
+                  save fails — the thumbs snap back and say nothing. -->
+             <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
+           </aside>
           </div>
         </div>
       </section>

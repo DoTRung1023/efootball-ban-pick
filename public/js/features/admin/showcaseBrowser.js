@@ -10,15 +10,14 @@
    over a page of results — the catalog is ~42k rows and there is no version of
    client-side filtering that is honest about that.
 
-   This module knows nothing about saving. It renders cards, marks the ones
-   already chosen, and calls back when one is clicked; `topPlayersControl.js`
-   owns the list itself. That split is why the grid can repaint from
+   This module knows nothing about saving. It renders cards and calls back when
+   one is clicked; `topPlayersControl.js` owns the list itself and draws it as
+   card art in the CHOSEN column. That split is why the grid can repaint from
    `refreshShowcaseMarks()` without either side reaching into the other.
    ============================================================ */
 
 import { CARD_IMG, escapeHtml, makePlayerImg, playerDetailSublineHtml }
   from "@/shared/players/playerMeta.js";
-import { bindPlayerHoverCard } from "@/shared/ui/playerHoverCard.js";
 import { icon } from "@/shared/icons/icon.js";
 import { SORT_CATEGORIES } from "@/shared/players/sort.js";
 import {
@@ -117,11 +116,6 @@ function makeCard(player) {
   wrap.dataset.initial = (player.name || "?")[0];
   wrap.appendChild(makePlayerImg(CARD_IMG(id), player.name));
 
-  /* The mark lives on the art, where the eye already is when scanning a grid. */
-  const mark = document.createElement("span");
-  mark.className = "sc-mark";
-  mark.innerHTML = icon("check", { size: 12 });
-  wrap.appendChild(mark);
   card.appendChild(wrap);
 
   const footer = document.createElement("div");
@@ -130,20 +124,27 @@ function makeCard(player) {
     `<div class="pc-footer-meta pmeta-in-card pc-footer-detail-only">${playerDetailSublineHtml(player)}</div>`;
   card.appendChild(footer);
 
-  /* Same hover card the squad grid uses, so "show info" means one thing. */
-  bindPlayerHoverCard(card, player);
   card.addEventListener("click", () => hooks.onToggle(id, player.name));
   return card;
 }
 
-/** Marks and disables without rebuilding: a repaint would drop the hover card. */
+/**
+ * The cap, and nothing else.
+ *
+ * A card carried a tick and an accent outline when it was on the list. That
+ * indication moved out to the CHOSEN column, so what is left here is the one
+ * state the column cannot show: *this* card cannot be added, because the list
+ * is full. A card already on the list is never blocked — clicking it is how
+ * you make room.
+ *
+ * Toggles a class rather than rebuilding, so a repaint costs nothing.
+ */
 export function refreshShowcaseMarks() {
   const grid = el("scGrid");
   if (!grid) return;
+  const full = !hooks.canPick();
   grid.querySelectorAll(".sc-card").forEach((card) => {
-    const picked = hooks.isPicked(card.dataset.id);
-    card.classList.toggle("is-picked", picked);
-    card.classList.toggle("is-blocked", !picked && !hooks.canPick());
+    card.classList.toggle("is-blocked", full && !hooks.isPicked(card.dataset.id));
   });
 }
 
