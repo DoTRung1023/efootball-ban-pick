@@ -845,15 +845,34 @@ body {
   min-width: 0;
 }
 
+/* Still 12. The grid below pulls its box 6px out and pads its content 6px back
+   in, so the two cancel and the gap you see is the one written here. */
 .sc-browse .team-search-bar { margin-bottom: 12px; }
 
 .sc-browse .load-more-btn { margin-top: 12px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
-   search box behind a long grid is the whole reason for an inner scroller. */
+   search box behind a long grid is the whole reason for an inner scroller.
+   That scroll box is also a clip boundary, and `.player-card:hover` scales to
+   1.03: a card on the outer edge of the grid grows ~5px past it and gets its
+   edge cut off.
+   
+   So the box is 6px bigger than the content on every side, and pulled back by
+   the same 6px — the cards sit exactly where they did, and the scaled one has
+   somewhere to grow. The `+ 12px` on the cap is those two 6px bands, so the
+   height given to actual cards is unchanged.
+   
+   This buys the row at rest, not every row: scroll until a row sits flush on
+   the top edge and its hover still clips, because padding scrolls away with
+   the content. Nothing short of dropping the inner scroller fixes that one. */
 .sc-grid {
-  max-height: min(720px, 62vh);
+  padding: 6px;
+  margin: -6px;
+  max-height: calc(min(720px, 62vh) + 12px);
   overflow-y: auto;
+  /* Hold the gutter whether or not the grid is long enough to need it, so a
+     filter that drops the row count does not shift every card 11px right. */
+  scrollbar-gutter: stable;
   /* The box has a definite height, so a part-full grid would stretch its rows
      to fill it and hand back cards taller than the art. */
   align-content: start;
@@ -942,6 +961,10 @@ body {
      thumbs cannot squash the way the cards did — their height is explicit. */
   flex: 1 1 auto;
   min-height: 0;
+  /* Room for a scaled thumb, then pulled back so the thumbs stay aligned with
+     the CHOSEN header above them. 4px covers 1.04 on a 96px thumb. */
+  padding: 4px;
+  margin: -4px;
 }
 
 /* Height-driven, like `.ban-phase-thumb`: the card art has a fixed ratio, so
