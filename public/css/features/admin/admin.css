@@ -818,109 +818,11 @@ body {
 
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
-/* ── SIGN-IN SHOWCASE · the picked list ──────────────────────
-   Names, not card art. This half is the *result* — up to fifty rows whose only
-   job is to confirm which names are live — and fifty card images here would be
-   fifty proxied requests competing with the browser below, which is where the
-   art belongs. */
-.tp-meta {
-  font-size: 12px;
-  color: var(--text-dim);
-  letter-spacing: 0.02em;
-}
-
-/* The header meta doubles as the error line: a refused save has to be visible
-   where the SAVE button is, not in a toast that has already gone. */
-.tp-meta.is-error { color: var(--danger); }
-
-.tp-warn {
-  margin: 0 16px 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--hue-amber-line);
-  border-radius: var(--radius-sm);
-  background: var(--fill-faint);
-  color: var(--text-dim);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.tp-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 12px 16px;
-}
-
-.tp-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 6px;
-  background: var(--fill-faint);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  font-size: 12px;
-  color: var(--text);
-}
-
-/* A picked chip carries two actions — promote and remove — so it is a
-   container, not a button. It was one button that removed on click; that made
-   the whole chip a destructive target and left no room for the promote action
-   that position 1 needs. Nested buttons are invalid, hence the span. Must stay
-   after `.tp-chip`: same specificity, and its `padding-right` has to beat that
-   rule's shorthand. */
-.tp-chip--pick {
-  font-family: var(--font-body);
-  padding-right: 3px;
-}
-
-.tp-rank {
-  min-width: 18px;
-  text-align: center;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Both actions, sized to a real target rather than to the glyph. */
-.tp-act {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-}
-
-.tp-act:hover {
-  background: var(--fill-strong);
-  color: var(--text);
-}
-
-.tp-act--remove:hover {
-  background: var(--danger-fill);
-  color: var(--danger);
-}
-
-.tp-act:active { transform: scale(0.9); }
-
-.tp-empty {
-  padding: 12px 16px;
-  color: var(--text-dim);
-  font-size: 13px;
-}
-
-/* ── SIGN-IN SHOWCASE · the browser ─────────────────────────── */
-
-.sc-browse {
-  border-top: 1px solid var(--line-faint);
-}
+/* ── SIGN-IN SHOWCASE ────────────────────────────────────────
+   The whole tab is one browser over the catalog. There is no picked list drawn
+   beside it any more and no SAVE button — a card's own mark is its membership,
+   and a click writes — so what is left is the toolbar, the grid, and the two
+   lines that report on the write. */
 
 .sc-toolbar {
   display: flex;
@@ -932,19 +834,13 @@ body {
 
 .sc-search { flex: 1 1 200px; }
 
-.sc-count {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Capped so the picked list above stays on screen while you browse. The grid
-   itself is the shared `.player-grid`, so a card here is the same object it is
-   on My Players. */
+/* The grid scrolls inside the panel so the toolbar stays put — losing the
+   search box behind a long grid is the whole reason for an inner scroller.
+   It was a flat 460px to keep the picked list above it on screen; with that
+   list gone it takes the freed height, bounded by the viewport. */
 .sc-grid {
   padding: 0 16px 12px;
-  max-height: 460px;
+  max-height: min(720px, 62vh);
   overflow-y: auto;
 }
 
@@ -976,10 +872,37 @@ body {
 }
 
 /* The list is full and this card is not on it: still readable, plainly not
-   available. Clicking a picked card always works — that is how you make room. */
+   available. Clicking a picked card always works — that is how you make room,
+   and with no SAVE button it is also the only undo. */
 .sc-card.is-blocked {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+.sc-empty {
+  padding: 12px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* The only line on this tab that ever speaks. Amber advises — the list is
+   full, or too thin to ban out of — and red means the last write was refused,
+   which is the one state the grid cannot show on its own. */
+.sc-warn {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--hue-amber-line);
+  border-radius: var(--radius-sm);
+  background: var(--fill-faint);
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sc-warn.is-error {
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+  color: var(--danger);
 }
 
 /* ── Catalog table ──────────────────────────────────────────── */

@@ -1,187 +1,153 @@
 /* ============================================================
-   SHOWCASE — the stored pool, now edited rather than only inspected
+   SHOWCASE — the stored pool, edited straight from the grid
 
    One list with three consumers: the sign-in page's card backdrop, the
    bannable board shown for a seat with no account, and the target
    `squads.js` auto-bans when that seat's turn expires. They all read the same
-   snapshot, so what this tab saves is literally what a visitor sees and what
+   snapshot, so what this tab writes is literally what a visitor sees and what
    an anonymous opponent can lose.
 
-   Two ways to fill it, and they are different verbs. REBUILD *computes* the
-   automatic top 30 from the catalog and is the way back from any mess. The
-   picker *chooses*, up to `max`, and saves the order you leave it in.
+   There is no staged list any more, no SAVE button and no readout: a click on
+   a card *is* the edit, it writes, and the mark it leaves is the receipt. Four
+   consequences worth knowing:
 
-   Editing is staged, not live: adds and removes change local state and SAVE
-   is what writes. A list that took effect per click would make a mis-click a
-   live change to somebody's draft, and there is no undo on that.
+     - A mis-click is a live change. Its undo is the same click again, which is
+       why a picked card stays clickable even at the cap.
+     - Writes are debounced and serialised. Clicking through ten cards sends one
+       PUT of the final list, not ten, and a second click during a write re-arms
+       the timer rather than racing it.
+     - A refused write rolls the local list back to what the server confirmed. A
+       grid still marking cards the server never accepted would be a lie.
+     - Success says nothing, because the mark already did. `#scWarn` below the
+       grid is the only line that speaks, and it speaks for the three states a
+       mark cannot carry: refused, full, or too thin to ban out of.
+
+   Order is rank — `topBannableFrom` auto-bans position 1 first — and it is now
+   simply the order cards were picked in. REBUILD went with the header; the way
+   back from a mess is `POST /api/admin/top-players/refresh`, which recomputes
+   the automatic top 30.
    ============================================================ */
 
-import { escapeHtml } from "@/shared/players/playerMeta.js";
-import { icon } from "@/shared/icons/icon.js";
 import { apiFetch, apiSend } from "./adminApi.js";
 import { initShowcaseBrowser, refreshShowcaseMarks } from "./showcaseBrowser.js";
-import { fmtRelative } from "./format.js";
 
 const el = (id) => document.getElementById(id);
 
-/** `picked` is what SAVE would write; `saved` is what is stored right now. */
+/** How long a burst of clicks may settle before one PUT goes out. */
+const SAVE_DEBOUNCE_MS = 600;
+
+/** `picked` is what the grid marks; `saved` is what the server confirmed. */
 const state = {
   picked: [],
   saved: [],
-  refreshedAt: null,
-  limit: 30,
   max: 50,
   advisedMin: 23,
-  /* Held in state, not written straight to the DOM. The first version wrote
-     the message in a `catch` and then called `renderMeta()` in the `finally`,
-     which rewrote the same element from state in the same tick — so a refused
-     save produced no message at all, and SAVE stayed lit because the list was
-     still dirty. It read as "nothing happened" rather than "that failed". */
   error: null,
 };
 
+let saveTimer = null;
+let inFlight = false;
+
 const idsOf = (list) => list.map((p) => p.id).join(",");
-const isDirty = () => idsOf(state.picked) !== idsOf(state.saved);
 const isFull = () => state.picked.length >= state.max;
 
 /* ── Painting ───────────────────────────────────────────────── */
 
-function renderMeta() {
+/* A refused write outranks the rest: it is the one state the grid cannot show
+   on its own, and it is held in state rather than written straight to the DOM
+   so the next render cannot silently wipe it. */
+function renderNotice() {
+  const box = el("scWarn");
   const n = state.picked.length;
-  const when = state.refreshedAt ? `rebuilt ${fmtRelative(state.refreshedAt)}` : "not built yet";
-  const meta = el("topPlayersMeta");
-  meta.textContent = state.error
-    ? state.error
-    : isDirty()
-      ? `${n} of ${state.max} · unsaved changes`
-      : `${n} of ${state.max} · ${when}`;
-  meta.classList.toggle("is-error", Boolean(state.error));
-  el("topPlayersSaveBtn").disabled = !isDirty();
-}
-
-/** Short lists still work; they just make a thin board for an empty seat. */
-function renderWarning() {
-  const box = el("topPlayersWarn");
-  const n = state.picked.length;
-  const show = n > 0 && n < state.advisedMin;
-  box.hidden = !show;
-  if (show) {
-    box.textContent = `${n} player${n === 1 ? "" : "s"} is fewer than a full squad of `
+  let text = state.error;
+  if (!text && isFull()) {
+    text = `The list is full at ${state.max}. Click a picked card to make room.`;
+  } else if (!text && n > 0 && n < state.advisedMin) {
+    text = `${n} player${n === 1 ? "" : "s"} is fewer than a full squad of `
       + `${state.advisedMin}. A seat with no account bans out of this list, so it will `
       + `have little to choose from.`;
   }
-}
-
-function renderList() {
-  const body = el("topPlayersBody");
-  if (!state.picked.length) {
-    body.innerHTML = `<div class="tp-empty">Nothing picked yet. Pick cards from the catalog below, or press REBUILD.</div>`;
-    return;
-  }
-  /* A container with two buttons, not one button that removes. Position is
-     load-bearing — `topBannableFrom` auto-bans the first entry a seat has not
-     already lost — so promoting a card has to be reachable without emptying
-     everything above it. Nested buttons are invalid, hence the span. */
-  body.innerHTML = state.picked.map((p, i) => {
-    const id = escapeHtml(p.id);
-    const name = escapeHtml(p.name);
-    const promote = i === 0 ? "" : `
-      <button type="button" class="tp-act" data-top="${id}"
-              title="Move to the top" aria-label="Move ${name} to the top of the list">
-        ${icon("arrow-up", { size: 11 })}
-      </button>`;
-    return `
-    <span class="tp-chip tp-chip--pick">
-      <span class="tp-rank">${i + 1}</span>
-      <span class="tp-name">${name}</span>${promote}
-      <button type="button" class="tp-act tp-act--remove" data-remove="${id}"
-              title="Remove" aria-label="Remove ${name} from the list">
-        ${icon("close", { size: 11 })}
-      </button>
-    </span>`;
-  }).join("");
+  box.textContent = text || "";
+  box.hidden = !text;
+  box.classList.toggle("is-error", Boolean(state.error));
 }
 
 function renderAll() {
-  renderMeta();
-  renderList();
-  renderWarning();
-  /* The grid marks what is already chosen, so it repaints whenever the list
-     does. `refreshShowcaseMarks` toggles classes rather than rebuilding — a
-     rebuild would drop the hover cards bound to each card. */
+  renderNotice();
+  /* The grid marks what is chosen, so it repaints whenever the list changes.
+     `refreshShowcaseMarks` toggles classes rather than rebuilding — a rebuild
+     would drop the hover cards bound to each card. */
   refreshShowcaseMarks();
+}
+
+/* ── Saving ─────────────────────────────────────────────────── */
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, SAVE_DEBOUNCE_MS);
+}
+
+/** Takes a server response as the new confirmed truth. */
+function adoptSaved(status) {
+  state.saved = (status.players || []).map((p) => ({ id: String(p.id), name: p.name }));
+  state.max = status.max ?? state.max;
+  state.advisedMin = status.advisedMin ?? state.advisedMin;
+}
+
+async function save() {
+  if (inFlight) { scheduleSave(); return; }
+  const sent = idsOf(state.picked);
+  inFlight = true;
+  try {
+    adoptSaved(await apiSend("/api/admin/top-players", "PUT", { ids: state.picked.map((p) => p.id) }));
+    state.error = null;
+    /* The response is the truth for what was *sent*, not for what is on screen
+       now. Adopting it after a click that landed mid-write would undo that
+       click; the timer that click re-armed will send the newer list instead. */
+    if (idsOf(state.picked) === sent) state.picked = [...state.saved];
+  } catch (err) {
+    state.picked = [...state.saved];
+    state.error = err.message || "That did not save. Try again.";
+  } finally {
+    inFlight = false;
+    renderAll();
+  }
 }
 
 /* ── State changes ──────────────────────────────────────────── */
 
-function addPlayer(id, name) {
-  if (isFull() || state.picked.some((p) => p.id === id)) return;
+function edited() {
   state.error = null;
-  state.picked = [...state.picked, { id, name }];
   renderAll();
+  scheduleSave();
 }
 
-/** Promotes one entry to rank 1; the rest keep their relative order. */
-function moveToTop(id) {
-  const hit = state.picked.find((p) => p.id === id);
-  if (!hit) return;
-  state.error = null;
-  state.picked = [hit, ...state.picked.filter((p) => p.id !== id)];
-  renderAll();
+function addPlayer(id, name) {
+  if (isFull() || state.picked.some((p) => p.id === id)) return;
+  state.picked = [...state.picked, { id, name }];
+  edited();
 }
 
 function removePlayer(id) {
-  state.error = null;
   state.picked = state.picked.filter((p) => p.id !== id);
-  renderAll();
-}
-
-/** Adopts a server response as the new truth: picked and saved agree again. */
-function adopt(status) {
-  state.picked = (status.players || []).map((p) => ({ id: String(p.id), name: p.name }));
-  state.saved = [...state.picked];
-  state.error = null;
-  state.refreshedAt = status.refreshedAt;
-  state.limit = status.limit ?? state.limit;
-  state.max = status.max ?? state.max;
-  state.advisedMin = status.advisedMin ?? state.advisedMin;
-  renderAll();
+  edited();
 }
 
 /* ── Entry points ───────────────────────────────────────────── */
 
 export async function loadTopPlayers() {
   try {
-    adopt(await apiFetch("/api/admin/top-players"));
+    adoptSaved(await apiFetch("/api/admin/top-players"));
+    state.picked = [...state.saved];
+    state.error = null;
+    renderAll();
   } catch {
-    el("topPlayersMeta").textContent = "unavailable";
-    el("topPlayersBody").innerHTML = `<div class="tp-empty">Failed to load</div>`;
-  }
-}
-
-async function withButton(btn, busyLabel, work) {
-  const label = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = busyLabel;
-  state.error = null;
-  try {
-    adopt(await work());
-  } catch (err) {
-    state.error = err.message || "That did not save. Try again.";
-  } finally {
-    btn.textContent = label;
-    renderMeta();                            // renders the error and re-derives `disabled`
+    state.error = "Could not load the showcase list.";
+    renderNotice();
   }
 }
 
 export function initTopPlayersControl() {
-  el("topPlayersRefreshBtn").addEventListener("click", (e) =>
-    withButton(e.currentTarget, "REBUILDING…", () => apiSend("/api/admin/top-players/refresh", "POST", {})));
-
-  el("topPlayersSaveBtn").addEventListener("click", (e) =>
-    withButton(e.currentTarget, "SAVING…", () =>
-      apiSend("/api/admin/top-players", "PUT", { ids: state.picked.map((p) => p.id) })));
-
   /* One click target per card: picked toggles off, unpicked toggles on when
      there is room. The browser owns finding cards; this owns the list. */
   initShowcaseBrowser({
@@ -192,13 +158,5 @@ export function initTopPlayersControl() {
       else addPlayer(id, name);
     },
   });
-
-  /* Delegated, because the list is rebuilt on every change. */
-  el("topPlayersBody").addEventListener("click", (e) => {
-    const promote = e.target.closest("[data-top]");
-    if (promote) { moveToTop(promote.dataset.top); return; }
-    const remove = e.target.closest("[data-remove]");
-    if (remove) removePlayer(remove.dataset.remove);
-  });
-
+  renderAll();
 }

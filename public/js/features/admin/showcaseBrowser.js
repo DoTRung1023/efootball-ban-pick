@@ -152,14 +152,12 @@ function renderGrid() {
   if (!grid) return;
   grid.innerHTML = "";
   if (!state.rows.length) {
-    grid.innerHTML = `<div class="tp-empty">No cards match.</div>`;
+    grid.innerHTML = `<div class="sc-empty">No cards match.</div>`;
     el("scMore").hidden = true;
-    el("scCount").textContent = "";
     return;
   }
   state.rows.forEach((p) => grid.appendChild(makeCard(p)));
   grid.classList.toggle("info-hidden", !state.showInfo);
-  el("scCount").textContent = `${state.rows.length} shown`;
   el("scMore").hidden = !state.more;
   refreshShowcaseMarks();
 }

@@ -155,77 +155,66 @@
 
       <!-- ── SHOWCASE ────────────────────────────────────────── -->
       <!-- What the sign-in page shows, and the pool a seat with no account is
-           auto-banned from. Its own tab because it is now edited here, not just
-           inspected: the picker below searches the catalog and the list is
-           saved by hand. REBUILD is still the way back to the automatic top 30. -->
+           auto-banned from. Its own tab because it is edited here, not just
+           inspected. There is no staged list and no SAVE: a click on a card is
+           the edit and it writes, so the marks on the grid *are* the list.
+           `POST /api/admin/top-players/refresh` is the way back to the
+           automatic top 30. -->
       <section class="tab-panel" data-panel="showcase" hidden>
         <div class="panel">
-          <div class="panel-header">
-            <span class="panel-title">SHOWCASE LIST</span>
-            <div class="panel-actions">
-              <span id="topPlayersMeta" class="tp-meta">—</span>
-              <button id="topPlayersSaveBtn" class="btn btn--primary btn--sm" disabled>SAVE</button>
-              <button id="topPlayersRefreshBtn" class="btn btn--ghost btn--sm">REBUILD</button>
+
+          <!-- Same search, sort and filter controls as My Players and the
+               CATALOG tab — SORT_CATEGORIES and buildPlayerFilterPanel, not
+               console-local copies. -->
+          <div class="sc-toolbar">
+            <div class="search-box sc-search">
+              <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
+              <input id="scSearch" type="search" class="search-input" placeholder="Search the catalog…"
+                     aria-label="Search the catalog for a player to add" autocomplete="off" />
             </div>
-          </div>
 
-          <!-- The picked list is the artifact: order is rank, and rank 1 is
-               what an account-less opponent loses first. -->
-          <div id="topPlayersBody" class="tp-list">
-            <div class="tp-empty">Loading…</div>
-          </div>
-
-          <!-- Browser over the whole catalog. Same search, sort and filter
-               controls as My Players and the CATALOG tab — SORT_CATEGORIES and
-               buildPlayerFilterPanel, not console-local copies. -->
-          <div class="sc-browse">
-            <div class="sc-toolbar">
-              <div class="search-box sc-search">
-                <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
-                <input id="scSearch" type="search" class="search-input" placeholder="Search the catalog…"
-                       aria-label="Search the catalog for a player to add" autocomplete="off" />
-              </div>
-
-              <div class="sort-group">
-                <div class="ap-dd-wrap" id="scSortWrap">
-                  <button class="ap-dd-btn" id="scSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
-                    <span id="scSortLabel">Overall Max</span>
-                    <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
-                  </button>
-                </div>
-                <button class="sort-dir-btn" id="scSortDirBtn" type="button" title="Toggle sort direction">
-                  <span id="scSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
-                </button>
-              </div>
-
-              <div class="ap-dd-wrap" id="scFilterWrap">
-                <button class="ap-dd-btn" id="scFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
-                  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
-                  <span>FILTER</span>
+            <div class="sort-group">
+              <div class="ap-dd-wrap" id="scSortWrap">
+                <button class="ap-dd-btn" id="scSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
+                  <span id="scSortLabel">Overall Max</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
                 </button>
               </div>
-
-              <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
-              <span id="scCount" class="sc-count"></span>
+              <button class="sort-dir-btn" id="scSortDirBtn" type="button" title="Toggle sort direction">
+                <span id="scSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
+              </button>
             </div>
 
-            <div id="scGrid" class="player-grid sc-grid">
-              <div class="tp-empty">Search or filter to find cards to add.</div>
+            <div class="ap-dd-wrap" id="scFilterWrap">
+              <button class="ap-dd-btn" id="scFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
+                <span>FILTER</span>
+                <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
+              </button>
             </div>
-            <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+
+            <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
           </div>
 
-          <div id="topPlayersWarn" class="tp-warn" hidden></div>
+          <div id="scGrid" class="player-grid sc-grid">
+            <div class="sc-empty">Search or filter to find cards to add.</div>
+          </div>
+          <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+
+          <!-- The one line that speaks: a refused write, the cap, or a list
+               too thin to ban out of. Hidden whenever there is nothing to say.
+               `aria-live` because nothing else on the page moves when a save
+               fails — the grid keeps its marks either way. -->
+          <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
 
           <div class="panel-hint">
             The sign-in page reads this stored list instead of ranking the whole
             catalog on every load, and a seat with no account is auto-banned out
-            of it. Search to add, remove with &times;, then SAVE. <strong>Order
-            matters:</strong> the player at position 1 is the first one an
-            account-less opponent loses to an expired turn, so use the arrow to
-            promote one. REBUILD replaces the list with the automatic top 30.
+            of it. Click a card to add it, click it again to remove it — every
+            click saves. <strong>Order matters:</strong> the player at position 1
+            is the first one an account-less opponent loses to an expired turn,
+            and position is simply the order you picked in.
           </div>
         </div>
       </section>
