@@ -752,6 +752,20 @@ body {
 /* ── Data quality list ──────────────────────────────────────── */
 .dq-list { padding: 4px 0; }
 
+/* Health rows are grouped now — missing / impossible / references — and the
+   heading is what tells you which kind of problem a number is. */
+.dq-group-title {
+  padding: 12px 16px 4px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dq-group-title:first-child { padding-top: 4px; }
+
 .dq-row {
   display: flex;
   align-items: center;
@@ -804,13 +818,30 @@ body {
 
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
-/* ── SIGN-IN SHOWCASE ────────────────────────────────────────
-   Names, not card art: thirty card images would be thirty proxied requests
-   into a panel whose only job is to confirm which names are live. */
+/* ── SIGN-IN SHOWCASE · the picked list ──────────────────────
+   Names, not card art. This half is the *result* — up to fifty rows whose only
+   job is to confirm which names are live — and fifty card images here would be
+   fifty proxied requests competing with the browser below, which is where the
+   art belongs. */
 .tp-meta {
   font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 0.02em;
+}
+
+/* The header meta doubles as the error line: a refused save has to be visible
+   where the SAVE button is, not in a toast that has already gone. */
+.tp-meta.is-error { color: var(--danger); }
+
+.tp-warn {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--hue-amber-line);
+  border-radius: var(--radius-sm);
+  background: var(--fill-faint);
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .tp-list {
@@ -832,6 +863,17 @@ body {
   color: var(--text);
 }
 
+/* A picked chip carries two actions — promote and remove — so it is a
+   container, not a button. It was one button that removed on click; that made
+   the whole chip a destructive target and left no room for the promote action
+   that position 1 needs. Nested buttons are invalid, hence the span. Must stay
+   after `.tp-chip`: same specificity, and its `padding-right` has to beat that
+   rule's shorthand. */
+.tp-chip--pick {
+  font-family: var(--font-body);
+  padding-right: 3px;
+}
+
 .tp-rank {
   min-width: 18px;
   text-align: center;
@@ -839,27 +881,42 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Both actions, sized to a real target rather than to the glyph. */
+.tp-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.tp-act:hover {
+  background: var(--fill-strong);
+  color: var(--text);
+}
+
+.tp-act--remove:hover {
+  background: var(--danger-fill);
+  color: var(--danger);
+}
+
+.tp-act:active { transform: scale(0.9); }
+
 .tp-empty {
   padding: 12px 16px;
   color: var(--text-dim);
   font-size: 13px;
 }
 
-/* Health rows are grouped now — missing / impossible / references — and the
-   heading is what tells you which kind of problem a number is. */
-.dq-group-title {
-  padding: 12px 16px 4px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.dq-group-title:first-child { padding-top: 4px; }
-
-/* ── Showcase browser ───────────────────────────────────────── */
+/* ── SIGN-IN SHOWCASE · the browser ─────────────────────────── */
 
 .sc-browse {
   border-top: 1px solid var(--line-faint);
@@ -923,59 +980,6 @@ body {
 .sc-card.is-blocked {
   opacity: 0.42;
   cursor: not-allowed;
-}
-
-/* A picked chip carries two actions — promote and remove — so it is a
-   container, not a button. It was one button that removed on click; that made
-   the whole chip a destructive target and left no room for the promote action
-   that position 1 needs. Nested buttons are invalid, hence the span. */
-.tp-chip--pick {
-  font-family: var(--font-body);
-  padding-right: 3px;
-}
-
-/* Both actions, sized to a real target rather than to the glyph. */
-.tp-act {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-}
-
-.tp-act:hover {
-  background: var(--fill-strong);
-  color: var(--text);
-}
-
-.tp-act--remove:hover {
-  background: var(--danger-fill);
-  color: var(--danger);
-}
-
-.tp-act:active { transform: scale(0.9); }
-
-/* The header meta doubles as the error line: a refused save has to be visible
-   where the SAVE button is, not in a toast that has already gone. */
-.tp-meta.is-error { color: var(--danger); }
-
-.tp-warn {
-  margin: 0 16px 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--hue-amber-line);
-  border-radius: var(--radius-sm);
-  background: var(--fill-faint);
-  color: var(--text-dim);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 /* ── Catalog table ──────────────────────────────────────────── */
