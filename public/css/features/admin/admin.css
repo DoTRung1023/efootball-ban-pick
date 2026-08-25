@@ -824,15 +824,11 @@ body {
    and a click writes — so what is left is the toolbar, the grid, and the two
    lines that report on the write. */
 
-.sc-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-}
-
-.sc-search { flex: 1 1 200px; }
+/* The row itself. Everything in it — the search field, the sort and filter
+   dropdowns, HIDE INFO — is `shared/filterPanel.css`, so this tab's toolbar
+   is the same object My Players has; only the padding that seats it inside a
+   panel is local — `.team-search-bar` supplies the row itself. */
+.sc-toolbar { padding: 12px 16px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
    search box behind a long grid is the whole reason for an inner scroller.

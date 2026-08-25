@@ -28,44 +28,9 @@
 /* ============================================================
    SQUAD PANEL TOOLBAR
    ============================================================ */
-.team-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.team-search-wrap {
-  flex: 1;
-  min-width: 180px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--fill-faint);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 7px 12px;
-  transition: border-color var(--transition);
-}
-
-.team-search-wrap:focus-within {
-  border-color: var(--line-active);
-}
-
-.team-search-wrap svg { color: var(--text-dim); flex-shrink: 0; }
-
-.team-search-wrap input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text);
-  font-family: var(--font-main);
-  font-size: 14px;
-}
-
-.team-search-wrap input::placeholder { color: var(--text-muted); }
+/* The row is `shared/filterPanel.css`; only the gap to the grid below it is
+   this page's business. */
+.team-search-bar { margin-bottom: 14px; }
 
 .team-search-bar.disabled {
   opacity: 0.35;
@@ -184,46 +149,6 @@
   background: var(--fill-strong);
   color: var(--text-muted);
   cursor: not-allowed;
-}
-
-.select-mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  background: var(--fill);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
-  white-space: nowrap;
-}
-
-.select-mode-btn:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--fill-strong);
-  border-color: var(--line-hover);
-}
-
-.select-mode-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.toggle-info-btn {
-  min-width: 120px;
-  justify-content: center;
-}
-
-.toggle-info-btn.is-off {
-  color: var(--text-muted);
-  border-color: var(--line-hover);
-  background: var(--fill);
 }
 
 /* Selection toolbar — skin only; the box comes from .panel-toolbar above, so

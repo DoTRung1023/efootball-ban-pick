@@ -165,11 +165,13 @@
 
           <!-- Same search, sort and filter controls as My Players and the
                CATALOG tab — SORT_CATEGORIES and buildPlayerFilterPanel, not
-               console-local copies. -->
-          <div class="sc-toolbar">
-            <div class="search-box sc-search">
-              <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
-              <input id="scSearch" type="search" class="search-input" placeholder="Search the catalog…"
+               console-local copies, and the same search field and HIDE INFO
+               button as My Players — one copy of that chrome now lives in
+               `shared/filterPanel.css`, which this page already links. -->
+          <div class="sc-toolbar team-search-bar">
+            <div class="team-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
+              <input id="scSearch" type="text" placeholder="Search the catalog..."
                      aria-label="Search the catalog for a player to add" autocomplete="off" />
             </div>
 

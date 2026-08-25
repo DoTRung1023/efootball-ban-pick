@@ -14,8 +14,9 @@
    feature sheet or copied into a second one.
 
    Link it **after** `shared/tokens.css` (whose variables it reads) and before
-   `shared/controls.css` (whose focus ring has to win). It carries no layout of
-   its own for the toolbar around it — each page positions its own.
+   `shared/controls.css` (whose focus ring has to win). It carries the *chrome*
+   of the toolbar around the dropdowns — the search field, the buttons — but no
+   layout: each page positions its own row. See the last section.
    ============================================================ */
 
 /* ── Sort group: dropdown + direction toggle ── */
@@ -432,4 +433,102 @@
 .sort-dir-btn:active {
   transform: scale(0.94);
   transition: transform 0.08s ease;
+}
+
+/* ── The toolbar around the dropdowns ──────────────────────────────────────
+   The search field and the buttons that sit beside a sort/filter pair. These
+   were `features/squad/squad.css`, which worked while the home page was the
+   only consumer; the console's SHOWCASE tab is a second, and it links this
+   sheet but not that one — an unstyled `.toggle-info-btn` there rendered as a
+   default white browser button.
+
+   The **room** page keeps its own copy in `features/draft/ban.css` and is not
+   linked to this sheet. Its copy has genuinely diverged — `inline-flex`, a
+   heavier input, no bottom margin — so folding the two together would be a
+   visible change to the draft toolbar, not a refactor. Two copies, not three.
+
+   Still no page layout here: `.team-search-bar` (the row itself, and its
+   bottom margin) stays in `squad.css`, and the console positions its own. */
+/* The row. No margin — where it sits relative to what follows is the page's
+   business, and `squad.css` adds its own. */
+.team-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.team-search-wrap {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--fill-faint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  transition: border-color var(--transition);
+}
+
+.team-search-wrap:focus-within {
+  border-color: var(--line-active);
+}
+
+.team-search-wrap svg { color: var(--text-dim); flex-shrink: 0; }
+
+.team-search-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-main);
+  font-size: 14px;
+}
+
+.team-search-wrap input::placeholder { color: var(--text-muted); }
+
+.select-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
+  white-space: nowrap;
+  /* `squad.css` floors every button on a `.toolbar-actions` row at this. The
+     console's toolbar is not that row, so the floor lives on the button — it
+     is a target size, not a property of one page's layout. */
+  min-height: 32px;
+}
+
+.select-mode-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--fill-strong);
+  border-color: var(--line-hover);
+}
+
+.select-mode-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.toggle-info-btn {
+  min-width: 120px;
+  justify-content: center;
+}
+
+.toggle-info-btn.is-off {
+  color: var(--text-muted);
+  border-color: var(--line-hover);
+  background: var(--fill);
 }
