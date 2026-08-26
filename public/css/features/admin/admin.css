@@ -829,19 +829,27 @@ body {
    target that flips meaning with state is how a mis-click removes the thing
    you were trying to keep. */
 
-/* One frame, two panels of exactly the same height, each scrolling its own
-   overflow. The cap lives here rather than on either panel: whichever list is
-   longer, the frame stops at the same place and the panel deals with the rest
-   internally. `minmax(0, 1fr)` on the row is what lets the panels be shorter
-   than their content — an `auto` row would size to the taller one and push the
-   whole frame past the cap instead of scrolling. Short lists still collapse:
-   the cap is a `max-height`, so two half-empty panels stay half-empty. */
+/* One frame the height of the window, two panels filling it exactly, each
+   scrolling its own overflow. The height lives here rather than on either
+   panel: whichever list is longer, both boxes end on the same line and deal
+   with the rest internally.
+
+   `100dvh` under `100vh` for the mobile browsers whose toolbars make the two
+   differ — the same pair `shell.css` and `.dashboard` above already use. The
+   subtraction is the nav bar plus `.tab-panel`'s 20px of padding, top and
+   bottom. `minmax(0, 1fr)` on the row is what lets a panel be shorter than its
+   content; an `auto` row would size to the taller one and push the frame past
+   the window instead of scrolling inside it. */
 .sc-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 248px;
   grid-template-rows: minmax(0, 1fr);
   gap: 16px;
-  max-height: min(860px, 78vh);
+  height: calc(100vh - var(--nav-h) - 40px);
+  height: calc(100dvh - var(--nav-h) - 40px);
+  /* A short window still has to be usable: below this the page scrolls rather
+     than the panels shrinking into slots too small to browse. */
+  min-height: 420px;
 }
 
 /* A flex column, so the grid takes the space left over and LOAD MORE sits on
@@ -867,10 +875,9 @@ body {
   flex: 0 0 auto;
 }
 
-.sc-browse .load-more-btn {
-  margin-top: 12px;
-  flex: 0 0 auto;
-}
+/* Inside the scroller now, so it arrives at the end of the cards rather than
+   sitting on the panel's bottom edge with the grid running under it. */
+.sc-browse .load-more-btn { margin-top: 12px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
    search box behind a long grid is the whole reason for an inner scroller.
@@ -885,6 +892,19 @@ body {
    This buys the row at rest, not every row: scroll until a row sits flush on
    the top edge and its hover still clips, because padding scrolls away with
    the content. Nothing short of dropping the inner scroller fixes that one. */
+.sc-scroll {
+  flex: 1 1 auto;
+  /* The flex escape: without it the scroller refuses to shrink under its own
+     content and pushes the panel past the frame's height. */
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+  margin: -6px;
+  /* Hold the gutter whether or not the list is long enough to need it, so a
+     filter that drops the row count does not shift every card 11px right. */
+  scrollbar-gutter: stable;
+}
+
 .sc-grid {
   /* `.player-grid` fixes six columns and steps down on *viewport* rungs. That
      is right on the home page, where the grid is as wide as the page — and
@@ -906,19 +926,6 @@ body {
      the panel has 673, so the three stretch. 160 rather than 165 is what buys
      the third column at 620 — at 165 that step held two 254px cards. */
   grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr));
-  padding: 6px;
-  margin: -6px;
-  /* Takes the height the toolbar and LOAD MORE leave behind. `min-height: 0`
-     is the flex escape: without it the grid refuses to shrink under its own
-     content and pushes both panels past the frame's cap. */
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  /* Hold the gutter whether or not the grid is long enough to need it, so a
-     filter that drops the row count does not shift every card 11px right. */
-  scrollbar-gutter: stable;
-  /* The box has a definite height, so a part-full grid would stretch its rows
-     to fill it and hand back cards taller than the art. */
   align-content: start;
   /* `align-content: start` is not enough on its own — measured, with only that
      set, four `auto` rows still divided the 599px box into 134.78px each and
@@ -1435,7 +1442,15 @@ body {
      down to three across. CHOSEN goes under the browser, and its strip takes a
      short cap — stacked, the two scrollers were fighting for the same
      viewport. */
-  .sc-layout { grid-template-columns: minmax(0, 1fr); }
+  .sc-layout {
+    grid-template-columns: minmax(0, 1fr);
+    /* Stacked, a window-height frame would give each panel half a window and
+       the page would not scroll. Let them size to content again. */
+    grid-template-rows: auto;
+    height: auto;
+  }
+
+  .sc-scroll { max-height: 60vh; }
 
   .sc-chosen-strip {
     flex: 0 1 auto;

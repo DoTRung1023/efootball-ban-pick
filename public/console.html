@@ -204,10 +204,16 @@
             <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
           </div>
 
-            <div id="scGrid" class="player-grid sc-grid">
-              <div class="sc-empty">Search or filter to find cards to add.</div>
+            <!-- The scroller is this wrapper, not the grid, so LOAD MORE rides
+                 at the end of the cards and comes into view when you reach the
+                 bottom of them. `renderGrid` empties `#scGrid`, which is why
+                 the button cannot simply live inside it. -->
+            <div class="sc-scroll">
+              <div id="scGrid" class="player-grid sc-grid">
+                <div class="sc-empty">Search or filter to find cards to add.</div>
+              </div>
+              <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
             </div>
-            <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
           </div>
 
           <!-- The chosen list, as card art — the same shape the ban board's MY
