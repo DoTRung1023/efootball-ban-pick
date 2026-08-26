@@ -1526,15 +1526,55 @@ body {
   align-items: center;
 }
 
-/* The players, boxed off from the count above and the confirm row below. All
-   three are children of the same flex column and only this one is a list, so
-   without a rule around it the count read as its first line. Border only: the
-   cells inside carry the fill, and a second surface behind them flattened the
-   side tints that are the point of them. */
+/* One side: its count and formation, then its own boxed list. Two of these sit
+   on `.rd-pair`'s outer tracks, so each side's rule closes around that side's
+   players instead of one rule spanning both — which is what made the two counts
+   above it read as a single heading for a single list. */
+.rd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rd-side-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Border only: the cells inside carry the fill, and a second surface behind
+   them flattened the side tints that are the point of them. */
 .rd-list {
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+}
+
+.rd-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The number sits inside its own list now. It was the middle track between two
+   columns of one shared grid, and there is no shared grid to be the middle of.
+   Right-aligned so 9 and 10 line up on the digit that changes. */
+.rd-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.rd-row-idx {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .rd-side-tag {
@@ -1697,6 +1737,7 @@ body {
   /* The pair stays two columns however narrow it gets — stacking host above
      guest would undo the one thing this layout is for. */
   .rd-pair { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 5px; }
+  .rd-row { grid-template-columns: 14px minmax(0, 1fr); gap: 5px; }
   .rd-cell { padding: 5px 7px; font-size: 11px; }
   .admin-nav { gap: 12px; }
   /* **The tab strip takes a row of its own from here down, not from 600.** This

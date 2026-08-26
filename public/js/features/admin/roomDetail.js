@@ -114,30 +114,43 @@ function playerCell(p, side) {
 }
 
 /**
- * The comparison this panel exists for: one row per index, host on the left and
- * guest on the right, so the two sides can be read across rather than scrolled
- * between. Rows are paired by position and the shorter side gets a hole, which
- * is what keeps them lined up when the counts differ — three bans against none
- * used to push every pick below it out of step with its opposite number.
+ * One side's players, boxed, under that side's own count.
+ *
+ * **Its own box, not a column of a shared one.** The two lists no longer pad
+ * each other to a common length: a side that has banned once shows one row and
+ * a box that ends there, which says "one against three" more directly than two
+ * rows of `—` did. What they *do* still share is the row height and a common
+ * top edge, so ban 3 is level with ban 3 for as long as both sides have one.
+ *
+ * Internal `null`s stay, and are not padding — in a pick list a `null` is a
+ * slot the player left empty in their formation, so dropping it would move
+ * every player below it up a number.
  */
-function pairedRows(left, right, side = playerCell) {
-  const a = Array.isArray(left) ? left : [];
-  const b = Array.isArray(right) ? right : [];
-  const n = Math.max(a.length, b.length);
-  const body = n
-    ? `<ul class="rd-pairs">${Array.from({ length: n }, (_, i) => `
-    <li class="rd-pair">
-      ${side(a[i], "host")}
-      <span class="rd-pair-idx">${i + 1}</span>
-      ${side(b[i], "guest")}
-    </li>`).join("")}</ul>`
+function sideList(name, players, side, sub = "") {
+  const rows = Array.isArray(players) ? players : [];
+  const body = rows.length
+    ? `<ol class="rd-rows">${rows.map((p, i) => `
+      <li class="rd-row">
+        <span class="rd-row-idx">${i + 1}</span>
+        ${playerCell(p, side)}
+      </li>`).join("")}</ol>`
     : `<p class="rd-none">none yet</p>`;
-  /* Boxed off from the counts above it and the confirm row below. A ban stage
-     body is three unlike things — how many, which ones, and whether that is
-     final — and only the middle one is a list; without the rule around it the
-     count read as its first row and the confirm row as its last. */
-  return `<div class="rd-list">${body}</div>`;
+  return `
+    <section class="rd-side">
+      <div class="rd-side-head">
+        <span class="rd-side-tag ${sideClass(side)}">${escapeHtml(name)}</span>
+        ${sub ? `<span class="rd-side-sub">${escapeHtml(String(sub))}</span>` : ""}
+      </div>
+      <div class="rd-list">${body}</div>
+    </section>`;
 }
+
+/* Both boxes ride `.rd-pair`, the same three tracks every other row on this
+   panel uses, so the two lists sit on exactly the columns the confirm row
+   under them does. The middle track is an empty gutter here — the numbering
+   moved inside each box when the lists stopped sharing one. */
+const sideLists = (left, right) =>
+  `<div class="rd-pair">${left}<span class="rd-pair-idx"></span>${right}</div>`;
 
 /**
  * The ban turns, in order, with the one being played marked.
@@ -241,8 +254,9 @@ function banStage(room) {
      draft stages look like they configured themselves. */
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${banTurnStrip(room.schedule, room.turnIndex)}
-    ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`)}
-    ${pairedRows(host, guest)}
+    ${sideLists(
+      sideList(`HOST · ${host.length}`, host, "host"),
+      sideList(`GUEST · ${guest.length}`, guest, "guest"))}
     ${confirmRow(room.bansConfirmed)}`);
 }
 
@@ -255,14 +269,12 @@ function pickStage(room) {
   const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
   const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
   const count = (slots) => slots.filter(Boolean).length;
-  const label = (name, slots, formation) =>
-    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
-    + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
+  const label = (name, slots) =>
+    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`;
   return stageBlock("pick", "3 · PICK", room.phase, `
-    ${sidesHead(
-      label("HOST", host, room.formations?.host),
-      label("GUEST", guest, room.formations?.guest))}
-    ${pairedRows(host, guest)}
+    ${sideLists(
+      sideList(label("HOST", host), host, "host", room.formations?.host || "—"),
+      sideList(label("GUEST", guest), guest, "guest", room.formations?.guest || "—"))}
     ${confirmRow(room.picksConfirmed)}`);
 }
 
