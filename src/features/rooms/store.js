@@ -14,7 +14,7 @@ import {
   maxBansForSquads,
   normalizeRoomConfig,
 } from "./config.js";
-import { buildTurnSchedule } from "./schedule.js";
+import { buildTurnSchedule, turnAt } from "./schedule.js";
 
 /** code -> room entry */
 export const roomPresence = new Map();
@@ -277,17 +277,29 @@ export function emptyRoomSnapshot() {
   };
 }
 
-/** Turn index during a draft: 0 = simultaneous bans, 1 = simultaneous picks. */
-const TURN_INDEX_PHASE = { 0: "ban", 1: "pick" };
-
 /**
  * Maps internal status to the phase label the admin dashboard renders
  * (ban / pick / lobby / ready / done).
+ *
+ * **Asks the schedule what the current turn is**, rather than looking the index
+ * up in a table. That table was `{ 0: "ban", 1: "pick" }` and said so in its own
+ * comment — "0 = simultaneous bans, 1 = simultaneous picks" — which held only
+ * while a ban phase was one turn. An alternating one is `2 × banCountPerSide`
+ * turns, so it was wrong twice in every such room: index 1 is the *second ban*
+ * and reported `pick`, and the real pick turn (index 2N) fell off the end of the
+ * table and reported `ban`. The visible effects were a dashboard pill reading
+ * PICK one ban into a ban phase and BAN for the whole of the pick phase, and a
+ * WATCH panel that flashed the ban stage "done" — with both sides "confirmed" —
+ * between the first ban and the second.
+ *
+ * This is the same fix `schedule.js` describes making for `turnIndex` itself:
+ * the schedule is the server's own, so nothing else should be re-deriving what
+ * a given index means.
  */
 export function roomPhase(entry) {
   const status = String(entry.status || ROOM_STATUS.LOBBY);
   if (status === ROOM_STATUS.DRAFTING) {
-    return TURN_INDEX_PHASE[Number(entry.turnIndex)] || "ban";
+    return turnAt(entry.config, Number(entry.turnIndex))?.action || "ban";
   }
   /* `await-start` is still "getting ready" as far as a dashboard cares — the
      split that matters there is whether a match is being played. */
