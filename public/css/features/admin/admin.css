@@ -1331,14 +1331,67 @@ body {
 
 .rd-body { padding: 16px; }
 
-.rd-section { margin-top: 20px; }
+/* ── One block per stage ────────────────────────────────────
+   The room's own order — lobby, ban, pick, start match — is the panel's order,
+   and each block carries the settings that stage uses, the turns it plays and
+   what the two sides did in it. Grouped by kind instead, "where has this room
+   got to" needed four separate places read in the right order. */
+.rd-stage {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
 
-.rd-title {
+.rd-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+}
+
+.rd-stage-title {
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.rd-stage-state {
+  font-size: 10px;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+/* The accent, used once on this panel: where the room is right now. */
+.rd-stage-state.is-now  { color: var(--accent); border-color: var(--accent); }
+.rd-stage-state.is-done { color: var(--hue-green); border-color: var(--hue-green-line); }
+
+.rd-stage-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A stage the room has not reached is shown, not hidden — an admin still wants
+   to see how it is configured — but it stops competing with the live one. */
+.rd-stage.is-ahead .rd-stage-body { opacity: 0.5; }
+
+/* Sits inside `#roomDetailPhase` beside the phase pill, so `.rd-header`'s own
+   gap does not reach it. */
+.rd-headmeta {
+  margin-left: 10px;
+  font-size: 11px;
   color: var(--text-dim);
-  margin-bottom: 8px;
+  overflow-wrap: anywhere;
 }
 
 /* Host on the left, guest on the right — the same arrangement as the draft. */
@@ -1538,8 +1591,26 @@ body {
 }
 .rd-turn.is-host  { color: var(--hue-blue); border-color: var(--hue-blue-line); }
 .rd-turn.is-guest { color: var(--danger); border-color: var(--danger-line); }
-/* The turn actually being played outranks whose it is. */
-.rd-turn.is-current { color: var(--accent); border-color: var(--accent); }
+
+/* The turn being played is filled rather than accented: the accent on this
+   panel now marks which *stage* the room is in, and DESIGN.md gives it one use
+   per screen. Filling keeps the side's colour instead of overwriting it. */
+.rd-turn.is-current {
+  font-weight: 700;
+  color: var(--text);
+  border-color: var(--line-active);
+  background: var(--fill-strong);
+}
+.rd-turn.is-host.is-current {
+  color: var(--hue-blue);
+  border-color: var(--hue-blue);
+  background: var(--hue-blue-fill-strong);
+}
+.rd-turn.is-guest.is-current {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-fill);
+}
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {

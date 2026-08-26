@@ -75,21 +75,8 @@ function seatCard(label, seat, side) {
     </div>`;
 }
 
-/** Room-wide settings, as a wrapping row rather than two columns of pairs —
-    two columns read as host and guest, which none of these are. */
-function settingsRow(room, cfg) {
-  const stats = [
-    ["status", room.status || "—"],
-    ["idle", fmtSeconds(room.idleSec)],
-    ["bans / side", `${cfg.banCountPerSide ?? "—"}${
-      room.maxBanCountPerSide != null ? ` of ${room.maxBanCountPerSide}` : ""}`],
-    ["ban order", cfg.banOrder || "—"],
-    ["ban timer", fmtDuration(cfg.banDurationSec)],
-    ["ban reveal", cfg.banRevealMode || "—"],
-    ["picks / side", cfg.pickCountPerSide ?? "—"],
-    ["pick timer", fmtDuration(cfg.pickDurationSec)],
-    ["pick reveal", cfg.revealMode || "—"],
-  ];
+/** A wrapping band of small labelled facts. Each stage gets the ones it uses. */
+function statBand(stats) {
   return `<div class="rd-stats">${stats.map(([k, v]) => `
     <div class="rd-stat">
       <span class="rd-stat-k">${escapeHtml(k)}</span>
@@ -140,47 +127,18 @@ function pairedRows(left, right, side = playerCell) {
     </li>`).join("")}</ul>`;
 }
 
-/** Bans, side by side. */
-function bansSection(room) {
-  const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
-  const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
-  return `
-    <div class="rd-section">
-      <h3 class="rd-title">BANS</h3>
-      ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
-        flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
-      ${pairedRows(host, guest)}
-    </div>`;
-}
-
 /**
- * Picks, side by side. They arrive as a sparse slot array — a `null` is a hole
- * the player left in their formation, not a missing player, so the count and
- * the list disagree on purpose.
+ * The turns of one stage, with the one being played marked.
+ *
+ * Filtered by action but numbered by the *original* index, because that is what
+ * `turnIndex` counts — renumbering after the filter would mark the wrong pill.
  */
-function picksSection(room) {
-  const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
-  const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
-  const count = (slots) => slots.filter(Boolean).length;
-  const label = (name, slots, formation) =>
-    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
-    + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
-  return `
-    <div class="rd-section">
-      <h3 class="rd-title">PICKS</h3>
-      ${sidesHead(
-        label("HOST", host, room.formations?.host),
-        label("GUEST", guest, room.formations?.guest),
-        flagPill(room.picksConfirmed?.host), flagPill(room.picksConfirmed?.guest))}
-      ${pairedRows(host, guest)}
-    </div>`;
-}
-
-/** The published turn schedule, with the one being played marked. */
-function scheduleStrip(schedule, turnIndex) {
-  const turns = Array.isArray(schedule) ? schedule : [];
-  if (!turns.length) return "";
-  return `<ul class="rd-schedule">${turns.map((t, i) => {
+function scheduleStrip(schedule, turnIndex, action) {
+  const turns = (Array.isArray(schedule) ? schedule : [])
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => String(t.action || "") === action);
+  if (!turns.length) return `<p class="rd-none">no turns scheduled</p>`;
+  return `<ul class="rd-schedule">${turns.map(({ t, i }) => {
     const side = String(t.side || "?");
     const tone = side === "guest" ? SIDE_CLASS.guest : side === "host" ? SIDE_CLASS.host : "";
     return `
@@ -190,6 +148,102 @@ function scheduleStrip(schedule, turnIndex) {
   }).join("")}</ul>`;
 }
 
+/* ── Stages ──────────────────────────────────────────────────
+   A room moves through these in order, and this panel is now laid out the same
+   way: one block per stage, carrying the settings that stage uses, the turns it
+   plays, and what the two sides did in it.
+
+   It used to be grouped by *kind* — every setting in one band, every ban in
+   another, the match handshake at the bottom — which meant answering "where has
+   this room got to" by reading four separate places and holding the order in
+   your head. */
+const STAGES = ["lobby", "ban", "pick", "ready", "done"];
+
+/** done · now · not reached, from where the room actually is. */
+function stageState(id, phase) {
+  const at = STAGES.indexOf(String(phase || "lobby"));
+  const here = STAGES.indexOf(id);
+  if (at < 0) return { cls: "is-ahead", label: "not reached" };
+  if (here < at) return { cls: "is-done", label: "done" };
+  if (here === at) return { cls: "is-now", label: "now" };
+  return { cls: "is-ahead", label: "not reached" };
+}
+
+function stageBlock(id, title, phase, body) {
+  const { cls, label } = stageState(id, phase);
+  return `
+    <section class="rd-stage ${cls}">
+      <header class="rd-stage-head">
+        <h3 class="rd-stage-title">${escapeHtml(title)}</h3>
+        <span class="rd-stage-state ${cls}">${escapeHtml(label)}</span>
+      </header>
+      <div class="rd-stage-body">${body}</div>
+    </section>`;
+}
+
+/** The seats, and the two counts the two of them agreed before starting. */
+function lobbyStage(room, cfg) {
+  return stageBlock("lobby", "1 · LOBBY", room.phase, `
+    <div class="rd-grid">
+      ${seatCard("HOST", room.host, "host")}
+      ${seatCard("GUEST", room.guest, "guest")}
+    </div>
+    ${statBand([
+      ["bans / side", `${cfg.banCountPerSide ?? "—"}${
+        room.maxBanCountPerSide != null ? ` of ${room.maxBanCountPerSide}` : ""}`],
+      ["picks / side", cfg.pickCountPerSide ?? "—"],
+    ])}
+    ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
+    <ul class="rd-pairs">
+      <li class="rd-pair rd-pair--steps">
+        <span class="rd-pair-idx rd-pair-label">ready</span>
+        ${stepCell(null, "host")}
+        ${stepCell(room.ready?.guest, "guest")}
+      </li>
+    </ul>`);
+}
+
+/** Only the guest readies in the lobby, so the host column is a hole. */
+function banStage(room, cfg) {
+  const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
+  const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
+  return stageBlock("ban", "2 · BAN", room.phase, `
+    ${statBand([
+      ["order", cfg.banOrder || "—"],
+      ["timer", fmtDuration(cfg.banDurationSec)],
+      ["reveal", cfg.banRevealMode || "—"],
+    ])}
+    ${scheduleStrip(room.schedule, room.turnIndex, "ban")}
+    ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
+      flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
+    ${pairedRows(host, guest)}`);
+}
+
+/**
+ * Picks arrive as a sparse slot array — a `null` is a hole the player left in
+ * their formation, not a missing player, so the count and the list disagree on
+ * purpose.
+ */
+function pickStage(room, cfg) {
+  const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
+  const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
+  const count = (slots) => slots.filter(Boolean).length;
+  const label = (name, slots, formation) =>
+    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
+    + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
+  return stageBlock("pick", "3 · PICK", room.phase, `
+    ${statBand([
+      ["timer", fmtDuration(cfg.pickDurationSec)],
+      ["reveal", cfg.revealMode || "—"],
+    ])}
+    ${scheduleStrip(room.schedule, room.turnIndex, "pick")}
+    ${sidesHead(
+      label("HOST", host, room.formations?.host),
+      label("GUEST", guest, room.formations?.guest),
+      flagPill(room.picksConfirmed?.host), flagPill(room.picksConfirmed?.guest))}
+    ${pairedRows(host, guest)}`);
+}
+
 /** yes / no / not-applicable, in the column it belongs to. */
 function stepCell(value, side) {
   if (value == null) return `<span class="rd-cell is-hole">—</span>`;
@@ -197,28 +251,21 @@ function stepCell(value, side) {
   return `<span class="rd-cell ${tone} rd-cell--step">${value ? "yes" : "no"}</span>`;
 }
 
-/**
- * The match handshake, as the comparison it always was: every step but the
- * first is a host/guest pair, and they were printed as seven separate lines
- * with the side spelled into each label.
- */
-function matchSteps(room) {
+/** The handshake after the draft, as the comparison it always was. */
+function readyStage(room) {
   const rows = [
-    ["ready", null, room.ready?.guest],
     ["at Start Match", room.matchReady?.host, room.matchReady?.guest],
     ["started", room.matchStarted?.host, room.matchStarted?.guest],
     ["finished", room.matchFinished?.host, room.matchFinished?.guest],
   ];
-  /* A wider first track than the numbered lists: these rows are named, and
-     "at Start Match" in 34px broke across three lines. */
-  return `
+  return stageBlock("ready", "4 · START MATCH", room.phase, `
     ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
     <ul class="rd-pairs">${rows.map(([label, host, guest]) => `
       <li class="rd-pair rd-pair--steps">
         <span class="rd-pair-idx rd-pair-label">${escapeHtml(label)}</span>
         ${stepCell(host, "host")}
         ${stepCell(guest, "guest")}
-      </li>`).join("")}</ul>`;
+      </li>`).join("")}</ul>`);
 }
 
 // ── Rendering ────────────────────────────────────────────────
@@ -226,35 +273,24 @@ function matchSteps(room) {
 function render(room) {
   const cfg = room.config || {};
   el("roomDetailTitle").textContent = room.code;
-  el("roomDetailPhase").innerHTML = phasePill(room.phase);
+  /* The two room-wide facts ride in the header rather than in a stage, because
+     they belong to none of them and a "ROOM" section above four stages is one
+     heading too many for two values. */
+  el("roomDetailPhase").innerHTML = phasePill(room.phase)
+    + `<span class="rd-headmeta">${escapeHtml(String(room.status || "—"))}`
+    + ` · idle ${escapeHtml(fmtSeconds(room.idleSec))}`
+    /* No "turn" prefix: `fmtTurnRemaining` already returns a phrase that stands
+       on its own — "no deadline", "expired", "1m 20s left". */
+    + ` · ${escapeHtml(fmtTurnRemaining(room.turnEndsAt))}</span>`;
 
   el("roomDetailBody").innerHTML = `
     ${room.closed
       ? `<p class="panel-notice">Room closed: ${escapeHtml(room.closeReason || "no reason given")}</p>`
       : ""}
-
-    <div class="rd-grid">
-      ${seatCard("HOST", room.host, "host")}
-      ${seatCard("GUEST", room.guest, "guest")}
-    </div>
-
-    <div class="rd-section">
-      <h3 class="rd-title">SETTINGS</h3>
-      ${settingsRow(room, cfg)}
-    </div>
-
-    <div class="rd-section">
-      <h3 class="rd-title">TURN · ${escapeHtml(fmtTurnRemaining(room.turnEndsAt))}</h3>
-      ${scheduleStrip(room.schedule, room.turnIndex)}
-    </div>
-
-    ${bansSection(room)}
-    ${picksSection(room)}
-
-    <div class="rd-section">
-      <h3 class="rd-title">MATCH STEPS</h3>
-      ${matchSteps(room)}
-    </div>`;
+    ${lobbyStage(room, cfg)}
+    ${banStage(room, cfg)}
+    ${pickStage(room, cfg)}
+    ${readyStage(room)}`;
 }
 
 /** The room went away mid-watch — a restart, or the host closing it. */
