@@ -33,6 +33,9 @@ export const CATALOG_COLUMNS = [
   { key: "overall",       label: "OVR",           on: true },
   { key: "overall_max",   label: "MAX",           on: true },
   { key: "card_type",     label: "CARD TYPE",     on: true },
+  /* On by default: the whole reason to look at this table rather than the
+     user-facing search is to see the rows that search hides. */
+  { key: "is_test",       label: "TEST",          on: true },
   { key: "club",          label: "CLUB",          on: true },
   { key: "id",            label: "PESDB ID",      on: true },
   { key: "league",        label: "LEAGUE" },

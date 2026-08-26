@@ -15,6 +15,7 @@ import { initOverviewTab } from "./overviewTab.js";
 import { initRoomsTab } from "./roomsTab.js";
 import { initScrapeControl, resumeScrapeWatch } from "./scrapeControl.js";
 import { initTabs, startTabs } from "./tabs.js";
+import { initTestPlayersControl } from "./testPlayersControl.js";
 import { initTopPlayersControl } from "./topPlayersControl.js";
 import { initUsersTab } from "./usersTab.js";
 
@@ -31,6 +32,7 @@ export function initConsole() {
   initUsersTab();
   initCatalogTab();
   initTopPlayersControl();
+  initTestPlayersControl();
 
   /**
    * What opening the dashboard means, for both ways in.

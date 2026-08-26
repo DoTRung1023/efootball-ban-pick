@@ -840,7 +840,7 @@ body {
    bottom. `minmax(0, 1fr)` on the row is what lets a panel be shorter than its
    content; an `auto` row would size to the taller one and push the frame past
    the window instead of scrolling inside it. */
-.sc-layout {
+.pb-layout {
   display: grid;
   /* CHOSEN takes a share of the window rather than a fixed 248px, so a wide
      screen gives it a wider thumb rather than a wider empty gutter. Clamped:
@@ -865,7 +865,7 @@ body {
    strip while the footers stayed whole. `align-content: start` on the grid is
    what makes it safe now: the rows size to the cards and the leftover height
    becomes scroll instead of stretch. Measured below. */
-.sc-browse {
+.pb-browse {
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
@@ -874,14 +874,14 @@ body {
 
 /* Still 12. The grid below pulls its box 6px out and pads its content 6px back
    in, so the two cancel and the gap you see is the one written here. */
-.sc-browse .team-search-bar {
+.pb-browse .team-search-bar {
   margin-bottom: 12px;
   flex: 0 0 auto;
 }
 
 /* Inside the scroller now, so it arrives at the end of the cards rather than
    sitting on the panel's bottom edge with the grid running under it. */
-.sc-browse .load-more-btn { margin-top: 12px; }
+.pb-browse .load-more-btn { margin-top: 12px; }
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
    search box behind a long grid is the whole reason for an inner scroller.
@@ -896,7 +896,7 @@ body {
    This buys the row at rest, not every row: scroll until a row sits flush on
    the top edge and its hover still clips, because padding scrolls away with
    the content. Nothing short of dropping the inner scroller fixes that one. */
-.sc-scroll {
+.pb-scroll {
   flex: 1 1 auto;
   /* The flex escape: without it the scroller refuses to shrink under its own
      content and pushes the panel past the frame's height. */
@@ -909,7 +909,7 @@ body {
   scrollbar-gutter: stable;
 }
 
-.sc-grid {
+.pb-grid {
   /* `.player-grid` fixes six columns and steps down on *viewport* rungs. That
      is right on the home page, where the grid is as wide as the page — and
      wrong here, where a 248px sibling panel sets the width instead. At a
@@ -947,20 +947,20 @@ body {
    builds new `<img>` elements, so the whole grid would collapse for a frame and
    the scroller would clamp `scrollTop` to the shorter content, jumping the list
    upward. 240 × 339 is the intrinsic size of a pesdb card PNG. */
-.sc-card .pc-img-wrap img {
+.pb-card .pc-img-wrap img {
   height: auto;
   aspect-ratio: 240 / 339;
   object-fit: cover;
   object-position: center;
 }
 
-.sc-card { cursor: pointer; }
+.pb-card { cursor: pointer; }
 
 /* Already on the list: dimmed, and nothing else. It carried an accent outline
    on the art, which is gone — the CHOSEN panel is where a card being on the
    list is said, and saying it twice put a green rectangle over the artwork
    this grid exists to show. */
-.sc-card.is-picked {
+.pb-card.is-picked {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -969,27 +969,27 @@ body {
    only just — with the outline gone the two inert states are close enough at a
    glance that the tooltip is what tells them apart. That only matters at the
    cap, since below it nothing is blocked. */
-.sc-card.is-blocked {
+.pb-card.is-blocked {
   opacity: 0.42;
   cursor: not-allowed;
 }
 
 /* Neither state lifts. `.player-card:hover` scales and draws a border, which
    on a card that will not respond reads as an invitation. */
-.sc-card.is-picked:hover,
-.sc-card.is-blocked:hover {
+.pb-card.is-picked:hover,
+.pb-card.is-blocked:hover {
   transform: none;
   border-color: transparent;
 }
 
-.sc-empty {
+.pb-empty {
   color: var(--text-dim);
   font-size: 13px;
 }
 
 /* ── The ON SIGN-IN column ── */
 
-.sc-chosen {
+.pb-side {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -999,14 +999,14 @@ body {
   padding: 12px 16px;
 }
 
-.sc-chosen-head {
+.pb-side-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.sc-chosen-title {
+.pb-side-title {
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
@@ -1014,7 +1014,7 @@ body {
   color: var(--text-muted);
 }
 
-.sc-chosen-count {
+.pb-side-count {
   font-size: 12px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
@@ -1029,7 +1029,7 @@ body {
    was two 68px thumbs and 64px of nothing. `1fr` tracks divide the width
    exactly instead, so the row always reaches both edges and the thumb takes
    whatever size that implies. */
-.sc-chosen-strip {
+.pb-side-strip {
   display: grid;
   /* 80px keeps the panel at two columns until it is ~290px wide, which is the
      size that buys a big thumb rather than a third small one. Measured: 72px
@@ -1057,7 +1057,7 @@ body {
    height, which is the same 240 × 339 the card art and the browser's cards
    use. It was height-driven — a fixed 96px with `width: auto` — which is what
    left the thumb unable to fill its share of the row. */
-.sc-thumb {
+.pb-thumb {
   position: relative;
   width: 100%;
   aspect-ratio: 240 / 339;
@@ -1070,7 +1070,7 @@ body {
   transition: border-color var(--transition), transform var(--transition);
 }
 
-.sc-thumb img {
+.pb-thumb img {
   width: 100%;
   height: 100%;
   display: block;
@@ -1078,7 +1078,7 @@ body {
   object-position: center;
 }
 
-.sc-thumb:hover {
+.pb-thumb:hover {
   border-color: var(--danger-line);
   transform: scale(1.04);
   z-index: 1;
@@ -1088,7 +1088,7 @@ body {
    rather than printed on every card — fifty standing × marks would be fifty
    things to read past. Keyboard reaches it through `:focus-visible`, which is
    the only way a tab stop can see an action that lives on the pointer. */
-.sc-thumb-x {
+.pb-thumb-x {
   position: absolute;
   inset: 0;
   display: flex;
@@ -1100,12 +1100,12 @@ body {
   transition: opacity var(--transition);
 }
 
-.sc-thumb:hover .sc-thumb-x,
-.sc-thumb:focus-visible .sc-thumb-x { opacity: 1; }
+.pb-thumb:hover .pb-thumb-x,
+.pb-thumb:focus-visible .pb-thumb-x { opacity: 1; }
 
 /* A grid item now, so it has to be told to take the whole row rather than
    sitting in the first 72px track. */
-.sc-chosen-empty {
+.pb-side-empty {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--text-dim);
@@ -1116,7 +1116,7 @@ body {
 /* The only line on this tab that ever speaks. Amber advises — the list is
    full, or too thin to ban out of — and red means the last write was refused,
    which is the one state the column cannot show on its own. */
-.sc-warn {
+.pb-warn {
   margin: 0;
   padding: 8px 12px;
   border: 1px solid var(--hue-amber-line);
@@ -1127,7 +1127,7 @@ body {
   line-height: 1.5;
 }
 
-.sc-warn.is-error {
+.pb-warn.is-error {
   border-color: var(--danger-line);
   background: var(--danger-fill);
   color: var(--danger);
@@ -1462,7 +1462,7 @@ body {
      down to three across. CHOSEN goes under the browser, and its strip takes a
      short cap — stacked, the two scrollers were fighting for the same
      viewport. */
-  .sc-layout {
+  .pb-layout {
     grid-template-columns: minmax(0, 1fr);
     /* Stacked, a window-height frame would give each panel half a window and
        the page would not scroll. Let them size to content again. */
@@ -1470,9 +1470,9 @@ body {
     height: auto;
   }
 
-  .sc-scroll { max-height: 60vh; }
+  .pb-scroll { max-height: 60vh; }
 
-  .sc-chosen-strip {
+  .pb-side-strip {
     flex: 0 1 auto;
     max-height: 220px;
   }

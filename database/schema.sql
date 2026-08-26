@@ -49,6 +49,11 @@ CREATE TABLE IF NOT EXISTS players_catalog (
   region       VARCHAR(80)       NULL,
   foot         VARCHAR(40)       NULL,
   playing_style VARCHAR(80)      NULL,
+  -- Marked by an admin in the console's TEST CARDS tab: a placeholder row that
+  -- should not appear in a user's catalog search. Hidden from /api/players and
+  -- from the values that feed its filters; still visible to the console, and
+  -- still allowed on the sign-in page if an admin picks it there.
+  is_test      TINYINT(1)        NOT NULL DEFAULT 0,
 
   PRIMARY KEY (id),
   UNIQUE KEY uq_catalog_pesdb_id (pesdb_id),
@@ -70,6 +75,11 @@ CREATE TABLE IF NOT EXISTS players_catalog (
 --   ADD COLUMN playing_style   VARCHAR(80)       NULL AFTER foot,
 --   ADD KEY idx_catalog_overall_max (overall_max),
 --   ADD KEY idx_catalog_league (league);
+--
+-- Databases created before test cards existed get is_test added on the next
+-- boot by `ensureTestPlayerColumn`; the equivalent by hand is:
+-- ALTER TABLE players_catalog
+--   ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0 AFTER playing_style;
 --
 -- If your DB still has card_label, rename once:
 -- ALTER TABLE players_catalog CHANGE COLUMN card_label card_type VARCHAR(120) NULL COMMENT 'Standard, Highlight, featured pool, etc.';

@@ -1,8 +1,10 @@
 /* ============================================================
    CATALOG — paginated browser over the scraped player catalog
 
-   Reads the public `/api/players`, not an admin route, so these fetches are the
-   only ones on the page that carry no console token.
+   Reads `/api/admin/catalog`, which is the public `/api/players` query with the
+   cards marked as test data left in. This tab is where an admin looks to see
+   what is actually in the catalog, so hiding rows from it would defeat the
+   point — the TEST column says which ones a user's search will not return.
 
    The endpoint returns a page, never a count, so there is no total to show and
    no last page to jump to: a full page means "there is probably more", which is
@@ -31,6 +33,7 @@ import { closeDdPanel, toggleDdPanel } from "@/shared/ui/dropdown.js";
 import { CATALOG_COLUMNS, isColumnOn, resetColumns, toggleColumn, visibleColumns }
   from "./catalogColumns.js";
 import { cardTypeBadge, tableMessage } from "./format.js";
+import { apiFetch } from "./adminApi.js";
 
 const PAGE_SIZE = 25;
 
@@ -60,13 +63,11 @@ function catalogUrl(offset) {
     new URLSearchParams({ limit: PAGE_SIZE, offset, sortBy: sortValue() }),
   );
   if (state.search) params.set("q", state.search);
-  return `/api/players?${params}`;
+  return `/api/admin/catalog?${params}`;
 }
 
 async function fetchPlayers(offset) {
-  const r = await fetch(catalogUrl(offset));
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const d = await r.json();
+  const d = await apiFetch(catalogUrl(offset));
   return d.players || [];
 }
 
@@ -88,6 +89,10 @@ const CELLS = {
   height: (p) => num(p.height),
   weight: (p) => num(p.weight),
   age: (p) => num(p.age),
+  /* Blank rather than a "no" badge: almost every row is a real player, and a
+     column of forty-nine identical negatives to spot one positive is a column
+     nobody reads. */
+  is_test: (p) => `<td>${p.is_test ? '<span class="role-pill is-unverified">TEST</span>' : ""}</td>`,
 };
 
 function cellHtml(column, player, rank) {

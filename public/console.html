@@ -62,6 +62,7 @@
           <button class="admin-tab" data-tab="users">USERS</button>
           <button class="admin-tab" data-tab="catalog">CATALOG</button>
           <button class="admin-tab" data-tab="showcase">SIGN-IN PAGE</button>
+          <button class="admin-tab" data-tab="test">TEST CARDS</button>
         </div>
         <div class="admin-nav-right">
           <span class="admin-badge">
@@ -161,7 +162,7 @@
            `POST /api/admin/top-players/refresh` is the way back to the
            automatic top 30. -->
       <section class="tab-panel" data-panel="showcase" hidden>
-        <div class="sc-layout">
+        <div class="pb-layout">
 
           <!-- Two panels, not one split by a divider: the catalog you browse
                and the list you have built are different objects, and a shared
@@ -172,7 +173,7 @@
                console-local copies, and the same search field and HIDE INFO
                button as My Players — one copy of that chrome now lives in
                `shared/filterPanel.css`, which this page already links. -->
-          <div class="panel sc-browse">
+          <div class="panel pb-browse">
             <div class="team-search-bar">
             <div class="team-search-wrap">
               <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
@@ -208,9 +209,9 @@
                  at the end of the cards and comes into view when you reach the
                  bottom of them. `renderGrid` empties `#scGrid`, which is why
                  the button cannot simply live inside it. -->
-            <div class="sc-scroll">
-              <div id="scGrid" class="player-grid sc-grid">
-                <div class="sc-empty">Search or filter to find cards to add.</div>
+            <div class="pb-scroll">
+              <div id="scGrid" class="player-grid pb-grid">
+                <div class="pb-empty">Search or filter to find cards to add.</div>
               </div>
               <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
             </div>
@@ -220,18 +221,106 @@
                shape the ban board's MY BANS column has. Removal lives here and
                only here: a card on the list is inert in the browser beside it,
                so one place adds and one place takes away. -->
-          <aside class="panel sc-chosen" aria-label="Chosen players">
-            <div class="sc-chosen-head">
-              <span class="sc-chosen-title">ON SIGN-IN</span>
-              <span class="sc-chosen-count" id="scChosenCount">0 / 50</span>
+          <aside class="panel pb-side" aria-label="Chosen players">
+            <div class="pb-side-head">
+              <span class="pb-side-title">ON SIGN-IN</span>
+              <span class="pb-side-count" id="scChosenCount">0 / 50</span>
             </div>
-            <div class="sc-chosen-strip" id="scChosen"></div>
+            <div class="pb-side-strip" id="scChosen"></div>
 
             <!-- The one line that speaks: a refused write, the cap, or a list
                  too thin to ban out of. Hidden whenever there is nothing to
                  say. `aria-live` because nothing else on the page moves when a
                  save fails — the thumbs snap back and say nothing. -->
-            <div id="scWarn" class="sc-warn" hidden aria-live="polite"></div>
+            <div id="scWarn" class="pb-warn" hidden aria-live="polite"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ── TEST CARDS ──────────────────────────────────────── -->
+      <!-- Catalog rows that are not real players — pesdb carries a few
+           placeholders, and the scrape cannot tell them apart. Marking one
+           hides it from the catalog search a user sees; it stays visible here
+           and on the CATALOG tab, stays in any squad that already holds it, and
+           can still be put on the sign-in page deliberately. See
+           `src/features/players/testPlayers.js`. -->
+      <!-- The cards the sign-in page shows behind the form, and — the part the
+           tab name does not say — the pool a seat with no account is auto-banned
+           from. Its own tab because it is edited here, not just inspected. There is no staged list and no SAVE: a click on a card is
+           the edit and it writes, so the marks on the grid *are* the list.
+           `POST /api/admin/top-players/refresh` is the way back to the
+           automatic top 30. -->
+      <section class="tab-panel" data-panel="test" hidden>
+        <div class="pb-layout">
+
+          <!-- Two panels, not one split by a divider: the catalog you browse
+               and the list you have built are different objects, and a shared
+               box asked the eye to find the seam.
+
+               Same search, sort and filter controls as My Players and the
+               CATALOG tab — SORT_CATEGORIES and buildPlayerFilterPanel, not
+               console-local copies, and the same search field and HIDE INFO
+               button as My Players — one copy of that chrome now lives in
+               `shared/filterPanel.css`, which this page already links. -->
+          <div class="panel pb-browse">
+            <div class="team-search-bar">
+            <div class="team-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#search" /></svg>
+              <input id="tcSearch" type="text" placeholder="Search the catalog..."
+                     aria-label="Search the catalog for a card to mark as test data" autocomplete="off" />
+            </div>
+
+            <div class="sort-group">
+              <div class="ap-dd-wrap" id="tcSortWrap">
+                <button class="ap-dd-btn" id="tcSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
+                  <span id="tcSortLabel">Overall Max</span>
+                  <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
+                </button>
+              </div>
+              <button class="sort-dir-btn" id="tcSortDirBtn" type="button" title="Toggle sort direction">
+                <span id="tcSortDirIcon"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#arrow-down" /></svg></span>
+              </button>
+            </div>
+
+            <div class="ap-dd-wrap" id="tcFilterWrap">
+              <button class="ap-dd-btn" id="tcFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
+                <span>FILTER</span>
+                <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
+              </button>
+            </div>
+
+            <button class="select-mode-btn toggle-info-btn" id="tcInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
+          </div>
+
+            <!-- The scroller is this wrapper, not the grid, so LOAD MORE rides
+                 at the end of the cards and comes into view when you reach the
+                 bottom of them. `renderGrid` empties `#scGrid`, which is why
+                 the button cannot simply live inside it. -->
+            <div class="pb-scroll">
+              <div id="tcGrid" class="player-grid pb-grid">
+                <div class="pb-empty">Search or filter to find cards to mark.</div>
+              </div>
+              <button id="tcMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+            </div>
+          </div>
+
+          <!-- What actually appears on the sign-in page, as card art — the same
+               shape the ban board's MY BANS column has. Removal lives here and
+               only here: a card on the list is inert in the browser beside it,
+               so one place adds and one place takes away. -->
+          <aside class="panel pb-side" aria-label="Cards marked as test data">
+            <div class="pb-side-head">
+              <span class="pb-side-title">MARKED</span>
+              <span class="pb-side-count" id="tcMarkedCount">0</span>
+            </div>
+            <div class="pb-side-strip" id="tcMarked"></div>
+
+            <!-- Only ever a refused write. There is no cap here and no
+                 advisable minimum — a catalog with no placeholder rows in it is
+                 the good case. -->
+            <div id="tcWarn" class="pb-warn" hidden aria-live="polite"></div>
           </aside>
         </div>
       </section>

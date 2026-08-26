@@ -12,7 +12,17 @@ import {
   serializeRoomEntry,
 } from "#features/rooms/index.js";
 import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
-import { refreshTopPlayers, setTopPlayers, topPlayersStatus } from "#features/players/index.js";
+import {
+  CATALOG_COLUMNS,
+  DEFAULT_SORT,
+  buildCatalogFilter,
+  readTestPlayers,
+  refreshTopPlayers,
+  resolveSortOrder,
+  setTestPlayer,
+  setTopPlayers,
+  topPlayersStatus,
+} from "#features/players/index.js";
 import { newPasswordEmail, sendMail } from "#features/mail/index.js";
 import { SCRAPE_MODES, scrapeStatus, startScrape, stopScrape } from "./scrapeRunner.js";
 import {
@@ -549,6 +559,55 @@ router.put("/top-players", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: err.message });
   }
   res.json(await topPlayersStatus());
+}));
+
+/**
+ * The catalog as an admin sees it: the same search `/api/players` runs, with
+ * the cards marked as test data left in.
+ *
+ * A separate route rather than an `includeTest=1` on the public one. That flag
+ * would be a query parameter anybody could send, and the whole point of the
+ * mark is that a user's search does not return these — a switch that turns the
+ * rule off is not much of a rule. Behind `requireAdmin` like everything else
+ * on this router.
+ */
+router.get("/catalog", asyncHandler(async (req, res) => {
+  const { sortBy = DEFAULT_SORT, limit = 50, offset = 0 } = req.query;
+  const { where, params } = buildCatalogFilter(req.query, { includeTest: true });
+  const [rows] = await db.query(
+    `SELECT ${CATALOG_COLUMNS}
+     FROM   players_catalog
+     ${where}
+     ORDER  BY ${resolveSortOrder(sortBy)}
+     LIMIT  ? OFFSET ?`,
+    [...params, Number(limit), Number(offset)],
+  );
+  res.json({ players: rows });
+}));
+
+/** Every card currently marked as test data. */
+router.get("/test-players", asyncHandler(async (_req, res) => {
+  res.json({ players: await readTestPlayers() });
+}));
+
+/**
+ * PUT body: { id, isTest } — one card at a time.
+ *
+ * One card rather than the whole set, unlike the showcase list next door. That
+ * one is an ordered list of at most fifty and the order is the value, so it is
+ * written whole. This is a flag on a row: the marks are independent, there is
+ * no order, and the set has no ceiling — sending all of it back on every click
+ * would grow without bound for no gain.
+ */
+router.put("/test-players", asyncHandler(async (req, res) => {
+  const { id, isTest } = req.body || {};
+  if (id === undefined || id === null || typeof isTest !== "boolean") {
+    return res.status(400).json({ error: "id and isTest (boolean) are required." });
+  }
+  if (!(await setTestPlayer(id, isTest))) {
+    return res.status(404).json({ error: "The catalog has no card with that id." });
+  }
+  res.json({ id: String(id), isTest });
 }));
 
 /**

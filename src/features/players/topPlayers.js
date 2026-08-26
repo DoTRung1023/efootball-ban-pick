@@ -23,6 +23,16 @@
 
 import db from "#lib/db.js";
 
+/**
+ * Two placeholder cards this ranking has always skipped.
+ *
+ * `testPlayers.js` now generalises the idea — `is_test = 0` is on the query
+ * below as well — and seeds these two ids when it creates the column, so on any
+ * database that has run since, this list and the flag say the same thing. It
+ * stays because the flag can be cleared by an admin and a fresh database gets
+ * these rows back from the next scrape with the flag unset; the ranking should
+ * not start offering them again on the strength of either.
+ */
 const EXCLUDED_TOP_PLAYER_IDS = [8554076, 8554053];
 
 /** How many the automatic ranking takes. */
@@ -49,6 +59,11 @@ export const TOP_PLAYER_ADVISED_MIN = 23;
 /**
  * Computes the pool from the catalog. The expensive path — prefer
  * `readTopPlayers`, which only lands here when the snapshot is empty.
+ *
+ * Cards marked as test data are skipped here, because this is the *automatic*
+ * list and nothing chose them. A hand-picked list may still contain one:
+ * `setTopPlayers` validates ids against the whole catalog on purpose, so an
+ * admin who wants a placeholder card on the sign-in page can put it there.
  */
 export async function topCatalogPlayers(limit = TOP_PLAYER_LIMIT) {
   const [rows] = await db.query(
@@ -62,6 +77,7 @@ export async function topCatalogPlayers(limit = TOP_PLAYER_LIMIT) {
             OR (p2.overall_max = p.overall_max AND p2.pesdb_id > p.pesdb_id))
      WHERE p.card_type IN ('Epic','Highlight')
        AND p.pesdb_id NOT IN (?, ?)
+       AND p.is_test = 0
        AND p2.pesdb_id IS NULL
      ORDER BY p.overall_max DESC, p.pesdb_id DESC
      LIMIT ?`,

@@ -7,6 +7,7 @@ import {
   DEFAULT_SORT,
   DISTINCT_FIELDS,
   FILTER_OPTION_COLUMNS,
+  NOT_TEST,
   buildCatalogFilter,
   resolveSortOrder,
 } from "./catalogQuery.js";
@@ -33,9 +34,12 @@ router.get("/players/distinct", catalogLimiter, asyncHandler(async (req, res) =>
   if (!DISTINCT_FIELDS.includes(field)) {
     return res.status(400).json({ error: "Invalid field" });
   }
+  /* `NOT_TEST` here as well as on the search itself: without it a placeholder
+     card's club still autocompletes, which offers the user a filter that then
+     matches nothing. */
   const [rows] = await db.query(
     `SELECT DISTINCT ${field} FROM players_catalog
-     WHERE ${field} IS NOT NULL AND ${field} != '' AND ${field} LIKE ?
+     WHERE ${NOT_TEST} AND ${field} IS NOT NULL AND ${field} != '' AND ${field} LIKE ?
      ORDER BY ${field} ASC LIMIT 10`,
     [`%${q}%`],
   );
@@ -49,7 +53,7 @@ router.get("/players/filter-options", catalogLimiter, async (_req, res) => {
       FILTER_OPTION_COLUMNS.map(async (col) => {
         const [rows] = await db.query(
           `SELECT DISTINCT ${col} AS v FROM players_catalog
-           WHERE ${col} IS NOT NULL AND TRIM(${col}) != ''
+           WHERE ${NOT_TEST} AND ${col} IS NOT NULL AND TRIM(${col}) != ''
            ORDER BY ${col} ASC LIMIT 500`,
         );
         return [col, rows.map((r) => r.v).filter(Boolean)];
@@ -62,7 +66,13 @@ router.get("/players/filter-options", catalogLimiter, async (_req, res) => {
   }
 });
 
-/** Catalog search for the Add Player modal. */
+/**
+ * Catalog search for the Add Player modal.
+ *
+ * Cards marked as test data are absent, and there is no query parameter that
+ * brings them back — the console has its own route for that, behind the admin
+ * token. See `testPlayers.js` for what marking does and does not do.
+ */
 router.get("/players", catalogLimiter, async (req, res) => {
   try {
     const { sortBy = DEFAULT_SORT, limit = 50, offset = 0 } = req.query;

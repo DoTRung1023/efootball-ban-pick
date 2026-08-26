@@ -32,9 +32,44 @@
 import { CARD_IMG, makePlayerImg } from "@/shared/players/playerMeta.js";
 import { icon } from "@/shared/icons/icon.js";
 import { apiFetch, apiSend } from "./adminApi.js";
-import { initShowcaseBrowser, refreshShowcaseMarks } from "./showcaseBrowser.js";
+import { createPlayerBrowser } from "./playerBrowser.js";
 
-const el = (id) => document.getElementById(id);
+/* This tab's own controls. Spelled out rather than routed through a config
+   object or an `el()` shorthand, because `scripts/checks/domIds.js` only sees a
+   literal sitting inside `getElementById(...)` — either wrapper drops these out
+   of the gate. That is why the browser takes elements, not ids. */
+const BROWSER_ELS = () => ({
+  search:      document.getElementById("scSearch"),
+  sortWrap:    document.getElementById("scSortWrap"),
+  sortBtn:     document.getElementById("scSortBtn"),
+  sortLabel:   document.getElementById("scSortLabel"),
+  sortDirBtn:  document.getElementById("scSortDirBtn"),
+  sortDirIcon: document.getElementById("scSortDirIcon"),
+  filterWrap:  document.getElementById("scFilterWrap"),
+  filterBtn:   document.getElementById("scFilterBtn"),
+  infoBtn:     document.getElementById("scInfoBtn"),
+  grid:        document.getElementById("scGrid"),
+  more:        document.getElementById("scMore"),
+});
+
+const FILTER_IDS = {
+  posWrap: "scPosMs", posBtn: "scPosMsBtn", posLabel: "scPosMsLabel", posPanel: "scPosMsPanel",
+  ctWrap: "scCtMs", ctBtn: "scCtMsBtn", ctLabel: "scCtMsLabel", ctPanel: "scCtMsPanel",
+  psWrap: "scPsMs", psBtn: "scPsMsBtn", psLabel: "scPsMsLabel", psPanel: "scPsMsPanel",
+  footWrap: "scFootMs", footBtn: "scFootMsBtn", footLabel: "scFootMsLabel", footPanel: "scFootMsPanel",
+  lgWrap: "scLgMs", lgBtn: "scLgMsBtn", lgLabel: "scLgMsLabel", lgPanel: "scLgMsPanel",
+  rgWrap: "scRgMs", rgBtn: "scRgMsBtn", rgLabel: "scRgMsLabel", rgPanel: "scRgMsPanel",
+  ovrMin: "scOvrMin", ovrMax: "scOvrMax",
+  ovrMaxMin: "scOvrMaxMin", ovrMaxMax: "scOvrMaxMax",
+  club: "scClub", clubAc: "scClubAc", nation: "scNation", nationAc: "scNationAc",
+  ageMin: "scAgeMin", ageMax: "scAgeMax",
+  heightMin: "scHeightMin", heightMax: "scHeightMax",
+  weightMin: "scWeightMin", weightMax: "scWeightMax",
+  clearBtn: "scClearFilters",
+};
+
+/** Set by `initTopPlayersControl`; the grid repaints through it. */
+let browser = null;
 
 /** How long a burst of clicks may settle before one PUT goes out. */
 const SAVE_DEBOUNCE_MS = 600;
@@ -60,7 +95,7 @@ const isFull = () => state.picked.length >= state.max;
    on its own, and it is held in state rather than written straight to the DOM
    so the next render cannot silently wipe it. */
 function renderNotice() {
-  const box = el("scWarn");
+  const box = document.getElementById("scWarn");
   const n = state.picked.length;
   let text = state.error;
   if (!text && isFull()) {
@@ -85,13 +120,13 @@ function renderNotice() {
 function makeThumb(player) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "sc-thumb";
+  btn.className = "pb-thumb";
   btn.title = "Click to remove";
   btn.setAttribute("aria-label", `Remove ${player.name} from the sign-in page`);
   btn.appendChild(makePlayerImg(CARD_IMG(player.id), player.name));
 
   const x = document.createElement("span");
-  x.className = "sc-thumb-x";
+  x.className = "pb-thumb-x";
   x.innerHTML = icon("close", { size: 11 });
   btn.appendChild(x);
 
@@ -100,12 +135,12 @@ function makeThumb(player) {
 }
 
 function renderChosen() {
-  el("scChosenCount").textContent = `${state.picked.length} / ${state.max}`;
-  const strip = el("scChosen");
+  document.getElementById("scChosenCount").textContent = `${state.picked.length} / ${state.max}`;
+  const strip = document.getElementById("scChosen");
   strip.replaceChildren();
   if (!state.picked.length) {
     const empty = document.createElement("p");
-    empty.className = "sc-chosen-empty";
+    empty.className = "pb-side-empty";
     empty.textContent = "Nobody yet. Click a card in the catalog to add one.";
     strip.appendChild(empty);
     return;
@@ -117,9 +152,8 @@ function renderAll() {
   renderNotice();
   renderChosen();
   /* The grid marks what is chosen, so it repaints whenever the list changes.
-     `refreshShowcaseMarks` toggles classes rather than rebuilding — a rebuild
-     would drop the hover cards bound to each card. */
-  refreshShowcaseMarks();
+     `refreshMarks` toggles classes rather than rebuilding. */
+  browser?.refreshMarks();
 }
 
 /* ── Saving ─────────────────────────────────────────────────── */
@@ -191,11 +225,20 @@ export async function loadTopPlayers() {
 
 export function initTopPlayersControl() {
   /* The browser owns finding cards and only ever adds; this owns the list, and
-     removal is a click on a thumb in the CHOSEN panel. */
-  initShowcaseBrowser({
+     removal is a click on a thumb in the ON SIGN-IN panel. */
+  browser = createPlayerBrowser({
+    els: BROWSER_ELS(),
+    filterIds: FILTER_IDS,
+    panelIds: { sort: "scSortPanel", filter: "scFilterPanel" },
+    tips: {
+      add: "Click to add",
+      picked: "Already on the sign-in page — remove it under ON SIGN-IN",
+      full: "The list is full — remove one under ON SIGN-IN",
+    },
     isPicked: (id) => state.picked.some((p) => p.id === id),
     canPick: () => !isFull(),
     onAdd: addPlayer,
   });
+  browser.init();
   renderAll();
 }

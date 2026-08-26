@@ -47,7 +47,10 @@ export const DEFAULT_SORT = "overall_max_desc";
 export const CATALOG_COLUMNS = `pesdb_id AS id, name, position,
         overall, overall_max,
         club, league, nationality, height, weight, age,
-        card_type, region, foot, playing_style`;
+        card_type, region, foot, playing_style, is_test`;
+
+/** Hides cards an admin has marked as test data. See `testPlayers.js`. */
+export const NOT_TEST = "is_test = 0";
 
 /** Columns offered by /api/players/filter-options and the distinct-value endpoint. */
 export const FILTER_OPTION_COLUMNS = ["foot", "playing_style", "card_type", "league", "region"];
@@ -110,8 +113,14 @@ class QueryBuilder {
   }
 }
 
-/** Builds the WHERE clause and bound parameters for a catalog search. */
-export function buildCatalogFilter(query) {
+/**
+ * Builds the WHERE clause and bound parameters for a catalog search.
+ *
+ * `includeTest` is off by default, and deliberately so: the caller that must
+ * remember to pass something is the console, which is behind an admin token,
+ * rather than the public endpoint that has to get it right every time.
+ */
+export function buildCatalogFilter(query, { includeTest = false } = {}) {
   const {
     q, position, positions, posGroup,
     club, nationality,
@@ -123,6 +132,8 @@ export function buildCatalogFilter(query) {
   } = query;
 
   const qb = new QueryBuilder();
+
+  if (!includeTest) qb.raw(NOT_TEST);
 
   qb.like("name", q);
   qb.in("position", resolvePositions({ positions, posGroup, position }));

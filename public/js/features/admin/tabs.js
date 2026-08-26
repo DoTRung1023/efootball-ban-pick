@@ -1,5 +1,5 @@
 /* ============================================================
-   OVERVIEW · ROOMS · USERS · CATALOG · SIGN-IN PAGE
+   OVERVIEW · ROOMS · USERS · CATALOG · SIGN-IN PAGE · TEST CARDS
 
    One registry drives everything: which panel is shown, what each tab fetches
    on activation, and how often — if at all — it refetches while it is the tab
@@ -11,6 +11,7 @@
 import { loadCatalog } from "./catalogTab.js";
 import { loadOverview } from "./overviewTab.js";
 import { loadRooms } from "./roomsTab.js";
+import { loadTestPlayers } from "./testPlayersControl.js";
 import { loadTopPlayers } from "./topPlayersControl.js";
 import { loadUsers } from "./usersTab.js";
 
@@ -26,6 +27,8 @@ const TABS = {
      a bookmark. No `refreshMs` — this tab is an editor, and a poll would throw
      away a half-built list under the admin's cursor. */
   showcase: { load: loadTopPlayers },
+  /* Same reasoning: an editor, and a poll would fight the admin's clicks. */
+  test:     { load: loadTestPlayers },
 };
 
 const DEFAULT_TAB = "overview";
