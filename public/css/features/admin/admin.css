@@ -1328,6 +1328,11 @@ body {
   max-width: min(880px, 100%);
 }
 
+/* `.rd-body`'s own 16px is gutter for a panel of stages. Under a single line it
+   stacked on `.rd-gone`'s padding — 46px of nothing above and below one
+   sentence — so in the brief state the message owns the whole box. */
+.rd-card.is-brief .rd-body { padding: 0; }
+
 /* **Scrolls away with the card — deliberately not sticky.** It pinned to
    `top: 0` of `.rd-overlay`, which is the scroller, and the overlay's 24px of
    padding sits *above* that line: a stage heading stayed visible in the gap
@@ -1356,7 +1361,7 @@ body {
    No background, no rule: the text is the content, so it is centred in the
    space and set at the weight of something you are meant to read first. */
 .rd-gone {
-  padding: 30px 26px;
+  padding: 22px 26px;
   text-align: center;
   text-wrap: balance;
   font-size: 15px;
