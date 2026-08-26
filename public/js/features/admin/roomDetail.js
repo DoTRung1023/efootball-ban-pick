@@ -29,11 +29,19 @@ const el = (id) => document.getElementById(id);
 
 // ── Field formatting ─────────────────────────────────────────
 
+/**
+ * A configured duration, in the unit it was configured in.
+ *
+ * Plain seconds, not `fmtSeconds`' minutes-and-seconds: these two are typed
+ * into a SEC field in the lobby, so `120s` is the number the host actually set
+ * and `2m 0s` was arithmetic on it. The elapsed times on this panel — last
+ * beat, idle, turn remaining — keep `fmtSeconds`, because nobody typed those.
+ */
 function fmtDuration(sec) {
   const n = Number(sec);
   if (!Number.isFinite(n)) return "—";
   if (n === UNLIMITED_DURATION_SEC) return "unlimited";
-  return fmtSeconds(n);
+  return `${n}s`;
 }
 
 /** Time left on the server's turn deadline. Past it, the turn is simply overdue —
@@ -187,7 +195,12 @@ function stageBlock(id, title, phase, body) {
  * All of it in one place, and this place, because the room has exactly one
  * screen where these are chosen — the LOBBY panel — and an admin watching wants
  * to read what was agreed, not hunt for each value in the stage that later
- * consumes it. Same fields and same order as that panel.
+ * consumes it. Same fields, same order and same units as that panel.
+ *
+ * Picks per side is not among them: it is fixed at `PICK_COUNT_PER_SIDE` and
+ * the lobby offers no control for it, so a room-settings band is the wrong
+ * place to print a constant. The PICK stage already shows the real number —
+ * how many of those slots each side has actually filled.
  */
 function lobbyStage(room, cfg) {
   return stageBlock("lobby", "1 · LOBBY", room.phase, `
@@ -203,7 +216,6 @@ function lobbyStage(room, cfg) {
       ["ban order", cfg.banOrder || "—"],
       ["ban reveal", cfg.banRevealMode || "—"],
       ["pick reveal", cfg.revealMode || "—"],
-      ["picks per side", cfg.pickCountPerSide ?? "—"],
     ])}
     ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
     <ul class="rd-pairs">
