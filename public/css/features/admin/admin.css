@@ -1338,6 +1338,22 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+/* The whole body when there is no room to draw — a dead end, not a note in the
+   margin of something else. It wore `.panel-notice`, which is the USERS tab's
+   banner idiom: a tinted strip with a rule under it, sized to sit *above* a
+   table that is still there. Here there is nothing under it, so the fill read
+   as a block of empty chrome and the message inside it as a footnote to it.
+   No background, no rule: the text is the content, so it is centred in the
+   space and set at the weight of something you are meant to read first. */
+.rd-gone {
+  padding: 44px 16px;
+  text-align: center;
+  text-wrap: balance;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .rd-code { font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
 .rd-close { margin-left: auto; }
 

@@ -420,7 +420,7 @@ function render(room) {
 
 /** The room went away mid-watch — a restart, or the host closing it. */
 function renderGone(message) {
-  el("roomDetailBody").innerHTML = `<p class="panel-notice">${escapeHtml(message)}</p>`;
+  el("roomDetailBody").innerHTML = `<p class="rd-gone">${escapeHtml(message)}</p>`;
 }
 
 // ── Polling ──────────────────────────────────────────────────
