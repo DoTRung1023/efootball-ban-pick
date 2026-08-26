@@ -289,7 +289,8 @@ function lobbyStage(room, cfg) {
       ["pick reveal", cfg.revealMode || "—"],
     ])}
     ${sidesHead("HOST", "GUEST")}
-    <ul class="rd-pairs">${stepRow(null, room.ready?.guest, STEP_WORDS.ready)}</ul>`);
+    <ul class="rd-pairs">${stepRow(
+      isPast("lobby", room.phase), room.ready?.guest, STEP_WORDS.lobby)}</ul>`);
 }
 
 /** Only the guest readies in the lobby, so the host column is a hole. */
@@ -304,7 +305,7 @@ function banStage(room) {
     ${sideLists(
       sideList("host", countOf(host.length, "ban"), [["", host]]),
       sideList("guest", countOf(guest.length, "ban"), [["", guest]]))}
-    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
+    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase), CONFIRM_WORDS.ban)}`);
 }
 
 /**
@@ -334,15 +335,41 @@ function pickStage(room) {
     ${sideLists(
       sideList("host", filled(host), groups(host), room.formations?.host || "—"),
       sideList("guest", filled(guest), groups(guest), room.formations?.guest || "—"))}
-    ${confirmRow(room.picksConfirmed, isPast("pick", room.phase))}`);
+    ${confirmRow(room.picksConfirmed, isPast("pick", room.phase), CONFIRM_WORDS.pick)}`);
 }
 
 /** Each step row's own words for done and not-done. */
 const STEP_WORDS = {
+  /* The lobby's two seats answer **different questions**, which is why this row
+     is the one place the same slot carries two vocabularies. The guest presses
+     READY; the host presses START DRAFT, and `POST /:code/ready` answers a host
+     with 403 — so there is no `ready.host` and never was. The box sat on a `—`,
+     which reads as "not applicable" when the applicable fact is simply a
+     different one: whether the draft has begun. */
+  lobby: { host: ["started", "not started"], guest: ["ready", "unready"] },
   ready: ["ready", "unready"],
-  confirmed: ["confirmed", "unconfirmed"],
   started: ["started", "not started"],
   finished: ["finished", "not finished"],
+};
+
+/**
+ * The exact strings on that side's own confirm button, so this box says what
+ * they are looking at rather than a word only this panel uses.
+ *
+ * **They are the action, not the state**: a side that has confirmed is shown
+ * `UN-CONFIRM`, because that is the move still open to them. Read the colour
+ * for the state — green once a side is locked in — and the words for what is on
+ * their screen.
+ *
+ * Copies. `banView.js` and `pickView.js` write these onto `#confirmBansBtn` and
+ * `#confirmPicksBtn`, and `room.html` carries the un-confirmed one as each
+ * button's initial markup. There is no module all three can share — this is
+ * `features/admin/`, those are `features/draft/`, and a feature may not import
+ * a feature. Change a label there and change it here.
+ */
+const CONFIRM_WORDS = {
+  ban: ["UN-CONFIRM", "CONFIRM BANS"],
+  pick: ["UN-CONFIRM", "CONFIRM PICKS"],
 };
 
 /**
@@ -368,11 +395,15 @@ function stepCell(value, [done, notYet]) {
 }
 
 /** One `host | guest` row of state boxes, on the same grid as a player row. */
+/** One pair of words for both seats, or `{ host, guest }` where the two seats
+    are not answering the same question — see `STEP_WORDS.lobby`. */
+const wordsFor = (words, seat) => (Array.isArray(words) ? words : words[seat]);
+
 const stepRow = (host, guest, words) => `
   <li class="rd-pair">
-    ${stepCell(host, words)}
+    ${stepCell(host, wordsFor(words, "host"))}
     <span class="rd-pair-idx"></span>
-    ${stepCell(guest, words)}
+    ${stepCell(guest, wordsFor(words, "guest"))}
   </li>`;
 
 /**
@@ -395,9 +426,9 @@ const stepRow = (host, guest, words) => `
  * MATCH rows use: "has this side finished" looks identical wherever the panel
  * asks it.
  */
-const confirmRow = (flags, done) =>
+const confirmRow = (flags, done, words) =>
   `<ul class="rd-pairs">${stepRow(
-    done || Boolean(flags?.host), done || Boolean(flags?.guest), STEP_WORDS.confirmed)}</ul>`;
+    done || Boolean(flags?.host), done || Boolean(flags?.guest), words)}</ul>`;
 
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
