@@ -54,10 +54,13 @@ function fmtTurnRemaining(turnEndsAt) {
 }
 
 /* Host is blue, guest is red, everywhere on this panel — the seat card, the
-   column tags, the cells, the turn strip. DESIGN.md gives red to "banned,
-   stalled, broken" and blue to console access, so this is a deliberate second
-   meaning for both, contained to one read-only modal: here they are simply
-   which side you are looking at, and the panel is far easier to scan for it. */
+   column tags, the player cells, the turn strip. DESIGN.md gives red to
+   "banned, stalled, broken" and blue to console access, so this is a deliberate
+   second meaning for both, contained to one read-only modal: here they are
+   simply which side you are looking at, and the panel is far easier to scan
+   for it.
+
+   `stepCell` is the one exception, and see it for why. */
 const SIDE_CLASS = { host: "is-host", guest: "is-guest" };
 const sideClass = (side) => (side === "guest" ? SIDE_CLASS.guest : SIDE_CLASS.host);
 
@@ -99,8 +102,8 @@ const flagPill = (confirmed) =>
 function sidesHead(leftLabel, rightLabel, leftFlag, rightFlag, extra = "") {
   return `
     <div class="rd-pair rd-pair--head ${extra}">
-      <span class="rd-pair-idx"></span>
       <span class="rd-side-tag is-host">${leftLabel}${leftFlag}</span>
+      <span class="rd-pair-idx"></span>
       <span class="rd-side-tag is-guest">${rightLabel}${rightFlag}</span>
     </div>`;
 }
@@ -129,8 +132,8 @@ function pairedRows(left, right, side = playerCell) {
   if (!n) return `<p class="rd-none">none yet</p>`;
   return `<ul class="rd-pairs">${Array.from({ length: n }, (_, i) => `
     <li class="rd-pair">
-      <span class="rd-pair-idx">${i + 1}</span>
       ${side(a[i], "host")}
+      <span class="rd-pair-idx">${i + 1}</span>
       ${side(b[i], "guest")}
     </li>`).join("")}</ul>`;
 }
@@ -220,9 +223,9 @@ function lobbyStage(room, cfg) {
     ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
     <ul class="rd-pairs">
       <li class="rd-pair rd-pair--steps">
+        ${stepCell(null, STEP_WORDS.ready)}
         <span class="rd-pair-idx rd-pair-label">ready</span>
-        ${stepCell(null, "host")}
-        ${stepCell(room.ready?.guest, "guest")}
+        ${stepCell(room.ready?.guest, STEP_WORDS.ready)}
       </li>
     </ul>`);
 }
@@ -262,27 +265,48 @@ function pickStage(room) {
     ${pairedRows(host, guest)}`);
 }
 
-/** yes / no / not-applicable, in the column it belongs to. */
-function stepCell(value, side) {
-  if (value == null) return `<span class="rd-cell is-hole">—</span>`;
-  const tone = value ? sideClass(side) : "";
-  return `<span class="rd-cell ${tone} rd-cell--step">${value ? "yes" : "no"}</span>`;
+/** Each step row's own words for done and not-done. */
+const STEP_WORDS = {
+  ready: ["ready", "unready"],
+  started: ["started", "not started"],
+  finished: ["finished", "not finished"],
+};
+
+/**
+ * One side's answer to a yes/no step, as a state box.
+ *
+ * The word is the row's own — `unready` / `ready`, `not started` / `started` —
+ * rather than a bare yes: the row's name sits *between* the two columns now
+ * instead of in front of them, and a lone "yes" that far from the thing it
+ * answers is a value with nothing attached to it. Read either box on its own
+ * and it still says what it means.
+ *
+ * **These are the one place on the panel a cell is not tinted by side.** A step
+ * row asks *has this happened*, so the box is black until it has and green once
+ * it has; which column you are in is already stated by the tag above it, and
+ * saying it twice would spend the colour on the half of the question that was
+ * never in doubt.
+ */
+function stepCell(value, [done, notYet]) {
+  if (value == null) return `<span class="rd-cell rd-cell--step is-hole">—</span>`;
+  return `<span class="rd-cell rd-cell--step ${value ? "is-on" : "is-off"}">${
+    escapeHtml(value ? done : notYet)}</span>`;
 }
 
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
   const rows = [
-    ["at Start Match", room.matchReady?.host, room.matchReady?.guest],
-    ["started", room.matchStarted?.host, room.matchStarted?.guest],
-    ["finished", room.matchFinished?.host, room.matchFinished?.guest],
+    ["at Start Match", room.matchReady?.host, room.matchReady?.guest, STEP_WORDS.ready],
+    ["started", room.matchStarted?.host, room.matchStarted?.guest, STEP_WORDS.started],
+    ["finished", room.matchFinished?.host, room.matchFinished?.guest, STEP_WORDS.finished],
   ];
   return stageBlock("ready", "4 · START MATCH", room.phase, `
     ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
-    <ul class="rd-pairs">${rows.map(([label, host, guest]) => `
+    <ul class="rd-pairs">${rows.map(([label, host, guest, words]) => `
       <li class="rd-pair rd-pair--steps">
+        ${stepCell(host, words)}
         <span class="rd-pair-idx rd-pair-label">${escapeHtml(label)}</span>
-        ${stepCell(host, "host")}
-        ${stepCell(guest, "guest")}
+        ${stepCell(guest, words)}
       </li>`).join("")}</ul>`);
 }
 
