@@ -134,7 +134,7 @@ function sideList(side, count, players, sub = "") {
         <span class="rd-row-idx">${i + 1}</span>
         ${playerCell(p, side)}
       </li>`).join("")}</ol>`
-    : `<p class="rd-none">none yet</p>`;
+    : `<p class="rd-none">none</p>`;
   /* The tally rides *inside* the box, in a strip of its own across its top,
      rather than trailing the side's name outside it. `HOST · 0  4-3-3` put
      three unlike things on one line — whose column this is, how full it is, and

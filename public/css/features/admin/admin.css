@@ -1575,9 +1575,17 @@ body {
   padding: 8px;
 }
 
-/* `.rd-none` is also the panel's "Loading…" line, which wants no gutter — this
-   is only the copy sitting inside a box. */
-.rd-list > .rd-none { padding: 8px 10px; }
+/* Centred in a box tall enough to read as an empty list rather than as a line
+   of text with a rule round it. Scoped with `>` because `.rd-none` is also the
+   panel's "Loading…" line, which is not in a box and wants neither the height
+   nor the centring. */
+.rd-list > .rd-none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 8px 10px;
+}
 
 /* The number sits inside its own list now. It was the middle track between two
    columns of one shared grid, and there is no shared grid to be the middle of.
