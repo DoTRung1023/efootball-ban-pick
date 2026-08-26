@@ -2,7 +2,7 @@
  * The ways out of a finished match, in the footer of the Start Match screen's
  * `post` stage.
  *
- *   REMATCH     same two players, back to ban settings — needs the other side
+ *   REMATCH     same two players, back to the lobby — needs the other side
  *               to accept, so it is an offer rather than an action, and an offer
  *               can be withdrawn (CANCEL REMATCH) as well as answered
  *   NEW MATCH   *you* leave for a fresh room. The room you are in stays open and
@@ -175,7 +175,7 @@ export function renderPostMatch() {
   const text = gone
     ? `${them} started a different match. This room is still yours.`
     : theirs
-      ? `${them} wants a rematch. Same players, back to ban settings.`
+      ? `${them} wants a rematch. Same players, back to the lobby.`
       : mine
         ? `Rematch offered. Waiting for ${them} to accept…`
         : "Played it out? Pick what happens next.";
@@ -183,7 +183,7 @@ export function renderPostMatch() {
 }
 
 /**
- * The room went back to the lobby under us — both sides return to ban settings.
+ * The room went back to the lobby under us — both sides return to the lobby panel.
  *
  * **Both** sides arrive here: the one who accepted calls it directly, and the
  * one who offered is routed to it by the poll when the status leaves `done`. So
@@ -197,8 +197,8 @@ export function renderPostMatch() {
 export function onRematchAccepted() {
   const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username;
   setPendingToast(them
-    ? `Rematch with ${them}. Same players, back to ban settings.`
-    : "Rematch on. Back to ban settings.");
+    ? `Rematch with ${them}. Same players, back to the lobby.`
+    : "Rematch on. Back to the lobby.");
   clearRoomPhaseCache(state.room?.code);
   window.location.reload();
 }

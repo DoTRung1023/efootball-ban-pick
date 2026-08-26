@@ -334,7 +334,7 @@ function renderLobby() {
    screen where they are configuring bans, about a squad they cannot change from
    here. The guest's card never had it, so the two cards now match as well. */
 
-/* The ban settings used to be remembered in localStorage, so a host who once
+/* The lobby settings used to be remembered in localStorage, so a host who once
    set five bans got five bans in every room afterwards. They are defaults now —
    every room opens on the same 3 / 120 / 300 — and this only clears the key that
    is left over on browsers that stored one. Nothing reads it. */
@@ -363,7 +363,7 @@ export function initLobby() {
     settingsPanel.dataset.readonlyGuardBound = "1";
     settingsPanel.addEventListener("click", (e) => {
       if (state.mySide === "host" || !settingsPanel.classList.contains("is-readonly")) return;
-      // The CTA bar is inside this panel but is not a ban setting — it holds the
+      // The CTA bar is inside this panel but is not a lobby setting — it holds the
       // guest's own READY button, which they are allowed to press.
       if (e.target.closest(".lobby-cta-bar")) return;
       e.preventDefault();
@@ -371,7 +371,7 @@ export function initLobby() {
       const now = Date.now();
       if (now - readonlySettingsToastAt < 1200) return;
       readonlySettingsToastAt = now;
-      showToast("Only host can edit ban settings.");
+      showToast("Only the host can edit the lobby settings.");
     });
   }
 

@@ -396,7 +396,7 @@
   flex-shrink: 0;
 }
 
-/* The panel itself never scrolls — .prep-scroll does, so the "BAN SETTING"
+/* The panel itself never scrolls — .prep-scroll does, so the "LOBBY"
    header and the CTA footer stay pinned. */
 
 .prep-col--settings {

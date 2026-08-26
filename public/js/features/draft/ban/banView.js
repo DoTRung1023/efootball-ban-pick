@@ -348,7 +348,7 @@ function renderBanStrip(strip, { confirmed, staged, stagedHtml, remaining, conce
  * Search, sort and the FILTER panel still remove cards — those are you asking
  * for a shorter list. This is the draft removing one, which is different.
  *
- * **The ban settings hide nobody here, and cannot.** A maximum only bites once a
+ * **The lobby settings hide nobody here, and cannot.** A maximum only bites once a
  * lineup has cards counting toward it, and during the ban phase neither side has
  * picked anything — so every one of their players is still a legal pick.
  */

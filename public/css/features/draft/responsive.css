@@ -11,7 +11,7 @@
    `#viewLobby` already switches to `overflow-y: auto` at these sizes, but
    `.centered-box--lobby` still shrinks back to the viewport and `.lobby-board`
    keeps its desktop `overflow: hidden`. Everything past the fold — the rest of
-   BAN SETTING, the chat column, the START DRAFT bar — was therefore clipped
+   LOBBY, the chat column, the START DRAFT bar — was therefore clipped
    with no way to reach it. Same query pair as the two existing lobby blocks;
    placed at the end of the file because `.prep-*` and `.chat-log` are declared
    after them.

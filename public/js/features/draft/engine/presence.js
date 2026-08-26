@@ -326,7 +326,7 @@ export async function pollPresence() {
        guest leaving from the post-match footer fell through to the rematch
        branch below, whose test is "we were in `done` and the status is no longer
        `done`". A guest walking out satisfies that too: the host was told
-       *"Rematch with X — back to ban settings"* and reloaded, for an opponent
+       *"Rematch with X — back to the lobby"* and reloaded, for an opponent
        who had just left. The two events look identical from the status alone;
        the empty seat is what tells them apart, so it has to be tested first. */
     const onStartMatch = state.phase === "ready" || state.phase === "done";

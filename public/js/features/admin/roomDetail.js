@@ -181,7 +181,14 @@ function stageBlock(id, title, phase, body) {
     </section>`;
 }
 
-/** The seats, and the two counts the two of them agreed before starting. */
+/**
+ * The seats, and **everything the host set before starting**.
+ *
+ * All of it in one place, and this place, because the room has exactly one
+ * screen where these are chosen — the LOBBY panel — and an admin watching wants
+ * to read what was agreed, not hunt for each value in the stage that later
+ * consumes it. Same fields and same order as that panel.
+ */
 function lobbyStage(room, cfg) {
   return stageBlock("lobby", "1 · LOBBY", room.phase, `
     <div class="rd-grid">
@@ -189,9 +196,14 @@ function lobbyStage(room, cfg) {
       ${seatCard("GUEST", room.guest, "guest")}
     </div>
     ${statBand([
-      ["bans / side", `${cfg.banCountPerSide ?? "—"}${
+      ["ban per side", `${cfg.banCountPerSide ?? "—"}${
         room.maxBanCountPerSide != null ? ` of ${room.maxBanCountPerSide}` : ""}`],
-      ["picks / side", cfg.pickCountPerSide ?? "—"],
+      ["ban duration", fmtDuration(cfg.banDurationSec)],
+      ["pick duration", fmtDuration(cfg.pickDurationSec)],
+      ["ban order", cfg.banOrder || "—"],
+      ["ban reveal", cfg.banRevealMode || "—"],
+      ["pick reveal", cfg.revealMode || "—"],
+      ["picks per side", cfg.pickCountPerSide ?? "—"],
     ])}
     ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
     <ul class="rd-pairs">
@@ -204,15 +216,13 @@ function lobbyStage(room, cfg) {
 }
 
 /** Only the guest readies in the lobby, so the host column is a hole. */
-function banStage(room, cfg) {
+function banStage(room) {
   const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
   const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
+  /* No settings band: order, timer and reveal are shown under LOBBY, where they
+     were chosen. Repeating them here said the same thing twice and made the two
+     draft stages look like they configured themselves. */
   return stageBlock("ban", "2 · BAN", room.phase, `
-    ${statBand([
-      ["order", cfg.banOrder || "—"],
-      ["timer", fmtDuration(cfg.banDurationSec)],
-      ["reveal", cfg.banRevealMode || "—"],
-    ])}
     ${scheduleStrip(room.schedule, room.turnIndex, "ban")}
     ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
       flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
@@ -224,7 +234,7 @@ function banStage(room, cfg) {
  * their formation, not a missing player, so the count and the list disagree on
  * purpose.
  */
-function pickStage(room, cfg) {
+function pickStage(room) {
   const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
   const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
   const count = (slots) => slots.filter(Boolean).length;
@@ -232,10 +242,6 @@ function pickStage(room, cfg) {
     `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
     + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
   return stageBlock("pick", "3 · PICK", room.phase, `
-    ${statBand([
-      ["timer", fmtDuration(cfg.pickDurationSec)],
-      ["reveal", cfg.revealMode || "—"],
-    ])}
     ${scheduleStrip(room.schedule, room.turnIndex, "pick")}
     ${sidesHead(
       label("HOST", host, room.formations?.host),
@@ -288,8 +294,8 @@ function render(room) {
       ? `<p class="panel-notice">Room closed: ${escapeHtml(room.closeReason || "no reason given")}</p>`
       : ""}
     ${lobbyStage(room, cfg)}
-    ${banStage(room, cfg)}
-    ${pickStage(room, cfg)}
+    ${banStage(room)}
+    ${pickStage(room)}
     ${readyStage(room)}`;
 }
 
