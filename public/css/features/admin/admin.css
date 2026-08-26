@@ -829,27 +829,48 @@ body {
    target that flips meaning with state is how a mis-click removes the thing
    you were trying to keep. */
 
+/* One frame, two panels of exactly the same height, each scrolling its own
+   overflow. The cap lives here rather than on either panel: whichever list is
+   longer, the frame stops at the same place and the panel deals with the rest
+   internally. `minmax(0, 1fr)` on the row is what lets the panels be shorter
+   than their content — an `auto` row would size to the taller one and push the
+   whole frame past the cap instead of scrolling. Short lists still collapse:
+   the cap is a `max-height`, so two half-empty panels stay half-empty. */
 .sc-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 248px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
+  max-height: min(860px, 78vh);
 }
 
-/* Block, deliberately not a flex column. As a flex item the grid below gets
-   shrunk to the column's height, which makes its height *definite*; the card
-   items are then squeezed to fit and `.pc-img-wrap` — a flex item inside each
-   card with nothing stopping it — collapses. Measured: the art fell to a 33px
-   strip while the footers stayed whole. Margins for the gaps instead. */
+/* A flex column, so the grid takes the space left over and LOAD MORE sits on
+   the bottom edge rather than floating wherever the grid happens to end.
+
+   This was deliberately *not* a flex column once: the grid got a definite
+   height from the column, its rows stretched to fill it, and `.pc-img-wrap` —
+   a flex item inside each card with nothing stopping it — collapsed to a 33px
+   strip while the footers stayed whole. `align-content: start` on the grid is
+   what makes it safe now: the rows size to the cards and the leftover height
+   becomes scroll instead of stretch. Measured below. */
 .sc-browse {
+  display: flex;
+  flex-direction: column;
   padding: 12px 16px;
   min-width: 0;
 }
 
 /* Still 12. The grid below pulls its box 6px out and pads its content 6px back
    in, so the two cancel and the gap you see is the one written here. */
-.sc-browse .team-search-bar { margin-bottom: 12px; }
+.sc-browse .team-search-bar {
+  margin-bottom: 12px;
+  flex: 0 0 auto;
+}
 
-.sc-browse .load-more-btn { margin-top: 12px; }
+.sc-browse .load-more-btn {
+  margin-top: 12px;
+  flex: 0 0 auto;
+}
 
 /* The grid scrolls inside the panel so the toolbar stays put — losing the
    search box behind a long grid is the whole reason for an inner scroller.
@@ -859,8 +880,7 @@ body {
    
    So the box is 6px bigger than the content on every side, and pulled back by
    the same 6px — the cards sit exactly where they did, and the scaled one has
-   somewhere to grow. The `+ 12px` on the cap is those two 6px bands, so the
-   height given to actual cards is unchanged.
+   somewhere to grow.
    
    This buys the row at rest, not every row: scroll until a row sits flush on
    the top edge and its hover still clips, because padding scrolls away with
@@ -888,7 +908,11 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr));
   padding: 6px;
   margin: -6px;
-  max-height: calc(min(720px, 62vh) + 12px);
+  /* Takes the height the toolbar and LOAD MORE leave behind. `min-height: 0`
+     is the flex escape: without it the grid refuses to shrink under its own
+     content and pushes both panels past the frame's cap. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   /* Hold the gutter whether or not the grid is long enough to need it, so a
      filter that drops the row count does not shift every card 11px right. */
@@ -896,6 +920,27 @@ body {
   /* The box has a definite height, so a part-full grid would stretch its rows
      to fill it and hand back cards taller than the art. */
   align-content: start;
+  /* `align-content: start` is not enough on its own — measured, with only that
+     set, four `auto` rows still divided the 599px box into 134.78px each and
+     `.pc-img-wrap` collapsed from ~250px to 54px. `max-content` is what makes a
+     row size to its cards instead of to the space available, and it is on every
+     other grid in this repo that holds a `.player-card` — see `.ban-phase-grid`
+     and `.pick-bench`. */
+  grid-auto-rows: max-content;
+}
+
+/* The other half, and the same declaration `ban.css` carries for the draft
+   grids. These images have no width/height attributes and are `loading="lazy"`,
+   so without a declared ratio a card is only as tall as its footer until the
+   image arrives — even from cache, which is still asynchronous. Every repaint
+   builds new `<img>` elements, so the whole grid would collapse for a frame and
+   the scroller would clamp `scrollTop` to the shorter content, jumping the list
+   upward. 240 × 339 is the intrinsic size of a pesdb card PNG. */
+.sc-card .pc-img-wrap img {
+  height: auto;
+  aspect-ratio: 240 / 339;
+  object-fit: cover;
+  object-position: center;
 }
 
 .sc-card { cursor: pointer; }
