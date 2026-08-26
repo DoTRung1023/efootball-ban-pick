@@ -139,22 +139,29 @@ function pairedRows(left, right, side = playerCell) {
 }
 
 /**
- * The turns of one stage, with the one being played marked.
+ * The ban turns, in order, with the one being played marked.
  *
- * Filtered by action but numbered by the *original* index, because that is what
+ * **Only the turns that belong to one side**, which is why this is the ban
+ * strip and not a general one. `buildTurnSchedule` gives a simultaneous ban
+ * phase a single `both` turn and gives *every* schedule a single `both` pick
+ * turn, so drawing those produced a one-pill strip reading "ban · both" or
+ * "pick · both" — a turn order for something that has no turn order, restating
+ * what the LOBBY band already says under `ban order`. Alternating bans are the
+ * one case with a real sequence, and this is it.
+ *
+ * Filtered, but numbered by the *original* index, because that is what
  * `turnIndex` counts — renumbering after the filter would mark the wrong pill.
  */
-function scheduleStrip(schedule, turnIndex, action) {
+function banTurnStrip(schedule, turnIndex) {
   const turns = (Array.isArray(schedule) ? schedule : [])
     .map((t, i) => ({ t, i }))
-    .filter(({ t }) => String(t.action || "") === action);
-  if (!turns.length) return `<p class="rd-none">no turns scheduled</p>`;
+    .filter(({ t }) => String(t.action || "") === "ban" && String(t.side || "") !== "both");
+  if (!turns.length) return "";
   return `<ul class="rd-schedule">${turns.map(({ t, i }) => {
     const side = String(t.side || "?");
-    const tone = side === "guest" ? SIDE_CLASS.guest : side === "host" ? SIDE_CLASS.host : "";
     return `
-    <li class="rd-turn ${tone} ${i === Number(turnIndex) ? "is-current" : ""}">
-      ${escapeHtml(String(t.action || "?"))} · ${escapeHtml(side)}
+    <li class="rd-turn ${sideClass(side)} ${i === Number(turnIndex) ? "is-current" : ""}">
+      ${escapeHtml(side)}
     </li>`;
   }).join("")}</ul>`;
 }
@@ -238,7 +245,7 @@ function banStage(room) {
      were chosen. Repeating them here said the same thing twice and made the two
      draft stages look like they configured themselves. */
   return stageBlock("ban", "2 · BAN", room.phase, `
-    ${scheduleStrip(room.schedule, room.turnIndex, "ban")}
+    ${banTurnStrip(room.schedule, room.turnIndex)}
     ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
       flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
     ${pairedRows(host, guest)}`);
@@ -257,7 +264,6 @@ function pickStage(room) {
     `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
     + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
   return stageBlock("pick", "3 · PICK", room.phase, `
-    ${scheduleStrip(room.schedule, room.turnIndex, "pick")}
     ${sidesHead(
       label("HOST", host, room.formations?.host),
       label("GUEST", guest, room.formations?.guest),
