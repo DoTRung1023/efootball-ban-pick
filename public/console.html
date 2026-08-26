@@ -61,7 +61,7 @@
           <button class="admin-tab" data-tab="rooms">ROOMS</button>
           <button class="admin-tab" data-tab="users">USERS</button>
           <button class="admin-tab" data-tab="catalog">CATALOG</button>
-          <button class="admin-tab" data-tab="showcase">SHOWCASE</button>
+          <button class="admin-tab" data-tab="showcase">SIGN-IN PAGE</button>
         </div>
         <div class="admin-nav-right">
           <span class="admin-badge">
@@ -153,10 +153,10 @@
 
       </section>
 
-      <!-- ── SHOWCASE ────────────────────────────────────────── -->
-      <!-- What the sign-in page shows, and the pool a seat with no account is
-           auto-banned from. Its own tab because it is edited here, not just
-           inspected. There is no staged list and no SAVE: a click on a card is
+      <!-- ── SIGN-IN PAGE ────────────────────────────────────── -->
+      <!-- The cards the sign-in page shows behind the form, and — the part the
+           tab name does not say — the pool a seat with no account is auto-banned
+           from. Its own tab because it is edited here, not just inspected. There is no staged list and no SAVE: a click on a card is
            the edit and it writes, so the marks on the grid *are* the list.
            `POST /api/admin/top-players/refresh` is the way back to the
            automatic top 30. -->
@@ -216,13 +216,13 @@
             </div>
           </div>
 
-          <!-- The chosen list, as card art — the same shape the ban board's MY
-               BANS column has. Removal lives here and only here: a card on the
-               list is inert in the browser beside it, so one place adds and one
-               place takes away. -->
+          <!-- What actually appears on the sign-in page, as card art — the same
+               shape the ban board's MY BANS column has. Removal lives here and
+               only here: a card on the list is inert in the browser beside it,
+               so one place adds and one place takes away. -->
           <aside class="panel sc-chosen" aria-label="Chosen players">
             <div class="sc-chosen-head">
-              <span class="sc-chosen-title">CHOSEN</span>
+              <span class="sc-chosen-title">ON SIGN-IN</span>
               <span class="sc-chosen-count" id="scChosenCount">0 / 50</span>
             </div>
             <div class="sc-chosen-strip" id="scChosen"></div>

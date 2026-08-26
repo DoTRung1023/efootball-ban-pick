@@ -64,7 +64,7 @@ function renderNotice() {
   const n = state.picked.length;
   let text = state.error;
   if (!text && isFull()) {
-    text = `The list is full at ${state.max}. Remove one from CHOSEN to add another.`;
+    text = `The list is full at ${state.max}. Remove one under ON SIGN-IN to add another.`;
   } else if (!text && n > 0 && n < state.advisedMin) {
     text = `${n} player${n === 1 ? "" : "s"} is fewer than a full squad of `
       + `${state.advisedMin}. A seat with no account bans out of this list, so it will `
@@ -87,7 +87,7 @@ function makeThumb(player) {
   btn.type = "button";
   btn.className = "sc-thumb";
   btn.title = "Click to remove";
-  btn.setAttribute("aria-label", `Remove ${player.name} from the showcase`);
+  btn.setAttribute("aria-label", `Remove ${player.name} from the sign-in page`);
   btn.appendChild(makePlayerImg(CARD_IMG(player.id), player.name));
 
   const x = document.createElement("span");
@@ -106,7 +106,7 @@ function renderChosen() {
   if (!state.picked.length) {
     const empty = document.createElement("p");
     empty.className = "sc-chosen-empty";
-    empty.textContent = "Nothing chosen yet. Click a card in the catalog.";
+    empty.textContent = "Nobody yet. Click a card in the catalog to add one.";
     strip.appendChild(empty);
     return;
   }
@@ -184,7 +184,7 @@ export async function loadTopPlayers() {
     state.error = null;
     renderAll();
   } catch {
-    state.error = "Could not load the showcase list.";
+    state.error = "Could not load the sign-in list.";
     renderAll();
   }
 }

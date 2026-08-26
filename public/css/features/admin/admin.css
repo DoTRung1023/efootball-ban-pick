@@ -818,7 +818,7 @@ body {
 
 .dq-empty { color: var(--text-dim); justify-content: center; }
 
-/* ── SIGN-IN SHOWCASE ────────────────────────────────────────
+/* ── SIGN-IN PAGE ─────────────────────────────────────────────
    Two panels side by side, each its own box: the catalog you browse, and the
    list you have built drawn as card art — the same shape the ban board's MY
    BANS column has. They were one panel with a divider down it, which asked the
@@ -987,7 +987,7 @@ body {
   font-size: 13px;
 }
 
-/* ── The CHOSEN column ── */
+/* ── The ON SIGN-IN column ── */
 
 .sc-chosen {
   display: flex;

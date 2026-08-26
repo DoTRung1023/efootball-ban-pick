@@ -42,8 +42,8 @@ const SEARCH_DEBOUNCE_MS = 300;
    apart. Both point at the panel where the fix is. */
 const CARD_TIP = {
   add: "Click to add",
-  picked: "Already chosen — remove it in CHOSEN",
-  full: "The list is full — remove one in CHOSEN",
+  picked: "Already on the sign-in page — remove it under ON SIGN-IN",
+  full: "The list is full — remove one under ON SIGN-IN",
 };
 
 const state = {

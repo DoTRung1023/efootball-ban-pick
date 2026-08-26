@@ -1,5 +1,5 @@
 /* ============================================================
-   OVERVIEW · ROOMS · USERS · CATALOG · SHOWCASE
+   OVERVIEW · ROOMS · USERS · CATALOG · SIGN-IN PAGE
 
    One registry drives everything: which panel is shown, what each tab fetches
    on activation, and how often — if at all — it refetches while it is the tab
@@ -21,8 +21,10 @@ const TABS = {
   rooms:    { load: loadRooms,    refreshMs: 10000 },
   users:    { load: loadUsers },
   catalog:  { load: loadCatalog },
-  /* No `refreshMs`: this tab is an editor, and a poll would throw away a
-     half-built list under the admin's cursor. */
+  /* Keyed `showcase` rather than `sign-in`: the key is the URL hash, so it is
+     an address, and the label above the tab is free to change without breaking
+     a bookmark. No `refreshMs` — this tab is an editor, and a poll would throw
+     away a half-built list under the admin's cursor. */
   showcase: { load: loadTopPlayers },
 };
 
