@@ -44,15 +44,6 @@ function fmtDuration(sec) {
   return `${n}s`;
 }
 
-/** Time left on the server's turn deadline. Past it, the turn is simply overdue —
-    there are no server-side timers, so nothing resolves it until somebody reads
-    the room. See `rooms/turns.js`. */
-function fmtTurnRemaining(turnEndsAt) {
-  if (turnEndsAt == null) return "no deadline";
-  const left = Math.floor((Number(turnEndsAt) - Date.now()) / 1000);
-  return left <= 0 ? "expired" : `${fmtSeconds(left)} left`;
-}
-
 /* Host is blue, guest is red, everywhere on this panel — the seat card, the
    column tags, the player cells, the turn strip. DESIGN.md gives red to
    "banned, stalled, broken" and blue to console access, so this is a deliberate
@@ -321,23 +312,35 @@ function readyStage(room) {
 
 // ── Rendering ────────────────────────────────────────────────
 
+/**
+ * **A closed room shows CLOSED where its phase would go, and nothing else.**
+ *
+ * The phase it stopped in is not a state it is still in, so drawing `LOBBY`
+ * beside a "Room closed" notice put the panel's two most prominent things in
+ * disagreement, and left the reader to work out which one was current. One
+ * pill, and the four stages below it read as the record of a room that is over.
+ *
+ * The reason rides in the `title` rather than in a line of its own: it is the
+ * follow-up question, not the headline, and every room that is *not* closed was
+ * paying for that line with a row of header text.
+ */
+function headerPill(room) {
+  if (!room.closed) return phasePill(room.phase);
+  const why = escapeHtml(room.closeReason || "no reason given");
+  return `<span class="phase-pill is-closed" title="closed — ${why}">CLOSED</span>`;
+}
+
 function render(room) {
   const cfg = room.config || {};
   el("roomDetailTitle").textContent = room.code;
-  /* The two room-wide facts ride in the header rather than in a stage, because
-     they belong to none of them and a "ROOM" section above four stages is one
-     heading too many for two values. */
-  el("roomDetailPhase").innerHTML = phasePill(room.phase)
-    + `<span class="rd-headmeta">${escapeHtml(String(room.status || "—"))}`
-    + ` · idle ${escapeHtml(fmtSeconds(room.idleSec))}`
-    /* No "turn" prefix: `fmtTurnRemaining` already returns a phrase that stands
-       on its own — "no deadline", "expired", "1m 20s left". */
-    + ` · ${escapeHtml(fmtTurnRemaining(room.turnEndsAt))}</span>`;
+  /* Just the code and the pill up here. The status word, the idle clock and the
+     turn deadline used to trail the pill, and none of the three survived the
+     question "what would I do differently knowing it": status restated the
+     pill, idle is the seats' own `last beat` twice over, and the deadline
+     belongs to whichever stage is being played rather than to the room. */
+  el("roomDetailPhase").innerHTML = headerPill(room);
 
   el("roomDetailBody").innerHTML = `
-    ${room.closed
-      ? `<p class="panel-notice">Room closed: ${escapeHtml(room.closeReason || "no reason given")}</p>`
-      : ""}
     ${lobbyStage(room, cfg)}
     ${banStage(room)}
     ${pickStage(room)}

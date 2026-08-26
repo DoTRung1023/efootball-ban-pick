@@ -570,6 +570,11 @@ body {
 .phase-pill.is-pick   { background: var(--hue-violet-fill); color: var(--hue-violet); border: 1px solid var(--hue-violet-line); }
 .phase-pill.is-ready  { background: var(--hue-amber-fill);  color: var(--hue-amber);  border: 1px solid var(--hue-amber-line); }
 .phase-pill.is-done   { background: var(--hue-green-fill);  color: var(--hue-green);  border: 1px solid var(--hue-green-line); }
+/* Not a phase — it *replaces* the phase, on the WATCH panel only, because a
+   closed room is not still sitting in the one it stopped in. Red is DESIGN.md
+   §3's "stalled, broken", and the full-strength border rather than `-line`
+   marks it as the end of the run instead of one more state along it. */
+.phase-pill.is-closed { background: var(--danger-fill);     color: var(--danger);     border: 1px solid var(--danger); }
 
 /* ── Status pills ───────────────────────────────────────────── */
 .status-pill {
@@ -1313,17 +1318,24 @@ body {
   margin: auto;
 }
 
+/* **Scrolls away with the card — deliberately not sticky.** It pinned to
+   `top: 0` of `.rd-overlay`, which is the scroller, and the overlay's 24px of
+   padding sits *above* that line: a stage heading stayed visible in the gap
+   while the header floated across the panel below it, so the top of the modal
+   read as two overlapping headers. Nothing up here changes as you read — the
+   code and the phase are fixed for the whole panel — so there was nothing to
+   keep in view. CLOSE goes off-screen with it; Escape and a click on the scrim
+   both close the panel from anywhere in it.
+
+   No background of its own: `.rd-card` paints the same `--bg-elevated` behind
+   it, and the opaque fill and the corner radius only existed so the body could
+   scroll underneath. */
 .rd-header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  /* Opaque by rule — the body scrolls under it. */
-  background: var(--bg-card-solid);
-  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .rd-code { font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
@@ -1384,15 +1396,6 @@ body {
 /* A stage the room has not reached is shown, not hidden — an admin still wants
    to see how it is configured — but it stops competing with the live one. */
 .rd-stage.is-ahead .rd-stage-body { opacity: 0.5; }
-
-/* Sits inside `#roomDetailPhase` beside the phase pill, so `.rd-header`'s own
-   gap does not reach it. */
-.rd-headmeta {
-  margin-left: 10px;
-  font-size: 11px;
-  color: var(--text-dim);
-  overflow-wrap: anywhere;
-}
 
 /* Host on the left, guest on the right — the same arrangement as the draft. */
 .rd-grid {
