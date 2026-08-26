@@ -1606,7 +1606,6 @@ body {
 .rd-pcard {
   aspect-ratio: 240 / 339;
   overflow: hidden;
-  border-radius: var(--radius-sm);
   background: var(--fill-faint);
 }
 
