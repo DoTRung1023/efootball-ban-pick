@@ -1584,11 +1584,45 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.rd-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Card art, sized by the column it lands in. `auto-fill` rather than a fixed
+   count because these two boxes are half a modal that goes from 880px to a
+   phone, and a squad of 23 has to stay countable at both. The ratio is the
+   card artwork's own, so a slot holds its shape before the image arrives and
+   the grid does not reflow as they load in. */
+.rd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 6px;
   padding: 8px;
+}
+
+/* `.rd-pcard`, not `.rd-card` — **that name is already the modal's own frame**,
+   thirty lines up this sheet, and a second rule under it would have given the
+   whole dialog a trading-card aspect ratio.
+
+   No hover, no pointer either: `shared/playerCard.css` gives `.player-card`
+   both, and both promise a click this panel does not answer. See `playerCard`
+   in roomDetail.js. */
+.rd-pcard {
+  aspect-ratio: 240 / 339;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--fill-faint);
+}
+
+.rd-pcard img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* A slot left open in the formation. Dashed, because an empty slot is a shape
+   the squad still has room for, not a card that failed to load. */
+.rd-pcard.is-empty {
+  border: 1px dashed var(--border);
+  background: transparent;
 }
 
 /* LINEUP / SUB inside a pick box. Sits on the same left edge as the numbers
@@ -1602,7 +1636,7 @@ body {
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
-.rd-group + .rd-rows { padding-top: 6px; }
+.rd-group + .rd-cards { padding-top: 6px; }
 
 /* Centred in a box tall enough to read as an empty list rather than as a line
    of text with a rule round it. Scoped with `>` because `.rd-none` is also the
@@ -1614,25 +1648,6 @@ body {
   justify-content: center;
   min-height: 56px;
   padding: 8px 10px;
-}
-
-/* The number sits inside its own list now. It was the middle track between two
-   columns of one shared grid, and there is no shared grid to be the middle of.
-   Right-aligned so 9 and 10 line up on the digit that changes. */
-.rd-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: stretch;
-}
-
-.rd-row-idx {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .rd-side-tag {
@@ -1667,14 +1682,6 @@ body {
   font-size: 12px;
   min-width: 0;
 }
-.rd-cell.is-host {
-  border-left-color: var(--hue-blue);
-  background: var(--hue-blue-fill);
-}
-.rd-cell.is-guest {
-  border-left-color: var(--danger);
-  background: var(--danger-fill);
-}
 /* Nothing on this side at this index — kept, and kept quiet, because the row
    only lines up if both cells are there. */
 .rd-cell.is-hole {
@@ -1703,9 +1710,6 @@ body {
   border-left-color: var(--hue-green);
   background: var(--hue-green-fill);
 }
-
-.rd-cell-name { overflow-wrap: anywhere; }
-.rd-cell-meta { color: var(--text-dim); white-space: nowrap; }
 
 .rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
 
@@ -1795,7 +1799,7 @@ body {
   /* The pair stays two columns however narrow it gets — stacking host above
      guest would undo the one thing this layout is for. */
   .rd-pair { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 5px; }
-  .rd-row { grid-template-columns: 14px minmax(0, 1fr); gap: 5px; }
+  .rd-cards { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 4px; }
   .rd-cell { padding: 5px 7px; font-size: 11px; }
   .admin-nav { gap: 12px; }
   /* **The tab strip takes a row of its own from here down, not from 600.** This

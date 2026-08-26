@@ -14,7 +14,7 @@
    ============================================================ */
 
 import { BENCH_ROW_LABEL, LINEUP_SIZE } from "@/shared/players/formations.js";
-import { escapeHtml } from "@/shared/players/playerMeta.js";
+import { ANON_PLAYER_IMG, CARD_IMG, escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch } from "./adminApi.js";
 import { phasePill } from "./format.js";
 
@@ -104,14 +104,40 @@ function sidesHead(leftLabel, rightLabel) {
     </div>`;
 }
 
-function playerCell(p, side) {
-  const tone = sideClass(side);
-  if (!p) return `<span class="rd-cell is-hole">—</span>`;
-  const meta = [p.position, p.overall].filter(Boolean).join(" · ");
-  return `<span class="rd-cell ${tone}">
-    <span class="rd-cell-name">${escapeHtml(p.name || "—")}</span>
-    ${meta ? `<span class="rd-cell-meta">${escapeHtml(String(meta))}</span>` : ""}
-  </span>`;
+/**
+ * One player, as the card art and nothing else.
+ *
+ * **The name is the `title`, not a line under the picture.** A ban list was a
+ * column of names in boxes, which is the least recognisable form the app has
+ * for a player — every other surface shows the card, and an admin comparing two
+ * squads is matching artwork they have already seen in the draft. The footer
+ * the browser tabs put under theirs is left off on purpose: position and rating
+ * are what you pick *by*, and nothing here is being picked.
+ *
+ * Deliberately **not** `.player-card` from `shared/playerCard.css`: that one
+ * carries `cursor: pointer` and a hover scale, both of which promise a click
+ * this panel does not answer. Read-only artwork should not flinch under the
+ * pointer.
+ */
+function playerCard(p) {
+  if (!p) return `<div class="rd-pcard is-empty"></div>`;
+  const name = escapeHtml(String(p.name || "—"));
+  return `<div class="rd-pcard" title="${name}">`
+    + `<img class="rd-pcard-img" src="${escapeHtml(CARD_IMG(p.id))}" alt="${name}" loading="lazy" />`
+    + `</div>`;
+}
+
+/** Art that 404s falls back to the anonymous card, the way `makePlayerImg` does
+    for the grids built as DOM nodes. This panel writes its markup as a string,
+    so the handler goes on afterwards. */
+function armCardFallbacks(root) {
+  root.querySelectorAll("img.rd-pcard-img").forEach((img) => {
+    img.addEventListener("error", () => {
+      if (img.dataset.fallbackApplied === "1") return;
+      img.dataset.fallbackApplied = "1";
+      img.src = ANON_PLAYER_IMG;
+    });
+  });
 }
 
 /**
@@ -130,25 +156,20 @@ function playerCell(p, side) {
 /**
  * One run of slots inside a side's box, under its own label.
  *
- * `from` is the slot the run starts at, not the index into it: a bench group is
- * sliced off the back of the pick array and still has to number itself 12, 13,
- * 14 — the slot is what the room, the pitch and `game_plan_players` all agree
- * on, and renumbering it from 1 would name a different player.
+ * A `null` keeps its place as an empty card rather than being dropped: in a
+ * pick list it is a slot left open in the formation, so closing the gap would
+ * shift every player after it into somebody else's position.
  */
-function rowGroup(label, players, side, from) {
+function rowGroup(label, players) {
   if (!players.length) return "";
   return `
     ${label ? `<div class="rd-group">${escapeHtml(label)}</div>` : ""}
-    <ol class="rd-rows">${players.map((p, i) => `
-      <li class="rd-row">
-        <span class="rd-row-idx">${from + i + 1}</span>
-        ${playerCell(p, side)}
-      </li>`).join("")}</ol>`;
+    <div class="rd-cards">${players.map(playerCard).join("")}</div>`;
 }
 
 function sideList(side, count, groups, sub = "") {
-  const body = groups.map(([label, players, from]) =>
-    rowGroup(label, Array.isArray(players) ? players : [], side, from)).join("")
+  const body = groups.map(([label, players]) =>
+    rowGroup(label, Array.isArray(players) ? players : [])).join("")
     || `<p class="rd-none">none</p>`;
   /* The tally rides *inside* the box, in a strip of its own across its top,
      rather than trailing the side's name outside it. `HOST · 0  4-3-3` put
@@ -281,8 +302,8 @@ function banStage(room) {
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${banTurnStrip(room.schedule, room.turnIndex)}
     ${sideLists(
-      sideList("host", countOf(host.length, "ban"), [["", host, 0]]),
-      sideList("guest", countOf(guest.length, "ban"), [["", guest, 0]]))}
+      sideList("host", countOf(host.length, "ban"), [["", host]]),
+      sideList("guest", countOf(guest.length, "ban"), [["", guest]]))}
     ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
 }
 
@@ -306,8 +327,8 @@ function pickStage(room) {
      `shared/players/formations.js` — the module that owns the slot numbering
      the room, the pitch and `game_plan_players` all address players by. */
   const groups = (slots) => [
-    ["LINEUP", slots.slice(0, LINEUP_SIZE), 0],
-    [BENCH_ROW_LABEL, slots.slice(LINEUP_SIZE), LINEUP_SIZE],
+    ["LINEUP", slots.slice(0, LINEUP_SIZE)],
+    [BENCH_ROW_LABEL, slots.slice(LINEUP_SIZE)],
   ];
   return stageBlock("pick", "3 · PICK", room.phase, `
     ${sideLists(
@@ -428,6 +449,7 @@ function render(room) {
     ${banStage(room)}
     ${pickStage(room)}
     ${readyStage(room)}`;
+  armCardFallbacks(el("roomDetailBody"));
 }
 
 /** The room went away mid-watch — a restart, or the host closing it. */
