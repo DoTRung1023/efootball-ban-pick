@@ -1318,6 +1318,16 @@ body {
   margin: auto;
 }
 
+/* One sentence where a four-stage panel usually is — a dead room, or a failed
+   read. At 880px that sentence sat in the middle of a great deal of nothing, so
+   here the card shrink-wraps it instead and the 880px becomes the cap rather
+   than the width. Toggled by `setBrief` in roomDetail.js; the header keeps the
+   card from ever getting narrower than the code, the pill and CLOSE. */
+.rd-card.is-brief {
+  width: auto;
+  max-width: min(880px, 100%);
+}
+
 /* **Scrolls away with the card — deliberately not sticky.** It pinned to
    `top: 0` of `.rd-overlay`, which is the scroller, and the overlay's 24px of
    padding sits *above* that line: a stage heading stayed visible in the gap
@@ -1346,7 +1356,7 @@ body {
    No background, no rule: the text is the content, so it is centred in the
    space and set at the weight of something you are meant to read first. */
 .rd-gone {
-  padding: 44px 16px;
+  padding: 30px 26px;
   text-align: center;
   text-wrap: balance;
   font-size: 15px;

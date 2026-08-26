@@ -485,13 +485,20 @@ function render(room) {
   painted = html;
 
   const body = el("roomDetailBody");
+  setBrief(false);
   body.innerHTML = html;
   armCardFallbacks(body);
+}
+
+/** Shrink-to-fit while the body is one sentence, 880px while it is a panel. */
+function setBrief(on) {
+  el("roomDetail")?.querySelector(".rd-card")?.classList.toggle("is-brief", on);
 }
 
 /** The room went away mid-watch — a restart, or the host closing it. */
 function renderGone(message) {
   painted = "";
+  setBrief(true);
   el("roomDetailBody").innerHTML = `<p class="rd-gone">${escapeHtml(message)}</p>`;
 }
 
@@ -520,6 +527,7 @@ export function openRoomDetail(code) {
   openCode = String(code || "");
   if (!openCode) return;
   painted = "";
+  setBrief(false);
   el("roomDetailTitle").textContent = openCode;
   el("roomDetailPhase").innerHTML = "";
   el("roomDetailBody").innerHTML = `<p class="rd-none">Loading…</p>`;
