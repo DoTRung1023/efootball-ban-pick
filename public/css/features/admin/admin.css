@@ -1519,9 +1519,22 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* `align-items` only — the space under it is `.rd-stage-body`'s own gap. It
+   carried a `margin-bottom` on top of that, which set the head further from
+   its list than the list sits from the row after it. */
 .rd-pair--head {
-  margin-bottom: 6px;
   align-items: center;
+}
+
+/* The players, boxed off from the count above and the confirm row below. All
+   three are children of the same flex column and only this one is a list, so
+   without a rule around it the count read as its first line. Border only: the
+   cells inside carry the fill, and a second surface behind them flattened the
+   side tints that are the point of them. */
+.rd-list {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .rd-side-tag {

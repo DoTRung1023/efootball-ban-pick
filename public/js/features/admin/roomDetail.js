@@ -86,16 +86,13 @@ function statBand(stats) {
     </div>`).join("")}</div>`;
 }
 
-const flagPill = (confirmed) =>
-  `<span class="rd-flag ${confirmed ? "is-on" : ""}">${confirmed ? "CONFIRMED" : "editing"}</span>`;
-
 /** The one header row that names the two columns under it. */
-function sidesHead(leftLabel, rightLabel, leftFlag = "", rightFlag = "") {
+function sidesHead(leftLabel, rightLabel) {
   return `
     <div class="rd-pair rd-pair--head">
-      <span class="rd-side-tag is-host">${leftLabel}${leftFlag}</span>
+      <span class="rd-side-tag is-host">${leftLabel}</span>
       <span class="rd-pair-idx"></span>
-      <span class="rd-side-tag is-guest">${rightLabel}${rightFlag}</span>
+      <span class="rd-side-tag is-guest">${rightLabel}</span>
     </div>`;
 }
 
@@ -120,13 +117,19 @@ function pairedRows(left, right, side = playerCell) {
   const a = Array.isArray(left) ? left : [];
   const b = Array.isArray(right) ? right : [];
   const n = Math.max(a.length, b.length);
-  if (!n) return `<p class="rd-none">none yet</p>`;
-  return `<ul class="rd-pairs">${Array.from({ length: n }, (_, i) => `
+  const body = n
+    ? `<ul class="rd-pairs">${Array.from({ length: n }, (_, i) => `
     <li class="rd-pair">
       ${side(a[i], "host")}
       <span class="rd-pair-idx">${i + 1}</span>
       ${side(b[i], "guest")}
-    </li>`).join("")}</ul>`;
+    </li>`).join("")}</ul>`
+    : `<p class="rd-none">none yet</p>`;
+  /* Boxed off from the counts above it and the confirm row below. A ban stage
+     body is three unlike things — how many, which ones, and whether that is
+     final — and only the middle one is a list; without the rule around it the
+     count read as its first row and the confirm row as its last. */
+  return `<div class="rd-list">${body}</div>`;
 }
 
 /**
@@ -219,13 +222,7 @@ function lobbyStage(room, cfg) {
       ["pick reveal", cfg.revealMode || "—"],
     ])}
     ${sidesHead("HOST", "GUEST")}
-    <ul class="rd-pairs">
-      <li class="rd-pair">
-        ${stepCell(null, STEP_WORDS.ready)}
-        <span class="rd-pair-idx"></span>
-        ${stepCell(room.ready?.guest, STEP_WORDS.ready)}
-      </li>
-    </ul>`);
+    <ul class="rd-pairs">${stepRow(null, room.ready?.guest, STEP_WORDS.ready)}</ul>`);
 }
 
 /** Only the guest readies in the lobby, so the host column is a hole. */
@@ -237,9 +234,9 @@ function banStage(room) {
      draft stages look like they configured themselves. */
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${banTurnStrip(room.schedule, room.turnIndex)}
-    ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
-      flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
-    ${pairedRows(host, guest)}`);
+    ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`)}
+    ${pairedRows(host, guest)}
+    ${confirmRow(room.bansConfirmed)}`);
 }
 
 /**
@@ -257,14 +254,15 @@ function pickStage(room) {
   return stageBlock("pick", "3 · PICK", room.phase, `
     ${sidesHead(
       label("HOST", host, room.formations?.host),
-      label("GUEST", guest, room.formations?.guest),
-      flagPill(room.picksConfirmed?.host), flagPill(room.picksConfirmed?.guest))}
-    ${pairedRows(host, guest)}`);
+      label("GUEST", guest, room.formations?.guest))}
+    ${pairedRows(host, guest)}
+    ${confirmRow(room.picksConfirmed)}`);
 }
 
 /** Each step row's own words for done and not-done. */
 const STEP_WORDS = {
   ready: ["ready", "unready"],
+  confirmed: ["confirmed", "editing"],
   started: ["started", "not started"],
   finished: ["finished", "not finished"],
 };
@@ -291,6 +289,29 @@ function stepCell(value, [done, notYet]) {
     escapeHtml(value ? done : notYet)}</span>`;
 }
 
+/** One `host | guest` row of state boxes, on the same grid as a player row. */
+const stepRow = (host, guest, words) => `
+  <li class="rd-pair">
+    ${stepCell(host, words)}
+    <span class="rd-pair-idx"></span>
+    ${stepCell(guest, words)}
+  </li>`;
+
+/**
+ * Has each side locked its list in?
+ *
+ * It was a word trailing the column tag — `HOST · 3 CONFIRMED` — carrying
+ * `.rd-flag` and `.is-on`, **neither of which any stylesheet defines**. So the
+ * two states were the same colour as each other and as the count in front of
+ * them, and the one that was supposed to stand out did not. As a state row it
+ * is the same black-or-green box the lobby and START MATCH rows use, which is
+ * the right answer anyway: "has this side finished" now looks identical
+ * wherever the panel asks it.
+ */
+const confirmRow = (flags) =>
+  `<ul class="rd-pairs">${stepRow(
+    Boolean(flags?.host), Boolean(flags?.guest), STEP_WORDS.confirmed)}</ul>`;
+
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
   /* No row labels: each pair of words names its own step. The order is the
@@ -302,12 +323,8 @@ function readyStage(room) {
   ];
   return stageBlock("ready", "4 · START MATCH", room.phase, `
     ${sidesHead("HOST", "GUEST")}
-    <ul class="rd-pairs">${rows.map(([host, guest, words]) => `
-      <li class="rd-pair">
-        ${stepCell(host, words)}
-        <span class="rd-pair-idx"></span>
-        ${stepCell(guest, words)}
-      </li>`).join("")}</ul>`);
+    <ul class="rd-pairs">${
+      rows.map(([host, guest, words]) => stepRow(host, guest, words)).join("")}</ul>`);
 }
 
 // ── Rendering ────────────────────────────────────────────────
