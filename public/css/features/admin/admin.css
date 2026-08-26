@@ -1537,26 +1537,47 @@ body {
   min-width: 0;
 }
 
-.rd-side-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-/* Border only: the cells inside carry the fill, and a second surface behind
-   them flattened the side tints that are the point of them. */
+/* Border only around the players: the cells inside carry the fill, and a second
+   surface behind them flattened the side tints that are the point of them. The
+   padding lives on the children, so the head strip's rule can reach both edges;
+   `overflow: hidden` is what keeps its fill inside the rounded corners. */
 .rd-list {
-  padding: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* The tally, in a band across the top of the box it describes — the same
+   head-over-body shape `.rd-stage` uses one level up. Count left, formation
+   right, because a formation is a property of the whole list and reads as a
+   caption rather than as part of the number. */
+.rd-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+  font-size: 11px;
+}
+
+.rd-list-count {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .rd-rows {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 8px;
 }
+
+/* `.rd-none` is also the panel's "Loading…" line, which wants no gutter — this
+   is only the copy sitting inside a box. */
+.rd-list > .rd-none { padding: 8px 10px; }
 
 /* The number sits inside its own list now. It was the middle track between two
    columns of one shared grid, and there is no shared grid to be the middle of.

@@ -126,7 +126,7 @@ function playerCell(p, side) {
  * slot the player left empty in their formation, so dropping it would move
  * every player below it up a number.
  */
-function sideList(name, players, side, sub = "") {
+function sideList(side, count, players, sub = "") {
   const rows = Array.isArray(players) ? players : [];
   const body = rows.length
     ? `<ol class="rd-rows">${rows.map((p, i) => `
@@ -135,13 +135,21 @@ function sideList(name, players, side, sub = "") {
         ${playerCell(p, side)}
       </li>`).join("")}</ol>`
     : `<p class="rd-none">none yet</p>`;
+  /* The tally rides *inside* the box, in a strip of its own across its top,
+     rather than trailing the side's name outside it. `HOST · 0  4-3-3` put
+     three unlike things on one line — whose column this is, how full it is, and
+     what shape they are playing — in one weight and one colour, and the two
+     that describe the list below sat outside the rule drawn around it. */
   return `
     <section class="rd-side">
-      <div class="rd-side-head">
-        <span class="rd-side-tag ${sideClass(side)}">${escapeHtml(name)}</span>
-        ${sub ? `<span class="rd-side-sub">${escapeHtml(String(sub))}</span>` : ""}
+      <span class="rd-side-tag ${sideClass(side)}">${side === "guest" ? "GUEST" : "HOST"}</span>
+      <div class="rd-list">
+        <div class="rd-list-head">
+          <span class="rd-list-count">${escapeHtml(String(count))}</span>
+          ${sub ? `<span class="rd-side-sub">${escapeHtml(String(sub))}</span>` : ""}
+        </div>
+        ${body}
       </div>
-      <div class="rd-list">${body}</div>
     </section>`;
 }
 
@@ -255,8 +263,8 @@ function banStage(room) {
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${banTurnStrip(room.schedule, room.turnIndex)}
     ${sideLists(
-      sideList(`HOST · ${host.length}`, host, "host"),
-      sideList(`GUEST · ${guest.length}`, guest, "guest"))}
+      sideList("host", countOf(host.length, "ban"), host),
+      sideList("guest", countOf(guest.length, "ban"), guest))}
     ${confirmRow(room.bansConfirmed)}`);
 }
 
@@ -268,13 +276,16 @@ function banStage(room) {
 function pickStage(room) {
   const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
   const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
-  const count = (slots) => slots.filter(Boolean).length;
-  const label = (name, slots) =>
-    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`;
+  /* `2 of 3 picks` while slots are still empty, `3 picks` once none are — the
+     count and the list length only disagree while a formation hole is open. */
+  const filled = (slots) => {
+    const n = slots.filter(Boolean).length;
+    return slots.length > n ? `${n} of ${slots.length} picks` : countOf(n, "pick");
+  };
   return stageBlock("pick", "3 · PICK", room.phase, `
     ${sideLists(
-      sideList(label("HOST", host), host, "host", room.formations?.host || "—"),
-      sideList(label("GUEST", guest), guest, "guest", room.formations?.guest || "—"))}
+      sideList("host", filled(host), host, room.formations?.host || "—"),
+      sideList("guest", filled(guest), guest, room.formations?.guest || "—"))}
     ${confirmRow(room.picksConfirmed)}`);
 }
 
