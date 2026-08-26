@@ -866,6 +866,26 @@ body {
    the top edge and its hover still clips, because padding scrolls away with
    the content. Nothing short of dropping the inner scroller fixes that one. */
 .sc-grid {
+  /* `.player-grid` fixes six columns and steps down on *viewport* rungs. That
+     is right on the home page, where the grid is as wide as the page — and
+     wrong here, where a 248px sibling panel sets the width instead. At a
+     1200px viewport the panel is ~880px and six columns gave 130px cards.
+
+     So the track count follows the grid's own width. `45%` is what keeps it
+     honest at the bottom: it lets the minimum fall below 160px only when the
+     panel cannot hold two of them, so a phone gets two small cards instead of
+     one enormous one.
+
+     Measured, viewport -> columns x card width:
+       320 -> 2 x 112    900 -> 4 x 189   1500 ->  6 x 179
+       480 -> 2 x 192   1100 -> 4 x 176   1920 ->  9 x 160
+       620 -> 3 x 164   1280 -> 5 x 173   2560 -> 12 x 170
+       768 -> 3 x 213
+     160-189px from 900 up, against 130-220px for the fixed six it replaces.
+     The 768 rung is the loose one: a fourth column needs 688px of track and
+     the panel has 673, so the three stretch. 160 rather than 165 is what buys
+     the third column at 620 — at 165 that step held two 254px cards. */
+  grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr));
   padding: 6px;
   margin: -6px;
   max-height: calc(min(720px, 62vh) + 12px);
