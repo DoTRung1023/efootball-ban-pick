@@ -29,8 +29,6 @@ const el = (id) => document.getElementById(id);
 
 // ── Field formatting ─────────────────────────────────────────
 
-const yesNo = (v) => (v ? "yes" : "no");
-
 function fmtDuration(sec) {
   const n = Number(sec);
   if (!Number.isFinite(n)) return "—";
@@ -47,17 +45,26 @@ function fmtTurnRemaining(turnEndsAt) {
   return left <= 0 ? "expired" : `${fmtSeconds(left)} left`;
 }
 
-function seatCard(label, seat) {
+/* Host is blue, guest is red, everywhere on this panel — the seat card, the
+   column tags, the cells, the turn strip. DESIGN.md gives red to "banned,
+   stalled, broken" and blue to console access, so this is a deliberate second
+   meaning for both, contained to one read-only modal: here they are simply
+   which side you are looking at, and the panel is far easier to scan for it. */
+const SIDE_CLASS = { host: "is-host", guest: "is-guest" };
+const sideClass = (side) => (side === "guest" ? SIDE_CLASS.guest : SIDE_CLASS.host);
+
+function seatCard(label, seat, side) {
+  const tone = sideClass(side);
   if (!seat) {
     return `
-      <div class="rd-seat is-empty">
+      <div class="rd-seat is-empty ${tone}">
         <div class="rd-seat-role">${escapeHtml(label)}</div>
         <div class="rd-seat-name">empty</div>
       </div>`;
   }
   const idle = Math.floor((Date.now() - Number(seat.lastSeenAt || 0)) / 1000);
   return `
-    <div class="rd-seat">
+    <div class="rd-seat ${tone}">
       <div class="rd-seat-role">${escapeHtml(label)}</div>
       <div class="rd-seat-name">${escapeHtml(seat.username || "—")}</div>
       <dl class="rd-facts">
@@ -68,70 +75,150 @@ function seatCard(label, seat) {
     </div>`;
 }
 
-function playerChip(p) {
-  if (!p) return `<li class="rd-chip is-hole">empty slot</li>`;
-  const meta = [p.position, p.overall].filter(Boolean).join(" · ");
-  return `<li class="rd-chip">
-    <span class="rd-chip-name">${escapeHtml(p.name || "—")}</span>
-    ${meta ? `<span class="rd-chip-meta">${escapeHtml(String(meta))}</span>` : ""}
-  </li>`;
+/** Room-wide settings, as a wrapping row rather than two columns of pairs —
+    two columns read as host and guest, which none of these are. */
+function settingsRow(room, cfg) {
+  const stats = [
+    ["status", room.status || "—"],
+    ["idle", fmtSeconds(room.idleSec)],
+    ["bans / side", `${cfg.banCountPerSide ?? "—"}${
+      room.maxBanCountPerSide != null ? ` of ${room.maxBanCountPerSide}` : ""}`],
+    ["ban order", cfg.banOrder || "—"],
+    ["ban timer", fmtDuration(cfg.banDurationSec)],
+    ["ban reveal", cfg.banRevealMode || "—"],
+    ["picks / side", cfg.pickCountPerSide ?? "—"],
+    ["pick timer", fmtDuration(cfg.pickDurationSec)],
+    ["pick reveal", cfg.revealMode || "—"],
+  ];
+  return `<div class="rd-stats">${stats.map(([k, v]) => `
+    <div class="rd-stat">
+      <span class="rd-stat-k">${escapeHtml(k)}</span>
+      <span class="rd-stat-v">${escapeHtml(String(v))}</span>
+    </div>`).join("")}</div>`;
 }
 
-/** Bans, or the reason there are none to show. */
-function banList(bans, confirmed) {
-  const list = Array.isArray(bans) ? bans : [];
+const flagPill = (confirmed) =>
+  `<span class="rd-flag ${confirmed ? "is-on" : ""}">${confirmed ? "CONFIRMED" : "editing"}</span>`;
+
+/** The one header row that names the two columns under it. */
+function sidesHead(leftLabel, rightLabel, leftFlag, rightFlag, extra = "") {
   return `
-    <div class="rd-col-head">
-      <span>BANS · ${list.length}</span>
-      <span class="rd-flag ${confirmed ? "is-on" : ""}">${confirmed ? "CONFIRMED" : "editing"}</span>
-    </div>
-    ${list.length
-      ? `<ul class="rd-chips">${list.map(playerChip).join("")}</ul>`
-      : `<p class="rd-none">none yet</p>`}`;
+    <div class="rd-pair rd-pair--head ${extra}">
+      <span class="rd-pair-idx"></span>
+      <span class="rd-side-tag is-host">${leftLabel}${leftFlag}</span>
+      <span class="rd-side-tag is-guest">${rightLabel}${rightFlag}</span>
+    </div>`;
+}
+
+function playerCell(p, side) {
+  const tone = sideClass(side);
+  if (!p) return `<span class="rd-cell is-hole">—</span>`;
+  const meta = [p.position, p.overall].filter(Boolean).join(" · ");
+  return `<span class="rd-cell ${tone}">
+    <span class="rd-cell-name">${escapeHtml(p.name || "—")}</span>
+    ${meta ? `<span class="rd-cell-meta">${escapeHtml(String(meta))}</span>` : ""}
+  </span>`;
 }
 
 /**
- * Picks, which arrive as a sparse slot array — a `null` is a hole the player
- * left in their formation, not a missing player, so the count and the list have
- * to disagree on purpose.
+ * The comparison this panel exists for: one row per index, host on the left and
+ * guest on the right, so the two sides can be read across rather than scrolled
+ * between. Rows are paired by position and the shorter side gets a hole, which
+ * is what keeps them lined up when the counts differ — three bans against none
+ * used to push every pick below it out of step with its opposite number.
  */
-function pickList(picks, confirmed, formation) {
-  const slots = Array.isArray(picks) ? picks : [];
-  const filled = slots.filter(Boolean).length;
+function pairedRows(left, right, side = playerCell) {
+  const a = Array.isArray(left) ? left : [];
+  const b = Array.isArray(right) ? right : [];
+  const n = Math.max(a.length, b.length);
+  if (!n) return `<p class="rd-none">none yet</p>`;
+  return `<ul class="rd-pairs">${Array.from({ length: n }, (_, i) => `
+    <li class="rd-pair">
+      <span class="rd-pair-idx">${i + 1}</span>
+      ${side(a[i], "host")}
+      ${side(b[i], "guest")}
+    </li>`).join("")}</ul>`;
+}
+
+/** Bans, side by side. */
+function bansSection(room) {
+  const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
+  const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
   return `
-    <div class="rd-col-head">
-      <span>PICKS · ${filled}${slots.length > filled ? ` of ${slots.length} slots` : ""}</span>
-      <span class="rd-flag ${confirmed ? "is-on" : ""}">${confirmed ? "CONFIRMED" : "editing"}</span>
-    </div>
-    <p class="rd-sub">formation ${escapeHtml(String(formation || "—"))}</p>
-    ${slots.length
-      ? `<ul class="rd-chips">${slots.map(playerChip).join("")}</ul>`
-      : `<p class="rd-none">none yet</p>`}`;
+    <div class="rd-section">
+      <h3 class="rd-title">BANS</h3>
+      ${sidesHead(`HOST · ${host.length}`, `GUEST · ${guest.length}`,
+        flagPill(room.bansConfirmed?.host), flagPill(room.bansConfirmed?.guest))}
+      ${pairedRows(host, guest)}
+    </div>`;
+}
+
+/**
+ * Picks, side by side. They arrive as a sparse slot array — a `null` is a hole
+ * the player left in their formation, not a missing player, so the count and
+ * the list disagree on purpose.
+ */
+function picksSection(room) {
+  const host = Array.isArray(room.picks?.host) ? room.picks.host : [];
+  const guest = Array.isArray(room.picks?.guest) ? room.picks.guest : [];
+  const count = (slots) => slots.filter(Boolean).length;
+  const label = (name, slots, formation) =>
+    `${name} · ${count(slots)}${slots.length > count(slots) ? ` of ${slots.length}` : ""}`
+    + ` <span class="rd-side-sub">${escapeHtml(String(formation || "—"))}</span>`;
+  return `
+    <div class="rd-section">
+      <h3 class="rd-title">PICKS</h3>
+      ${sidesHead(
+        label("HOST", host, room.formations?.host),
+        label("GUEST", guest, room.formations?.guest),
+        flagPill(room.picksConfirmed?.host), flagPill(room.picksConfirmed?.guest))}
+      ${pairedRows(host, guest)}
+    </div>`;
 }
 
 /** The published turn schedule, with the one being played marked. */
 function scheduleStrip(schedule, turnIndex) {
   const turns = Array.isArray(schedule) ? schedule : [];
   if (!turns.length) return "";
-  return `<ul class="rd-schedule">${turns.map((t, i) => `
-    <li class="rd-turn ${i === Number(turnIndex) ? "is-current" : ""}">
-      ${escapeHtml(String(t.action || "?"))} · ${escapeHtml(String(t.side || "?"))}
-    </li>`).join("")}</ul>`;
+  return `<ul class="rd-schedule">${turns.map((t, i) => {
+    const side = String(t.side || "?");
+    const tone = side === "guest" ? SIDE_CLASS.guest : side === "host" ? SIDE_CLASS.host : "";
+    return `
+    <li class="rd-turn ${tone} ${i === Number(turnIndex) ? "is-current" : ""}">
+      ${escapeHtml(String(t.action || "?"))} · ${escapeHtml(side)}
+    </li>`;
+  }).join("")}</ul>`;
 }
 
+/** yes / no / not-applicable, in the column it belongs to. */
+function stepCell(value, side) {
+  if (value == null) return `<span class="rd-cell is-hole">—</span>`;
+  const tone = value ? sideClass(side) : "";
+  return `<span class="rd-cell ${tone} rd-cell--step">${value ? "yes" : "no"}</span>`;
+}
+
+/**
+ * The match handshake, as the comparison it always was: every step but the
+ * first is a host/guest pair, and they were printed as seven separate lines
+ * with the side spelled into each label.
+ */
 function matchSteps(room) {
-  const steps = [
-    ["guest ready", room.ready?.guest],
-    ["host at Start Match", room.matchReady?.host],
-    ["guest at Start Match", room.matchReady?.guest],
-    ["host started", room.matchStarted?.host],
-    ["guest started", room.matchStarted?.guest],
-    ["host finished", room.matchFinished?.host],
-    ["guest finished", room.matchFinished?.guest],
+  const rows = [
+    ["ready", null, room.ready?.guest],
+    ["at Start Match", room.matchReady?.host, room.matchReady?.guest],
+    ["started", room.matchStarted?.host, room.matchStarted?.guest],
+    ["finished", room.matchFinished?.host, room.matchFinished?.guest],
   ];
-  return `<dl class="rd-facts">${steps
-    .map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${yesNo(v)}</dd>`)
-    .join("")}</dl>`;
+  /* A wider first track than the numbered lists: these rows are named, and
+     "at Start Match" in 34px broke across three lines. */
+  return `
+    ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
+    <ul class="rd-pairs">${rows.map(([label, host, guest]) => `
+      <li class="rd-pair rd-pair--steps">
+        <span class="rd-pair-idx rd-pair-label">${escapeHtml(label)}</span>
+        ${stepCell(host, "host")}
+        ${stepCell(guest, "guest")}
+      </li>`).join("")}</ul>`;
 }
 
 // ── Rendering ────────────────────────────────────────────────
@@ -147,24 +234,13 @@ function render(room) {
       : ""}
 
     <div class="rd-grid">
-      ${seatCard("HOST", room.host)}
-      ${seatCard("GUEST", room.guest)}
+      ${seatCard("HOST", room.host, "host")}
+      ${seatCard("GUEST", room.guest, "guest")}
     </div>
 
     <div class="rd-section">
       <h3 class="rd-title">SETTINGS</h3>
-      <dl class="rd-facts rd-facts--wide">
-        <dt>status</dt><dd>${escapeHtml(String(room.status || "—"))}</dd>
-        <dt>idle</dt><dd>${fmtSeconds(room.idleSec)}</dd>
-        <dt>bans per side</dt><dd>${escapeHtml(String(cfg.banCountPerSide ?? "—"))}${
-          room.maxBanCountPerSide != null ? ` (max ${room.maxBanCountPerSide})` : ""}</dd>
-        <dt>ban order</dt><dd>${escapeHtml(String(cfg.banOrder || "—"))}</dd>
-        <dt>ban timer</dt><dd>${fmtDuration(cfg.banDurationSec)}</dd>
-        <dt>pick timer</dt><dd>${fmtDuration(cfg.pickDurationSec)}</dd>
-        <dt>picks per side</dt><dd>${escapeHtml(String(cfg.pickCountPerSide ?? "—"))}</dd>
-        <dt>pick reveal</dt><dd>${escapeHtml(String(cfg.revealMode || "—"))}</dd>
-        <dt>ban reveal</dt><dd>${escapeHtml(String(cfg.banRevealMode || "—"))}</dd>
-      </dl>
+      ${settingsRow(room, cfg)}
     </div>
 
     <div class="rd-section">
@@ -172,19 +248,8 @@ function render(room) {
       ${scheduleStrip(room.schedule, room.turnIndex)}
     </div>
 
-    <div class="rd-section">
-      <h3 class="rd-title">BOARD</h3>
-      <div class="rd-grid">
-        <div class="rd-col">
-          ${banList(room.bans?.host, room.bansConfirmed?.host)}
-          ${pickList(room.picks?.host, room.picksConfirmed?.host, room.formations?.host)}
-        </div>
-        <div class="rd-col">
-          ${banList(room.bans?.guest, room.bansConfirmed?.guest)}
-          ${pickList(room.picks?.guest, room.picksConfirmed?.guest, room.formations?.guest)}
-        </div>
-      </div>
-    </div>
+    ${bansSection(room)}
+    ${picksSection(room)}
 
     <div class="rd-section">
       <h3 class="rd-title">MATCH STEPS</h3>

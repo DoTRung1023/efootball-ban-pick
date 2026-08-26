@@ -1348,13 +1348,23 @@ body {
   gap: 12px;
 }
 
-.rd-col { min-width: 0; }
+/* ── Which side you are looking at ──────────────────────────
+   Host blue, guest red, on every element that belongs to one of them. Both
+   hues carry another meaning elsewhere in this console — blue is console
+   access, red is banned or broken — and this panel deliberately gives them a
+   second, local one. It is read-only, it is two sides and nothing else, and a
+   colour beats reading a label on every row. */
+.rd-seat.is-host  { border-left: 3px solid var(--hue-blue); }
+.rd-seat.is-guest { border-left: 3px solid var(--danger); }
+.rd-seat.is-host .rd-seat-role  { color: var(--hue-blue); }
+.rd-seat.is-guest .rd-seat-role { color: var(--danger); }
 
 .rd-seat {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px;
   background: var(--surface-sunken);
+  min-width: 0;
 }
 .rd-seat.is-empty { color: var(--text-dim); }
 
@@ -1381,49 +1391,141 @@ body {
 }
 .rd-facts dt { color: var(--text-dim); }
 .rd-facts dd { overflow-wrap: anywhere; }
-.rd-facts--wide { grid-template-columns: repeat(2, auto 1fr); }
 
-.rd-col-head {
+/* ── Room-wide settings ─────────────────────────────────────
+   A wrapping row of small stacked pairs, not the two-column definition list it
+   was: two columns on this panel mean host and guest, and none of these are
+   either. Nine of them read as one band of facts about the room. */
+.rd-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.rd-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  min-width: 0;
+}
+
+.rd-stat-k {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.rd-stat-v {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* ── The comparison ─────────────────────────────────────────
+   One grid, three tracks: the index, then a cell per side. Every row is laid
+   out by the same rule, so host row 4 is always level with guest row 4 — which
+   two independent lists side by side could not promise, and did not: three
+   bans against none knocked every pick below them out of step. */
+.rd-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rd-pair {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.rd-pair-idx {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The MATCH STEPS rows name themselves rather than counting, so they need a
+   track a word fits in — at 34px "at Start Match" came out over three lines and
+   "finished" broke mid-word. */
+.rd-pair--steps { grid-template-columns: 116px minmax(0, 1fr) minmax(0, 1fr); }
+
+.rd-pair-label {
+  justify-content: flex-start;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.rd-pair--head {
+  margin-bottom: 6px;
+  align-items: center;
+}
+
+.rd-side-tag {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin: 12px 0 6px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--text-dim);
+  min-width: 0;
 }
-.rd-col:first-child > .rd-col-head:first-child { margin-top: 0; }
+.rd-side-tag.is-host  { color: var(--hue-blue); }
+.rd-side-tag.is-guest { color: var(--danger); }
 
-.rd-flag {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
+.rd-side-sub {
+  font-weight: 400;
+  letter-spacing: 0;
   color: var(--text-dim);
+  overflow-wrap: anywhere;
 }
-.rd-flag.is-on { color: var(--accent); border-color: var(--accent); }
 
-.rd-sub { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
-.rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
-
-.rd-chips { display: flex; flex-direction: column; gap: 4px; }
-
-.rd-chip {
+.rd-cell {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   padding: 5px 9px;
   border: 1px solid var(--border);
+  border-left-width: 3px;
   border-radius: var(--radius-sm);
   background: var(--surface-sunken);
   font-size: 12px;
+  min-width: 0;
 }
-.rd-chip.is-hole { color: var(--text-dim); font-style: italic; }
-.rd-chip-name { overflow-wrap: anywhere; }
-.rd-chip-meta { color: var(--text-dim); white-space: nowrap; }
+.rd-cell.is-host {
+  border-left-color: var(--hue-blue);
+  background: var(--hue-blue-fill);
+}
+.rd-cell.is-guest {
+  border-left-color: var(--danger);
+  background: var(--danger-fill);
+}
+/* Nothing on this side at this index — kept, and kept quiet, because the row
+   only lines up if both cells are there. */
+.rd-cell.is-hole {
+  justify-content: center;
+  color: var(--text-muted);
+  border-left-width: 1px;
+  background: transparent;
+}
+
+.rd-cell--step { justify-content: center; font-weight: 600; }
+
+.rd-cell-name { overflow-wrap: anywhere; }
+.rd-cell-meta { color: var(--text-dim); white-space: nowrap; }
+
+.rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
 
 .rd-schedule { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -1434,7 +1536,9 @@ body {
   border-radius: var(--radius-pill);
   color: var(--text-dim);
 }
-/* The accent, used once on this panel. */
+.rd-turn.is-host  { color: var(--hue-blue); border-color: var(--hue-blue-line); }
+.rd-turn.is-guest { color: var(--danger); border-color: var(--danger-line); }
+/* The turn actually being played outranks whose it is. */
 .rd-turn.is-current { color: var(--accent); border-color: var(--accent); }
 
 /* ── Responsive ─────────────────────────────────────────────── */
@@ -1487,8 +1591,12 @@ body {
   /* Host above guest rather than beside it — two columns of player chips do not
      survive a phone. */
   .rd-grid { grid-template-columns: 1fr; }
-  .rd-facts--wide { grid-template-columns: auto 1fr; }
   .rd-overlay { padding: 12px 8px; }
+  /* The pair stays two columns however narrow it gets — stacking host above
+     guest would undo the one thing this layout is for. */
+  .rd-pair { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); gap: 5px; }
+  .rd-pair--steps { grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr); }
+  .rd-cell { padding: 5px 7px; font-size: 11px; }
   .admin-nav { gap: 12px; }
   /* **The tab strip takes a row of its own from here down, not from 600.** This
      rung used to hide the wordmark and leave a 28px logo in the corner, which
