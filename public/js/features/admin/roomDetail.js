@@ -13,6 +13,7 @@
    in-memory map lookup.
    ============================================================ */
 
+import { BENCH_ROW_LABEL, LINEUP_SIZE } from "@/shared/players/formations.js";
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch } from "./adminApi.js";
 import { phasePill } from "./format.js";
@@ -126,15 +127,29 @@ function playerCell(p, side) {
  * slot the player left empty in their formation, so dropping it would move
  * every player below it up a number.
  */
-function sideList(side, count, players, sub = "") {
-  const rows = Array.isArray(players) ? players : [];
-  const body = rows.length
-    ? `<ol class="rd-rows">${rows.map((p, i) => `
+/**
+ * One run of slots inside a side's box, under its own label.
+ *
+ * `from` is the slot the run starts at, not the index into it: a bench group is
+ * sliced off the back of the pick array and still has to number itself 12, 13,
+ * 14 — the slot is what the room, the pitch and `game_plan_players` all agree
+ * on, and renumbering it from 1 would name a different player.
+ */
+function rowGroup(label, players, side, from) {
+  if (!players.length) return "";
+  return `
+    ${label ? `<div class="rd-group">${escapeHtml(label)}</div>` : ""}
+    <ol class="rd-rows">${players.map((p, i) => `
       <li class="rd-row">
-        <span class="rd-row-idx">${i + 1}</span>
+        <span class="rd-row-idx">${from + i + 1}</span>
         ${playerCell(p, side)}
-      </li>`).join("")}</ol>`
-    : `<p class="rd-none">none</p>`;
+      </li>`).join("")}</ol>`;
+}
+
+function sideList(side, count, groups, sub = "") {
+  const body = groups.map(([label, players, from]) =>
+    rowGroup(label, Array.isArray(players) ? players : [], side, from)).join("")
+    || `<p class="rd-none">none</p>`;
   /* The tally rides *inside* the box, in a strip of its own across its top,
      rather than trailing the side's name outside it. `HOST · 0  4-3-3` put
      three unlike things on one line — whose column this is, how full it is, and
@@ -263,8 +278,8 @@ function banStage(room) {
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${banTurnStrip(room.schedule, room.turnIndex)}
     ${sideLists(
-      sideList("host", countOf(host.length, "ban"), host),
-      sideList("guest", countOf(guest.length, "ban"), guest))}
+      sideList("host", countOf(host.length, "ban"), [["", host, 0]]),
+      sideList("guest", countOf(guest.length, "ban"), [["", guest, 0]]))}
     ${confirmRow(room.bansConfirmed)}`);
 }
 
@@ -282,10 +297,19 @@ function pickStage(room) {
     const n = slots.filter(Boolean).length;
     return slots.length > n ? `${n} of ${slots.length} picks` : countOf(n, "pick");
   };
+  /* **The eleven and the bench are two different questions**, and one run of
+     twenty-three rows answered neither: whether this side has a whole team on
+     the pitch, and how deep their bench is. `LINEUP_SIZE` is the cut, from
+     `shared/players/formations.js` — the module that owns the slot numbering
+     the room, the pitch and `game_plan_players` all address players by. */
+  const groups = (slots) => [
+    ["LINEUP", slots.slice(0, LINEUP_SIZE), 0],
+    [BENCH_ROW_LABEL, slots.slice(LINEUP_SIZE), LINEUP_SIZE],
+  ];
   return stageBlock("pick", "3 · PICK", room.phase, `
     ${sideLists(
-      sideList("host", filled(host), host, room.formations?.host || "—"),
-      sideList("guest", filled(guest), guest, room.formations?.guest || "—"))}
+      sideList("host", filled(host), groups(host), room.formations?.host || "—"),
+      sideList("guest", filled(guest), groups(guest), room.formations?.guest || "—"))}
     ${confirmRow(room.picksConfirmed)}`);
 }
 

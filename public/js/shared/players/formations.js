@@ -41,6 +41,12 @@
 
 export const DEFAULT_FORMATION = "4-3-3";
 
+/** Where the lineup half of the slot range ends. Slots 1–11 are the eleven a
+    formation lays out; everything above is bench, which belongs to no formation.
+    Declared here because this is the module that owns the numbering — it was a
+    bare `11` in `pickView.js` and again in `readyView.js`. */
+export const LINEUP_SIZE = 11;
+
 /** Slots 12-23 are substitutes on both pitches. */
 export const BENCH_ROW_LABEL = "SUB";
 

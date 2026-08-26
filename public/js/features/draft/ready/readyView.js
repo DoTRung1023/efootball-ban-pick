@@ -30,13 +30,13 @@ import {
   filledPicks,
   getFormationLayout,
   normalizeFormation,
+  LINEUP_SIZE,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
 import { icon } from '@/shared/icons/icon.js';
-const LINEUP_SIZE = 11;
 /* `footer: false` — the art alone, no detail strip under it. The card already
    prints the name, the position and both ratings; the strip repeated the region
    and nation under every one of 23 cards per side, which on a screen showing 46

@@ -11,7 +11,7 @@ export {
 /* Same arrangement for the formation table — see
    @/shared/players/formations.js. */
 export { normalizeFormation, getFormationLayout,
-         BENCH_ROW_LABEL } from "@/shared/players/formations.js";
+         BENCH_ROW_LABEL, LINEUP_SIZE } from "@/shared/players/formations.js";
 
 export function getPlayerCardValue(player) {
   return player?.overall_rating ?? player?.overall_max ?? player?.overall ?? "—";

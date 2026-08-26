@@ -1575,6 +1575,19 @@ body {
   padding: 8px;
 }
 
+/* LINEUP / SUB inside a pick box. Sits on the same left edge as the numbers
+   under it rather than indenting to the cells, so the two runs read as two
+   sections of one list and not as two boxes sharing a border. `+ .rd-rows`
+   closes the gap the group's own padding would otherwise double. */
+.rd-group {
+  padding: 8px 8px 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.rd-group + .rd-rows { padding-top: 6px; }
+
 /* Centred in a box tall enough to read as an empty list rather than as a line
    of text with a rule round it. Scoped with `>` because `.rd-none` is also the
    panel's "Loading…" line, which is not in a box and wants neither the height

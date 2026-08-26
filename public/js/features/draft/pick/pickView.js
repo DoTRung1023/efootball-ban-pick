@@ -26,6 +26,7 @@ import {
   normalizeFormation,
   pickCount,
   BENCH_ROW_LABEL,
+  LINEUP_SIZE,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
 import { getPickListPlayers } from '@/features/draft/playerQuery.js';
@@ -36,7 +37,6 @@ import { pickLimit } from '@/features/draft/engine/draftFlow.js';
 import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
 import { icon } from '@/shared/icons/icon.js';
-const LINEUP_SIZE = 11;
 
 /* ── Pitch slot sizing ─────────────────────────────────────────
    The pitch is rows of card-shaped slots inside a column whose height is set by
