@@ -221,6 +221,9 @@ export async function loadTopPlayers() {
     state.error = "Could not load the sign-in list.";
     renderAll();
   }
+  /* The grid's first fetch. Here rather than in `browser.init()`, which runs
+     before the console gate and so has no token to send. */
+  browser?.reload();
 }
 
 export function initTopPlayersControl() {

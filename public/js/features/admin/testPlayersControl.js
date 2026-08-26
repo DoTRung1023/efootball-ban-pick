@@ -160,6 +160,9 @@ export async function loadTestPlayers() {
     state.error = "Could not load the marked cards.";
   }
   renderAll();
+  /* The grid's first fetch. Here rather than in `browser.init()`, which runs
+     before the console gate and so has no token to send. */
+  browser?.reload();
 }
 
 export function initTestPlayersControl() {

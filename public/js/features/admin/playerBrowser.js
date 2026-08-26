@@ -252,6 +252,19 @@ export function createPlayerBrowser({
     els.grid.classList.toggle("info-hidden", !state.showInfo);
   }
 
+  /**
+   * Wires the toolbar. **Does not fetch.**
+   *
+   * `initConsole` runs every `init*` before the gate, so that no half-wired
+   * dashboard can be revealed. A fetch in here therefore happens with no admin
+   * token — and `apiFetch` answers 401 by clearing the token and calling
+   * `location.reload()`, which turns that into a page that reloads forever
+   * before the password box can be typed into. It did, once.
+   *
+   * The first fetch belongs to the tab's `load`, which `tabs.js` runs on
+   * activation — after the gate. `initCatalogTab` next door has always worked
+   * this way; this is the same rule, written down.
+   */
   function init() {
     sortPanel = buildSortPanel();
     els.sortWrap.appendChild(sortPanel);
@@ -299,9 +312,7 @@ export function createPlayerBrowser({
       state.offset += PAGE_SIZE;
       fetchPage({ append: true });
     });
-
-    reload();
   }
 
-  return { init, refreshMarks };
+  return { init, reload, refreshMarks };
 }
