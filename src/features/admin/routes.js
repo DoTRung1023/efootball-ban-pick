@@ -196,21 +196,57 @@ router.get("/rooms", (_req, res) => {
  * plus the three fields only a dashboard wants. Re-serializing it here would be
  * a second copy of twenty fields to keep in step with the first.
  */
-router.get("/rooms/:code", (req, res) => {
+/**
+ * How many game plans each seat has saved.
+ *
+ * **Attached here rather than in `serializeRoomEntry`**, which the two draft
+ * clients also read: what your opponent has in their planner is none of their
+ * business, and this route is the only caller that wants it.
+ *
+ * A failed read answers `null` — "unknown" on the panel — rather than throwing.
+ * The room itself is in memory and is what the admin clicked WATCH to see; a
+ * database hiccup should cost one line of a seat card, not the whole panel.
+ */
+async function planCounts(ids) {
+  const wanted = [...new Set(ids.map(Number).filter(Number.isFinite))];
+  if (!wanted.length) return new Map();
+  try {
+    const [rows] = await db.query(
+      `SELECT user_id, COUNT(*) AS planCount FROM game_plans
+       WHERE user_id IN (?) GROUP BY user_id`,
+      [wanted],
+    );
+    /* Seeded at zero, because `GROUP BY` returns no row at all for a user with
+       no plans — read straight off the result, "has none" and "was never asked
+       about" are the same absence, and a seat with an empty planner reported
+       itself as unknown. */
+    const counts = new Map(wanted.map((id) => [id, 0]));
+    for (const row of rows) counts.set(Number(row.user_id), Number(row.planCount));
+    return counts;
+  } catch {
+    return null;
+  }
+}
+
+router.get("/rooms/:code", asyncHandler(async (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const entry = isValidRoomCode(code) ? findRoomEntry(code) : null;
   if (!entry) {
     return res.status(404).json({ error: "That room is not in memory — it ended, or the server restarted." });
   }
-  res.json({
-    room: {
-      ...serializeRoomEntry(entry),
-      code,
-      phase: roomPhase(entry),
-      idleSec: Math.floor((Date.now() - entry.updatedAt) / 1000),
-    },
-  });
-});
+  const room = {
+    ...serializeRoomEntry(entry),
+    code,
+    phase: roomPhase(entry),
+    idleSec: Math.floor((Date.now() - entry.updatedAt) / 1000),
+  };
+  /* `serializeRoomEntry` builds fresh seat objects every call, so these are
+     safe to write on — the in-memory room is untouched. */
+  const counts = await planCounts([room.host?.id, room.guest?.id]);
+  if (room.host) room.host.planCount = counts?.get(Number(room.host.id)) ?? null;
+  if (room.guest) room.guest.planCount = counts?.get(Number(room.guest.id)) ?? null;
+  res.json({ room });
+}));
 
 router.get("/scrape-logs", asyncHandler(async (req, res) => {
   try {

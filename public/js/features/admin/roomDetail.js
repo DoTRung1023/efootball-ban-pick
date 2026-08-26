@@ -15,7 +15,7 @@
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch } from "./adminApi.js";
-import { fmtSeconds, phasePill } from "./format.js";
+import { phasePill } from "./format.js";
 
 const POLL_MS = 3000;
 
@@ -55,6 +55,14 @@ function fmtDuration(sec) {
 const SIDE_CLASS = { host: "is-host", guest: "is-guest" };
 const sideClass = (side) => (side === "guest" ? SIDE_CLASS.guest : SIDE_CLASS.host);
 
+/** `34 players` · `1 game plan` · `unknown`. Both seat counts can be absent:
+    a squad size the room has not read yet, or a plan count the database did
+    not answer for. */
+function countOf(n, noun) {
+  if (n == null) return "unknown";
+  return `${n} ${noun}${Number(n) === 1 ? "" : "s"}`;
+}
+
 function seatCard(label, seat, side) {
   const tone = sideClass(side);
   if (!seat) {
@@ -64,15 +72,14 @@ function seatCard(label, seat, side) {
         <div class="rd-seat-name">empty</div>
       </div>`;
   }
-  const idle = Math.floor((Date.now() - Number(seat.lastSeenAt || 0)) / 1000);
   return `
     <div class="rd-seat ${tone}">
       <div class="rd-seat-role">${escapeHtml(label)}</div>
       <div class="rd-seat-name">${escapeHtml(seat.username || "—")}</div>
       <dl class="rd-facts">
         <dt>id</dt><dd class="td-mono">${escapeHtml(String(seat.id || "—"))}</dd>
-        <dt>squad</dt><dd>${seat.playerCount == null ? "unknown" : `${seat.playerCount} players`}</dd>
-        <dt>last beat</dt><dd>${fmtSeconds(idle)} ago${seat.hidden ? " · tabbed away" : ""}</dd>
+        <dt>squad</dt><dd>${countOf(seat.playerCount, "player")}</dd>
+        <dt>plans</dt><dd>${countOf(seat.planCount, "game plan")}</dd>
       </dl>
     </div>`;
 }

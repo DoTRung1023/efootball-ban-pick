@@ -300,6 +300,16 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   and `idleSec`. Reuses the players' own snapshot rather than re-listing twenty
   fields, which would be a second copy to keep in step. 404 when the code is not
   in memory. See **WATCH** above.
+
+  It also writes a **`planCount` onto each seat**, the one field not in that
+  snapshot: the two draft clients read `serializeRoomEntry` too, and what your
+  opponent has saved in their planner is none of their business. The count is
+  seeded at zero for both seat ids before the rows are merged in, because
+  `GROUP BY` returns no row at all for a user with no plans — read straight off
+  the result, an empty planner is indistinguishable from a user nobody asked
+  about. A query that *throws* answers `null`, which the panel prints as
+  `unknown`: the room is in memory and is what the admin clicked WATCH to see,
+  so a database hiccup costs one line of a seat card rather than the panel.
 - `GET /preferences` · `PUT /preferences` — this admin's console settings,
   always for `req.admin.uid` and never for an id in the body. The PUT takes one
   `{ key, value }`; the key is allow-listed and the value shape-checked in
