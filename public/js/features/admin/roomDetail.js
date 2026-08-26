@@ -224,6 +224,9 @@ function stageState(id, phase) {
   return { cls: "is-ahead", label: "not reached" };
 }
 
+/** True once the room is past this stage — see `confirmRow`. */
+const isPast = (id, phase) => stageState(id, phase).cls === "is-done";
+
 function stageBlock(id, title, phase, body) {
   const { cls, label } = stageState(id, phase);
   return `
@@ -280,7 +283,7 @@ function banStage(room) {
     ${sideLists(
       sideList("host", countOf(host.length, "ban"), [["", host, 0]]),
       sideList("guest", countOf(guest.length, "ban"), [["", guest, 0]]))}
-    ${confirmRow(room.bansConfirmed)}`);
+    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
 }
 
 /**
@@ -310,13 +313,13 @@ function pickStage(room) {
     ${sideLists(
       sideList("host", filled(host), groups(host), room.formations?.host || "—"),
       sideList("guest", filled(guest), groups(guest), room.formations?.guest || "—"))}
-    ${confirmRow(room.picksConfirmed)}`);
+    ${confirmRow(room.picksConfirmed, isPast("pick", room.phase))}`);
 }
 
 /** Each step row's own words for done and not-done. */
 const STEP_WORDS = {
   ready: ["ready", "unready"],
-  confirmed: ["confirmed", "editing"],
+  confirmed: ["confirmed", "unconfirmed"],
   started: ["started", "not started"],
   finished: ["finished", "not finished"],
 };
@@ -354,17 +357,26 @@ const stepRow = (host, guest, words) => `
 /**
  * Has each side locked its list in?
  *
+ * **A stage the room has left reports `confirmed` whichever way the flags
+ * point, and has to.** Those flags are the latch that *causes* the advance, so
+ * the server clears them on the way through — `bansConfirmed` on every turn
+ * advance (`rooms/turns.js`), `picksConfirmed` the moment both sides are in
+ * (`rooms/routes.js`) — or the next turn would fire on the last turn's
+ * confirmations. Read afterwards they say `false, false`, which is a live
+ * latch's resting state and not a record of anything: the panel was printing
+ * "editing" under a stage badged DONE. Past a stage, the room having advanced
+ * is itself the proof both sides confirmed.
+ *
  * It was a word trailing the column tag — `HOST · 3 CONFIRMED` — carrying
- * `.rd-flag` and `.is-on`, **neither of which any stylesheet defines**. So the
+ * `.rd-flag` and `.is-on`, **neither of which any stylesheet defines**, so the
  * two states were the same colour as each other and as the count in front of
- * them, and the one that was supposed to stand out did not. As a state row it
- * is the same black-or-green box the lobby and START MATCH rows use, which is
- * the right answer anyway: "has this side finished" now looks identical
- * wherever the panel asks it.
+ * them. As a state row it is the same black-or-green box the lobby and START
+ * MATCH rows use: "has this side finished" looks identical wherever the panel
+ * asks it.
  */
-const confirmRow = (flags) =>
+const confirmRow = (flags, done) =>
   `<ul class="rd-pairs">${stepRow(
-    Boolean(flags?.host), Boolean(flags?.guest), STEP_WORDS.confirmed)}</ul>`;
+    done || Boolean(flags?.host), done || Boolean(flags?.guest), STEP_WORDS.confirmed)}</ul>`;
 
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
