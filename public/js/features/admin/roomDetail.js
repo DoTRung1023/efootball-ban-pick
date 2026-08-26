@@ -305,7 +305,7 @@ function banStage(room) {
     ${sideLists(
       sideList("host", countOf(host.length, "ban"), [["", host]]),
       sideList("guest", countOf(guest.length, "ban"), [["", guest]]))}
-    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase), CONFIRM_WORDS.ban)}`);
+    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
 }
 
 /**
@@ -335,7 +335,7 @@ function pickStage(room) {
     ${sideLists(
       sideList("host", filled(host), groups(host), room.formations?.host || "—"),
       sideList("guest", filled(guest), groups(guest), room.formations?.guest || "—"))}
-    ${confirmRow(room.picksConfirmed, isPast("pick", room.phase), CONFIRM_WORDS.pick)}`);
+    ${confirmRow(room.picksConfirmed, isPast("pick", room.phase))}`);
 }
 
 /** Each step row's own words for done and not-done. */
@@ -348,28 +348,16 @@ const STEP_WORDS = {
      different one: whether the draft has begun. */
   lobby: { host: ["started", "not started"], guest: ["ready", "unready"] },
   ready: ["ready", "unready"],
+  /* The verb off the player's own button — `#confirmBansBtn` and
+     `#confirmPicksBtn` read CONFIRM BANS / CONFIRM PICKS until a side is in and
+     UN-CONFIRM after — in this panel's own lowercase, and without the noun,
+     which the stage heading above already supplies. Like the button and unlike
+     every other row here it names the **action still open** rather than the
+     state: a side that has confirmed reads `unconfirm`. The colour is what
+     carries the state, green once they are locked in. */
+  confirm: ["unconfirm", "confirm"],
   started: ["started", "not started"],
   finished: ["finished", "not finished"],
-};
-
-/**
- * The exact strings on that side's own confirm button, so this box says what
- * they are looking at rather than a word only this panel uses.
- *
- * **They are the action, not the state**: a side that has confirmed is shown
- * `UN-CONFIRM`, because that is the move still open to them. Read the colour
- * for the state — green once a side is locked in — and the words for what is on
- * their screen.
- *
- * Copies. `banView.js` and `pickView.js` write these onto `#confirmBansBtn` and
- * `#confirmPicksBtn`, and `room.html` carries the un-confirmed one as each
- * button's initial markup. There is no module all three can share — this is
- * `features/admin/`, those are `features/draft/`, and a feature may not import
- * a feature. Change a label there and change it here.
- */
-const CONFIRM_WORDS = {
-  ban: ["UN-CONFIRM", "CONFIRM BANS"],
-  pick: ["UN-CONFIRM", "CONFIRM PICKS"],
 };
 
 /**
@@ -426,9 +414,9 @@ const stepRow = (host, guest, words) => `
  * MATCH rows use: "has this side finished" looks identical wherever the panel
  * asks it.
  */
-const confirmRow = (flags, done, words) =>
+const confirmRow = (flags, done) =>
   `<ul class="rd-pairs">${stepRow(
-    done || Boolean(flags?.host), done || Boolean(flags?.guest), words)}</ul>`;
+    done || Boolean(flags?.host), done || Boolean(flags?.guest), STEP_WORDS.confirm)}</ul>`;
 
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
