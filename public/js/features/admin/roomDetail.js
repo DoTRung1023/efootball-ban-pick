@@ -25,6 +25,8 @@ const UNLIMITED_DURATION_SEC = 0;
 
 let openCode = "";
 let pollTimer = null;
+/* The markup currently on screen. See `render`. */
+let painted = "";
 
 const el = (id) => document.getElementById(id);
 
@@ -463,16 +465,36 @@ function render(room) {
      belongs to whichever stage is being played rather than to the room. */
   el("roomDetailPhase").innerHTML = headerPill(room);
 
-  el("roomDetailBody").innerHTML = `
+  /* **Only write when the markup actually changed.** This polls every 3 s and
+     an unguarded `innerHTML =` destroys and rebuilds the whole panel each time
+     — including every card `<img>`, which then starts empty and paints a frame
+     or two later. A room sitting in one state was therefore blinking its
+     artwork four times a minute at a DOM that had not changed in any way.
+
+     A string compare is enough because nothing in this markup varies with the
+     clock: the idle counter and the last-beat line, the two things that used to
+     make every render unique, are both gone. Were one to come back it would
+     defeat this guard silently, so keep elapsed times out of the body — the
+     header is the place for them.
+
+     A real change still repaints everything, and its images still blink once.
+     That is a rebuild, not a flicker: it happens when the room did something. */
+  const html = `
     ${lobbyStage(room, cfg)}
     ${banStage(room)}
     ${pickStage(room)}
     ${readyStage(room)}`;
-  armCardFallbacks(el("roomDetailBody"));
+  if (html === painted) return;
+  painted = html;
+
+  const body = el("roomDetailBody");
+  body.innerHTML = html;
+  armCardFallbacks(body);
 }
 
 /** The room went away mid-watch — a restart, or the host closing it. */
 function renderGone(message) {
+  painted = "";
   el("roomDetailBody").innerHTML = `<p class="rd-gone">${escapeHtml(message)}</p>`;
 }
 
@@ -500,6 +522,7 @@ function stopPolling() {
 export function openRoomDetail(code) {
   openCode = String(code || "");
   if (!openCode) return;
+  painted = "";
   el("roomDetailTitle").textContent = openCode;
   el("roomDetailPhase").innerHTML = "";
   el("roomDetailBody").innerHTML = `<p class="rd-none">Loading…</p>`;
