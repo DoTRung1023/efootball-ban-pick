@@ -99,9 +99,9 @@ const flagPill = (confirmed) =>
   `<span class="rd-flag ${confirmed ? "is-on" : ""}">${confirmed ? "CONFIRMED" : "editing"}</span>`;
 
 /** The one header row that names the two columns under it. */
-function sidesHead(leftLabel, rightLabel, leftFlag, rightFlag, extra = "") {
+function sidesHead(leftLabel, rightLabel, leftFlag = "", rightFlag = "") {
   return `
-    <div class="rd-pair rd-pair--head ${extra}">
+    <div class="rd-pair rd-pair--head">
       <span class="rd-side-tag is-host">${leftLabel}${leftFlag}</span>
       <span class="rd-pair-idx"></span>
       <span class="rd-side-tag is-guest">${rightLabel}${rightFlag}</span>
@@ -220,11 +220,11 @@ function lobbyStage(room, cfg) {
       ["ban reveal", cfg.banRevealMode || "—"],
       ["pick reveal", cfg.revealMode || "—"],
     ])}
-    ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
+    ${sidesHead("HOST", "GUEST")}
     <ul class="rd-pairs">
-      <li class="rd-pair rd-pair--steps">
+      <li class="rd-pair">
         ${stepCell(null, STEP_WORDS.ready)}
-        <span class="rd-pair-idx rd-pair-label">ready</span>
+        <span class="rd-pair-idx"></span>
         ${stepCell(room.ready?.guest, STEP_WORDS.ready)}
       </li>
     </ul>`);
@@ -275,11 +275,12 @@ const STEP_WORDS = {
 /**
  * One side's answer to a yes/no step, as a state box.
  *
- * The word is the row's own — `unready` / `ready`, `not started` / `started` —
- * rather than a bare yes: the row's name sits *between* the two columns now
- * instead of in front of them, and a lone "yes" that far from the thing it
- * answers is a value with nothing attached to it. Read either box on its own
- * and it still says what it means.
+ * **The word is the whole label.** These rows carry no name of their own — not
+ * in front of the columns and not between them — so `unready` / `ready` and
+ * `not started` / `started` are the only thing that says which step this is.
+ * That is the reason they are not `yes` / `no`: a bare yes needs a caption
+ * somewhere, and every place to put one costs a column. Read either box on its
+ * own and it still says what it means.
  *
  * **These are the one place on the panel a cell is not tinted by side.** A step
  * row asks *has this happened*, so the box is black until it has and green once
@@ -295,17 +296,19 @@ function stepCell(value, [done, notYet]) {
 
 /** The handshake after the draft, as the comparison it always was. */
 function readyStage(room) {
+  /* No row labels: each pair of words names its own step. The order is the
+     order they happen in, which is the only thing the rows share. */
   const rows = [
-    ["at Start Match", room.matchReady?.host, room.matchReady?.guest, STEP_WORDS.ready],
-    ["started", room.matchStarted?.host, room.matchStarted?.guest, STEP_WORDS.started],
-    ["finished", room.matchFinished?.host, room.matchFinished?.guest, STEP_WORDS.finished],
+    [room.matchReady?.host, room.matchReady?.guest, STEP_WORDS.ready],
+    [room.matchStarted?.host, room.matchStarted?.guest, STEP_WORDS.started],
+    [room.matchFinished?.host, room.matchFinished?.guest, STEP_WORDS.finished],
   ];
   return stageBlock("ready", "4 · START MATCH", room.phase, `
-    ${sidesHead("HOST", "GUEST", "", "", "rd-pair--steps")}
-    <ul class="rd-pairs">${rows.map(([label, host, guest, words]) => `
-      <li class="rd-pair rd-pair--steps">
+    ${sidesHead("HOST", "GUEST")}
+    <ul class="rd-pairs">${rows.map(([host, guest, words]) => `
+      <li class="rd-pair">
         ${stepCell(host, words)}
-        <span class="rd-pair-idx rd-pair-label">${escapeHtml(label)}</span>
+        <span class="rd-pair-idx"></span>
         ${stepCell(guest, words)}
       </li>`).join("")}</ul>`);
 }

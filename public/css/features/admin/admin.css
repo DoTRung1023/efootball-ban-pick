@@ -1491,12 +1491,15 @@ body {
   gap: 4px;
 }
 
-/* **The middle track is the axis, not a gutter.** The index — or, on a step
-   row, the row's own name — sits *between* the two sides rather than in front
-   of them, so HOST and GUEST are mirror images either side of the one fact they
-   are being compared on. Read from the left edge it was a label followed by two
-   values, which is a list with a heading; read from the middle it is a
-   comparison, which is the only reason this panel pairs the rows at all. */
+/* **The middle track is the axis, not a gutter.** The index sits *between* the
+   two sides rather than in front of them, so HOST and GUEST are mirror images
+   either side of it. Read from the left edge the row was a label followed by
+   two values, which is a list with a heading; read from the middle it is a
+   comparison, which is the only reason this panel pairs the rows at all.
+
+   The step rows keep the track and leave it empty. Their words label them (see
+   `stepCell`), and the track is what holds their two boxes on the same two
+   columns every other row uses. */
 .rd-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
@@ -1511,17 +1514,6 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-}
-
-/* The MATCH STEPS rows name themselves rather than counting, so they need a
-   track a word fits in — at 34px "at Start Match" came out over three lines and
-   "finished" broke mid-word. */
-.rd-pair--steps { grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr); }
-
-.rd-pair-label {
-  font-size: 11px;
-  color: var(--text-dim);
-  white-space: nowrap;
 }
 
 .rd-pair--head {
@@ -1689,7 +1681,6 @@ body {
   /* The pair stays two columns however narrow it gets — stacking host above
      guest would undo the one thing this layout is for. */
   .rd-pair { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 5px; }
-  .rd-pair--steps { grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); }
   .rd-cell { padding: 5px 7px; font-size: 11px; }
   .admin-nav { gap: 12px; }
   /* **The tab strip takes a row of its own from here down, not from 600.** This
