@@ -347,14 +347,16 @@ const STEP_WORDS = {
      different one: whether the draft has begun. */
   lobby: { host: ["started", "not started"], guest: ["ready", "unready"] },
   ready: ["ready", "unready"],
-  /* The verb off the player's own button — `#confirmBansBtn` and
-     `#confirmPicksBtn` read CONFIRM BANS / CONFIRM PICKS until a side is in and
-     UN-CONFIRM after — in this panel's own lowercase, and without the noun,
-     which the stage heading above already supplies. Like the button and unlike
-     every other row here it names the **action still open** rather than the
-     state: a side that has confirmed reads `unconfirm`. The colour is what
-     carries the state, green once they are locked in. */
-  confirm: ["unconfirm", "confirm"],
+  /* The button's vocabulary, but the **state** of it rather than the action —
+     `confirmed`, not the `UN-CONFIRM` that `#confirmBansBtn` shows a side who
+     is already in.
+
+     Mirroring the button put the one negative word in this panel on the one
+     green box: green marks done everywhere here, and `unconfirm` under it read
+     as a contradiction rather than as "locked in, and here is the way back".
+     Every row now holds the same invariant — **a green box never says `un…` or
+     `not …`** — which is what lets the colour be read on its own. */
+  confirm: ["confirmed", "unconfirmed"],
   started: ["started", "not started"],
   finished: ["finished", "not finished"],
 };
