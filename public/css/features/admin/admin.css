@@ -1661,6 +1661,17 @@ body {
 .rd-side-tag.is-host  { color: var(--hue-blue); }
 .rd-side-tag.is-guest { color: var(--danger); }
 
+/* Whose turn it is, on the tag of the side that has it — `currentColor`, so it
+   is that side's own hue and introduces none of its own. Present only on an
+   alternating ban phase; see `sideOnTurn` in roomDetail.js. */
+.rd-turn-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .rd-side-sub {
   font-weight: 400;
   letter-spacing: 0;
@@ -1711,38 +1722,6 @@ body {
 }
 
 .rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
-
-.rd-schedule { display: flex; flex-wrap: wrap; gap: 6px; }
-
-.rd-turn {
-  font-size: 11px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--text-dim);
-}
-.rd-turn.is-host  { color: var(--hue-blue); border-color: var(--hue-blue-line); }
-.rd-turn.is-guest { color: var(--danger); border-color: var(--danger-line); }
-
-/* The turn being played is filled rather than accented: the accent on this
-   panel now marks which *stage* the room is in, and DESIGN.md gives it one use
-   per screen. Filling keeps the side's colour instead of overwriting it. */
-.rd-turn.is-current {
-  font-weight: 700;
-  color: var(--text);
-  border-color: var(--line-active);
-  background: var(--fill-strong);
-}
-.rd-turn.is-host.is-current {
-  color: var(--hue-blue);
-  border-color: var(--hue-blue);
-  background: var(--hue-blue-fill-strong);
-}
-.rd-turn.is-guest.is-current {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: var(--danger-fill);
-}
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {

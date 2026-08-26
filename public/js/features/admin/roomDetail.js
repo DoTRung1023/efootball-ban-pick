@@ -169,7 +169,7 @@ function rowGroup(label, players) {
     <div class="rd-cards">${players.map(playerCard).join("")}</div>`;
 }
 
-function sideList(side, count, groups, sub = "") {
+function sideList(side, count, groups, sub = "", onTurn = false) {
   const body = groups.map(([label, players]) =>
     rowGroup(label, Array.isArray(players) ? players : [])).join("")
     || `<p class="rd-none">none</p>`;
@@ -180,7 +180,8 @@ function sideList(side, count, groups, sub = "") {
      that describe the list below sat outside the rule drawn around it. */
   return `
     <section class="rd-side">
-      <span class="rd-side-tag ${sideClass(side)}">${side === "guest" ? "GUEST" : "HOST"}</span>
+      <span class="rd-side-tag ${sideClass(side)}">${side === "guest" ? "GUEST" : "HOST"}${
+        onTurn ? `<span class="rd-turn-dot" title="on the clock"></span>` : ""}</span>
       <div class="rd-list">
         <div class="rd-list-head">
           <span class="rd-list-count">${escapeHtml(String(count))}</span>
@@ -199,31 +200,24 @@ const sideLists = (left, right) =>
   `<div class="rd-pair">${left}<span class="rd-pair-idx"></span>${right}</div>`;
 
 /**
- * The ban turns, in order, with the one being played marked.
+ * The side on the clock right now, or `""`.
  *
- * **Only the turns that belong to one side**, which is why this is the ban
- * strip and not a general one. `buildTurnSchedule` gives a simultaneous ban
- * phase a single `both` turn and gives *every* schedule a single `both` pick
- * turn, so drawing those produced a one-pill strip reading "ban · both" or
- * "pick · both" — a turn order for something that has no turn order, restating
- * what the LOBBY band already says under `ban order`. Alternating bans are the
- * one case with a real sequence, and this is it.
+ * **Only an alternating ban phase ever has one.** `buildTurnSchedule` gives a
+ * simultaneous ban phase a single `both` turn and gives *every* schedule a
+ * single `both` pick turn, so on those there is no side to mark and this
+ * answers empty.
  *
- * Filtered, but numbered by the *original* index, because that is what
- * `turnIndex` counts — renumbering after the filter would mark the wrong pill.
+ * This replaced a strip of every turn in the phase — `host guest host guest
+ * host guest`, with the live one filled. Six pills to say one thing, and the
+ * five that were not current were the *setting* redrawn as a list: the LOBBY
+ * band already says `ban order: alternating`, and the count already says how
+ * many each side gets. What the strip alone knew is which side is waited on,
+ * and that belongs on that side, not in a row above both of them.
  */
-function banTurnStrip(schedule, turnIndex) {
-  const turns = (Array.isArray(schedule) ? schedule : [])
-    .map((t, i) => ({ t, i }))
-    .filter(({ t }) => String(t.action || "") === "ban" && String(t.side || "") !== "both");
-  if (!turns.length) return "";
-  return `<ul class="rd-schedule">${turns.map(({ t, i }) => {
-    const side = String(t.side || "?");
-    return `
-    <li class="rd-turn ${sideClass(side)} ${i === Number(turnIndex) ? "is-current" : ""}">
-      ${escapeHtml(side)}
-    </li>`;
-  }).join("")}</ul>`;
+function sideOnTurn(room) {
+  const turn = (Array.isArray(room.schedule) ? room.schedule : [])[Number(room.turnIndex)];
+  const side = String(turn?.side || "");
+  return side === "host" || side === "guest" ? side : "";
 }
 
 /* ── Stages ──────────────────────────────────────────────────
@@ -302,11 +296,14 @@ function banStage(room) {
   /* No settings band: order, timer and reveal are shown under LOBBY, where they
      were chosen. Repeating them here said the same thing twice and made the two
      draft stages look like they configured themselves. */
+  /* Only while the room is actually in the ban phase: a schedule read after the
+     fact still has a `turnIndex`, and marking a side on a stage badged DONE
+     would show a clock that stopped. */
+  const turn = room.phase === "ban" ? sideOnTurn(room) : "";
   return stageBlock("ban", "2 · BAN", room.phase, `
-    ${banTurnStrip(room.schedule, room.turnIndex)}
     ${sideLists(
-      sideList("host", countOf(host.length, "ban"), [["", host]]),
-      sideList("guest", countOf(guest.length, "ban"), [["", guest]]))}
+      sideList("host", countOf(host.length, "ban"), [["", host]], "", turn === "host"),
+      sideList("guest", countOf(guest.length, "ban"), [["", guest]], "", turn === "guest"))}
     ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
 }
 
