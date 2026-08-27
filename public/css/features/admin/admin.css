@@ -401,30 +401,18 @@ body {
   gap: 8px;
 }
 
-/* A panel's standing note. It sits at the foot of a panel by default — hence
-   the top border — and `.is-top` flips it to the head, which is where a hint
-   belongs on any panel whose table can run to hundreds of rows. */
+/* A panel's standing note, under the header and above the panel's content —
+   hence the bottom border. It was a footer, and every panel that carries one
+   has content that grows: a table of rooms or accounts, a list of checks one
+   row per check. Under the last row is somewhere nobody scrolls to, which is
+   the opposite of a hint. */
 .panel-hint {
   padding: 10px 16px;
   font-size: 12px;
   color: var(--text-dim);
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--scrim);
   line-height: 1.5;
-}
-
-.panel-hint.is-top {
-  border-top: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.panel-hint code {
-  font-family: var(--font-mono);
-  color: var(--text);
-  background: var(--fill);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
 }
 
 /* ── Live badge ─────────────────────────────────────────────── */

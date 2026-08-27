@@ -169,10 +169,11 @@ the role, which put a fact about the *reader* in the column that states the
 *account's* role. Below 620px the cell drops its label gutter, and on everyone
 else's row it is `display: none` rather than an empty line in every card.
 
-**The USERS hint sits above the table, not below it** (`.panel-hint.is-top`). As a
-footer it sat under every row the table had drawn, which on an installation with
-a few hundred accounts is somewhere nobody scrolls to. The other two panels keep
-theirs at the foot, where their content is short and fixed.
+**A `.panel-hint` sits under the panel header, above the panel's content** — all
+three of them, so there is no modifier for it. As a footer each one sat under
+every row its panel had drawn: a console with a few hundred accounts, an
+unbounded list of live rooms, one data-quality row per check. That is somewhere
+nobody scrolls to, which is the opposite of a hint.
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
 `refreshMs` and skips entirely when `document.hidden`, so a background tab costs
@@ -399,8 +400,7 @@ page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
 `.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
-role rungs — accent, text, muted — on the word and on the whole row), `.panel-hint` (`.is-top` flips its rule to the
-bottom edge for a panel that wants the note at the head), `.role-btn` (`.is-armed` — removing access takes two clicks, and the
+role rungs — accent, text, muted — on the word and on the whole row), `.panel-hint`, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
 password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column

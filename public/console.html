@@ -108,11 +108,14 @@
               <span class="panel-title">CATALOG HEALTH</span>
               <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
             </div>
+            <!-- Names REPAIR GAPS and not the CLI: that button, in the panel
+                 beside this one, runs the same scrape without a terminal. -->
+            <div class="panel-hint">
+              A non-zero count is repaired by REPAIR GAPS in SCRAPE RUNS, which refetches
+              the detail page of every player with empty fields.
+            </div>
             <div id="dataQualityBody" class="dq-list">
               <div class="dq-row dq-empty">Loading…</div>
-            </div>
-            <div class="panel-hint">
-              Run <code>npm run scrape:missing</code> to refetch detail pages for players with empty fields.
             </div>
           </div>
 
@@ -332,6 +335,11 @@
             <span class="panel-title">LIVE ROOMS <span id="roomsCount" class="live-badge">0 LIVE</span></span>
             <button id="refreshRooms" class="btn btn--ghost btn--sm">REFRESH</button>
           </div>
+          <div class="panel-hint">
+            Rooms live in server memory. This list empties on a restart, and hides a room
+            that has been quiet for 90 seconds without ending it. WATCH inspects a room
+            read-only; it does not take a seat in it.
+          </div>
           <div class="table-wrap">
             <table class="admin-table">
               <thead>
@@ -349,11 +357,6 @@
               </tbody>
             </table>
           </div>
-          <div class="panel-hint">
-            Rooms live in server memory. This list empties on a restart, and hides a room
-            that has been quiet for 90 seconds without ending it. WATCH inspects a room
-            read-only; it does not take a seat in it.
-          </div>
         </div>
       </section>
 
@@ -368,10 +371,7 @@
               <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
             </div>
           </div>
-          <!-- Above the table, not below it. As a footer it sat under every row
-               the table had drawn, and a console with a few hundred accounts put
-               it somewhere nobody scrolls to — which is the opposite of a hint. -->
-          <div class="panel-hint is-top" id="usersHint">
+          <div class="panel-hint" id="usersHint">
             The first admin is created by the server on first run; every one after that is
             promoted here. You cannot remove your own access, or the last admin's.
           </div>
