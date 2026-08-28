@@ -612,10 +612,24 @@ body {
 }
 
 /* YOU, on your own row. Neutral for the same reason UNCONFIRMED is: the accent
-   is already spent on the ACCESS word and the master row's tint. */
+   is already spent on the ACCESS word and the master row's tint.
+
+   **Opaque, and one rung of edge above the buttons** — this badge only ever
+   appears on a *tinted* row, because the only account reading this table with
+   its own row in it is an admin or a master. A translucent `--fill` over that
+   tint was 1.13 against the row it sat on and its `--border` edge was 1.03
+   against its own surface: sampled off a render, the chip was (52,58,43) on a
+   (44,50,35) row, eight values of nothing. There was no badge — only a white
+   word floating at the end of the row.
+
+   `--bg` is the one surface darker than any row here, so it punches the tint
+   out instead of washing over it (1.44), and `--line-active` is what gives the
+   chip an edge at all (3.06 against it, against 1.03). That rung is "selected /
+   focused" on the ladder, which is what this row is: the one that is yours. */
 .role-pill.is-you {
   margin-left: 0;
-  background: var(--fill);
+  background: var(--bg);
+  border-color: var(--line-active);
   color: var(--text);
 }
 
