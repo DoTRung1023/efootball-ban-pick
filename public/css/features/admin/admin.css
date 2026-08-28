@@ -1251,12 +1251,33 @@ body {
 .link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
 
 /* ── Column chooser (CATALOG tab) ───────────────────────────── */
-/* Rides on the shared dropdown chrome in shared/filterPanel.css — this only
-   sets the width and the padding the checkbox rows sit in. */
+/* Rides on the shared dropdown chrome in shared/filterPanel.css — this sets the
+   width, the padding the checkbox rows sit in, and **which edge it opens from**.
+
+   `.ap-dd-panel` anchors `left: 0`, which opens a panel rightward from its
+   button. COLUMNS is the last control on this toolbar, so 240px of panel went
+   straight off the end of the card: measured at 1440 and at 1100 alike, 115px
+   past the right edge and 11px past the bottom, both cut off by
+   `.panel { overflow: hidden }` — which is why the labels read `NATIONALIT…`
+   and `RESET TO DEFA…`. Anchoring right is the same correction
+   `.filter-dd-panel` already carries for the button beside it; the closed
+   `transform-origin` has to be restated because the base rule sets it to
+   `top left` on the un-`.open` state.
+
+   `min-width` rather than `width`, like both sibling panels: `ALWAYS SHOWN:
+   # · PLAYER` measures 218px, and a fixed 240 with `overflow-y` on top of it
+   had no room left for the scrollbar. */
 .cols-dd-panel {
-  width: 240px;
+  min-width: 240px;
   padding: 10px;
+  right: 0;
+  left: auto;
+  transform-origin: top right;
+  max-height: 70vh;
+  overflow-y: auto;
 }
+
+.cols-dd-panel:not(.open) { transform-origin: top right; }
 
 .cols-dd-panel .filter-section-label { margin-bottom: 6px; }
 .cols-dd-panel .filter-clear-btn { margin-top: 8px; }

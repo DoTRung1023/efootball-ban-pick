@@ -443,7 +443,22 @@ role rungs — accent, text, muted — on the word and on the whole row), `.role
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
 password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column
-chooser, which rides on the shared dropdown chrome and only sets its own width).
+chooser, which rides on the shared dropdown chrome).
+
+**A dropdown on the right-hand end of a toolbar has to anchor right.**
+`.ap-dd-panel` in `shared/filterPanel.css` anchors `left: 0`, which opens a panel
+*rightward* from its button — fine mid-toolbar, and off the end of the card for
+the last control. `.panel` is `overflow: hidden`, so what runs past it is cut,
+not scrolled: COLUMNS measured 115px past the card's right edge and 11px past its
+bottom at every width, which is why its labels read `NATIONALIT…` and
+`RESET TO DEFA…`. The correction is the one `.filter-dd-panel` already carries —
+`right: 0; left: auto; transform-origin: top right`, plus `max-height: 70vh;
+overflow-y: auto` so a long list scrolls itself instead of being clipped, plus a
+`:not(.open)` restatement of the origin because the base rule sets `top left`
+there. Add a fourth control to this toolbar and it inherits the same problem.
+Panel widths are `min-width`, never `width`: the chooser's longest line
+(`ALWAYS SHOWN: # · PLAYER`) measures 218px, and a fixed 240 left no room for the
+scrollbar `overflow-y` puts beside it.
 
 `.link-btn` is a `<button>` on the ROOMS tab now, which is why it carries
 `font-family: inherit` — a button does not inherit the page font on its own.
