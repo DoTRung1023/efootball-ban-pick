@@ -471,10 +471,26 @@ body {
 
 .panel:has(.pagination-bar) .table-wrap { max-height: none; }
 
+/* **14px, which is the rung DESIGN.md §4 puts list rows on** — the table was on
+   12, the rung below it, which is for "small labels, captions, badges" and is
+   what the `th` above is. Every cell in the body is a row of data, not a label,
+   and at 12 the two were the same size: the header did not read as a header and
+   the data read as fine print.
+
+   Nothing inside a cell moves with it. Every element that lands in one —
+   `.phase-pill`, `.status-pill`, `.role-btn`, `.role-pill`, `.access-role`,
+   `.link-btn`, `.td-empty`, `.btn--sm` — declares its own 12px, so this reaches
+   the plain text and the numbers and stops there.
+
+   `tabular-nums` because SQUAD, PLANS, RUN and every timestamp are read *down*
+   the column: proportional digits put the ones and the threes at different
+   widths and the column stops lining up. Same declaration as `.pb-side-count`
+   and the draft's clock. */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-table thead {

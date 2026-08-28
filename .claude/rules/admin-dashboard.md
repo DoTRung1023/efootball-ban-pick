@@ -225,6 +225,12 @@ min-width: 100%` with `white-space: nowrap` cells, so the table sizes to its
 content and the wrapper scrolls it. Measured 1440 → 320: the page body never
 scrolls horizontally at any width; the table does, inside its wrapper.
 
+**This is the one table the 14px row size costs anything**, and it is paid inside
+that wrapper: with the eight default columns on, the in-wrapper drag went 54 → 106px
+at 700 and 238 → 290px at 500. USERS and ROOMS fit their wrapper with no drag at
+every width from 1440 to 500, before and after, and the page body still never
+scrolls.
+
 ## Running a scrape from the console
 
 `scrapeRunner.js` (server) + `scrapeControl.js` (client). The OVERVIEW tab's
@@ -420,7 +426,12 @@ page does not own is `shared/filterPanel.css`, linked between tokens and
 `admin.css`: the sort/filter dropdown chrome moved there out of
 `features/catalog/catalog.css` when the CATALOG tab became a consumer on a second
 page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
-`.panel-grid-2`, `.admin-table` (sticky thead), phase pills
+`.panel-grid-2`, `.admin-table` (sticky thead; **rows are 14px, the list-row rung
+in DESIGN.md §4, and the `th` above them is 12px, the label rung** — the two were
+both 12 and the header did not read as a header. Nothing inside a cell moves with
+it: every element that lands in one declares its own 12px. `tabular-nums` on the
+table, because SQUAD, PLANS, RUN and every timestamp are read *down* the column),
+phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
 `.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
