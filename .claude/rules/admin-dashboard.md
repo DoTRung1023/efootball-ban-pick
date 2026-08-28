@@ -404,6 +404,35 @@ panel over `GET /api/admin/rooms/:code`. It polls at 3 s against the table's 10 
 because a live ban phase is what you opened it to watch and the read is a map
 lookup. Nothing on that route writes, so watching cannot disturb the draft.
 
+### The panel repaints per stage, and keeps its card nodes
+
+A 3 s poll into `innerHTML =` rebuilds every `<img>` it replaces, and a fresh
+`<img>` paints empty for a frame even when the bytes are cached. Two guards, and
+they answer different questions:
+
+1. **A string compare per stage**, not one for the panel. `painted` is
+   `{ lobby, ban, pick, ready }` and each stage is patched only when its own
+   markup changed. A whole-panel compare had fixed the idle case and nothing
+   else: pressing READY repainted all four stages, so a button toggle reloaded
+   every card on screen. Now READY rewrites the READY stage and the PICK cards
+   are never touched.
+2. **`patchStage` lifts the live `<img>` nodes out and puts them back.** Inside
+   the stage that *did* change, the cards still present are the same cards, so
+   their already-decoded nodes are reused rather than recreated. A pick landing
+   creates exactly one new node.
+
+Keyed on `data-card-src`, not `src`: a card whose art 404s has had its `src`
+swapped to the anonymous placeholder, and matching on the live value would fail
+to recognise it and re-request the 404 on every repaint.
+
+**The compare only works while nothing in the body varies with the clock.** The
+idle counter and the last-beat line are deliberately in the header for that
+reason — put an elapsed time in a stage and every poll repaints it silently.
+
+Verified by driving the real module with synthetic snapshots over a stubbed
+`fetch`: a READY toggle creates 0 new card nodes, a new pick creates exactly 1
+and every existing card survives, and an unchanged poll repaints nothing.
+
 The detail route deliberately does **not** hide a room that has gone quiet, unlike
 `GET /rooms`: that list is a dashboard and quiet means uninteresting, but this is
 an inspection, and a room nobody has beaten in two minutes is exactly the one an

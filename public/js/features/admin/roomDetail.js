@@ -25,8 +25,11 @@ const UNLIMITED_DURATION_SEC = 0;
 
 let openCode = "";
 let pollTimer = null;
-/* The markup currently on screen. See `render`. */
-let painted = "";
+/* The markup currently on screen, **per stage**. See `render`. */
+let painted = {};
+
+/** The four stages, in the order they are drawn. */
+const STAGE_ORDER = ["lobby", "ban", "pick", "ready"];
 
 const el = (id) => document.getElementById(id);
 
@@ -124,22 +127,29 @@ function sidesHead(leftLabel, rightLabel) {
 function playerCard(p) {
   if (!p) return `<div class="rd-pcard is-empty"></div>`;
   const name = escapeHtml(String(p.name || "—"));
+  const src = escapeHtml(CARD_IMG(p.id));
+  /* `data-card-src` is what a repaint matches on, not `src`: a card whose art
+     404s has had its `src` swapped to the anonymous placeholder, and keying on
+     the live value would fail to recognise it and re-request the 404 every
+     time. See `patchStage`. */
   return `<div class="rd-pcard" title="${name}">`
-    + `<img class="rd-pcard-img" src="${escapeHtml(CARD_IMG(p.id))}" alt="${name}" loading="lazy" />`
+    + `<img class="rd-pcard-img" src="${src}" data-card-src="${src}" alt="${name}" loading="lazy" />`
     + `</div>`;
 }
 
 /** Art that 404s falls back to the anonymous card, the way `makePlayerImg` does
     for the grids built as DOM nodes. This panel writes its markup as a string,
     so the handler goes on afterwards. */
-function armCardFallbacks(root) {
-  root.querySelectorAll("img.rd-pcard-img").forEach((img) => {
-    img.addEventListener("error", () => {
-      if (img.dataset.fallbackApplied === "1") return;
-      img.dataset.fallbackApplied = "1";
-      img.src = ANON_PLAYER_IMG;
-    });
+function armCardFallback(img) {
+  img.addEventListener("error", () => {
+    if (img.dataset.fallbackApplied === "1") return;
+    img.dataset.fallbackApplied = "1";
+    img.src = ANON_PLAYER_IMG;
   });
+}
+
+function armCardFallbacks(root) {
+  root.querySelectorAll("img.rd-pcard-img").forEach(armCardFallback);
 }
 
 /**
@@ -454,6 +464,36 @@ function headerPill(room) {
   return `<span class="phase-pill is-closed" title="closed — ${why}">CLOSED</span>`;
 }
 
+/**
+ * Replaces one stage's markup **without disturbing the card art inside it.**
+ *
+ * `innerHTML =` destroys every `<img>` it replaces, and a fresh `<img>` paints
+ * empty for a frame even when the bytes are in cache — so a stage that repainted
+ * blinked its whole stack of cards. The cards that are still there are the same
+ * cards, so their nodes are lifted out first and put back into the new markup:
+ * an already-decoded node that never left the document does not reload and does
+ * not blink. Only genuinely new cards are created, and only those need arming.
+ *
+ * Keyed on `data-card-src` rather than `src` — see `playerCard`.
+ */
+function patchStage(slot, html) {
+  const live = new Map();
+  slot.querySelectorAll("img.rd-pcard-img").forEach((img) => {
+    const key = img.dataset.cardSrc;
+    if (key && !live.has(key)) live.set(key, img);
+  });
+
+  slot.innerHTML = html;
+
+  slot.querySelectorAll("img.rd-pcard-img").forEach((fresh) => {
+    const kept = live.get(fresh.dataset.cardSrc);
+    /* `delete` so a player appearing twice in one stage gets its own node for
+       the second slot rather than the first one being moved into it. */
+    if (kept) { live.delete(fresh.dataset.cardSrc); fresh.replaceWith(kept); }
+    else armCardFallback(fresh);
+  });
+}
+
 function render(room) {
   const cfg = room.config || {};
   el("roomDetailTitle").textContent = room.code;
@@ -464,32 +504,49 @@ function render(room) {
      belongs to whichever stage is being played rather than to the room. */
   el("roomDetailPhase").innerHTML = headerPill(room);
 
-  /* **Only write when the markup actually changed.** This polls every 3 s and
-     an unguarded `innerHTML =` destroys and rebuilds the whole panel each time
-     — including every card `<img>`, which then starts empty and paints a frame
-     or two later. A room sitting in one state was therefore blinking its
-     artwork four times a minute at a DOM that had not changed in any way.
+  /* **One string compare per stage, not one for the panel.** This polls every
+     3 s, and an unguarded `innerHTML =` rebuilds everything each time. A single
+     whole-panel compare fixed the idle case but nothing else: any change at all
+     — one pick landing, one READY pressed — repainted all four stages, so
+     toggling a button reloaded every card on the screen.
+
+     Comparing per stage means a change is confined to the stage it happened in.
+     Pressing READY rewrites the READY stage and leaves the PICK cards untouched
+     in the DOM; a pick landing rewrites the PICK stage and leaves the ban strip
+     alone. Inside the stage that did change, `patchStage` keeps the card nodes
+     that are still there, so the one new card is the only one that loads.
 
      A string compare is enough because nothing in this markup varies with the
      clock: the idle counter and the last-beat line, the two things that used to
      make every render unique, are both gone. Were one to come back it would
      defeat this guard silently, so keep elapsed times out of the body — the
-     header is the place for them.
-
-     A real change still repaints everything, and its images still blink once.
-     That is a rebuild, not a flicker: it happens when the room did something. */
-  const html = `
-    ${lobbyStage(room, cfg)}
-    ${banStage(room)}
-    ${pickStage(room)}
-    ${readyStage(room)}`;
-  if (html === painted) return;
-  painted = html;
+     header is the place for them. */
+  const next = {
+    lobby: lobbyStage(room, cfg),
+    ban: banStage(room),
+    pick: pickStage(room),
+    ready: readyStage(room),
+  };
 
   const body = el("roomDetailBody");
-  setBrief(false);
-  body.innerHTML = html;
-  armCardFallbacks(body);
+
+  /* First paint of this room, or the first after a "Loading…"/"gone" message
+     replaced the body: build the four slots the patches will land in. */
+  if (!body.firstElementChild?.dataset?.stage) {
+    setBrief(false);
+    body.innerHTML = STAGE_ORDER
+      .map((id) => `<div data-stage="${id}">${next[id]}</div>`)
+      .join("");
+    armCardFallbacks(body);
+    painted = next;
+    return;
+  }
+
+  for (const id of STAGE_ORDER) {
+    if (next[id] === painted[id]) continue;
+    patchStage(body.querySelector(`[data-stage="${id}"]`), next[id]);
+  }
+  painted = next;
 }
 
 /** Shrink-to-fit while the body is one sentence, 880px while it is a panel. */
@@ -499,7 +556,7 @@ function setBrief(on) {
 
 /** The room went away mid-watch — a restart, or the host closing it. */
 function renderGone(message) {
-  painted = "";
+  painted = {};
   setBrief(true);
   el("roomDetailBody").innerHTML = `<p class="rd-gone">${escapeHtml(message)}</p>`;
 }
@@ -528,7 +585,7 @@ function stopPolling() {
 export function openRoomDetail(code) {
   openCode = String(code || "");
   if (!openCode) return;
-  painted = "";
+  painted = {};
   setBrief(false);
   el("roomDetailTitle").textContent = openCode;
   el("roomDetailPhase").innerHTML = "";
