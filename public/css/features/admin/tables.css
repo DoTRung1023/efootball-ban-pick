@@ -94,8 +94,20 @@
   color: var(--text);
 }
 
-.td-dim { color: var(--text-dim); }
+/* **Scoped, because a bare `.td-dim` never won.** `.admin-table td` above sets a
+   colour and is (0,1,1); `.td-dim` alone is (0,1,0), so the secondary columns —
+   EMAIL, JOINED, MODE, DURATION, STARTED, CLUB, IDLE — rendered at full white on
+   every table. Adding the table class makes it (0,2,0), which beats the `td`
+   rule and still loses to `tr.role-row.is-*` (0,3,1): a USERS row stays uniformly
+   its own rung, which is the behaviour that block below documents. */
+.admin-table .td-dim { color: var(--text-dim); }
 
+/* **One chip, five tints.** Padding and weight are the same for every badge in
+   a table cell — they were 2px 8px, 2px 7px, 1px 6px and 2px 6px across four
+   rules that all draw the same shape, which is drift, not design. What a badge
+   is allowed to vary is its *hue*, and only where the hue means something
+   (DESIGN.md §3): blue for access-or-running, green for done, neutral for the
+   rest. 8px is on the spacing ladder's 6–8px rung for the inside of a control. */
 /* ── Phase pills ────────────────────────────────────────────── */
 .phase-pill {
   display: inline-block;
@@ -127,7 +139,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
 }
 /* Running borrows the same blue as a job in flight elsewhere on this page;
@@ -143,7 +155,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--fill);
   color: var(--text-dim);
@@ -165,7 +177,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--fill-strong);
   color: var(--text-dim);
@@ -228,7 +240,15 @@
    stays out of both role palettes. The rungs stay ordered — `--line-hover` at
    rest, `--line-active` under the pointer, which is the ghost button's ladder
    exactly. */
-.role-btn {
+/* **`.role-btn` and `.link-btn` are one control under two names.** They were
+   two rules, declared identically in two sheets — same size, weight, tracking,
+   padding, radius, colour and hover — so when the label rung was raised here
+   only USERS moved, and WATCH / CLOSE on ROOMS and the id link on CATALOG kept
+   the old `--text-dim` on `--border` and read as disabled next to everything
+   else. Two copies of one component drift the moment one is touched, so there
+   is one copy. `.link-btn` adds only what an `<a>` needs. */
+.role-btn,
+.link-btn {
   font-family: var(--font-main);
   font-size: 12px;
   font-weight: 700;
@@ -242,12 +262,37 @@
   white-space: nowrap;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
-.role-btn:hover { border-color: var(--line-active); background: var(--fill); }
+
+/* `.link-btn` is worn by an `<a>` on CATALOG and a `<button>` on ROOMS; neither
+   inherits the page font or loses its underline on its own. */
+.link-btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.role-btn:hover,
+.link-btn:hover { border-color: var(--line-active); background: var(--fill); }
 .role-btn:disabled { opacity: 0.5; cursor: default; }
 
-/* Armed: one more click removes access, so it stops looking neutral. */
+/* Armed, or hovering something that takes access away: one rung, one rule, for
+   every irreversible button in a table row. RESET PW joins it only when armed —
+   see `.role-btn.is-pw.is-armed` below. */
 .role-btn.is-armed,
-.role-btn.is-revoke:hover {
+.role-btn.is-revoke:hover,
+.link-btn.is-armed,
+.link-btn.is-close:hover {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+}
+
+/* RESET PW is neither granting nor revoking, so it stays neutral on hover and
+   takes the destructive rung only once armed — the generated password is
+   emailed and never shown, so the second click cannot be taken back. **After
+   the rule above**: same specificity, and the pointer is still on the button
+   when it arms. */
+.role-btn.is-pw.is-armed,
+.role-btn.is-pw.is-armed:hover {
   color: var(--danger);
   border-color: var(--danger-line);
   background: var(--danger-fill);

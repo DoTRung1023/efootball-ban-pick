@@ -568,6 +568,34 @@ Adding a file means deciding where its lines would have been, and linking it
 there. `controls.css` still comes after all eight, page-wide, because its focus
 ring has to beat feature sheets that set `outline: none`.
 
+### One component, one rule
+
+Three families, and a component belongs to exactly one:
+
+- **An action button in a table row** is `.role-btn` *or* `.link-btn`, and they
+  are **one rule in `tables.css`** — `--text` on a `--line-hover` hairline,
+  `--line-active` under the pointer, the `--danger` rung when armed. They used to
+  be two identical rules in two sheets, so raising the label rung on USERS left
+  WATCH, CLOSE and the CATALOG id link a rung behind, reading as disabled.
+  `.link-btn` adds only what an `<a>` needs. `.role-btn.is-pw` lives here too, not
+  in `passwordModal.css` where the sheet split had stranded it.
+- **A badge in a cell** — `.phase-pill`, `.status-pill`, `.role-pill`,
+  `.card-type-badge`, `.live-badge` — is 12px/700, `--radius-sm`, `padding: 2px
+  8px`. What a badge varies is its **hue**, and only where the hue means
+  something. `.access-role` is not in this family: it is a coloured word, no
+  chip. `.role-pill.is-you` keeps its opaque `--bg` and `--line-active` edge,
+  because it is the one badge that only ever sits on a tinted row.
+- **Table text**: cells 14px/400 `--text`, headers 12px/600 `--text-dim`
+  uppercase. `.td-dim` is the secondary rung for EMAIL, JOINED, MODE, DURATION,
+  STARTED, CLUB, IDLE — and it is written `.admin-table .td-dim`, because a bare
+  `.td-dim` (0,1,0) loses to `.admin-table td` (0,1,1) and silently did nothing
+  on every table for as long as it existed. At (0,2,0) it wins that, and still
+  loses to `tr.role-row.is-*` (0,3,1), so a USERS row stays uniformly its rung.
+
+`.load-more-btn` and `.select-mode-btn` look like they belong to the first family
+and do not: they live in `shared/`, the home page is the other consumer, and they
+are consistent with their twins there. Leave them alone.
+
 Colours come from `shared/tokens.css` like every other page — **including the
 console hues, which are this page's alone**: blue (access / running), violet
 (pick), amber (ready / warning), green (done / healthy), on top of the app's lime

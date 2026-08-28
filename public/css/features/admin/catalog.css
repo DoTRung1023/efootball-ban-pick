@@ -97,34 +97,6 @@
   gap: 6px;
 }
 
-/* CLOSE arms before it fires, like every irreversible button on this console,
-   and the armed rung is the same one `.role-btn.is-armed` uses. `.link-btn` had
-   no destructive state until now because WATCH is read-only. */
-.link-btn.is-close:hover,
-.link-btn.is-armed {
-  color: var(--danger);
-  border-color: var(--danger-line);
-  background: var(--danger-fill);
-}
-
-/* ── Link button (WATCH, pesdb id) ──────────────────────────── */
-.link-btn {
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 3px 9px;
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  transition: color var(--transition), border-color var(--transition), background var(--transition);
-}
-.link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
-
 /* ── Column chooser (CATALOG tab) ───────────────────────────── */
 /* Rides on the shared dropdown chrome in shared/filterPanel.css — this sets the
    width, the padding the checkbox rows sit in, and **which edge it opens from**.

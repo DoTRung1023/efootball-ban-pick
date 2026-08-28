@@ -108,16 +108,19 @@
   gap: 8px;
 }
 
-/* ── Live badge ─────────────────────────────────────────────── */
+/* ── Live badge ──────────────────────────────────────────────── */
+/* The same chip the table pills are — see the note in `tables.css`. It sits in a
+   panel header rather than a cell, which changes where it is, not what it is. It
+   was the one badge at weight 600. */
 .live-badge {
   font-family: var(--font-main);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   background: var(--fill);
   border: 1px solid var(--line-hover);
   border-radius: var(--radius-sm);
-  padding: 2px 7px;
+  padding: 2px 8px;
   letter-spacing: 0.05em;
 }
 
