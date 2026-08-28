@@ -532,10 +532,12 @@ body {
   padding: 24px 12px !important;
 }
 
+/* An id you transcribe — a scrape run's `#118`, a player's pesdb id. Mono is the
+   *face* DESIGN.md §4 gives those, not a smaller size, so this cell takes the
+   14px its row takes and only the family changes. No tracking either: `0.05em`
+   is the uppercase-label value, and an id is not a label. */
 .td-mono {
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.05em;
   color: var(--text);
 }
 
@@ -1183,11 +1185,14 @@ body {
 .catalog-table th,
 .catalog-table td { white-space: nowrap; }
 
+/* The row ordinal, and a gutter rather than a column: dim, display face, fixed
+   width so PLAYER starts at one x. It keeps the row's 14px — at 12 it was the
+   one cell set smaller than the line it belongs to — and 40px is what a
+   four-digit rank needs at that size. */
 .catalog-table .td-rank {
   font-family: var(--font-display);
-  font-size: 12px;
   color: var(--text-dim);
-  width: 36px;
+  width: 40px;
 }
 
 .catalog-table .td-ovr {
@@ -1774,6 +1779,14 @@ body {
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
+
+  /* **The OVERVIEW pair stacks here, not at 860.** Half of an 1100px window is
+     a 520px panel and SCRAPE RUNS needs 523 to draw its six columns without
+     dragging, so the pair had a band — measured 861 → 1105 — where the log was
+     a table you scrolled sideways inside a panel with room to spare beside it.
+     It stacks on the same rung the stats row breaks on rather than gaining one
+     of its own: OVERVIEW goes narrow at one width, not two. */
+  .panel-grid-2 { grid-template-columns: 1fr; }
 }
 
 /* **Columns leave in priority order, counts first.** Every table here sets
@@ -1813,7 +1826,6 @@ body {
 }
 
 @media (max-width: 860px) {
-  .panel-grid-2 { grid-template-columns: 1fr; }
   .search-input { width: 140px; }
 }
 

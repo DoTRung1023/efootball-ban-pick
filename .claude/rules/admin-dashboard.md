@@ -429,9 +429,13 @@ page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-
 `.panel-grid-2`, `.admin-table` (sticky thead; **rows are 14px, the list-row rung
 in DESIGN.md §4, and the `th` above them is 12px, the label rung** — the two were
 both 12 and the header did not read as a header. Nothing inside a cell moves with
-it: every element that lands in one declares its own 12px. `tabular-nums` on the
-table, because SQUAD, PLANS, RUN and every timestamp are read *down* the column),
-phase pills
+it: every element that lands in one declares its own 12px. **The two exceptions
+were `.td-mono` and `.catalog-table .td-rank`** — both were sized to match the old
+12px row and both now inherit 14, since a mono id is a *face* choice and a rank
+gutter is still part of its line. `.td-mono` also drops its `0.05em`, which is the
+uppercase-label tracking and not something an id wants; `.td-rank` widens 36 → 40px
+to hold a four-digit rank at the larger size. `tabular-nums` on the table, because
+SQUAD, PLANS, RUN and every timestamp are read *down* the column), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
 `.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
@@ -462,6 +466,14 @@ a responsive table. Two mechanisms, in this order:
   `.col-mid` (JOINED, STARTED) at 700. Counts before dates, dates before
   identity; state and controls never go. Add a new column to one of these tables
   and give it a priority class, or it will be the one that breaks the fit.
+- **A half-width panel is the third mechanism**, and it is why `.panel-grid-2`
+  stacks at 1100 rather than 860. SCRAPE RUNS is the only table that lives in
+  one, and it needs 523px for its six columns: half of an 1100px window is 520,
+  so the pair had a band — measured 861 → 1105 — where the log was a table you
+  dragged inside a panel with room to spare beside it. It stacks on the rung the
+  stats row already breaks on, so OVERVIEW goes narrow at one width and not two.
+  What is left is 2px of in-wrapper drag across 1101 → 1105, which is not worth a
+  rung of its own; the page body still never scrolls at any width.
 - **Cards below 620.** `thead` is hidden and each row becomes a block whose cells
   print their own `data-label` — which is why every renderer writes one. The
   cell is `display: flex`, not grid: a grid gave the UNCONFIRMED pill and the
@@ -482,7 +494,9 @@ cannot resize it and shift the row. Below 1000 the slots collapse to `auto` —
 336px of table whether or not a row fills it was the last 43px of overflow at
 900 — and below 600 they wrap.
 
-Breakpoints: `1100 → 1000 → 860 → 700 → 620 → 600 → 480`. **At 700** the nav wraps and the tab
+Breakpoints: `1100 → 1000 → 860 → 700 → 620 → 600 → 480`. **At 1100** the stats row
+goes to two columns and the OVERVIEW panel pair stacks (see the half-width panel
+note above); 860 is now only the search input's width. **At 700** the nav wraps and the tab
 strip takes a row of its own and scrolls sideways — it used to be `display: none`,
 which left the console with no navigation at all on a phone. That wrap lived at
 600 while the brand was a 28px logo with the wordmark hidden; the home wordmark is
