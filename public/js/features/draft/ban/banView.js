@@ -22,7 +22,7 @@ import { bindBanPhaseUiOnce } from './banInteractions.js';
 import { renderBanToolbar } from './banToolbar.js';
 import { banLimit, isSoloTurn } from '@/features/draft/engine/draftFlow.js';
 import { normalizeRevealMode } from '@/features/draft/state.js';
-import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN } from '@/features/draft/constants.js';
+import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN, REVEAL_MODE_INSTANT } from '@/features/draft/constants.js';
 import { opponentLiveness } from '@/features/draft/engine/presence.js';
 
 import { icon } from '@/shared/icons/icon.js';
@@ -115,29 +115,31 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
   const solo = isSoloTurn(room);
 
   /* What the opponent is allowed to see of your bans is `banRevealMode`, and it
-     governs whichever of theirs is not **final** yet — once one is, you need to
-     know what you lost before you pick. Which bucket that is depends on the ban
-     order, and reading only the staged one is why this setting used to do
-     nothing at all under `alternating`:
+     runs to the **end of the ban phase** — not to their confirm.
+     
+     Confirming used to lift it, on the reasoning that you need to know what you
+     lost before you pick. That is true, and it is the *pick* board's job: it
+     marks your own pool BANNED. Lifting it here revealed the phase early and
+     handed the other player a window to react in, which is the one thing these
+     modes exist to close.
 
-     - simultaneous — their staged bans. `bans[theirSide]` does not fill until
-       they confirm, so the confirmed bucket is final by construction.
-     - alternating — `bans[theirSide]` *itself*. A ban is the turn there, so it
-       lands committed and `bansConfirmed` is never set; nothing is ever staged,
-       and the strip used to draw every one of them in the clear.
+     So while this board is on screen nothing of theirs is shown, and there is
+     no reveal branch — the board stops being drawn the moment the phase ends
+     (`showBanBoard` in `draftView.js`), which is what bounds the concealment.
 
-     Nothing has to move back to the final bucket when an alternating phase
-     ends: `solo` goes false with the last ban turn, and the board stops being
-     drawn at all one line later (`showBanBoard` in `draftView.js`). The pick
-     board is where you learn what you lost — it marks your own pool. See
-     `ban-phase.md`. */
+     `instant` still keeps the two buckets apart because it draws both: a
+     confirmed ban plainly, a staged one dimmed. The concealing modes collapse
+     them, since a blurred thumb looks the same either way and a hidden one is
+     not drawn. Which bucket a ban lands in is the ban order's business —
+     alternating commits each one as it is made and stages nothing, simultaneous
+     the reverse. See `ban-phase.md`. */
   const banReveal = normalizeRevealMode(room.config?.banRevealMode);
-  const concealTheirs = !solo && theirConfirmed ? "" : banReveal;
-  const hideTheirs = concealTheirs === REVEAL_MODE_HIDDEN;
-  const theirPending = solo ? bannedOnMe : opponentStaged;
-  const theirSettled = solo ? [] : bannedOnMe;
+  const concealing = banReveal !== REVEAL_MODE_INSTANT;
+  const hideTheirs = banReveal === REVEAL_MODE_HIDDEN;
+  const theirSettled = concealing ? [] : bannedOnMe;
+  const theirPending = concealing ? [...bannedOnMe, ...opponentStaged] : opponentStaged;
 
-  renderCounts(myBans, theirSettled, theirPending, maxBans, concealTheirs);
+  renderCounts(myBans, theirSettled, theirPending, maxBans, banReveal);
   renderOpponentBadge(room[theirSide], theirConfirmed);
   renderMyBadge(room[mySide], myConfirmed);
   renderMyBansStatus(myConfirmed, theirConfirmed, solo);
@@ -160,12 +162,12 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
        cover them and the strip is indistinguishable from one where they have
        not chosen yet — "nothing but their status", the same as the pick side. */
     pending: hideTheirs ? [] : theirPending,
-    pendingHtml: concealTheirs === REVEAL_MODE_BLUR ? concealedBanThumbHtml : opponentStagedBanThumbHtml,
+    pendingHtml: banReveal === REVEAL_MODE_BLUR ? concealedBanThumbHtml : opponentStagedBanThumbHtml,
     /* Counted off what is *shown*, not what exists. Dropping the thumbs under
        `hidden` while still reserving their slots left a strip two short of full,
        which says "they have banned two" as plainly as the faces would. */
     remaining: remainingSlots(maxBans, theirSettled.length + (hideTheirs ? 0 : theirPending.length)),
-    concealKey: concealTheirs,
+    concealKey: banReveal,
   });
 
   renderBanGrid(el.banGrid, { maxBans, myBans, isMyTurn, readyPhase, myConfirmed });
@@ -173,15 +175,16 @@ export function renderBanBoard({ room, mySide, theirSide, isMyTurn, readyPhase, 
 
 const remainingSlots = (max, used) => (max > 0 ? Math.max(0, max - used) : 0);
 
-function renderCounts(myBans, theirSettled, theirPending, maxBans, concealTheirs) {
+function renderCounts(myBans, theirSettled, theirPending, maxBans, banReveal) {
   const myCount = document.getElementById("draftMyBansCount");
   const theirCount = document.getElementById("draftBannedOnMeCount");
   if (myCount) myCount.textContent = `${myBans.length + state.stagedBans.length}/${maxBans}`;
   if (!theirCount) return;
   /* `blur` keeps the count — it is the whole difference between the two modes:
-     the shape, not who. `hidden` counts only what is already final, which under
-     either ban order is nothing until the phase moves on. */
-  const theirs = concealTheirs === REVEAL_MODE_HIDDEN
+     the shape, not who. `hidden` counts only what it is willing to draw, and
+     for the whole of the ban phase that is nothing: the line reads `0/N` from
+     the first ban to the last, confirmed or not. */
+  const theirs = banReveal === REVEAL_MODE_HIDDEN
     ? theirSettled.length
     : theirSettled.length + theirPending.length;
   theirCount.textContent = `${theirs}/${maxBans}`;

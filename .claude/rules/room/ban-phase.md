@@ -154,37 +154,44 @@ still choosing your own.
 
 | Mode | Their strip | Their count |
 | --- | --- | --- |
-| `instant` | faces, live | live |
+| `instant` | faces, live — confirmed plainly, staged dimmed | live |
 | `blur` | `concealedBanThumbHtml` — the real card, blurred | live |
-| `hidden` | nothing; the slots read as un-banned | their **final** count only |
+| `hidden` | nothing; the slots read as un-banned | `0/N`, all phase |
 
 Four things that are easy to get wrong, all of them measured:
 
-- **It governs whichever of their bans is not final, and which bucket that is
-  depends on the ban order.** `renderBanBoard` splits them into `theirSettled`
-  (no mode conceals these) and `theirPending` (every mode may), off `isSoloTurn`:
+- **It runs to the end of the ban phase, not to their confirm.** Confirming used
+  to lift it — the reasoning being that you need to know what you lost before you
+  pick. You do, and the *pick* board is where that happens: it marks your own
+  pool BANNED. Lifting it here revealed the phase early and gave the other player
+  a window to react in, which is the one thing these modes exist to close. So
+  there is no reveal branch in `renderBanBoard`; what bounds the concealment is
+  that `showBanBoard` in `draftView.js` stops drawing this board when the phase
+  ends.
+- **`instant` keeps the two buckets apart; the concealing modes collapse them.**
+  Only `instant` draws both, and it draws them differently — a confirmed ban
+  plainly (`imageOnlyThumbHtml`), a staged one dimmed. Under `blur` a thumb looks
+  the same whichever bucket it came from, and under `hidden` it is not drawn at
+  all, so both go through `theirPending` together:
 
-  | Ban order | Pending | Settled | Concealment ends |
-  | --- | --- | --- | --- |
-  | simultaneous | `state.opponentStagedBans` | `bans[theirSide]` | they confirm |
-  | alternating | `bans[theirSide]` | — (nothing, while turns run) | the ban phase does |
+  | | `theirSettled` | `theirPending` |
+  | --- | --- | --- |
+  | `instant` | `bans[theirSide]` | `state.opponentStagedBans` |
+  | `blur` / `hidden` | — | both, concatenated |
 
-  **Reading only the staged bucket is why this setting used to do nothing at all
-  under `alternating`.** A ban is the turn there, so it lands committed in
-  `bans[theirSide]` and `bansConfirmed` is never set — nothing is ever staged, so
-  the strip drew every one of their bans in the clear at all three settings.
-  Verified both ways now: under `blur`, two alternating bans render concealed
-  with no `data-player-id`; under `hidden`, the strip is three empty slots and
-  the count reads `0/3`.
-- **Nothing has to move back to the settled bucket when an alternating phase
-  ends.** `isSoloTurn` goes false with the last ban turn, and `showBanBoard` in
-  `draftView.js` stops drawing the board on the same render. The pick board is
-  where you learn what you lost — it marks your own pool — so the reveal that
-  matters still happens, one screen over.
-- **Once a ban *is* final, no mode conceals it** — you need to know what you lost
-  before you pick, so `concealTheirs` is `""` the moment a simultaneous opponent
-  confirms. Verified: under `hidden`, two confirmed bans render in full, with
-  their ids.
+- **Which bucket a ban is in is the ban order's business.** Alternating commits
+  each ban as it is made (`bans[theirSide]`, and `bansConfirmed` is never set);
+  simultaneous stages until confirm. Reading only the staged one is why this
+  setting used to do nothing at all under `alternating` — the strip drew every
+  one of their bans in the clear at all three settings. Verified both ways: under
+  `blur`, two alternating bans render concealed with no `data-player-id`; under
+  `hidden`, the strip is three empty slots and the count reads `0/3`.
+- **The reveal that matters still happens, one screen over.** The pick pool marks
+  your banned players and refuses the click, and `/picks` does **not** validate
+  against bans — so that badge is the only thing between you and fielding a
+  banned player. Concealment therefore *has* to end where the pick phase begins,
+  on the client and on the wire alike. This is the constraint to check first if
+  you are ever tempted to extend it further.
 - **`hidden` has to give back the slots too.** Dropping the thumbs while still
   reserving their places left the strip two short of full, which says "they have
   banned two" as plainly as the faces would. `remaining` counts what is *shown*,
@@ -217,11 +224,14 @@ opponent's bans in full — so either could be read out of the network tab.
 opposite sides of that line for a reason worth keeping straight:
 
 - **`hidden` withholds.** The strip draws nothing, so nothing has to arrive:
-  `concealedFrom` in `store.js` empties the concealed side's `stagedBans` (or
-  `bans`, alternating — the same pending/settled split the strip renders on) and
-  drops those ids from `bannedPlayerIds`. Verified over the API: the host's
-  snapshot carries `bans.guest: []` while the guest's own carries both, and an
-  anonymous read carries neither.
+  `concealedFrom` in `store.js` empties **both** of the concealed side's ban
+  buckets — `bans` and `stagedBans` — and drops those ids from
+  `bannedPlayerIds`. It does not tell the buckets apart, because concealment no
+  longer ends at a confirm and the turn is what bounds it: `turnAt(config,
+  turnIndex)?.action === "ban"`, so `enterPickTurn` is what reveals. Verified
+  over the API: the host's snapshot carries `bans.guest: []` while the guest's
+  own carries both, an anonymous read carries neither, and both survive the
+  guest confirming.
 - **`blur` cannot, by construction.** It renders the opponent's *real card* under
   a CSS blur, because a rung between "see everything" and "see nothing" has to
   leave the card's colour to infer from — that is the whole argument three

@@ -17,7 +17,7 @@ import {
   normalizeRevealMode,
   normalizeRoomConfig,
 } from "./config.js";
-import { buildTurnSchedule, isSoloBanTurn, turnAt } from "./schedule.js";
+import { buildTurnSchedule, turnAt } from "./schedule.js";
 
 /** code -> room entry */
 export const roomPresence = new Map();
@@ -251,21 +251,27 @@ function concealedFrom(entry, viewer) {
   const config = entry.config || {};
   const banHidden = normalizeRevealMode(config.banRevealMode) === REVEAL_MODE_HIDDEN;
   const pickHidden = normalizeRevealMode(config.revealMode) === REVEAL_MODE_HIDDEN;
-  /* The same split the ban strip renders on, for the same reason: an
-     alternating phase commits each ban as it is made, so the set still in play
-     is `bans[side]` and it stays in play until the ban turns run out. A
-     simultaneous one stages instead, and confirming is what settles it. */
-  const soloBanTurn = isSoloBanTurn(config, entry.turnIndex);
+  const drafting = String(entry.status || "") === ROOM_STATUS.DRAFTING;
+  /* **Both ban buckets, for the whole phase.** Which one a ban is in depends on
+     the ban order — alternating commits each as it is made, simultaneous stages
+     until confirm — and concealment no longer ends at that confirm, so there is
+     nothing left for this to tell apart. Bounded by the turn rather than by any
+     flag: the schedule says whether a ban is still what the room is doing, and
+     `enterPickTurn` is what ends it. Zero bans has no ban turn at all, so this
+     is false from the first render. */
+  const inBanPhase = drafting && turnAt(config, entry.turnIndex)?.action === "ban";
   /* Picks are concealed for the draft and no longer: Start Match draws both
      squads in full whatever the room was set to (`ready-phase.md`), so holding
-     them back past `drafting` would empty the screen the draft exists for. */
-  const drafting = String(entry.status || "") === ROOM_STATUS.DRAFTING;
-
+     them back past `drafting` would empty the screen the draft exists for. The
+     ban half reveals at the same boundary, and has to — the pick board marks
+     your own pool from `bans[theirSide]`, and the server does not validate a
+     pick against it, so that badge is the only thing standing between you and
+     fielding a banned player. */
   for (const side of SIDES) {
     if (side === viewer) continue;   // your own board is never withheld from you
-    if (banHidden) {
-      if (soloBanTurn) hide.bans.add(side);
-      else if (!entry.bansConfirmed?.[side]) hide.stagedBans.add(side);
+    if (banHidden && inBanPhase) {
+      hide.bans.add(side);
+      hide.stagedBans.add(side);
     }
     if (pickHidden && drafting) hide.picks.add(side);
   }
