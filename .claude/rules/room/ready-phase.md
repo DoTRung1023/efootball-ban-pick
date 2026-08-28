@@ -347,20 +347,45 @@ screen at `opacity: .5` and `pointer-events: none` so the state is legible but s
 with the home page's Rooms tab. There is no create-room endpoint — a room exists as soon
 as somebody sends presence for its code.
 
-## Nothing is concealed on this screen
+## The reveal modes reach this screen, and end at the final whistle
 
-**Both squads are drawn in full, whatever `revealMode` was.** `renderTeams` does
-not read it, and it is out of the diff key with it.
+**Only the opponent's column is ever concealed, and only until `status` is
+`done`.** `renderTeams` reads `revealMode` and is back in the diff key with it,
+so a mode arriving after the first paint still repaints.
 
-Concealment is a *drafting* mechanic — it exists so neither side can counter-pick
-the other. By the time Start Match is up both lineups are confirmed and locked,
-so there is nothing left to protect, and this is the screen where you set the
-match up **against the squad you are about to play**. A `hidden` room used to
-arrive here still saying "Picks hidden — this room was set to reveal nothing",
-which made the lobby setting a promise about the whole room rather than about
-the draft, and left both players staring at an empty column while they pressed
+| Mode | Opponent's column, before `done` | At `done` (`post`) |
+| --- | --- | --- |
+| `instant` | full squad | full squad |
+| `blur` | cards blurred (`.sm-squad.is-concealed`), pitch sharp | full squad |
+| `hidden` | `.sm-squad--locked` — lock, SQUAD HIDDEN, no cards, **no formation** | full squad |
+
+This has been round both ways, and the argument for each is worth keeping.
+
+**Why it was removed:** concealment is a *drafting* mechanic — it exists so
+neither side can counter-pick — and by Start Match both lineups are locked, so
+there is nothing left to protect. A `hidden` room arriving here still saying
+"Picks hidden" left both players staring at an empty column while they pressed
 READY.
 
-Gone with it: `hiddenColumnHtml`, the `blurred` flag on `teamColumnHtml`,
-`.sm-team.is-hidden` / `.sm-hidden-msg` and `.sm-squad.is-concealed`. The two
-reveal modes now end where the pick phase ends.
+**Why it is back:** that is true of counter-picking and false of what the
+setting says. A room set to `hidden` promised "nothing" and then printed the
+whole squad on the screen where you set the match up. The mode now holds until
+the match is over, which is what the old `REVEALED AFTER MATCH` line promised
+before it was cut. If you are tempted to remove it a second time, the thing to
+change is the *lobby copy*, not this screen.
+
+**Ban order has nothing to do with it.** `renderTeams` has never read
+`banOrder`, so alternating and simultaneous behave identically here — worth
+stating because the change was reported as an alternating-only fault.
+
+**The server holds the picks back for exactly as long.** `concealedFrom` in
+`rooms/store.js` withholds `picks[theirSide]` under `hidden` until `done`,
+not just for the draft — a screen that refuses to draw them over a snapshot
+that carries them is a blur over readable data. `blur` still arrives in full and
+has to: the screen blurs the real cards. See `ban-phase.md` for the same split
+on the ban half, which reveals earlier and cannot do otherwise.
+
+`.sm-squad.is-concealed` is a 7px blur on `.player-card`, **not on the column** —
+a blurred pitch reads as a broken render, blurred cards on a crisp pitch read as
+withheld. 7px against the ban strip's 4px and the pick feed's 6px because these
+are the largest cards the app draws.

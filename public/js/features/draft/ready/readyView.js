@@ -33,6 +33,8 @@ import {
   LINEUP_SIZE,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
+import { normalizeRevealMode } from '@/features/draft/state.js';
+import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN, ROOM_STATUS_DONE } from '@/features/draft/constants.js';
 import { stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
@@ -137,6 +139,26 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
 
   const ids = (picks) => picks.map((p) => (p ? String(p.id) : "-")).join(",");
 
+  /**
+   * **The reveal modes reach this screen, and end at the final whistle.**
+   *
+   * They used to stop at the draft: both squads were drawn in full here on the
+   * argument that concealment is a *drafting* mechanic — it exists so neither
+   * side can counter-pick — and by Start Match both lineups are locked, so
+   * there is nothing left to protect.
+   *
+   * That is true of counter-picking and false of the thing a player actually
+   * bought: a room set to `hidden` said "nothing" and then showed the whole
+   * squad on the screen where you set the match up. Now the mode holds until
+   * the match is **done**, which is what the old `REVEALED AFTER MATCH` line
+   * used to promise, and `post` is where both squads finally open up.
+   *
+   * Ban order has nothing to do with it — `renderTeams` never read it — so
+   * alternating and simultaneous behave identically here, as they always did.
+   */
+  const over = String(room.status || "") === ROOM_STATUS_DONE;
+  const conceal = over ? "" : normalizeRevealMode(room.config?.revealMode);
+
   /* Both names are in the key because a name can arrive after the first paint —
      the old key left them out and the column kept saying "Opponent" for the
      rest of the match. */
@@ -151,24 +173,15 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     step?.stage || "post",
     mine ? "1" : "0",
     theirs ? "1" : "0",
+    /* Back in the key. It was deliberately left out while this screen drew both
+       squads unconditionally; now that it decides what the opponent's column
+       shows, a mode change that arrived after the first paint would otherwise
+       repaint nothing. */
+    conceal,
   ].join("|");
   if (host.dataset.teamsKey === key) return;
   host.dataset.teamsKey = key;
 
-  /**
-   * **Both squads are shown here, whatever the reveal mode was.**
-   *
-   * Concealment is a *drafting* mechanic: it exists so neither side can counter
-   * pick the other. By the time this screen is up both lineups are confirmed
-   * and locked, so there is nothing left to protect — and this is the screen
-   * where you set the match up against the squad you are about to play. A
-   * `hidden` room used to arrive here still saying "this room was set to reveal
-   * nothing", which made the setting a promise about the whole room rather than
-   * about the draft.
-   *
-   * `revealMode` is therefore not read on this screen at all, and is out of the
-   * diff key with it.
-   */
   const column = (side, name, role, picks, formation, done, isMe) => teamColumnHtml({
     name: room[side]?.username || name,
     role,
@@ -177,6 +190,9 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     step,
     done,
     isMe,
+    /* Only ever the other column. Concealing your own squad from you would be
+       nonsense, and `conceal` is computed once above for the key's sake. */
+    conceal: isMe ? "" : conceal,
   });
 
   host.innerHTML =
@@ -197,7 +213,36 @@ const stepChipHtml = (step, done) => {
   </span>`;
 };
 
-function teamColumnHtml({ name, role, picks, formation, step, done, isMe }) {
+/**
+ * One side's column. `conceal` is `""`, `blur` or `hidden`, and is only ever
+ * non-empty for the *opponent's* column — see `renderTeams`.
+ *
+ * `hidden` draws no squad at all rather than an empty pitch: an empty pitch is
+ * a lineup with nobody in it, which is a different thing from one you are not
+ * being shown. It takes the formation off the role line with it, because the
+ * shape is most of what the mode is withholding.
+ */
+function teamColumnHtml({ name, role, picks, formation, step, done, isMe, conceal = "" }) {
+  if (conceal === REVEAL_MODE_HIDDEN) {
+    return `
+    <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
+      <header class="sm-team-head">
+        <div class="sm-team-id">
+          <h3 class="sm-team-name">${escapeHtml(name)}</h3>
+          <p class="sm-team-role">${escapeHtml(role)}</p>
+        </div>
+        ${stepChipHtml(step, done)}
+      </header>
+      <div class="sm-squad sm-squad--locked">
+        <div class="sm-locked">
+          <span class="sm-locked-mark" aria-hidden="true">${icon("lock", { size: 22 })}</span>
+          <p class="sm-locked-title">SQUAD HIDDEN</p>
+          <p class="sm-locked-note">Revealed when the match is finished</p>
+        </div>
+      </div>
+    </section>`;
+  }
+
   const lineup = picks.slice(0, LINEUP_SIZE);
   // `picks` is slot-addressed, so the holes go before anything counts.
   const bench = filledPicks(picks.slice(LINEUP_SIZE));
@@ -224,7 +269,8 @@ function teamColumnHtml({ name, role, picks, formation, step, done, isMe }) {
         </div>
         ${stepChipHtml(step, done)}
       </header>
-      <div class="sm-squad">
+      <div class="sm-squad${conceal === REVEAL_MODE_BLUR ? " is-concealed" : ""}"${
+        conceal === REVEAL_MODE_BLUR ? ' aria-hidden="true"' : ""}>
         <div class="sm-pitch pitch-field">
           ${PITCH_MARKS_HTML}
           <div class="sm-pitch-rows">${rows}</div>

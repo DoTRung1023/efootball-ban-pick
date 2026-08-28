@@ -188,8 +188,9 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   live opponent feed. The pool holds your whole squad; banned and picked cards are
   **marked** with a badge, not dropped. See `pick-phase.md`.
 - `ready/readyView.js` — `renderReadyBoard()`: the whole Start Match screen, all four
-  stages. It does **not** read `revealMode` — both squads are drawn in full here, whatever
-  the room was set to. See `ready-phase.md`.
+  stages. It **does** read `revealMode`, and conceals the *opponent's* column only, until
+  the match reaches `done`: `blur` blurs their cards, `hidden` swaps the column for a
+  locked panel. It has never read `banOrder`. See `ready-phase.md`.
 - `ready/matchSteps.js` — the table behind those stages: one row per handshake (READY,
   START MATCH, FINISH MATCH) carrying its room status, its `data-stage`, the field on the
   room holding each side's answer, the button label, the team-head chip and the three

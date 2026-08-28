@@ -271,20 +271,26 @@ function concealedFrom(entry, viewer) {
      `enterPickTurn` is what ends it. Zero bans has no ban turn at all, so this
      is false from the first render. */
   const inBanPhase = drafting && turnAt(config, entry.turnIndex)?.action === "ban";
-  /* Picks are concealed for the draft and no longer: Start Match draws both
-     squads in full whatever the room was set to (`ready-phase.md`), so holding
-     them back past `drafting` would empty the screen the draft exists for. The
-     ban half reveals at the same boundary, and has to — the pick board marks
-     your own pool from `bans[theirSide]`, and the server does not validate a
-     pick against it, so that badge is the only thing standing between you and
-     fielding a banned player. */
+  /* **Picks stay withheld until the match is `done`.** They used to reveal at
+     the end of the draft, because Start Match drew both squads in full — but
+     that screen honours the mode now (`ready-phase.md`), so the snapshot has to
+     hold them back for as long as the screen refuses to draw them, or `hidden`
+     is a blur over data anyone can read out of the network tab. `done` is the
+     post-match stage, where both squads open up.
+
+     The **ban** half is not on this boundary and cannot be: it reveals when the
+     ban phase ends, because the pick board marks your own pool from
+     `bans[theirSide]` and the server does not validate a pick against it, so
+     that badge is the only thing standing between you and fielding a banned
+     player. */
+  const matchOver = String(entry.status || "") === ROOM_STATUS.DONE;
   for (const side of SIDES) {
     if (side === viewer) continue;   // your own board is never withheld from you
     if (banHidden && inBanPhase) {
       hide.bans.add(side);
       hide.stagedBans.add(side);
     }
-    if (pickHidden && drafting) hide.picks.add(side);
+    if (pickHidden && !matchOver) hide.picks.add(side);
   }
   return hide;
 }
