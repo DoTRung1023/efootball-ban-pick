@@ -401,20 +401,6 @@ body {
   gap: 8px;
 }
 
-/* A panel's standing note, under the header and above the panel's content —
-   hence the bottom border. It was a footer, and every panel that carries one
-   has content that grows: a table of rooms or accounts, a list of checks one
-   row per check. Under the last row is somewhere nobody scrolls to, which is
-   the opposite of a hint. */
-.panel-hint {
-  padding: 10px 16px;
-  font-size: 12px;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border);
-  background: var(--scrim);
-  line-height: 1.5;
-}
-
 /* ── Live badge ─────────────────────────────────────────────── */
 .live-badge {
   font-family: var(--font-main);

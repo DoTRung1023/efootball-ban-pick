@@ -135,9 +135,6 @@ export async function loadUsers() {
     const selfId = getSessionUserId();
     const canManage = isSessionMaster();
     document.getElementById("consolePwBtn").hidden = !canManage;
-    document.getElementById("usersHint").textContent = canManage
-      ? "You are a master admin: you may grant or revoke console access and designate other masters."
-      : "Only a master admin can change roles. The first master comes from ADMIN_EMAIL in the server environment.";
 
     tbody.innerHTML = d.users.map((u) => {
       const isSelf = Number(u.id) === Number(selfId);

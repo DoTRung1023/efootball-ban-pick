@@ -19,9 +19,8 @@
      - A refused write rolls the local list back to what the server confirmed. A
        grid still marking cards the server never accepted would be a lie.
      - Success says nothing, because the thumb already did — a card joins the
-       CHOSEN column the instant you click it. `#scWarn` under that column is
-       the only line that speaks, and it speaks for the three states the column
-       cannot carry: refused, full, or too thin to ban out of.
+       CHOSEN column the instant you click it. `#scWarn` under that column
+       speaks for the one state the column cannot carry: a refused write.
 
    Order is rank — `topBannableFrom` auto-bans position 1 first — and it is now
    simply the order cards were picked in. REBUILD went with the header; the way
@@ -79,7 +78,6 @@ const state = {
   picked: [],
   saved: [],
   max: 50,
-  advisedMin: 23,
   error: null,
 };
 
@@ -91,22 +89,14 @@ const isFull = () => state.picked.length >= state.max;
 
 /* ── Painting ───────────────────────────────────────────────── */
 
-/* A refused write outranks the rest: it is the one state the grid cannot show
-   on its own, and it is held in state rather than written straight to the DOM
-   so the next render cannot silently wipe it. */
+/* A refused write is the one state the grid cannot show on its own, and it is
+   held in state rather than written straight to the DOM so the next render
+   cannot silently wipe it. The cap needs no line: the count beside CHOSEN
+   already reads `50 / 50`, and a full list simply stops marking cards. */
 function renderNotice() {
   const box = document.getElementById("scWarn");
-  const n = state.picked.length;
-  let text = state.error;
-  if (!text && isFull()) {
-    text = `The list is full at ${state.max}. Remove one under ON SIGN-IN to add another.`;
-  } else if (!text && n > 0 && n < state.advisedMin) {
-    text = `${n} player${n === 1 ? "" : "s"} is fewer than a full squad of `
-      + `${state.advisedMin}. A seat with no account bans out of this list, so it will `
-      + `have little to choose from.`;
-  }
-  box.textContent = text || "";
-  box.hidden = !text;
+  box.textContent = state.error || "";
+  box.hidden = !state.error;
   box.classList.toggle("is-error", Boolean(state.error));
 }
 
@@ -167,7 +157,6 @@ function scheduleSave() {
 function adoptSaved(status) {
   state.saved = (status.players || []).map((p) => ({ id: String(p.id), name: p.name }));
   state.max = status.max ?? state.max;
-  state.advisedMin = status.advisedMin ?? state.advisedMin;
 }
 
 async function save() {

@@ -169,11 +169,14 @@ the role, which put a fact about the *reader* in the column that states the
 *account's* role. Below 620px the cell drops its label gutter, and on everyone
 else's row it is `display: none` rather than an empty line in every card.
 
-**A `.panel-hint` sits under the panel header, above the panel's content** — all
-three of them, so there is no modifier for it. As a footer each one sat under
-every row its panel had drawn: a console with a few hundred accounts, an
-unbounded list of live rooms, one data-quality row per check. That is somewhere
-nobody scrolls to, which is the opposite of a hint.
+**No panel on this console carries a standing note.** There were four — how
+roles work over USERS, what a live room is over ROOMS, what to do about a
+data-quality count over CATALOG HEALTH, and the cap and thin-list advisories
+under CHOSEN. They were removed, class and copy together, and `.panel-hint`
+went with them. `#scWarn` and `#tcWarn` survive because they are not notes: a
+box that speaks only when a write is refused is feedback, and nothing else on
+the page reports a failed save. Do not reintroduce a standing paragraph in a
+panel — the column headers and the counts beside each title carry it.
 
 `TABS` in `tabs.js` is the whole controller: one 5 s tick reads the active tab's
 `refreshMs` and skips entirely when `document.hidden`, so a background tab costs
@@ -400,7 +403,7 @@ page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
 (`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
 `.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
-role rungs — accent, text, muted — on the word and on the whole row), `.panel-hint`, `.role-btn` (`.is-armed` — removing access takes two clicks, and the
+role rungs — accent, text, muted — on the word and on the whole row), `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
 password forms), `.rd-*` (the room detail panel) and `.cols-dd-panel` (the column

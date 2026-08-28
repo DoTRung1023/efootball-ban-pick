@@ -108,12 +108,6 @@
               <span class="panel-title">CATALOG HEALTH</span>
               <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
             </div>
-            <!-- Names REPAIR GAPS and not the CLI: that button, in the panel
-                 beside this one, runs the same scrape without a terminal. -->
-            <div class="panel-hint">
-              A non-zero count is repaired by REPAIR GAPS in SCRAPE RUNS, which refetches
-              the detail page of every player with empty fields.
-            </div>
             <div id="dataQualityBody" class="dq-list">
               <div class="dq-row dq-empty">Loading…</div>
             </div>
@@ -231,10 +225,9 @@
             </div>
             <div class="pb-side-strip" id="scChosen"></div>
 
-            <!-- The one line that speaks: a refused write, the cap, or a list
-                 too thin to ban out of. Hidden whenever there is nothing to
-                 say. `aria-live` because nothing else on the page moves when a
-                 save fails — the thumbs snap back and say nothing. -->
+            <!-- Only ever a refused write, and hidden otherwise. `aria-live`
+                 because nothing else on the page moves when a save fails — the
+                 thumbs snap back and say nothing. -->
             <div id="scWarn" class="pb-warn" hidden aria-live="polite"></div>
           </aside>
         </div>
@@ -335,11 +328,6 @@
             <span class="panel-title">LIVE ROOMS <span id="roomsCount" class="live-badge">0 LIVE</span></span>
             <button id="refreshRooms" class="btn btn--ghost btn--sm">REFRESH</button>
           </div>
-          <div class="panel-hint">
-            Rooms live in server memory. This list empties on a restart, and hides a room
-            that has been quiet for 90 seconds without ending it. WATCH inspects a room
-            read-only; it does not take a seat in it.
-          </div>
           <div class="table-wrap">
             <table class="admin-table">
               <thead>
@@ -370,10 +358,6 @@
               <button id="consolePwBtn" class="btn btn--ghost btn--sm" hidden>CONSOLE PASSWORD</button>
               <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
             </div>
-          </div>
-          <div class="panel-hint" id="usersHint">
-            The first admin is created by the server on first run; every one after that is
-            promoted here. You cannot remove your own access, or the last admin's.
           </div>
           <p id="usersNotice" class="panel-notice" hidden></p>
           <div class="table-wrap">
