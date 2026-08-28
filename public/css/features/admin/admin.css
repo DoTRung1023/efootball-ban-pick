@@ -613,12 +613,19 @@ body {
   font-weight: 700;
   letter-spacing: 0.05em;
   padding: 1px 6px;
-  margin-left: 6px;
   border-radius: var(--radius-sm);
   background: var(--fill-strong);
   color: var(--text-dim);
   border: 1px solid var(--border);
 }
+
+/* **The gap belongs to the one place a pill trails a value**, and that is
+   UNCONFIRMED after an email on USERS. It used to sit on `.role-pill` itself,
+   which meant every pill alone in its cell had to take it back off again —
+   `.is-you` did, and the catalog's TEST pill did not, so that whole column drew
+   6px right of its own header. Measured across the nine catalog columns, TEST
+   was the only one out, and by exactly this margin. */
+.admin-table td[data-label="EMAIL"] .role-pill { margin-left: 6px; }
 
 /* Unconfirmed email. Not red: red means banned or destructive in this system
    and nothing else (DESIGN.md §3), and an address nobody has clicked yet is
@@ -645,7 +652,6 @@ body {
    chip an edge at all (3.06 against it, against 1.03). That rung is "selected /
    focused" on the ladder, which is what this row is: the one that is yours. */
 .role-pill.is-you {
-  margin-left: 0;
   background: var(--bg);
   border-color: var(--line-active);
   color: var(--text);

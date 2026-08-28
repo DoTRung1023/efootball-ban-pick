@@ -437,8 +437,14 @@ uppercase-label tracking and not something an id wants; `.td-rank` widens 36 →
 to hold a four-digit rank at the larger size. `tabular-nums` on the table, because
 SQUAD, PLANS, RUN and every timestamp are read *down* the column), phase pills
 (`.phase-pill.is-ban/pick/lobby/ready/done`), status pills
-(`.status-pill.is-running/done/stalled`), `.role-pill` — one variant left,
-`.is-unverified` for an unconfirmed address — `.access-role` and `tr.role-row` (the three
+(`.status-pill.is-running/done/stalled`), `.role-pill` — two variants,
+`.is-unverified` for an unconfirmed address and `.is-you` for your own row;
+**it carries no `margin-left` of its own**, because it is alone in its cell
+everywhere except the one place it trails a value (UNCONFIRMED after an email on
+USERS), and that one site gets the 6px. The margin used to be on the pill and
+subtracted again per site, which the catalog's TEST pill never did: measured
+across the nine catalog columns it was the only one whose cells did not line up
+with their header, and by exactly 6px — `.access-role` and `tr.role-row` (the three
 role rungs — accent, text, muted — on the word and on the whole row), `.role-btn` (`.is-armed` — removing access takes two clicks, and the
 second one is the red one), `.panel-notice`, the data-quality bars
 (`.dq-bar.is-ok/warn/bad`), `.link-btn`, the pagination bar, `.adm-modal` (the
