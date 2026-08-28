@@ -496,7 +496,13 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   the last heartbeat, not the room's age. The server drops rooms quiet for
   `ROOM_LIST_QUIET_MS` (90 s) from the list — **display only**, it does not end
   them. See `room/presence-and-reconnect.md`.
-- `GET /rooms/:code` — one room in full: `serializeRoomEntry` plus `code`, `phase`
+- `GET /rooms/:code` — one room in full: `serializeRoomEntry(entry,
+  VIEW_UNRESTRICTED)` plus `code`, `phase`. **The viewer argument is what makes
+  "in full" true.** The players' own snapshots are redacted by reveal mode now
+  (`room/ban-phase.md`), and the parameter defaults to concealing *both* sides —
+  so a caller that forgets it gets a board missing its own bans, which is noticed,
+  rather than a leak, which is not. The console is the one reader that passes the
+  unrestricted viewer, and it does so explicitly for that reason
   and `idleSec`. Reuses the players' own snapshot rather than re-listing twenty
   fields, which would be a second copy to keep in step. 404 when the code is not
   in memory. See **WATCH** above.

@@ -335,6 +335,19 @@ does not, because a count *is* the shape of their squad, one number at a time.
   **Squad complete** / **Left the room**. The state key drops their ids too: it
   is written to a `data-` attribute, so leaving them in would publish in the DOM
   exactly what the mode refuses to draw.
+  - **And the server no longer sends them.** `serializeRoomEntry` empties
+    `picks[theirSide]` for the whole of `drafting` under this mode, so there is
+    nothing in the snapshot to recover either — see `ban-phase.md` for the split
+    between this and `blur`, which withholds nothing because it needs the real
+    card art to blur.
+  - **Which takes the count `#pickOppLockedStatus` was reading.** Still
+    picking / Squad complete is a fact about a squad whose array is now empty,
+    so the server publishes `squadComplete: { host, guest }` — the single bit,
+    not a length-preserving placeholder array, which would hand back the running
+    total one poll at a time. `renderOpponentPicks` reads it and falls back to
+    the count, so a snapshot without the field still renders.
+  - Concealment ends where the pick phase does: past `drafting` the picks are
+    sent in full, or Start Match would draw an empty half.
 
 Do not "simplify" `hidden` back to a blur, or `blur` to a `display: none` — they
 are two settings now and each is somebody's answer.

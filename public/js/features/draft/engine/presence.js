@@ -46,6 +46,21 @@ function adoptSeat(room) {
 }
 
 /**
+ * The room snapshot URL for *this* player.
+ *
+ * The id decides how much of the room comes back: the server conceals a draft
+ * in flight from anyone it cannot seat, so an anonymous read answers with the
+ * opponent's bans and picks withheld. Both readers below need a seated answer —
+ * one to find out which seat is ours, the other to draw the board.
+ *
+ * Same identity `postAsMe` puts in every write body, and trusted the same way
+ * (DECISIONS.md §1): this hides the draft from a curious opponent, not from one
+ * willing to send the other seat's id.
+ */
+const roomSnapshotUrl = (code) =>
+  `/api/rooms/${encodeURIComponent(code)}?userId=${encodeURIComponent(getCurrentIdentity().id)}`;
+
+/**
  * The same, before the first heartbeat goes out.
  *
  * Order matters: the 409 above is raised by the *claim*, so asking afterwards
@@ -57,7 +72,7 @@ async function adoptSeatFromServer() {
   const code = state.room?.code;
   if (!code) return;
   try {
-    const res = await fetch(`/api/rooms/${encodeURIComponent(code)}`);
+    const res = await fetch(roomSnapshotUrl(code));
     if (!res.ok) return;
     adoptSeat((await res.json())?.room);
   } catch {
@@ -136,7 +151,7 @@ async function registerPresence() {
 async function fetchRoomSnapshot() {
   const code = state.room?.code;
   if (!code) return { changed: false };
-  const res = await fetch(`/api/rooms/${encodeURIComponent(code)}`);
+  const res = await fetch(roomSnapshotUrl(code));
   if (!res.ok) return { changed: false };
   const data = await res.json().catch(() => ({}));
   const room = data.room;

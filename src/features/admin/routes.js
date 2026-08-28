@@ -11,6 +11,7 @@ import {
   normalizeRoomCodeParam,
   roomPhase,
   serializeRoomEntry,
+  VIEW_UNRESTRICTED,
 } from "#features/rooms/index.js";
 import { generatePassword, PASSWORD_MIN } from "#features/auth/index.js";
 import {
@@ -236,7 +237,12 @@ router.get("/rooms/:code", asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "That room is not in memory — it ended, or the server restarted." });
   }
   const room = {
-    ...serializeRoomEntry(entry),
+    /* `VIEW_UNRESTRICTED`, explicitly: the players' own snapshots now conceal
+       whatever the room's reveal modes hide, and the default conceals both
+       sides. An admin watching a draft is the one reader that must see it
+       whole, and saying so here is what keeps that an argument rather than an
+       accident. */
+    ...serializeRoomEntry(entry, VIEW_UNRESTRICTED),
     code,
     phase: roomPhase(entry),
     idleSec: Math.floor((Date.now() - entry.updatedAt) / 1000),

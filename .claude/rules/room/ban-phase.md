@@ -209,10 +209,33 @@ Four things that are easy to get wrong, all of them measured:
 `concealKey` is part of `renderBanStrip`'s diff key, or switching the mode
 mid-phase repaints nothing.
 
-**Still concealment, not secrecy** in one respect: under `blur` and `hidden` the
-snapshot itself continues to carry the opponent's staged bans, so a determined
-player can read them out of the network tab. Making it real means withholding
-them in `serializeRoomEntry`, which is a server change and has not been made.
+### `hidden` is withheld on the wire; `blur` is not, and cannot be
+
+Both modes used to conceal in CSS alone, over a snapshot that carried the
+opponent's bans in full — so either could be read out of the network tab.
+`serializeRoomEntry(entry, viewer)` now redacts, and the two modes end up on
+opposite sides of that line for a reason worth keeping straight:
+
+- **`hidden` withholds.** The strip draws nothing, so nothing has to arrive:
+  `concealedFrom` in `store.js` empties the concealed side's `stagedBans` (or
+  `bans`, alternating — the same pending/settled split the strip renders on) and
+  drops those ids from `bannedPlayerIds`. Verified over the API: the host's
+  snapshot carries `bans.guest: []` while the guest's own carries both, and an
+  anonymous read carries neither.
+- **`blur` cannot, by construction.** It renders the opponent's *real card* under
+  a CSS blur, because a rung between "see everything" and "see nothing" has to
+  leave the card's colour to infer from — that is the whole argument three
+  paragraphs up. The art therefore has to reach the client, and its URL carries
+  the player id. Redacting would make every blurred ban the same grey smudge,
+  which is `hidden` with extra steps. So `blur` stays concealment from the
+  player and not from their devtools, and that is the mode working as designed
+  rather than an unfixed leak.
+
+**Neither is authentication.** The viewer is resolved from a `requesterId` /
+`?userId=` the server trusts and never verifies (DECISIONS.md §1), so anyone
+willing to send the other seat's id reads the room as that seat. This raises the
+cost of peeking from "open the network tab" to "forge a request"; closing it
+properly is a login this codebase does not have.
 
 ## Interaction
 

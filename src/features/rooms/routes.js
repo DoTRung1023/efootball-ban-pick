@@ -32,7 +32,21 @@ const router = Router({ mergeParams: true });
 
 const MAX_STAGED_BANS_FALLBACK = 10;
 
-const sendRoom = (res, entry) => res.json({ room: serializeRoomEntry(entry) });
+/**
+ * The caller's seat, or `null` for a stranger — `serializeRoomEntry` conceals a
+ * draft in flight from anyone it is not being played by.
+ *
+ * `req.side` is set by `requireParticipant`; the rest resolve from the
+ * `requesterId` every other route already requires. Both are the id the client
+ * sent, trusted and unverified (DECISIONS.md §1).
+ */
+const viewerOf = (req, entry) => req.side || resolveSide(entry, req.requesterId);
+
+/**
+ * Takes `req`, and that is the point: the viewer is derived here rather than
+ * passed, so a route cannot leak a concealed room by forgetting an argument.
+ */
+const sendRoom = (req, res, entry) => res.json({ room: serializeRoomEntry(entry, viewerOf(req, entry)) });
 const sendEmptyRoom = (res) => res.json({ room: emptyRoomSnapshot() });
 
 const asCount = (raw) => Math.max(0, Math.floor(Number(raw) || 0));
@@ -112,7 +126,7 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
      `closeRoomEntry`. Without it the host's next 500ms heartbeat would reopen
      the room the console just ended. */
   if (entry.closed && (role !== "host" || entry.adminClosed)) {
-    return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry) });
+    return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry, resolveSide(entry, userId)) });
   }
   if (entry.closed && role === "host") {
     reopenRoom(entry);
@@ -155,7 +169,11 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
 
   syncStagedBans(entry, role, stagedBans);
   roomPresence.set(req.roomCode, entry);
-  sendRoom(res, entry);
+  /* This route identifies by `role` + `userId` rather than `requesterId`, so
+     `viewerOf` has nothing to resolve from until we say who called. The seat
+     claim above has already succeeded, so this id is in a chair. */
+  req.requesterId = participant.id;
+  sendRoom(req, res, entry);
 }));
 
 /** Host re-entering a closed room reopens it under the same code. */
@@ -251,13 +269,25 @@ router.get("/mine", (req, res) => {
   return res.json({ room: null });
 });
 
+/**
+ * `?userId=` is optional, and what it buys is the room as *your* seat sees it.
+ *
+ * **This is the draft's main read path** — `fetchRoomSnapshot` polls it twice a
+ * second — so it is also where concealment is won or lost. Without an id the
+ * answer conceals both sides, which is right for the two callers that have
+ * none (the home page's join check, which reads `room.host` and nothing else)
+ * and would have made a concealed room readable in one anonymous fetch if this
+ * route had been left as it was. Same trusted-not-verified id as everywhere
+ * else; see `serializeRoomEntry`.
+ */
 router.get("/:code", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const entry = roomPresence.get(code);
   if (!entry) return sendEmptyRoom(res);
 
+  req.requesterId = String(req.query?.userId || "");
   // A plain read: nothing here can change the seats, so `updatedAt` stands.
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 /**
@@ -282,7 +312,7 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
 
   const disconnected = String(req.body?.reason || "") === "disconnect";
   const side = resolveSide(entry, req.requesterId);
-  if (!side) return sendRoom(res, entry);
+  if (!side) return sendRoom(req, res, entry);
 
   /* The other side already left for a new match. Their seat was kept only so
      this player's screen could keep their name on it — and this player is now
@@ -347,7 +377,7 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
   }
 
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 // ── Draft lifecycle ──────────────────────────────────────────
@@ -373,7 +403,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async
     await refreshSquadSizes(entry),
     entry.config?.banCountPerSide,
   );
-  if (problem) return res.status(409).json({ error: problem, room: serializeRoomEntry(entry) });
+  if (problem) return res.status(409).json({ error: problem, room: serializeRoomEntry(entry, viewerOf(req, entry)) });
 
   // With zero bans configured the draft opens straight into the pick phase.
   const startsWithBans = asCount(entry.config?.banCountPerSide) > 0;
@@ -391,7 +421,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async
   entry.stagedBans = { host: [], guest: [] };
   entry.bansConfirmed = { host: false, guest: false };
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 }));
 
 /**
@@ -437,7 +467,7 @@ router.post(
     advanceBanTurnIfSolo(entry);
     entry.updatedAt = Date.now();
 
-    sendRoom(res, entry);
+    sendRoom(req, res, entry);
   },
 );
 
@@ -465,7 +495,7 @@ router.post(
       entry.bans[side] = [];
       entry.bannedPlayerIds = [...entry.bans.host, ...entry.bans.guest].map((p) => String(p.id));
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     entry.bansConfirmed[side] = true;
@@ -479,7 +509,7 @@ router.post(
     }
 
     entry.updatedAt = Date.now();
-    sendRoom(res, entry);
+    sendRoom(req, res, entry);
   },
 );
 
@@ -520,7 +550,7 @@ router.post(
     }
 
     entry.updatedAt = Date.now();
-    sendRoom(res, entry);
+    sendRoom(req, res, entry);
   },
 );
 
@@ -585,7 +615,7 @@ router.post(
     entry.picks[side] = slots;
     entry.updatedAt = Date.now();
 
-    sendRoom(res, entry);
+    sendRoom(req, res, entry);
   },
 );
 
@@ -609,7 +639,7 @@ router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) =>
   if (resetDraftToLobby(entry)) {
   }
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 /**
@@ -666,7 +696,7 @@ router.post(
     }
 
     entry.updatedAt = Date.now();
-    sendRoom(res, entry);
+    sendRoom(req, res, entry);
   },
 );
 
@@ -722,13 +752,13 @@ router.post(
       entry.newMatch = { by: side };
       entry.rematch = null;
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     if (action === "rematch-propose") {
       entry.rematch = { by: side };
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     if (action === "rematch-cancel") {
@@ -737,7 +767,7 @@ router.post(
       }
       entry.rematch = null;
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     if (action === "rematch-accept") {
@@ -747,13 +777,13 @@ router.post(
       entry.rematch = null;
       resetDraftToLobby(entry);   // also clears matchReady and the offer
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     if (action === "rematch-decline") {
       entry.rematch = null;
       entry.updatedAt = Date.now();
-      return sendRoom(res, entry);
+      return sendRoom(req, res, entry);
     }
 
     return res.status(400).json({ error: "Unknown post-match action." });
@@ -770,7 +800,7 @@ router.post("/:code/ready", withRoomCode, requireRequesterId, (req, res) => {
 
   entry.ready.guest = Boolean(req.body?.ready);
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 /** POST body: { requesterId, clientSeq?, banCountPerSide?, banDurationSec?, … } */
@@ -794,7 +824,7 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   // Rapid edits can arrive out of order; drop anything older than the last write.
   const seq = Number(clientSeq);
   if (Number.isFinite(seq) && seq > 0) {
-    if (seq < Number(entry.lastConfigSeq || 0)) return sendRoom(res, entry);
+    if (seq < Number(entry.lastConfigSeq || 0)) return sendRoom(req, res, entry);
     entry.lastConfigSeq = seq;
   }
 
@@ -810,7 +840,7 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   config.pickCountPerSide = PICK_COUNT_PER_SIDE;
 
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 /** POST body: { requesterId, username, message } */
@@ -827,7 +857,7 @@ router.post("/:code/chat", withRoomCode, (req, res) => {
 
   pushUserChat(entry, { senderId, username, message: text });
   entry.updatedAt = Date.now();
-  sendRoom(res, entry);
+  sendRoom(req, res, entry);
 });
 
 export default router;

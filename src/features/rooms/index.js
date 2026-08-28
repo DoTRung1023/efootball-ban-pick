@@ -15,4 +15,5 @@ export {
   normalizeRoomCodeParam,
   roomPhase,
   serializeRoomEntry,
+  VIEW_UNRESTRICTED,
 } from "./store.js";

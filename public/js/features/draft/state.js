@@ -193,6 +193,17 @@ export function applyPresenceSnapshot(sr) {
   /* The ban ceiling both squads can absorb, computed server-side so the lobby
      needs no copy of the arithmetic. Null while the sizes are unknown. */
   room.maxBanCountPerSide = sr.maxBanCountPerSide == null ? null : Number(sr.maxBanCountPerSide);
+  /* Whether each side has a full lineup, derived server-side. The pick board
+     used to count `picks[theirSide]` for it; under the `hidden` reveal mode
+     that array is now withheld on the wire, so the count is gone and this bit
+     is what is left. Guarded like the pairs above rather than defaulted, so a
+     snapshot without the field leaves the reader's own fallback standing. */
+  if (sr.squadComplete && typeof sr.squadComplete === "object") {
+    room.squadComplete = {
+      host: Boolean(sr.squadComplete.host),
+      guest: Boolean(sr.squadComplete.guest),
+    };
+  }
   room.chat = Array.isArray(sr.chat) ? sr.chat : [];
   room.status = String(sr.status || room.status || "lobby");
   room.turnIndex = Number.isFinite(Number(sr.turnIndex)) ? Math.max(0, Math.floor(Number(sr.turnIndex))) : Number(room.turnIndex || 0);

@@ -431,8 +431,11 @@ function renderConfirmPicks(room, myPicks, maxPicks) {
  *   have a full squad, which is the one thing you cannot infer anyway once the
  *   draft ends.
  *
- * `theirPicks` never reaches the DOM in hidden mode, so there is nothing to
- * recover with devtools that a presence poll would not already hand you.
+ * `theirPicks` never reaches the DOM in hidden mode — and under that mode it no
+ * longer reaches the *client* either: the server empties `picks[theirSide]` for
+ * the whole of the draft, so there is nothing in the snapshot to recover with
+ * devtools. `blur` still arrives in full, because blurring needs the real card
+ * art; see `ban-phase.md` for why the two modes land on opposite sides of that.
  */
 function renderOpponentPicks(room, theirSide, theirPicks, maxPicks, revealMode) {
   const grid = document.getElementById("pickOppGrid");
@@ -453,9 +456,17 @@ function renderOpponentPicks(room, theirSide, theirPicks, maxPicks, revealMode) 
     locked.hidden = !concealed;
     const status = document.getElementById("pickOppLockedStatus");
     if (status) {
+      /* `count` cannot answer this under `hidden`: the server withholds
+         `picks[theirSide]` in that mode, so it arrives empty and counts zero.
+         `squadComplete` is the one bit it publishes instead — the same fact
+         this line has always shown, and the only one this mode still tells you
+         about their squad. The count stays as the fallback for a snapshot that
+         predates the field. */
+      const theirSquadComplete = room.squadComplete?.[theirSide]
+        ?? Boolean(maxPicks && count >= maxPicks);
       status.textContent = !isOnline
         ? "Left the room"
-        : maxPicks && count >= maxPicks ? "Squad complete" : "Still picking";
+        : theirSquadComplete ? "Squad complete" : "Still picking";
     }
   }
 

@@ -10,11 +10,14 @@
 
 import {
   ROOM_LIST_QUIET_MS,
+  PICK_COUNT_PER_SIDE,
+  REVEAL_MODE_HIDDEN,
   createDefaultRoomConfig,
   maxBansForSquads,
+  normalizeRevealMode,
   normalizeRoomConfig,
 } from "./config.js";
-import { buildTurnSchedule, turnAt } from "./schedule.js";
+import { buildTurnSchedule, isSoloBanTurn, turnAt } from "./schedule.js";
 
 /** code -> room entry */
 export const roomPresence = new Map();
@@ -217,12 +220,113 @@ const serializeParticipant = (p) =>
     playerCount: p.playerCount ?? null,
   } : null;
 
-export function serializeRoomEntry(entry) {
+/**
+ * A viewer allowed to see the room whole — the admin console, and nothing else.
+ *
+ * `serializeRoomEntry`'s viewer defaults to `null`, which conceals **both**
+ * sides. That is deliberate: a caller who forgets to say who is asking gets a
+ * board that is visibly missing its own bans and picks, which is noticed in
+ * seconds. The opposite default fails the other way, silently, and the whole
+ * point of this pass is that a silent leak is what was already happening.
+ */
+export const VIEW_UNRESTRICTED = "all";
+
+const SIDES = ["host", "guest"];
+
+/**
+ * Which of each side's bans and picks must be withheld from `viewer`.
+ *
+ * **`hidden` only — `blur` withholds nothing, and cannot.** That mode renders
+ * the opponent's real card with a CSS blur over it, because a rung between "see
+ * everything" and "see nothing" has to leave the card's colour to infer from
+ * (see `ban-phase.md`). The art has to reach the client for that, and its URL
+ * carries the player id, so `blur` is concealment from the player and not from
+ * their devtools — by construction, not by omission. `hidden` draws nothing, so
+ * it is the mode that can be made real, and this is where that happens.
+ */
+function concealedFrom(entry, viewer) {
+  const hide = { bans: new Set(), stagedBans: new Set(), picks: new Set() };
+  if (viewer === VIEW_UNRESTRICTED) return hide;
+
+  const config = entry.config || {};
+  const banHidden = normalizeRevealMode(config.banRevealMode) === REVEAL_MODE_HIDDEN;
+  const pickHidden = normalizeRevealMode(config.revealMode) === REVEAL_MODE_HIDDEN;
+  /* The same split the ban strip renders on, for the same reason: an
+     alternating phase commits each ban as it is made, so the set still in play
+     is `bans[side]` and it stays in play until the ban turns run out. A
+     simultaneous one stages instead, and confirming is what settles it. */
+  const soloBanTurn = isSoloBanTurn(config, entry.turnIndex);
+  /* Picks are concealed for the draft and no longer: Start Match draws both
+     squads in full whatever the room was set to (`ready-phase.md`), so holding
+     them back past `drafting` would empty the screen the draft exists for. */
+  const drafting = String(entry.status || "") === ROOM_STATUS.DRAFTING;
+
+  for (const side of SIDES) {
+    if (side === viewer) continue;   // your own board is never withheld from you
+    if (banHidden) {
+      if (soloBanTurn) hide.bans.add(side);
+      else if (!entry.bansConfirmed?.[side]) hide.stagedBans.add(side);
+    }
+    if (pickHidden && drafting) hide.picks.add(side);
+  }
+  return hide;
+}
+
+/**
+ * `pair` with every concealed side replaced by an empty list.
+ *
+ * Returns the original object untouched when nothing is concealed, so an
+ * unconcealed snapshot is identical to what this function used to build.
+ */
+function withoutConcealed(pair, concealed) {
+  const source = pair || { host: [], guest: [] };
+  if (!concealed.size) return source;
+  return {
+    host: concealed.has("host") ? [] : (source.host || []),
+    guest: concealed.has("guest") ? [] : (source.guest || []),
+  };
+}
+
+const filledCount = (picks) => (Array.isArray(picks) ? picks.filter(Boolean).length : 0);
+
+/**
+ * Whether each side has a full lineup — the one fact `hidden` still tells you
+ * about the opponent's squad ("Still picking" / "Squad complete").
+ *
+ * Published as the single bit it is, because withholding `picks` takes away the
+ * array the client used to count. Sending a length-preserving placeholder array
+ * instead would hand back the running total one poll at a time, which is
+ * precisely what `hidden` exists to withhold.
+ */
+function squadCompleteFor(entry) {
+  const target = Math.max(0, Math.floor(Number(entry.config?.pickCountPerSide) || PICK_COUNT_PER_SIDE));
+  return {
+    host: target > 0 && filledCount(entry.picks?.host) >= target,
+    guest: target > 0 && filledCount(entry.picks?.guest) >= target,
+  };
+}
+
+/**
+ * The room as `viewer` is allowed to see it.
+ *
+ * `viewer` is `"host"`, `"guest"`, `VIEW_UNRESTRICTED`, or `null` for a caller
+ * who has not identified themselves — see the constant above for why `null`
+ * conceals rather than reveals.
+ *
+ * **This hides the draft from the opponent's devtools, not from a forged
+ * request.** `viewer` is resolved from a `requesterId`/`userId` the server
+ * trusts and never verifies (DECISIONS.md §1), so anyone willing to send the
+ * other seat's id reads the room as that seat. Closing that is authentication,
+ * which this codebase does not have and this change does not add.
+ */
+export function serializeRoomEntry(entry, viewer = null) {
+  const hide = concealedFrom(entry, viewer);
+  const bans = withoutConcealed(entry.bans, hide.bans);
   return {
     host: serializeParticipant(entry.host),
-    bans: entry.bans || { host: [], guest: [] },
-    picks: entry.picks || { host: [], guest: [] },
-    stagedBans: entry.stagedBans || { host: [], guest: [] },
+    bans,
+    picks: withoutConcealed(entry.picks, hide.picks),
+    stagedBans: withoutConcealed(entry.stagedBans, hide.stagedBans),
     bansConfirmed: entry.bansConfirmed || { host: false, guest: false },
     picksConfirmed: entry.picksConfirmed || { host: false, guest: false },
     formations: entry.formations || { host: DEFAULT_FORMATION, guest: DEFAULT_FORMATION },
@@ -234,8 +338,15 @@ export function serializeRoomEntry(entry) {
        rather than rebuilt on the client. See `schedule.js`. */
     schedule: buildTurnSchedule(entry.config),
     turnEndsAt: entry.turnEndsAt == null ? null : Number(entry.turnEndsAt),
-    bannedPlayerIds: Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : [],
+    /* Rebuilt from the sides that survived, not filtered — both sides may ban
+       the same player, and filtering his id out because the concealed side took
+       him would also erase the viewer's own ban of him. */
+    bannedPlayerIds: hide.bans.size
+      ? [...(bans.host || []), ...(bans.guest || [])].map((p) => String(p.id))
+      : (Array.isArray(entry.bannedPlayerIds) ? entry.bannedPlayerIds : []),
     config: entry.config,
+    /* See `squadCompleteFor` — the bit that survives a concealed `picks`. */
+    squadComplete: squadCompleteFor(entry),
     /* The cap the lobby stepper obeys, derived here so the client needs no copy
        of the arithmetic. Null while both squad sizes are unknown. */
     maxBanCountPerSide: maxBansForSquads({
@@ -271,6 +382,7 @@ export function emptyRoomSnapshot() {
     matchFinished: { host: false, guest: false },
     rematch: null,
     newMatch: null,
+    squadComplete: { host: false, guest: false },
     chat: [],
     closed: false,
     closeReason: "",
