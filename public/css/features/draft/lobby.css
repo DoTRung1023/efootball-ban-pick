@@ -541,6 +541,37 @@
   border-color: var(--line-active);
 }
 
+/* ── The focus ring belongs to the field, not to the parts inside it ──
+   `controls.css` is linked last and rings every focused control:
+   `outline: 2px solid var(--accent); outline-offset: 2px`. This field is
+   `overflow: hidden` — it has to be, or the SEC and ∞ segments spill past the
+   rounded corners — so that ring was drawn *inside* the clip and lost three of
+   its four sides. Measured on the focused number box: the input is 29px tall
+   and 217.8px wide inside a 38 × 300 field, so the left edge fell on the
+   field's own border and vanished, top and bottom had 4.5px to live in, and the
+   right edge had **81.2px of room and rendered in full** — a bright accent bar
+   between the number and SEC that reads as a rendering fault, not as focus.
+   That is also the accent spent twice on one screen (DESIGN.md §3.2).
+
+   So: drop the ring on the parts and draw it on the field. A class plus a
+   pseudo-class (0,2,0) outranks `controls.css`'s element plus pseudo-class
+   (0,1,1), so this lands despite the link order — and it is a *move*, not a
+   cancellation: the ring is still there, and now all four sides of it are.
+
+   `:has(:focus-visible)`, not `:focus-within` — the ∞ button is inside this
+   field too, and `:focus-within` would ring the whole control on a plain mouse
+   click, which is the thing `:focus-visible` exists to avoid. `:has()` is
+   already used a few rules down for the out-of-range state. */
+
+.lv-duration-field :focus-visible {
+  outline: none;
+}
+
+.lv-duration-field:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .lv-duration-input {
   flex: 1;
   width: auto;
