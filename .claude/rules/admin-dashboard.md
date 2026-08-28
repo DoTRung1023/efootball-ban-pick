@@ -57,7 +57,18 @@ retyping their own account password. `consolePassword.js` owns the answer:
 
 `users.is_master_admin`. **Only a master may grant or revoke console access, or
 designate another master.** A plain admin sees the same USERS table with the
-ACCESS column reduced to labels.
+ACCESS column reduced to labels and **no ACTIONS column at all** — `<th
+id="usersActionsHead" hidden>` and every cell under it carry `hidden` together,
+so the column is removed from the table rather than left standing empty. Measured
+at 1440: the header alone was holding 552px, and hiding it hands that back to the
+columns that have something in them (EMAIL 186 → 308, ACCOUNT 129 → 213). Both
+master-only pieces of chrome — this and CONSOLE PASSWORD — are set off
+`isSessionMaster()` before the fetch, not off the response, or the header appears
+for a frame over "Loading…" and is then taken away.
+
+`COLS` stays 8: a `colspan="8"` message row over seven visible columns still
+spans the whole table (a `display: none` column contributes no width), and
+measured it does — 1398 of 1398 in both roles.
 
 The `ADMIN_EMAIL` account is seeded as a master **on every boot**, so a database
 can never end up with admins and nobody able to change who they are — restarting

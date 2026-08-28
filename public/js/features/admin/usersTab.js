@@ -5,11 +5,14 @@
    (`src/features/admin/bootstrap.js`) creates the first admin, and every one
    after that is promoted from this table.
 
-   **Only a master admin sees any of these buttons.** A plain admin gets the
-   same table with the ACCESS column reduced to labels — the roles are still
-   worth seeing, they are just not theirs to change. Hiding the controls is a
-   courtesy and never the check: every role write is re-authorised against the
-   database, so a hand-made request from a plain admin is refused too.
+   **Only a master admin sees any of these buttons** — and for a plain admin the
+   ACTIONS column is not narrowed, it is *gone*, header and cells together. Every
+   cell under it would be empty, and a headed column of nothing was holding a
+   fifth of the table width away from the columns that had something in them.
+   The roles are still worth seeing, they are just not theirs to change, so the
+   ACCESS column stays exactly as it is. Hiding any of this is a courtesy and
+   never the check: every role write is re-authorised against the database, so a
+   hand-made request from a plain admin is refused too.
 
    ACCESS holds the role word; ACTIONS holds the buttons, in three fixed slots
    so they line up down the table; the last column is unheaded and holds one
@@ -133,6 +136,13 @@ function actionsCell(user, isSelf) {
 
 export async function loadUsers() {
   const tbody = document.getElementById("usersBody");
+  /* Both master-only pieces of chrome are settled before the fetch, off the
+     session rather than off the response: the ACTIONS header would otherwise
+     appear for a frame over "Loading…" and then be taken away. */
+  const canManage = isSessionMaster();
+  document.getElementById("consolePwBtn").hidden = !canManage;
+  document.getElementById("usersActionsHead").hidden = !canManage;
+
   tbody.innerHTML = tableMessage(COLS, "Loading…");
   try {
     const d = await apiFetch(`/api/admin/users?limit=${USER_ROWS}`);
@@ -143,8 +153,6 @@ export async function loadUsers() {
       return;
     }
     const selfId = getSessionUserId();
-    const canManage = isSessionMaster();
-    document.getElementById("consolePwBtn").hidden = !canManage;
 
     tbody.innerHTML = d.users.map((u) => {
       const isSelf = Number(u.id) === Number(selfId);
@@ -166,7 +174,7 @@ export async function loadUsers() {
         <td class="col-lo" data-label="PLANS">${fmtNum(u.planCount)}</td>
         <td class="td-dim col-mid" data-label="JOINED">${fmtDate(u.created_at)}</td>
         <td data-label="ACCESS"><span class="access-role ${ROLE_CLASS[role]}">${role}</span></td>
-        <td data-label="ACTIONS">${canManage ? actionsCell(u, isSelf) : ""}</td>
+        <td data-label="ACTIONS"${canManage ? "" : " hidden"}>${canManage ? actionsCell(u, isSelf) : ""}</td>
         <td class="col-you" data-label="">${isSelf ? `<span class="role-pill is-you">YOU</span>` : ""}</td>
       </tr>`;
     }).join("");

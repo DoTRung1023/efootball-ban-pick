@@ -376,7 +376,11 @@
                   <th class="col-lo">PLANS</th>
                   <th class="col-mid">JOINED</th>
                   <th>ACCESS</th>
-                  <th>ACTIONS</th>
+                  <!-- Master admins only, header and cells together: for a plain
+                       admin every cell under it is empty, and a headed column of
+                       nothing was taking a fifth of the table. `usersTab.js`
+                       unhides it, the same way it unhides CONSOLE PASSWORD. -->
+                  <th id="usersActionsHead" hidden>ACTIONS</th>
                   <!-- The YOU badge, and nothing else: unheaded because the
                        badge names itself, last so it lands at the right edge. -->
                   <th class="col-you"></th>
