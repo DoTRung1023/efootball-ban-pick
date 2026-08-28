@@ -39,7 +39,7 @@ export async function loadRooms() {
         <td data-label="GUEST">${escapeHtml(r.guest || "—")}</td>
         <td data-label="PHASE">${phasePill(r.phase)}</td>
         <td class="td-dim col-lo" data-label="IDLE">${fmtSeconds(r.idleSec)}</td>
-        <td data-label=""><div class="room-actions"><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}">WATCH</button><button type="button" class="link-btn is-close" data-close="${escapeHtml(r.code)}" data-confirm-label="CLOSE">CLOSE</button></div></td>
+        <td data-label=""><div class="room-actions"><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}" title="Inspect this room read-only. It does not take a seat in it">WATCH</button><button type="button" class="link-btn is-close" data-close="${escapeHtml(r.code)}" data-confirm-label="CLOSE" title="End this room for both players. The code cannot be reopened">CLOSE</button></div></td>
       </tr>`).join("");
   } catch {
     tbody.innerHTML = tableMessage(COLS, "Failed to load");

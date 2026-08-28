@@ -113,6 +113,30 @@ groups, into `session` · `stats` · `users` · `rooms` · `catalog` · `scrape`
 `settings` mounted from a composition root — the shape `public/js/features/admin/`
 already has on the client side.
 
+## Tooltips say what the label cannot
+
+Every button on this console carries a `title` **except** the three whose label
+is already the whole story — CANCEL, SAVE, UNLOCK CONSOLE. A tooltip that
+restates its own label is noise, so those stay bare; adding one there is the
+mistake, not the omission.
+
+What a good one adds:
+
+- **the unit the label leaves out** — `NEXT ›` → "The next 25 players".
+- **the consequence** — `CLEAR HISTORY` → "Empty the run log. This also clears
+  the incremental cutoff"; `CLOSE` on the ROOMS table → "The code cannot be
+  reopened".
+- **which of two same-named buttons this is.** The room panel's CLOSE reads
+  "Close this panel. The room is not affected", because the table behind it has
+  a CLOSE that ends the room. That pair is the reason this section exists.
+- **the difference between neighbours** — `UPDATE` fetches what is new,
+  `REPAIR GAPS` re-fetches players with empty fields; neither label says so.
+
+`RESET PW` and `DELETE` build theirs per row, naming the account and the address
+they would act on. The four role buttons take theirs from `ROLE_TIPS` in
+`usersTab.js`, keyed by label — add a label without adding a tip and the button
+renders `title="undefined"`, so keep the two in step.
+
 ## Destructive actions, and what each one costs
 
 Four, and they are gated three different ways. The gate is chosen by **how hard

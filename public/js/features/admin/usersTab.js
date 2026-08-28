@@ -68,12 +68,23 @@ function roleLabel(user) {
     cannot be added in one place and missed in the other. */
 const ROLE_CLASS = { MASTER: "is-master", ADMIN: "is-admin", USER: "is-user" };
 
+/* The `title` is what the label has no room for — which power the click hands
+   over, or takes away. `RESET PW` and `DELETE` carry their own below, because
+   theirs name the account they would act on. */
+const ROLE_TIPS = {
+  "MAKE ADMIN":  "Give this account access to the console",
+  "MAKE MASTER": "Let this admin change roles and reset passwords",
+  "REVOKE":      "Take console access away from this account",
+  "STAND DOWN":  "Remove master admin. The account keeps console access",
+};
+
 const grantBtn = (id, attr, value, label) =>
-  `<button class="role-btn" data-user-id="${id}" data-${attr}="${value}">${label}</button>`;
+  `<button class="role-btn" data-user-id="${id}" data-${attr}="${value}"
+           title="${ROLE_TIPS[label]}">${label}</button>`;
 
 const revokeBtn = (id, attr, value, label) =>
   `<button class="role-btn is-revoke" data-user-id="${id}" data-${attr}="${value}"
-           data-confirm-label="${label}">${label}</button>`;
+           data-confirm-label="${label}" title="${ROLE_TIPS[label]}">${label}</button>`;
 
 /**
  * The ACTIONS cell — **three fixed slots, always in the same order**.

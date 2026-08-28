@@ -71,12 +71,12 @@
           <span class="admin-brand-tag">CONSOLE</span>
         </div>
         <div class="admin-nav-tabs">
-          <button class="admin-tab is-active" data-tab="overview">OVERVIEW</button>
-          <button class="admin-tab" data-tab="rooms">ROOMS</button>
-          <button class="admin-tab" data-tab="users">USERS</button>
-          <button class="admin-tab" data-tab="catalog">CATALOG</button>
-          <button class="admin-tab" data-tab="showcase">SIGN-IN PAGE</button>
-          <button class="admin-tab" data-tab="test">TEST CARDS</button>
+          <button class="admin-tab is-active" data-tab="overview" title="Catalog size, accounts, live rooms and the scrape log">OVERVIEW</button>
+          <button class="admin-tab" data-tab="rooms" title="Every room live in server memory right now">ROOMS</button>
+          <button class="admin-tab" data-tab="users" title="Every account, and who may open this console">USERS</button>
+          <button class="admin-tab" data-tab="catalog" title="Browse the scraped catalog, test cards included">CATALOG</button>
+          <button class="admin-tab" data-tab="showcase" title="Choose the cards that fall behind the sign-in form">SIGN-IN PAGE</button>
+          <button class="admin-tab" data-tab="test" title="Mark catalog rows as test data, so a player search hides them">TEST CARDS</button>
         </div>
         <div class="admin-nav-right">
           <span class="admin-badge">
@@ -85,7 +85,7 @@
                  Hidden until then so it cannot flash a role nobody has. -->
             <span class="admin-role" id="adminRole" hidden></span>
           </span>
-          <button id="exitConsoleBtn" class="btn btn--ghost btn--sm">EXIT</button>
+          <button id="exitConsoleBtn" class="btn btn--ghost btn--sm" title="End this console session and go back to the app">EXIT</button>
         </div>
       </nav>
 
@@ -124,8 +124,8 @@
               <span class="panel-title">CATALOG HEALTH</span>
               <div class="panel-actions">
                 <!-- Master admins only; `overviewTab.js` unhides it. -->
-                <button id="clearCatalogBtn" class="btn btn--ghost btn--sm btn--danger" hidden>CLEAR CATALOG</button>
-                <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
+                <button id="clearCatalogBtn" class="btn btn--ghost btn--sm btn--danger" hidden title="Delete every scraped card. Asks for your password first">CLEAR CATALOG</button>
+                <button id="refreshOverview" class="btn btn--ghost btn--sm" title="Re-read the tiles, the health list and the scrape log">REFRESH</button>
               </div>
             </div>
             <div id="dataQualityBody" class="dq-list">
@@ -137,18 +137,18 @@
             <div class="panel-header">
               <span class="panel-title">SCRAPE RUNS</span>
               <div class="panel-actions">
-                <button id="scrapeUpdateBtn" class="btn btn--ghost btn--sm">UPDATE</button>
-                <button id="scrapeMissingBtn" class="btn btn--ghost btn--sm">REPAIR GAPS</button>
+                <button id="scrapeUpdateBtn" class="btn btn--ghost btn--sm" title="Fetch only the cards added since the last finished run">UPDATE</button>
+                <button id="scrapeMissingBtn" class="btn btn--ghost btn--sm" title="Re-fetch the detail page of every player with empty fields">REPAIR GAPS</button>
                 <!-- Master admins only; `overviewTab.js` unhides it. -->
                 <button id="clearLogsBtn" class="btn btn--ghost btn--sm btn--danger"
-                        data-confirm-label="CLEAR HISTORY" hidden>CLEAR HISTORY</button>
+                        data-confirm-label="CLEAR HISTORY" hidden title="Empty the run log. This also clears the incremental cutoff">CLEAR HISTORY</button>
               </div>
             </div>
             <div id="scrapeStatus" class="scrape-status" hidden>
               <div class="scrape-status-head">
                 <span id="scrapeDot" class="running-dot"></span>
                 <span id="scrapeStatusLabel" class="scrape-status-label"></span>
-                <button id="scrapeStopBtn" class="btn btn--ghost btn--sm" hidden>STOP</button>
+                <button id="scrapeStopBtn" class="btn btn--ghost btn--sm" hidden title="Stop the running scrape. It resumes where it stopped">STOP</button>
               </div>
               <pre id="scrapeOutput" class="scrape-output"></pre>
             </div>
@@ -203,7 +203,7 @@
 
             <div class="sort-group">
               <div class="ap-dd-wrap" id="scSortWrap">
-                <button class="ap-dd-btn" id="scSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <button class="ap-dd-btn" id="scSortBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Choose how the cards are ordered">
                   <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
                   <span id="scSortLabel">Overall Max</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
@@ -215,14 +215,14 @@
             </div>
 
             <div class="ap-dd-wrap" id="scFilterWrap">
-              <button class="ap-dd-btn" id="scFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+              <button class="ap-dd-btn" id="scFilterBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Narrow the cards by position, rating, club and more">
                 <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
                 <span>FILTER</span>
                 <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
               </button>
             </div>
 
-            <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
+            <button class="select-mode-btn toggle-info-btn" id="scInfoBtn" type="button" aria-pressed="true" title="Show or hide the name and rating under each card">HIDE INFO</button>
           </div>
 
             <!-- The scroller is this wrapper, not the grid, so LOAD MORE rides
@@ -233,7 +233,7 @@
               <div id="scGrid" class="player-grid pb-grid">
                 <div class="pb-empty">Search or filter to find cards to add.</div>
               </div>
-              <button id="scMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+              <button id="scMore" class="load-more-btn" type="button" hidden title="Load the next page of cards">LOAD MORE</button>
             </div>
           </div>
 
@@ -291,7 +291,7 @@
 
             <div class="sort-group">
               <div class="ap-dd-wrap" id="tcSortWrap">
-                <button class="ap-dd-btn" id="tcSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <button class="ap-dd-btn" id="tcSortBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Choose how the cards are ordered">
                   <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#sort" /></svg>
                   <span id="tcSortLabel">Overall Max</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
@@ -303,14 +303,14 @@
             </div>
 
             <div class="ap-dd-wrap" id="tcFilterWrap">
-              <button class="ap-dd-btn" id="tcFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+              <button class="ap-dd-btn" id="tcFilterBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Narrow the cards by position, rating, club and more">
                 <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#filter" /></svg>
                 <span>FILTER</span>
                 <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down" /></svg>
               </button>
             </div>
 
-            <button class="select-mode-btn toggle-info-btn" id="tcInfoBtn" type="button" aria-pressed="true">HIDE INFO</button>
+            <button class="select-mode-btn toggle-info-btn" id="tcInfoBtn" type="button" aria-pressed="true" title="Show or hide the name and rating under each card">HIDE INFO</button>
           </div>
 
             <!-- The scroller is this wrapper, not the grid, so LOAD MORE rides
@@ -321,7 +321,7 @@
               <div id="tcGrid" class="player-grid pb-grid">
                 <div class="pb-empty">Search or filter to find cards to mark.</div>
               </div>
-              <button id="tcMore" class="load-more-btn" type="button" hidden>LOAD MORE</button>
+              <button id="tcMore" class="load-more-btn" type="button" hidden title="Load the next page of cards">LOAD MORE</button>
             </div>
           </div>
 
@@ -349,7 +349,7 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">LIVE ROOMS <span id="roomsCount" class="live-badge">0 LIVE</span></span>
-            <button id="refreshRooms" class="btn btn--ghost btn--sm">REFRESH</button>
+            <button id="refreshRooms" class="btn btn--ghost btn--sm" title="Re-read the live room list">REFRESH</button>
           </div>
           <p id="roomsNotice" class="panel-notice" hidden></p>
           <div class="table-wrap">
@@ -379,8 +379,8 @@
             <span class="panel-title">USERS <span id="usersCount" class="live-badge">0</span></span>
             <div class="panel-actions">
               <!-- Master admins only; `usersTab.js` unhides it. -->
-              <button id="consolePwBtn" class="btn btn--ghost btn--sm" hidden>CONSOLE PASSWORD</button>
-              <button id="refreshUsers" class="btn btn--ghost btn--sm">REFRESH</button>
+              <button id="consolePwBtn" class="btn btn--ghost btn--sm" hidden title="Rotate the shared password that unlocks this console">CONSOLE PASSWORD</button>
+              <button id="refreshUsers" class="btn btn--ghost btn--sm" title="Re-read the account list">REFRESH</button>
             </div>
           </div>
           <p id="usersNotice" class="panel-notice" hidden></p>
@@ -431,7 +431,7 @@
                    Players, driven by shared/players/sort.js. -->
               <div class="sort-group">
                 <div class="ap-dd-wrap" id="acSortWrap">
-                  <button class="ap-dd-btn" id="acSortBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                  <button class="ap-dd-btn" id="acSortBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Choose how the table is ordered">
                     <span id="acSortLabel">SORT</span>
                     <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                   </button>
@@ -445,7 +445,7 @@
               <!-- Filter: shared/players/filterPanel.js, the same panel the
                    three home-page mount points build. -->
               <div class="ap-dd-wrap" id="acFilterWrap">
-                <button class="ap-dd-btn" id="acFilterBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <button class="ap-dd-btn" id="acFilterBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Narrow the table by position, rating, club and more">
                   <span>FILTER</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                 </button>
@@ -454,7 +454,7 @@
 
               <!-- Which columns the table draws. Panel injected by JS. -->
               <div class="ap-dd-wrap" id="acColsWrap">
-                <button class="ap-dd-btn" id="acColsBtn" type="button" aria-haspopup="true" aria-expanded="false">
+                <button class="ap-dd-btn" id="acColsBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Choose which columns the table draws">
                   <span>COLUMNS</span>
                   <svg class="dd-chevron" width="11" height="11" viewBox="0 0 24 24"><use href="/icons/sprite.svg#chevron-down" /></svg>
                 </button>
@@ -475,9 +475,9 @@
                at either end leaves its slot empty instead of sliding the count
                across. `catalogTab.js` sets `hidden`; page one starts with it. -->
           <div class="pagination-bar">
-            <button id="catalogPrev" class="btn btn--ghost btn--sm page-prev" hidden>‹ PREV</button>
+            <button id="catalogPrev" class="btn btn--ghost btn--sm page-prev" hidden title="The previous 25 players">‹ PREV</button>
             <span id="catalogPageInfo" class="page-info">—</span>
-            <button id="catalogNext" class="btn btn--ghost btn--sm page-next">NEXT ›</button>
+            <button id="catalogNext" class="btn btn--ghost btn--sm page-next" title="The next 25 players">NEXT ›</button>
           </div>
         </div>
       </section>
@@ -521,7 +521,7 @@
         <div class="rd-header">
           <span class="rd-code td-mono" id="roomDetailTitle">—</span>
           <span id="roomDetailPhase"></span>
-          <button type="button" id="roomDetailClose" class="btn btn--ghost btn--sm rd-close">CLOSE</button>
+          <button type="button" id="roomDetailClose" class="btn btn--ghost btn--sm rd-close" title="Close this panel. The room is not affected">CLOSE</button>
         </div>
         <div class="rd-body" id="roomDetailBody"></div>
       </div>
