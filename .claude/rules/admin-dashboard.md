@@ -3,14 +3,14 @@ paths:
   - "public/console.html"
   - "public/js/pages/console.js"
   - "public/js/features/admin/**/*.js"
-  - "public/css/features/admin/admin.css"
+  - "public/css/features/admin/*.css"
   - "src/features/admin/**/*.js"
 ---
 
 # Admin console (`/console`)
 
-`console.html` + `public/js/pages/console.js` + `public/css/features/admin/admin.css`.
-No build step.
+`console.html` + `public/js/pages/console.js` + the seven sheets in
+`public/css/features/admin/`. No build step.
 
 ## Getting in
 
@@ -464,7 +464,29 @@ of one page load. The shape to keep:
   nothing falls back to the defaults rather than drawing two fixed columns with
   no explanation.
 
-## CSS (`admin.css`)
+## CSS (`public/css/features/admin/`)
+
+**Seven sheets, and the `<link>` order in `console.html` is the cascade.** They
+were one 2080-line `admin.css`, cut on its own section boundaries with the order
+kept exactly — verified by reading `getComputedStyle` for 102 specimen elements
+at six viewport widths before and after: all 612 readings identical. Keep it that
+way. A rule here can win by nothing but coming later (`.role-btn.is-pw:hover`
+over `.role-btn:hover` at equal specificity), and every media query beats its
+base rule by source order alone.
+
+| Sheet | Owns |
+| --- | --- |
+| `shell.css` | the reset, `[hidden]`, scrollbars, `body`, the gate, the masthead, the button family, the top nav, `.tab-panel` |
+| `panels.css` | `.panel` and its header, the four stat tiles, `.panel-grid-2`, `.panel-notice`, the scrape-run status block |
+| `tables.css` | `.admin-table` and everything inside a cell — phase / status / role pills, ACCESS, the row tint, the action slots — then the data-quality bars |
+| `playerBrowser.css` | the SIGN-IN PAGE and TEST CARDS browser and the column beside it |
+| `catalog.css` | the catalog table, pagination, `.link-btn`, the column chooser |
+| `overlays.css` | the password form and the WATCH room panel |
+| `responsive.css` | every media query — **linked last of the seven** |
+
+Adding a file means deciding where its lines would have been, and linking it
+there. `controls.css` still comes after all seven, page-wide, because its focus
+ring has to beat feature sheets that set `outline: none`.
 
 Colours come from `shared/tokens.css` like every other page — **including the
 console hues, which are this page's alone**: blue (access / running), violet
@@ -473,9 +495,9 @@ and red. `DESIGN.md` §3.4b is the contract: a hue means one thing, colour state
 rather than counts, and controls stay neutral. Nothing here may introduce a
 colour that is not one of those tokens. The one sheet this
 page does not own is `shared/filterPanel.css`, linked between tokens and
-`admin.css`: the sort/filter dropdown chrome moved there out of
+these sheets: the sort/filter dropdown chrome moved there out of
 `features/catalog/catalog.css` when the CATALOG tab became a consumer on a second
-page. Key blocks: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
+page — it is linked before all seven of these. Key blocks, wherever they now live: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead; **rows are 14px, the list-row rung
 in DESIGN.md §4, and the `th` above them is 12px, the label rung** — the two were
 both 12 and the header did not read as a header. Nothing inside a cell moves with

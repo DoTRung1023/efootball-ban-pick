@@ -1,0 +1,143 @@
+/* ============================================================
+   eFootball Ban & Pick — Admin Console · the CATALOG tab
+
+   The one table allowed to be wider than its panel and scroll inside it, the
+   pagination bar under it, the link button its ids wear, and the column chooser
+   that decides how wide it gets. The sort and filter dropdowns are **not** here
+   — they are `shared/filterPanel.css`, because the home page's catalog is a
+   second consumer.
+
+   **The `<link>` order in `console.html` is this sheet's cascade**, and these
+   seven were cut from one file on section boundaries with the order kept
+   exactly. Several rules here win only by coming later — `.role-btn.is-pw:hover`
+   over `.role-btn:hover` at equal specificity, and every media query in
+   `responsive.css` over the base rule it overrides. Re-order the links and you
+   have changed the page. New file: put it where its lines were.
+   ============================================================ */
+
+/* ── Catalog table ──────────────────────────────────────────── */
+/* With every optional column switched on the table is wider than the panel.
+   `width: 100%` would squeeze it back in and wrap every cell instead, so the
+   catalog table sizes to its content and `.table-wrap` scrolls it sideways. */
+.catalog-table {
+  width: auto;
+  min-width: 100%;
+}
+
+.catalog-table th,
+.catalog-table td { white-space: nowrap; }
+
+/* The row ordinal, and a gutter rather than a column: dim, display face, fixed
+   width so PLAYER starts at one x. It keeps the row's 14px — at 12 it was the
+   one cell set smaller than the line it belongs to — and 40px is what a
+   four-digit rank needs at that size. */
+.catalog-table .td-rank {
+  font-family: var(--font-display);
+  color: var(--text-dim);
+  width: 40px;
+}
+
+.catalog-table .td-ovr {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.search-input {
+  background: var(--fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  color: var(--text);
+  font-family: var(--font-main);
+  font-size: 12px;
+  width: 220px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.search-input:focus { border-color: var(--line-active); }
+.search-input::placeholder { color: var(--text-dim); }
+
+/* ── Pagination ─────────────────────────────────────────────── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.page-info {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 160px;
+  text-align: center;
+}
+
+/* WATCH and CLOSE sit on one line. A grid of fixed slots like `.role-actions`
+   would be wrong here: there are always exactly two, and every row has both. */
+.room-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* CLOSE arms before it fires, like every irreversible button on this console,
+   and the armed rung is the same one `.role-btn.is-armed` uses. `.link-btn` had
+   no destructive state until now because WATCH is read-only. */
+.link-btn.is-close:hover,
+.link-btn.is-armed {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+}
+
+/* ── Link button (WATCH, pesdb id) ──────────────────────────── */
+.link-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+.link-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
+
+/* ── Column chooser (CATALOG tab) ───────────────────────────── */
+/* Rides on the shared dropdown chrome in shared/filterPanel.css — this sets the
+   width, the padding the checkbox rows sit in, and **which edge it opens from**.
+
+   `.ap-dd-panel` anchors `left: 0`, which opens a panel rightward from its
+   button. COLUMNS is the last control on this toolbar, so 240px of panel went
+   straight off the end of the card: measured at 1440 and at 1100 alike, 115px
+   past the right edge and 11px past the bottom, both cut off by
+   `.panel { overflow: hidden }` — which is why the labels read `NATIONALIT…`
+   and `RESET TO DEFA…`. Anchoring right is the same correction
+   `.filter-dd-panel` already carries for the button beside it; the closed
+   `transform-origin` has to be restated because the base rule sets it to
+   `top left` on the un-`.open` state.
+
+   `min-width` rather than `width`, like both sibling panels: `ALWAYS SHOWN:
+   # · PLAYER` measures 218px, and a fixed 240 with `overflow-y` on top of it
+   had no room left for the scrollbar. */
+.cols-dd-panel {
+  min-width: 240px;
+  padding: 10px;
+  right: 0;
+  left: auto;
+  transform-origin: top right;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.cols-dd-panel:not(.open) { transform-origin: top right; }
+
+.cols-dd-panel .filter-section-label { margin-bottom: 6px; }
+.cols-dd-panel .filter-clear-btn { margin-top: 8px; }

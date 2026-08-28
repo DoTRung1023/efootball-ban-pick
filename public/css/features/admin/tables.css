@@ -1,0 +1,412 @@
+/* ============================================================
+   eFootball Ban & Pick — Admin Console · tables, pills and the USERS column
+
+   `.admin-table` and everything drawn inside a cell: the phase and status
+   pills, the card-type badge, the role pill, the ACCESS word and the row tint
+   that follows it, and the four fixed action slots. The data-quality bars end
+   this file — they are a list of rows in a panel rather than a table, but they
+   were cut with the block above them so the order is untouched.
+
+   **The `<link>` order in `console.html` is this sheet's cascade**, and these
+   seven were cut from one file on section boundaries with the order kept
+   exactly. Several rules here win only by coming later — `.role-btn.is-pw:hover`
+   over `.role-btn:hover` at equal specificity, and every media query in
+   `responsive.css` over the base rule it overrides. Re-order the links and you
+   have changed the page. New file: put it where its lines were.
+   ============================================================ */
+
+/* ── Table ──────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.panel:has(.pagination-bar) .table-wrap { max-height: none; }
+
+/* **14px, which is the rung DESIGN.md §4 puts list rows on** — the table was on
+   12, the rung below it, which is for "small labels, captions, badges" and is
+   what the `th` above is. Every cell in the body is a row of data, not a label,
+   and at 12 the two were the same size: the header did not read as a header and
+   the data read as fine print.
+
+   Nothing inside a cell moves with it. Every element that lands in one —
+   `.phase-pill`, `.status-pill`, `.role-btn`, `.role-pill`, `.access-role`,
+   `.link-btn`, `.td-empty`, `.btn--sm` — declares its own 12px, so this reaches
+   the plain text and the numbers and stops there.
+
+   `tabular-nums` because SQUAD, PLANS, RUN and every timestamp are read *down*
+   the column: proportional digits put the ones and the threes at different
+   widths and the column stops lining up. Same declaration as `.pb-side-count`
+   and the draft's clock. */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.admin-table th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 9px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-faint);
+  color: var(--text);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.admin-table tr:last-child td { border-bottom: none; }
+
+.admin-table tbody tr:hover td {
+  background: var(--fill-faint);
+}
+
+.td-empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 24px 12px !important;
+}
+
+/* An id you transcribe — a scrape run's `#118`, a player's pesdb id. Mono is the
+   *face* DESIGN.md §4 gives those, not a smaller size, so this cell takes the
+   14px its row takes and only the family changes. No tracking either: `0.05em`
+   is the uppercase-label value, and an id is not a label. */
+.td-mono {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.td-dim { color: var(--text-dim); }
+
+/* ── Phase pills ────────────────────────────────────────────── */
+.phase-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+/* One hue per phase, in the order a draft goes through them: lobby is waiting,
+   bans are destructive (the app's red, and the one hue that already meant this),
+   picks are the long middle, ready is the pause before kickoff, done is done.
+   Five states on one screen at once is exactly the case the console palette
+   exists for — as five weights of grey they were unreadable at a glance. */
+.phase-pill.is-lobby  { background: var(--hue-blue-fill);   color: var(--hue-blue);   border: 1px solid var(--hue-blue-line); }
+.phase-pill.is-ban    { background: var(--danger-fill);     color: var(--danger);     border: 1px solid var(--danger-line); }
+.phase-pill.is-pick   { background: var(--hue-violet-fill); color: var(--hue-violet); border: 1px solid var(--hue-violet-line); }
+.phase-pill.is-ready  { background: var(--hue-amber-fill);  color: var(--hue-amber);  border: 1px solid var(--hue-amber-line); }
+.phase-pill.is-done   { background: var(--hue-green-fill);  color: var(--hue-green);  border: 1px solid var(--hue-green-line); }
+/* Not a phase — it *replaces* the phase, on the WATCH panel only, because a
+   closed room is not still sitting in the one it stopped in. Red is DESIGN.md
+   §3's "stalled, broken", and the full-strength border rather than `-line`
+   marks it as the end of the run instead of one more state along it. */
+.phase-pill.is-closed { background: var(--danger-fill);     color: var(--danger);     border: 1px solid var(--danger); }
+
+/* ── Status pills ───────────────────────────────────────────── */
+.status-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+/* Running borrows the same blue as a job in flight elsewhere on this page;
+   done the same green as a finished draft; stalled stays red, because a scrape
+   that died is a fault and red means fault here. */
+.status-pill.is-running  { background: var(--hue-blue-fill);  color: var(--hue-blue);  border: 1px solid var(--hue-blue-line); }
+.status-pill.is-done     { background: var(--hue-green-fill); color: var(--hue-green); border: 1px solid var(--hue-green-line); }
+.status-pill.is-stalled  { background: var(--danger-fill);    color: var(--danger);    border: 1px solid var(--danger-line); }
+
+/* ── Card type badge ────────────────────────────────────────── */
+.card-type-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Role pill ──────────────────────────────────────────────── */
+/* Two variants: UNCONFIRMED beside an email, and YOU at the right edge of your
+   own row. The MASTER/ADMIN/USER pills that used to sit beside a username are
+   gone — the role is stated once, in the ACCESS column, where the buttons that
+   change it are. */
+
+.role-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--fill-strong);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+/* **The gap belongs to the one place a pill trails a value**, and that is
+   UNCONFIRMED after an email on USERS. It used to sit on `.role-pill` itself,
+   which meant every pill alone in its cell had to take it back off again —
+   `.is-you` did, and the catalog's TEST pill did not, so that whole column drew
+   6px right of its own header. Measured across the nine catalog columns, TEST
+   was the only one out, and by exactly this margin. */
+.admin-table td[data-label="EMAIL"] .role-pill { margin-left: 6px; }
+
+/* Unconfirmed email. Not red: red means banned or destructive in this system
+   and nothing else (DESIGN.md §3), and an address nobody has clicked yet is
+   unfinished rather than dangerous. The difference is shape — a dashed edge on
+   the same neutral pill. */
+.role-pill.is-unverified {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* YOU, on your own row. Neutral for the same reason UNCONFIRMED is: the accent
+   is already spent on the ACCESS word and the master row's tint.
+
+   **Opaque, and one rung of edge above the buttons** — this badge only ever
+   appears on a *tinted* row, because the only account reading this table with
+   its own row in it is an admin or a master. A translucent `--fill` over that
+   tint was 1.13 against the row it sat on and its `--border` edge was 1.03
+   against its own surface: sampled off a render, the chip was (52,58,43) on a
+   (44,50,35) row, eight values of nothing. There was no badge — only a white
+   word floating at the end of the row.
+
+   `--bg` is the one surface darker than any row here, so it punches the tint
+   out instead of washing over it (1.44), and `--line-active` is what gives the
+   chip an edge at all (3.06 against it, against 1.03). That rung is "selected /
+   focused" on the ladder, which is what this row is: the one that is yours. */
+.role-pill.is-you {
+  background: var(--bg);
+  border-color: var(--line-active);
+  color: var(--text);
+}
+
+/* ── Access column ──────────────────────────────────────────── */
+/* **The same two rungs `.btn--ghost` uses** — `--text` on `--line-hover` — and
+   for the same reason: REFRESH, WATCH and UPDATE are the console's neutral
+   button, and this was the one control on the page a rung below them. It read
+   as disabled.
+
+   The rung it was on is not a matter of taste. `--text-dim` on a tinted row is
+   *below the 4.5 floor DESIGN.md §3.5 sets*: measured against the row washes
+   these buttons actually sit on, the label was 4.18 on a master's row and 4.51
+   on an admin's, and the `--border` edge was 1.10–1.47 against the row — a
+   hairline nobody can see. On `--text` the same labels measure 13.08 / 14.10 /
+   17.52 and the edge 1.53–2.05.
+
+   Still neutral, and still transparent: DESIGN.md §3 rule 3 is that a control
+   never takes the hue of the row it sits in, and white-on-hairline is how it
+   stays out of both role palettes. The rungs stay ordered — `--line-hover` at
+   rest, `--line-active` under the pointer, which is the ghost button's ladder
+   exactly. */
+.role-btn {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  border: 1px solid var(--line-hover);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+.role-btn:hover { border-color: var(--line-active); background: var(--fill); }
+.role-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Armed: one more click removes access, so it stops looking neutral. */
+.role-btn.is-armed,
+.role-btn.is-revoke:hover {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+}
+
+/* The role, in the column that acts on it, coloured by rung: the accent for a
+   master, full-strength text for an admin, the muted rung for everyone else.
+   Three steps of one ladder rather than three hues — red means banned or
+   destructive in this system and nothing else (DESIGN.md §3), so a role can
+   never wear it.
+
+   This is where the USERS tab spends the accent, and it is now the only place
+   on the tab that does: the pills beside the username used to spend it too. */
+.access-role {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.access-role.is-master { color: var(--role-master); }
+.access-role.is-admin  { color: var(--role-admin); }
+.access-role.is-user   { color: var(--role-user); }
+
+/* ── The row wears its rung ─────────────────────────────────── */
+/* Same three steps applied to every cell, so the accounts that carry power are
+   answerable by scanning the table rather than by reading one column. Written
+   against `td` rather than `tr` because `.admin-table td` sets a colour of its
+   own, and a colour on the row would lose to it.
+
+   `.td-dim` (email, joined) **does** follow it — three classes and four
+   elements outrank a lone `.td-dim`, and a row that is uniformly its rung is
+   the point. What does not follow it: the pills and the buttons, whose rules
+   apply to the element itself rather than being inherited from `td`. That is
+   deliberate for the buttons — a control is not data, and a MAKE ADMIN button
+   in accent on a master's row would read as the one thing on the screen asking
+   to be pressed. */
+.admin-table tbody tr.role-row.is-master td {
+  color: var(--role-master);
+  background: var(--role-master-fill);
+}
+.admin-table tbody tr.role-row.is-admin td {
+  color: var(--role-admin);
+  background: var(--role-admin-fill);
+}
+.admin-table tbody tr.role-row.is-user td { color: var(--role-user); }
+
+/* The hover wash sits earlier in this sheet and would take a tinted row's
+   colour away under the pointer, which reads as the row going out rather than
+   lighting up. Same hue, one rung stronger. */
+.admin-table tbody tr.role-row.is-master:hover td { background: var(--role-master-fill-strong); }
+.admin-table tbody tr.role-row.is-admin:hover td  { background: var(--role-admin-fill-strong); }
+
+/* ── The ACTIONS column ─────────────────────────────────────── */
+/* Three fixed slots — promote · demote · password — and a row with nothing for
+   a slot leaves it empty rather than closing the gap. Packed left, the buttons
+   staggered: MAKE ADMIN on one row sat under MAKE MASTER on the next, and
+   RESET PW landed at a different x in every row. A grid of equal slots is what
+   makes a column of buttons read as a column.
+
+   The width is set here rather than on the button so that arming one — which
+   swaps its label to CONFIRM? — cannot resize it and shift the rest of the row. */
+.role-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 112px);
+  gap: 6px;
+  align-items: center;
+}
+
+/* **A plain admin's row of actions is one slot wide, not four.** DELETE is the
+   only button they get, and three empty slots beside it would reserve 354px of
+   table for buttons that are never drawn — the dead width that had this whole
+   column hidden from them before DELETE existed. */
+.role-actions.is-slim { grid-template-columns: 112px; }
+
+.role-slot { display: block; min-width: 0; }
+.role-slot .role-btn { width: 100%; }
+
+/* Your own row, in the unheaded last column. That column takes whatever width
+   the row has left, so the badge lands at one x down the whole table. */
+.admin-table td.col-you,
+.admin-table th.col-you {
+  text-align: right;
+  padding-left: 0;
+}
+
+.panel-notice {
+  padding: 9px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--fill-faint);
+  border-bottom: 1px solid var(--border);
+}
+.panel-notice.is-error { color: var(--danger); background: var(--danger-fill); }
+
+/* ── Data quality list ──────────────────────────────────────── */
+.dq-list { padding: 4px 0; }
+
+/* Health rows are grouped now — missing / impossible / references — and the
+   heading is what tells you which kind of problem a number is. */
+.dq-group-title {
+  padding: 12px 16px 4px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dq-group-title:first-child { padding-top: 4px; }
+
+.dq-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-faint);
+  gap: 12px;
+  font-size: 12px;
+}
+.dq-row:last-child { border-bottom: none; }
+
+.dq-label { color: var(--text); flex: 1; }
+
+.dq-count {
+  font-weight: 700;
+  color: var(--text);
+  min-width: 50px;
+  text-align: right;
+}
+
+.dq-pct {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 52px;
+  text-align: right;
+}
+
+.dq-bar-wrap {
+  display: block;
+  width: 80px;
+  height: 4px;
+  background: var(--fill);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dq-bar {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--text-muted);
+  transition: width 0.5s ease;
+}
+/* Healthy, watch it, broken — the same three-step reading as everywhere else on
+   this page. As white / grey / red the first two were the same signal twice. */
+.dq-bar.is-ok   { background: var(--hue-green); }
+.dq-bar.is-warn { background: var(--hue-amber); }
+.dq-bar.is-bad  { background: var(--danger); }
+
+.dq-empty { color: var(--text-dim); justify-content: center; }

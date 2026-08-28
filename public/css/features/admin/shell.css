@@ -1,0 +1,353 @@
+/* ============================================================
+   eFootball Ban & Pick — Admin Console · the page itself
+
+   Everything true before a tab is chosen: the reset, `[hidden]`, the scrollbar
+   treatment, `body`, the step-up gate, the masthead, the button family and the
+   top nav. `.tab-panel` is here too — it is the layout every tab is poured
+   into, not a thing any one tab owns.
+
+   **The `<link>` order in `console.html` is this sheet's cascade**, and these
+   seven were cut from one file on section boundaries with the order kept
+   exactly. Several rules here win only by coming later — `.role-btn.is-pw:hover`
+   over `.role-btn:hover` at equal specificity, and every media query in
+   `responsive.css` over the base rule it overrides. Re-order the links and you
+   have changed the page. New file: put it where its lines were.
+   ============================================================ */
+
+/* ============================================================
+   eFootball Ban & Pick — Admin Dashboard
+   Colour, type, shape and motion come from `shared/tokens.css`. See DESIGN.md.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+/* `hidden` is how every panel on this page is switched off, and the browser
+   applies it as a plain `display: none` that ANY display rule in this sheet
+   outranks — `.tab-panel { display: flex }` did, so all four tabs rendered at
+   once and the console read as one long scroll. Same rule, same reason, as
+   `features/draft/base.css`. */
+[hidden] { display: none !important; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fill-strong); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--fill-strong); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── Console gate ──────────────────────────────────────────── */
+.gate-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 999;
+}
+
+.gate-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-active);
+  border-radius: var(--radius);
+  padding: 40px 36px;
+  width: min(360px, 100%);
+  text-align: center;
+}
+
+.gate-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.gate-identity {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  letter-spacing: 0.03em;
+}
+
+.gate-input {
+  width: 100%;
+  background: var(--fill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-main);
+  font-size: 15px;
+  margin-bottom: 12px;
+  transition: border-color var(--transition);
+  outline: none;
+}
+.gate-input:focus { border-color: var(--line-active); }
+
+.gate-btn { width: 100%; justify-content: center; }
+
+.gate-error {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--danger);
+  min-height: 18px;
+}
+
+.gate-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.gate-back:hover { color: var(--text); }
+
+/* ── Brand ─────────────────────────────────────────────────── */
+.brand-game {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.brand-sub {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  white-space: nowrap;
+  padding: 7px 14px;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+.btn--primary:hover { background: var(--accent-hover); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line-hover);
+}
+.btn--ghost:hover {
+  background: var(--fill);
+  border-color: var(--line-active);
+}
+
+/* A button that empties something. Red at rest rather than only when armed,
+   unlike the table buttons: those sit in a row of neutral controls where red
+   would shout, and these sit in a panel header beside REFRESH and UPDATE, where
+   the whole point is that they are not one of those. Still the ghost shape —
+   DESIGN.md §3 keeps a filled red for nothing at all.
+
+   **It declares background and border itself**, rather than leaning on
+   `.btn--ghost` the way the panel-header pair happens to. `.btn` sets
+   `border: none` and no background at all, so a `.btn--danger` worn alone — as
+   the confirm modal's submit wears it — fell back to the browser's own grey
+   button with red text on it. A variant that only works next to another variant
+   is not one. */
+.btn--danger {
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--danger-line);
+}
+.btn--danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-fill);
+}
+/* Armed, and mid-flight: the label grows to name the consequence, so the button
+   cannot be allowed to hold its width and clip it. */
+.btn--danger.is-armed {
+  background: var(--danger-fill);
+  border-color: var(--danger);
+}
+
+.btn--sm { font-size: 12px; padding: 5px 10px; }
+
+/* ── Top Nav ────────────────────────────────────────────────── */
+.admin-nav {
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.admin-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* The home topbar's wordmark, reproduced rather than shared: there is no
+   bundler, so `pages/home/base.css` is not on this page and its `.topbar-brand`
+   rule is not available here. The two must be changed together — the point of
+   these four declarations is that they equal home's. */
+.admin-brand-mark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.admin-nav-brand .brand-game {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.admin-nav-brand .brand-sub {
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Which page you are on — one word bound to the wordmark by a hairline, not a
+   chip standing next to it. It *was* a filled pill with a 10px gap, and that is
+   exactly what it read as: a separate control that happened to be parked by the
+   brand. A rule that runs the height of the mark (`align-self: stretch`, which
+   overrides the row's `align-items: center`) makes the two one lockup, and it
+   is the same idiom `.admin-role` uses at the other end of this nav — a
+   hairline, then a tracked-out label.
+
+   Deliberately **not** the accent: on this page the accent belongs to
+   `.btn--primary` (DESIGN.md §9), and a masthead wearing it would take it from
+   whatever action the current tab is offering. Full-strength text against the
+   dim second line is what carries it instead. */
+.admin-brand-tag {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.admin-nav-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.admin-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+}
+.admin-tab:hover { color: var(--text); background: var(--fill); }
+.admin-tab.is-active { color: var(--text); background: var(--fill-strong); }
+
+.admin-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.admin-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  background: var(--fill);
+  border: 1px solid var(--line-hover);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+}
+
+/* The role beside the name. Neutral for the same reason as the tag above, and
+   because this badge is on screen for every tab while the USERS table spends
+   the accent on its own MASTER pills — two accents on one screen otherwise. */
+.admin-role {
+  padding-left: 7px;
+  border-left: 1px solid var(--line-hover);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.admin-role[hidden] { display: none; }
+
+/* The account badge had a pulsing dot here. It is gone: a status light that is
+   always on says nothing, and next to a name it reads as one. `dotPulse` stays —
+   `.running-dot` on the scrape panel uses it, where a pulse does mean something.
+   */
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ── Dashboard layout ───────────────────────────────────────── */
+.dashboard {
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+}
+
+.tab-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

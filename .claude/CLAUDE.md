@@ -66,6 +66,11 @@ Code is grouped **by feature, not by file type**.
   `shared/tokens.css` **first** (every other sheet reads its variables) and
   `shared/controls.css` **last**, because its focus ring has to beat the feature sheets
   that set `outline: none`. On the home page `responsive.css` still comes after it.
+  The console is the sheet-count case: `features/admin/` is **seven** sheets
+  (`shell` · `panels` · `tables` · `playerBrowser` · `catalog` · `overlays` ·
+  `responsive`), cut from one 2080-line file on its section boundaries with the
+  order kept exactly, so the `<link>` list *is* what the single file's line order
+  used to be. Add one by deciding where its lines would have gone.
 - `public/icons/` — `sprite.svg`, **the** icon set: one `<symbol>` per icon and the
   only place icon geometry or `stroke-width` is written. Sites reference it by name
   (`<use href="/icons/sprite.svg#plus" />`); `public/js/shared/icons/icon.js` is the

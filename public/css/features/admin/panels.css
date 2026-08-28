@@ -1,0 +1,170 @@
+/* ============================================================
+   eFootball Ban & Pick — Admin Console · panels and the OVERVIEW tiles
+
+   The card every tab draws its content inside (`.panel` and its header), the
+   four-tile stats row above them, the two-column grid that pairs them, and the
+   scrape-run status block. `.panel-notice` is the one line any tab is allowed
+   to say out loud.
+
+   **The `<link>` order in `console.html` is this sheet's cascade**, and these
+   seven were cut from one file on section boundaries with the order kept
+   exactly. Several rules here win only by coming later — `.role-btn.is-pw:hover`
+   over `.role-btn:hover` at equal specificity, and every media query in
+   `responsive.css` over the base rule it overrides. Re-order the links and you
+   have changed the page. New file: put it where its lines were.
+   ============================================================ */
+
+/* ── Stats row ──────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: border-color var(--transition);
+}
+.stat-card:hover { border-color: var(--line-hover); }
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 35.2px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-height: 16px;
+}
+
+/* Good news and a nag, which as `--text` and `--text-muted` were the same
+   sentence in two brightnesses. */
+.stat-sub.is-pos { color: var(--hue-green); }
+.stat-sub.is-warn { color: var(--hue-amber); }
+
+/* The tile's number takes a hue only when the number *has* a state: rooms in
+   flight, and a catalog whose last scrape either finished or did not. A count
+   of players or accounts is a count, and stays white — a hue there would be
+   decoration, which is the one thing the console palette is not for. */
+.stat-value.is-live { color: var(--hue-blue); }
+.stat-value.is-ok   { color: var(--hue-green); }
+.stat-value.is-warn { color: var(--hue-amber); }
+
+/* ── 2-column panel grid ────────────────────────────────────── */
+.panel-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── Panel ──────────────────────────────────────────────────── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Live badge ─────────────────────────────────────────────── */
+.live-badge {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--fill);
+  border: 1px solid var(--line-hover);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  letter-spacing: 0.05em;
+}
+
+/* ── Scrape run panel ───────────────────────────────────────── */
+.scrape-status {
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+}
+
+.scrape-status-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+}
+
+.scrape-status-label {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+
+.running-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text);
+  flex-shrink: 0;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+/* The child process's own stdout: monospace, and it keeps its own line breaks. */
+.scrape-output {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.scrape-output:empty { display: none; }

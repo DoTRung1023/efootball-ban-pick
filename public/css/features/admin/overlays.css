@@ -1,0 +1,530 @@
+/* ============================================================
+   eFootball Ban & Pick — Admin Console · the two things drawn over the page
+
+   The password form (rotating the console password, and confirming a wipe) and
+   the read-only room panel that WATCH opens. Both are `position: fixed` sheets
+   over the dashboard, which is why they share a file; nothing below the scrim
+   knows either exists.
+
+   **The `<link>` order in `console.html` is this sheet's cascade**, and these
+   seven were cut from one file on section boundaries with the order kept
+   exactly. Several rules here win only by coming later — `.role-btn.is-pw:hover`
+   over `.role-btn:hover` at equal specificity, and every media query in
+   `responsive.css` over the base rule it overrides. Re-order the links and you
+   have changed the page. New file: put it where its lines were.
+   ============================================================ */
+
+/* ── Password modal ─────────────────────────────────────────── */
+/* Shared by the console-password rotation and the per-user reset. Same scrim
+   and card treatment as the room detail panel below it. */
+.adm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: var(--scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.adm-modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-active);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: min(400px, 100%);
+}
+
+.adm-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.adm-modal-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 6px 0 16px;
+  line-height: 1.5;
+}
+
+.adm-field { display: block; margin-bottom: 12px; }
+
+.adm-field > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.adm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Neither granting nor revoking a role — it stays out of both palettes. */
+.role-btn.is-pw:hover {
+  color: var(--text);
+  border-color: var(--line-active);
+  background: var(--fill);
+}
+
+/* Armed, it joins the destructive palette: the generated password is emailed
+   and never shown here, so the second click cannot be taken back from this
+   table. This rule has to sit *after* the neutral hover above — same
+   specificity, and the pointer is still on the button when it arms. */
+.role-btn.is-pw.is-armed,
+.role-btn.is-pw.is-armed:hover {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
+}
+
+/* ── Room detail (WATCH) ────────────────────────────────────── */
+/* Read-only inspection of one live room. The scrim is `--scrim` and nothing
+   more: no blur, no shadow — see DESIGN.md §12. `[hidden]` at the top of this
+   sheet is what closes it, and it outranks the `display: flex` below. */
+.rd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.rd-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-active);
+  border-radius: var(--radius);
+  width: min(880px, 100%);
+  margin: auto;
+}
+
+/* One sentence where a four-stage panel usually is — a dead room, or a failed
+   read. At 880px that sentence sat in the middle of a great deal of nothing, so
+   here the card shrink-wraps it instead and the 880px becomes the cap rather
+   than the width. Toggled by `setBrief` in roomDetail.js; the header keeps the
+   card from ever getting narrower than the code, the pill and CLOSE. */
+.rd-card.is-brief {
+  width: auto;
+  max-width: min(880px, 100%);
+}
+
+/* `.rd-body`'s own 16px is gutter for a panel of stages. Under a single line it
+   stacked on `.rd-gone`'s padding — 46px of nothing above and below one
+   sentence — so in the brief state the message owns the whole box. */
+.rd-card.is-brief .rd-body { padding: 0; }
+
+/* **Scrolls away with the card — deliberately not sticky.** It pinned to
+   `top: 0` of `.rd-overlay`, which is the scroller, and the overlay's 24px of
+   padding sits *above* that line: a stage heading stayed visible in the gap
+   while the header floated across the panel below it, so the top of the modal
+   read as two overlapping headers. Nothing up here changes as you read — the
+   code and the phase are fixed for the whole panel — so there was nothing to
+   keep in view. CLOSE goes off-screen with it; Escape and a click on the scrim
+   both close the panel from anywhere in it.
+
+   No background of its own: `.rd-card` paints the same `--bg-elevated` behind
+   it, and the opaque fill and the corner radius only existed so the body could
+   scroll underneath. */
+.rd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* The whole body when there is no room to draw — a dead end, not a note in the
+   margin of something else. It wore `.panel-notice`, which is the USERS tab's
+   banner idiom: a tinted strip with a rule under it, sized to sit *above* a
+   table that is still there. Here there is nothing under it, so the fill read
+   as a block of empty chrome and the message inside it as a footnote to it.
+   No background, no rule: the text is the content, so it is centred in the
+   space and set at the weight of something you are meant to read first. */
+.rd-gone {
+  padding: 22px 26px;
+  text-align: center;
+  text-wrap: balance;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rd-code { font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
+.rd-close { margin-left: auto; }
+
+.rd-body { padding: 16px; }
+
+/* ── One block per stage ────────────────────────────────────
+   The room's own order — lobby, ban, pick, start match — is the panel's order,
+   and each block carries the settings that stage uses, the turns it plays and
+   what the two sides did in it. Grouped by kind instead, "where has this room
+   got to" needed four separate places read in the right order. */
+.rd-stage {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.rd-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+}
+
+.rd-stage-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+.rd-stage-state {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+/* The accent, used once on this panel: where the room is right now. */
+.rd-stage-state.is-now  { color: var(--accent); border-color: var(--accent); }
+.rd-stage-state.is-done { color: var(--hue-green); border-color: var(--hue-green-line); }
+
+.rd-stage-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A stage the room has not reached is shown, not hidden — an admin still wants
+   to see how it is configured — but it stops competing with the live one. */
+.rd-stage.is-ahead .rd-stage-body { opacity: 0.5; }
+
+/* Host on the left, guest on the right — the same arrangement as the draft. */
+.rd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Which side you are looking at ──────────────────────────
+   Host blue, guest red, on every element that belongs to one of them. Both
+   hues carry another meaning elsewhere in this console — blue is console
+   access, red is banned or broken — and this panel deliberately gives them a
+   second, local one. It is read-only, it is two sides and nothing else, and a
+   colour beats reading a label on every row. */
+.rd-seat.is-host  { border-left: 3px solid var(--hue-blue); }
+.rd-seat.is-guest { border-left: 3px solid var(--danger); }
+.rd-seat.is-host .rd-seat-role  { color: var(--hue-blue); }
+.rd-seat.is-guest .rd-seat-role { color: var(--danger); }
+
+.rd-seat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--surface-sunken);
+  min-width: 0;
+}
+.rd-seat.is-empty { color: var(--text-dim); }
+
+.rd-seat-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.rd-seat-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 2px 0 8px;
+  overflow-wrap: anywhere;
+}
+
+/* Label/value pairs. Two columns so the values line up down the panel. */
+.rd-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  font-size: 12px;
+}
+.rd-facts dt { color: var(--text-dim); }
+.rd-facts dd { overflow-wrap: anywhere; }
+
+/* ── Room-wide settings ─────────────────────────────────────
+   A wrapping row of small stacked pairs, not the two-column definition list it
+   was: two columns on this panel mean host and guest, and none of these are
+   either. Nine of them read as one band of facts about the room. */
+.rd-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.rd-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  min-width: 0;
+}
+
+.rd-stat-k {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.rd-stat-v {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* ── The comparison ─────────────────────────────────────────
+   One grid, three tracks: the index, then a cell per side. Every row is laid
+   out by the same rule, so host row 4 is always level with guest row 4 — which
+   two independent lists side by side could not promise, and did not: three
+   bans against none knocked every pick below them out of step. */
+.rd-pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* **The middle track is the axis, not a gutter.** The index sits *between* the
+   two sides rather than in front of them, so HOST and GUEST are mirror images
+   either side of it. Read from the left edge the row was a label followed by
+   two values, which is a list with a heading; read from the middle it is a
+   comparison, which is the only reason this panel pairs the rows at all.
+
+   The step rows keep the track and leave it empty. Their words label them (see
+   `stepCell`), and the track is what holds their two boxes on the same two
+   columns every other row uses. */
+.rd-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.rd-pair-idx {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* `align-items` only — the space under it is `.rd-stage-body`'s own gap. It
+   carried a `margin-bottom` on top of that, which set the head further from
+   its list than the list sits from the row after it. */
+.rd-pair--head {
+  align-items: center;
+}
+
+/* One side: its count and formation, then its own boxed list. Two of these sit
+   on `.rd-pair`'s outer tracks, so each side's rule closes around that side's
+   players instead of one rule spanning both — which is what made the two counts
+   above it read as a single heading for a single list. */
+.rd-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Border only around the players: the cells inside carry the fill, and a second
+   surface behind them flattened the side tints that are the point of them. The
+   padding lives on the children, so the head strip's rule can reach both edges;
+   `overflow: hidden` is what keeps its fill inside the rounded corners. */
+.rd-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* The tally, in a band across the top of the box it describes — the same
+   head-over-body shape `.rd-stage` uses one level up. Count left, formation
+   right, because a formation is a property of the whole list and reads as a
+   caption rather than as part of the number. */
+.rd-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--fill-faint);
+  font-size: 11px;
+}
+
+.rd-list-count {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Card art, sized by the column it lands in. `auto-fill` rather than a fixed
+   count because these two boxes are half a modal that goes from 880px to a
+   phone, and a squad of 23 has to stay countable at both. The ratio is the
+   card artwork's own, so a slot holds its shape before the image arrives and
+   the grid does not reflow as they load in. */
+.rd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 6px;
+  padding: 8px;
+}
+
+/* `.rd-pcard`, not `.rd-card` — **that name is already the modal's own frame**,
+   thirty lines up this sheet, and a second rule under it would have given the
+   whole dialog a trading-card aspect ratio.
+
+   No hover, no pointer either: `shared/playerCard.css` gives `.player-card`
+   both, and both promise a click this panel does not answer. See `playerCard`
+   in roomDetail.js. */
+.rd-pcard {
+  aspect-ratio: 240 / 339;
+  overflow: hidden;
+  background: var(--fill-faint);
+}
+
+.rd-pcard img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* A slot left open in the formation. Dashed, because an empty slot is a shape
+   the squad still has room for, not a card that failed to load. */
+.rd-pcard.is-empty {
+  border: 1px dashed var(--border);
+  background: transparent;
+}
+
+/* LINEUP / SUB inside a pick box. Sits on the same left edge as the numbers
+   under it rather than indenting to the cells, so the two runs read as two
+   sections of one list and not as two boxes sharing a border. `+ .rd-rows`
+   closes the gap the group's own padding would otherwise double. */
+.rd-group {
+  padding: 8px 8px 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.rd-group + .rd-cards { padding-top: 6px; }
+
+/* Centred in a box tall enough to read as an empty list rather than as a line
+   of text with a rule round it. Scoped with `>` because `.rd-none` is also the
+   panel's "Loading…" line, which is not in a box and wants neither the height
+   nor the centring. */
+.rd-list > .rd-none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 8px 10px;
+}
+
+.rd-side-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-width: 0;
+}
+.rd-side-tag.is-host  { color: var(--hue-blue); }
+.rd-side-tag.is-guest { color: var(--danger); }
+
+/* Whose turn it is, on the tag of the side that has it — `currentColor`, so it
+   is that side's own hue and introduces none of its own. Present only on an
+   alternating ban phase; see `sideOnTurn` in roomDetail.js. */
+.rd-turn-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.rd-side-sub {
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.rd-cell {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: 12px;
+  min-width: 0;
+}
+/* Nothing on this side at this index — kept, and kept quiet, because the row
+   only lines up if both cells are there. */
+.rd-cell.is-hole {
+  justify-content: center;
+  color: var(--text-muted);
+  border-left-width: 1px;
+  background: transparent;
+}
+
+/* A step is black until it happens and green once it has — the same two states
+   the room page's own READY button has, and a column of them is answerable by
+   colour alone before a word is read. These cells take no side tint (see
+   `stepCell`), so nothing here has to outrank `.is-host` / `.is-guest`. */
+.rd-cell--step {
+  justify-content: center;
+  font-weight: 600;
+}
+.rd-cell--step.is-off {
+  color: var(--text-dim);
+  border-left-color: var(--border);
+  background: var(--surface-sunken);
+}
+.rd-cell--step.is-on {
+  color: var(--hue-green);
+  border-color: var(--hue-green-line);
+  border-left-color: var(--hue-green);
+  background: var(--hue-green-fill);
+}
+
+.rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
