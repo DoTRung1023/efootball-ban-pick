@@ -593,12 +593,21 @@ the token.
 
 | Screen | The accent element |
 | --- | --- |
-| sign-in | the SIGN IN button |
-| my players | ADD PLAYER |
+| sign-in | `.signin-btn` |
+| my players | `.add-player-btn` |
 | game plans | the focused plan-name field |
-| rooms | CREATE ROOM (JOIN is the outline secondary) |
-| room / draft | the turn clock's progress bar, and the pick slot waiting on you |
+| rooms | `.rooms-create-cta` (JOIN is the outline secondary) |
+| room / draft | `.timer-ring::after`, and the pick slot waiting on you |
+| room / Start Match | `.sm-step-btn` — the clock is not on this screen |
+| room / post-match | `.pm-btn`, in whichever of the two states is live |
 | admin | `.btn--primary` |
+| edit-profile modal | `.ep-submit` — a modal is its own layer |
+
+Audited by resolving `background: var(--accent)` through the token file per
+sheet: **one owner per screen, nine screens, no doubles.** The last four rows
+were missing from this table while the rules existed in the sheets, which is the
+failure mode to watch — the table is the check, so a screen the table does not
+name cannot be checked.
 
 The room page's `.btn--primary` is deliberately **white, not accent**: the accent is
 already spoken for by the clock, and a READY button wearing it would make the player look

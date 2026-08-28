@@ -666,7 +666,11 @@
   opacity: 0;
   transform: scale(0.7);
   transition: opacity var(--transition), transform var(--transition), background var(--transition);
-  color: var(--text);
+  /* Dark glyph on a light fill. `--danger` is #FF6467, so a white × on it
+     measured 2.9:1 — under even the 3:1 floor for a non-text control. This is
+     the pairing `.btn--primary` and the accent CTA already use: solid light
+     background, near-black label. */
+  color: var(--bg);
   font-size: 12px;
   padding: 0;
   z-index: 10;
