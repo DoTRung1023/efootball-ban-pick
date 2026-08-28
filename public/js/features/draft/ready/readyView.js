@@ -222,17 +222,28 @@ const stepChipHtml = (step, done) => {
  * being shown. It takes the formation off the role line with it, because the
  * shape is most of what the mode is withholding.
  */
-function teamColumnHtml({ name, role, picks, formation, step, done, isMe, conceal = "" }) {
-  if (conceal === REVEAL_MODE_HIDDEN) {
-    return `
-    <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
+/**
+ * The name, the subtitle and the ready/playing chip — the one part of a column
+ * both shapes share. `subtitle` rather than `formation` because the concealed
+ * column has no shape to name: withholding the squad and then printing
+ * `OPPONENT · 4-3-3` above the lock would give away most of what it withholds.
+ */
+function teamHeadHtml({ name, subtitle, step, done }) {
+  return `
       <header class="sm-team-head">
         <div class="sm-team-id">
           <h3 class="sm-team-name">${escapeHtml(name)}</h3>
-          <p class="sm-team-role">${escapeHtml(role)}</p>
+          <p class="sm-team-role">${escapeHtml(subtitle)}</p>
         </div>
         ${stepChipHtml(step, done)}
-      </header>
+      </header>`;
+}
+
+/** The opponent's column under `hidden`: a locked panel where the squad goes. */
+function lockedColumnHtml({ name, role, step, done }) {
+  return `
+    <section class="sm-team is-opp">
+      ${teamHeadHtml({ name, subtitle: role, step, done })}
       <div class="sm-squad sm-squad--locked">
         <div class="sm-locked">
           <span class="sm-locked-mark" aria-hidden="true">${icon("lock", { size: 22 })}</span>
@@ -241,14 +252,12 @@ function teamColumnHtml({ name, role, picks, formation, step, done, isMe, concea
         </div>
       </div>
     </section>`;
-  }
+}
 
-  const lineup = picks.slice(0, LINEUP_SIZE);
-  // `picks` is slot-addressed, so the holes go before anything counts.
-  const bench = filledPicks(picks.slice(LINEUP_SIZE));
-  const slotMap = buildOrderedSlotMap(lineup);
-
-  const rows = getFormationLayout(formation)
+/** The pitch rows for one formation, empty slots labelled with their position. */
+function pitchRowsHtml(picks, formation) {
+  const slotMap = buildOrderedSlotMap(picks.slice(0, LINEUP_SIZE));
+  return getFormationLayout(formation)
     .map((row) => {
       const cells = row
         .map(({ slot, pos }) =>
@@ -259,21 +268,30 @@ function teamColumnHtml({ name, role, picks, formation, step, done, isMe, concea
       return `<div class="sm-row">${cells}</div>`;
     })
     .join("");
+}
+
+/**
+ * One side's column. `conceal` is `""`, `blur` or `hidden`, and is only ever
+ * non-empty for the *opponent's* column — see `renderTeams`.
+ *
+ * `hidden` draws no squad at all rather than an empty pitch: an empty pitch is
+ * a lineup with nobody in it, which is a different thing from one you are not
+ * being shown.
+ */
+function teamColumnHtml({ name, role, picks, formation, step, done, isMe, conceal = "" }) {
+  if (conceal === REVEAL_MODE_HIDDEN) return lockedColumnHtml({ name, role, step, done });
+
+  const blurred = conceal === REVEAL_MODE_BLUR;
+  // `picks` is slot-addressed, so the holes go before anything counts.
+  const bench = filledPicks(picks.slice(LINEUP_SIZE));
 
   return `
     <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
-      <header class="sm-team-head">
-        <div class="sm-team-id">
-          <h3 class="sm-team-name">${escapeHtml(name)}</h3>
-          <p class="sm-team-role">${escapeHtml(role)} · ${escapeHtml(formation)}</p>
-        </div>
-        ${stepChipHtml(step, done)}
-      </header>
-      <div class="sm-squad${conceal === REVEAL_MODE_BLUR ? " is-concealed" : ""}"${
-        conceal === REVEAL_MODE_BLUR ? ' aria-hidden="true"' : ""}>
+      ${teamHeadHtml({ name, subtitle: `${role} · ${formation}`, step, done })}
+      <div class="sm-squad${blurred ? " is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
         <div class="sm-pitch pitch-field">
           ${PITCH_MARKS_HTML}
-          <div class="sm-pitch-rows">${rows}</div>
+          <div class="sm-pitch-rows">${pitchRowsHtml(picks, formation)}</div>
         </div>
         ${benchHtml(bench)}
       </div>

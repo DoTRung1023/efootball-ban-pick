@@ -351,58 +351,80 @@ const nameKey = (player) => String(player?.name || "").trim().toLowerCase();
 /** `overall_max` and friends, as a number — the accessor can answer `"—"`. */
 const cardValue = (player) => Number(getPlayerCardValue(player)) || 0;
 
+/** The seat facing `side`. */
+const opponentOf = (side) => (side === "host" ? "guest" : "host");
+
+/** One side's lineup as exactly `limit` slots — short arrays are padded. */
+function lineupSlots(room, side, limit) {
+  const picks = [...(room.picks?.[side] || [])];
+  while (picks.length < limit) picks.push(null);
+  return picks;
+}
+
+/** Which slots are empty, front to back. Picks are slot-addressed, so a `null` is a hole. */
+function emptySlotIndexes(picks) {
+  const holes = [];
+  for (let index = 0; index < picks.length; index += 1) {
+    if (!picks[index]) holes.push(index);
+  }
+  return holes;
+}
+
+/**
+ * The squad cards this side may still be given, strongest first.
+ *
+ * Two exclusions: cards already in the lineup, and **anything the opponent
+ * banned** — `/picks` does not validate against the ban list, so filling from it
+ * would field a banned player and nothing downstream would notice. A ban takes
+ * one *card*, not a footballer, so the other card of a banned name stays
+ * eligible — which is how `renderPickGrid` already marks the pool.
+ */
+function fillCandidates(room, picks, side) {
+  const alreadyPicked = new Set(filledPicks(picks).map((player) => String(player.id)));
+  const banned = new Set((room.bans?.[opponentOf(side)] || []).map((ban) => String(ban?.id)));
+
+  return (state.players || [])
+    .filter((player) => player
+      && !alreadyPicked.has(String(player.id))
+      && !banned.has(String(player.id)))
+    /* Name breaks the tie so two clients reading the same squad fill it the
+       same way — nothing depends on that today, but a coin-flip here would be
+       a bad thing to discover later. */
+    .sort((a, b) => cardValue(b) - cardValue(a) || nameKey(a).localeCompare(nameKey(b)));
+}
+
 /**
  * This side's lineup with every empty slot filled from the rest of the squad,
  * or `null` when there was nothing to do.
  *
- * Best first, by the same `overall_max` the pool's default sort uses, and
- * **one card per player name**: a squad routinely holds several cards of the
+ * **One card per player name.** A squad routinely holds several cards of the
  * same footballer (two Gareth Bales at different ratings is ordinary), and a
  * lineup that auto-filled itself with three of him would be a worse squad than
  * the one the player was building. Names already in the lineup count, so a
  * manual pick is never doubled either.
  *
- * Two exclusions beyond that: cards already in the lineup, and **anything the
- * opponent banned** — `/picks` does not validate against the ban list, so
- * filling from it would field a banned player and nothing downstream would
- * notice.
- *
- * Slot order is preserved. Holes are filled front to back, so the strongest
- * card left goes to the earliest empty slot — which for a lineup that is short
- * at the back means the bench fills last.
+ * Slot order is preserved and holes fill front to back, so the strongest card
+ * left goes to the earliest empty slot — which for a lineup short at the back
+ * means the bench fills last.
  */
 function autoFilledLineup(room) {
-  const mySide = state.mySide;
-  const theirSide = mySide === "host" ? "guest" : "host";
-  const limit = pickLimit(room.config);
-  const picks = [...(room.picks?.[mySide] || [])];
-  while (picks.length < limit) picks.push(null);
-
-  const holes = [];
-  for (let i = 0; i < picks.length; i += 1) if (!picks[i]) holes.push(i);
+  const side = state.mySide;
+  const picks = lineupSlots(room, side, pickLimit(room.config));
+  const holes = emptySlotIndexes(picks);
   if (!holes.length) return null;
 
-  const chosen = filledPicks(picks);
-  const takenIds = new Set(chosen.map((p) => String(p.id)));
-  const takenNames = new Set(chosen.map(nameKey).filter(Boolean));
-  const bannedIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b?.id)));
-
-  const candidates = (state.players || [])
-    .filter((p) => p && !takenIds.has(String(p.id)) && !bannedIds.has(String(p.id)))
-    /* Name breaks the tie so two clients reading the same squad fill it the
-       same way — nothing depends on that today, but a coin-flip here would be
-       a bad thing to discover later. */
-    .sort((a, b) => cardValue(b) - cardValue(a) || nameKey(a).localeCompare(nameKey(b)));
-
+  const usedNames = new Set(filledPicks(picks).map(nameKey).filter(Boolean));
   let placed = 0;
-  for (const candidate of candidates) {
+
+  for (const candidate of fillCandidates(room, picks, side)) {
     if (placed >= holes.length) break;
-    const key = nameKey(candidate);
-    if (key && takenNames.has(key)) continue;
-    if (key) takenNames.add(key);
+    const name = nameKey(candidate);
+    if (name && usedNames.has(name)) continue;
+    if (name) usedNames.add(name);
     picks[holes[placed]] = candidate;
     placed += 1;
   }
+
   /* Fewer candidates than holes leaves the rest empty rather than failing: the
      squad-size gate at START makes that near-impossible, and confirming a short
      lineup is still better than confirming none. */
