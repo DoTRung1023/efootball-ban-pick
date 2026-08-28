@@ -1046,14 +1046,25 @@ body {
   margin: -4px;
 }
 
-/* Width-driven now: the track sets the width and `aspect-ratio` derives the
-   height, which is the same 240 × 339 the card art and the browser's cards
-   use. It was height-driven — a fixed 96px with `width: auto` — which is what
-   left the thumb unable to fill its share of the row. */
+/* Width-driven: the track sets the width and the art's own 240 × 339 derives
+   the height. It was height-driven — a fixed 96px with `width: auto` — which
+   is what left the thumb unable to fill its share of the row.
+
+   **The ratio belongs on the image, not on the button**, and this is the one
+   card box on the page that carries a border. `box-sizing` is `border-box`, so
+   an `aspect-ratio` on the button makes the *border* box 240:339 and leaves the
+   content box 2px smaller in each direction — (W-2):(H-2), which is always
+   slightly taller than the art. `object-fit: cover` then has to shave the
+   difference off, and what it shaves is the gold rule printed around the edge
+   of every pesdb card: measured 1.24 source px at a 1440px window and 1.57 at
+   1200 — worse the smaller the thumb, and visible as a card missing its own
+   frame along the bottom. Sizing the image instead makes its box exactly
+   240:339, so `cover` has nothing to crop. Same declaration, and the same
+   reason, as `.pb-card .pc-img-wrap img` above and `.pc-img-wrap img` in
+   `ban.css`; the button's height is unchanged, so no thumb moves. */
 .pb-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 240 / 339;
   padding: 0;
   border: 1px solid var(--line-faint);
   border-radius: 0;
@@ -1065,7 +1076,8 @@ body {
 
 .pb-thumb img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 240 / 339;
   display: block;
   object-fit: cover;
   object-position: center;
