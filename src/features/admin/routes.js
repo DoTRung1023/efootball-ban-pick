@@ -164,10 +164,15 @@ router.get("/stats", asyncHandler(async (_req, res) => {
   }
 }));
 
-/** `idleSec` is time since the room's last heartbeat, not the room's age. */
+/**
+ * `idleSec` is time since the room's last heartbeat, not the room's age, and it
+ * is now the *only* thing that reports quiet — nothing filters on it. A room is
+ * listed for as long as it exists; see `listActiveRooms`. The table sorts by it,
+ * so a quiet room sinks rather than vanishes.
+ */
 router.get("/rooms", (_req, res) => {
   const now = Date.now();
-  const rooms = listActiveRooms(now).map(([code, entry]) => ({
+  const rooms = listActiveRooms().map(([code, entry]) => ({
     code,
     host: entry.host?.username || null,
     guest: entry.guest?.username || null,

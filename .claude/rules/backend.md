@@ -126,10 +126,14 @@ Supporting modules:
     briefly and was reversed on purpose. Read the list through
     `isKickedFromRoom(entry, userId)` in `store.js`, and note the check sits in
     the `/presence` handler **above the seat claim**, so it gates the host seat
-    too: a closed room reopens for whoever posts `role: "host"`, so a
-    guest-seat-only check let a kicked player take the room over.
+    too. That mattered more when a closed room reopened for whoever posted
+    `role: "host"` — a guest-seat-only check let a kicked player take the room
+    over. `hostId` now holds the reopen to the room's own host as well
+    (`room/presence-and-reconnect.md`), so this is belt and braces; keep it
+    there, because the two answer different questions and only this one survives
+    a host being kicked from a room they own.
 - `features/rooms/config.js` — duration constants, the three reveal modes,
-  `ROOM_LIST_QUIET_MS`, `PICK_COUNT_PER_SIDE`, and all room-config /
+  `PICK_COUNT_PER_SIDE`, and all room-config /
   ban/pick durations, both reveal modes and the ban order. `schedule.js` derives
   the turn schedule from that config and `turns.js` moves the room through it —
   including auto-banning an expired alternating turn, which is resolved on the

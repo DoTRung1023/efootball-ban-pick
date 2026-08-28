@@ -458,10 +458,11 @@ Verified by driving the real module with synthetic snapshots over a stubbed
 `fetch`: a READY toggle creates 0 new card nodes, a new pick creates exactly 1
 and every existing card survives, and an unchanged poll repaints nothing.
 
-The detail route deliberately does **not** hide a room that has gone quiet, unlike
-`GET /rooms`: that list is a dashboard and quiet means uninteresting, but this is
-an inspection, and a room nobody has beaten in two minutes is exactly the one an
-admin clicked through to look at.
+The detail route deliberately does **not** hide a room that has gone quiet, and
+`GET /rooms` no longer does either — the list used to, and the two disagreeing
+meant a room could be inspectable and unlistable at once, reachable only by a
+code the console would not show you. A room nobody has beaten in two minutes is
+exactly the one an admin is looking for.
 
 ## Changing passwords from the console
 
@@ -502,10 +503,14 @@ out the token; everything below `router.use(requireAdmin)` needs one.
 - `GET /me` — the token's own claims. The silent re-auth, and no DB read.
 - `GET /stats` — catalog count, user count, new users this week, active/draft room
   counts, last scrape row.
-- `GET /rooms` — `{ code, host, guest, phase, idleSec }`. `idleSec` is time since
-  the last heartbeat, not the room's age. The server drops rooms quiet for
-  `ROOM_LIST_QUIET_MS` (90 s) from the list — **display only**, it does not end
-  them. See `room/presence-and-reconnect.md`.
+- `GET /rooms` — `{ code, host, guest, phase, newMatch, idleSec }`. **Every room
+  that exists and is not closed, with no idle cutoff.** `idleSec` is time since
+  the last heartbeat, not the room's age, and it is the only thing that reports
+  quiet — nothing filters on it, and the table sorts by it so a quiet room sinks
+  rather than vanishes. A `ROOM_LIST_QUIET_MS` (90 s) cutoff used to drop quiet
+  rooms; nothing expires a room, so the ones it hid were the abandoned ones an
+  admin most wants to find and close. Closed rooms stay out — `GET /rooms/:code`
+  404s them, so a row would not open. See `room/presence-and-reconnect.md`.
 - `GET /rooms/:code` — one room in full: `serializeRoomEntry(entry,
   VIEW_UNRESTRICTED)` plus `code`, `phase`. **The viewer argument is what makes
   "in full" true.** The players' own snapshots are redacted by reveal mode now

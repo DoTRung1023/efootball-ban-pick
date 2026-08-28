@@ -33,9 +33,12 @@ room about 40 s later — reported as "the pick room automatically closes after
 underneath them.
 
 `pruneStalePresence`, `presenceTtlFor`, `presenceFingerprint` and
-`presenceChanged` are all gone, along with the two TTL constants. What remains is
-`ROOM_LIST_QUIET_MS` (90 s) — **admin display only**. It decides how long a quiet
-room stays on the dashboard listing and ends nothing.
+`presenceChanged` are all gone, along with the two TTL constants. **Nothing
+time-based remains at all.** `ROOM_LIST_QUIET_MS` (90 s) outlived them for a
+while — admin display only, deciding how long a quiet room stayed on the
+dashboard — and has gone too: it ended nothing, and the rooms it hid were
+precisely the abandoned ones an admin needs to see. `listActiveRooms` now filters
+on `closed` and nothing else.
 
 The trade this makes **mid-draft**: a player who closes their browser without
 pressing Leave holds their seat until the server restarts, so the other side

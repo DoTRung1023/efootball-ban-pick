@@ -7,16 +7,18 @@
  * POST /api/rooms/:code/config passes through the normalizers here.
  */
 
-/* There is no presence TTL. `PRESENCE_TTL_MS` (12s) and `DRAFT_PRESENCE_TTL_MS`
-   (30s) used to expire a participant whose heartbeat had lapsed, and expiring the
-   *host* closed the room outright — which a backgrounded browser tab was enough
-   to trigger. A seat is now only given up deliberately.
+/* There is no presence TTL, and now no idle cutoff of any kind. `PRESENCE_TTL_MS`
+   (12s) and `DRAFT_PRESENCE_TTL_MS` (30s) used to expire a participant whose
+   heartbeat had lapsed, and expiring the *host* closed the room outright — which
+   a backgrounded browser tab was enough to trigger. A seat is now only given up
+   deliberately.
 
-   This one is unrelated: it is how long a quiet room stays on the admin
-   dashboard, and it ends nothing. */
+   `ROOM_LIST_QUIET_MS` (90s) outlived them and is gone too. It ended nothing —
+   it decided how long a quiet room stayed on the admin dashboard — but hiding a
+   room the console could still open by code was the wrong half to drop, and the
+   rooms it hid were the abandoned ones an admin most wants to find. See
+   `listActiveRooms`. */
 import { BAN_ORDER_SIMULTANEOUS, normalizeBanOrder } from "./schedule.js";
-
-export const ROOM_LIST_QUIET_MS = 90000;
 
 /**
  * **0 means unlimited**, and it is the only value outside the range below that

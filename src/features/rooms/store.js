@@ -9,7 +9,6 @@
  */
 
 import {
-  ROOM_LIST_QUIET_MS,
   PICK_COUNT_PER_SIDE,
   REVEAL_MODE_HIDDEN,
   createDefaultRoomConfig,
@@ -453,12 +452,30 @@ export function findRoomEntry(code) {
   return roomPresence.get(code) || null;
 }
 
-/** Rooms are listed until they are closed or have gone quiet. Admin display only —
-    this hides a stale room from the dashboard, it does not end it. */
-export function listActiveRooms(now = Date.now()) {
-  return [...roomPresence.entries()].filter(
-    ([, entry]) => !entry.closed && now - entry.updatedAt < ROOM_LIST_QUIET_MS,
-  );
+/**
+ * Every room that exists and is not closed — **no idle cutoff**.
+ *
+ * There used to be one: a room quiet for `ROOM_LIST_QUIET_MS` (90 s) dropped off
+ * the dashboard, on the reasoning that a list is a dashboard and quiet means
+ * uninteresting. It is the opposite. Nothing expires a room — there is no
+ * presence TTL, and `/leave` only fires when somebody presses a button — so a
+ * pair who close their browsers mid-draft leave a room in memory for the life of
+ * the process. Those are exactly the rooms an admin is looking for, and they
+ * were the only ones the cutoff hid.
+ *
+ * It also split the console against itself: `GET /rooms/:code` deliberately
+ * never hid a quiet room, so one could be inspectable and unlistable at the same
+ * time, reachable only by a code the console would not show you.
+ *
+ * `idleSec` still rides on every row and the table still sorts by it, so a quiet
+ * room sinks to the bottom rather than disappearing off it — which is what the
+ * cutoff was reaching for. Closed rooms stay out: the detail route 404s them, so
+ * listing one would offer a row that cannot be opened.
+ *
+ * `now` is still taken for the caller's `idleSec` arithmetic.
+ */
+export function listActiveRooms() {
+  return [...roomPresence.entries()].filter(([, entry]) => !entry.closed);
 }
 
 /* There is no `pruneStalePresence`, and no presence TTL. A participant is only
