@@ -130,7 +130,8 @@ What a good one adds:
   "Close this panel. The room is not affected", because the table behind it has
   a CLOSE that ends the room. That pair is the reason this section exists.
 - **the difference between neighbours** — `UPDATE` fetches what is new,
-  `REPAIR GAPS` re-fetches players with empty fields; neither label says so.
+  `REPAIR` re-fetches players with empty fields; neither label says so, and they
+  no longer sit together to be compared.
 
 `RESET PW` and `DELETE` build theirs per row, naming the account and the address
 they would act on. The four role buttons take theirs from `ROLE_TIPS` in
@@ -342,8 +343,16 @@ scrolls.
 ## Running a scrape from the console
 
 `scrapeRunner.js` (server) + `scrapeControl.js` (client). The OVERVIEW tab's
-SCRAPE RUNS panel gains UPDATE and REPAIR GAPS buttons, a live output pane and a
-STOP button.
+SCRAPE RUNS panel gains an UPDATE button, a live output pane and a STOP button.
+
+**`REPAIR` is the odd one out: it starts a scrape but lives in CATALOG HEALTH.**
+Both buttons run `scrapeRunner`, both report into the SCRAPE RUNS pane, and both
+are disabled together while a run is going — nothing about the mechanism changed
+when it moved. What moved is where you reach for it. `REPAIR` is the answer to a
+non-zero count in the health list, and it now sits in the header of the panel
+that shows you that count instead of in the one next door. Its `title` says the
+progress appears in SCRAPE RUNS, because that is the one thing the new position
+makes less obvious.
 
 - **Child processes, never in-process.** Both scrapers finish with
   `await db.end()`; importing and calling them would close the server's pool.
