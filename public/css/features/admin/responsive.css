@@ -86,7 +86,7 @@
      guest would undo the one thing this layout is for. */
   .rd-pair { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 5px; }
   .rd-cards { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 4px; }
-  .rd-cell { padding: 5px 7px; font-size: 11px; }
+  .rd-cell { padding: 5px 7px; font-size: 12px; }
   .admin-nav { gap: 12px; }
   /* **The tab strip takes a row of its own from here down, not from 600.** This
      rung used to hide the wordmark and leave a 28px logo in the corner, which
@@ -174,7 +174,7 @@
   .admin-table:not(.catalog-table) td::before {
     content: attr(data-label);
     flex: 0 0 84px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.05em;
     color: var(--text-dim);

@@ -180,7 +180,7 @@
 
 .pb-empty {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ── The ON SIGN-IN column ── */
@@ -204,7 +204,7 @@
 
 .pb-side-title {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--text-muted);

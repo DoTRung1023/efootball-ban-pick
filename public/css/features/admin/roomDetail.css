@@ -95,7 +95,7 @@
   color: var(--text);
 }
 
-.rd-code { font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
+.rd-code { font-size: 20px; font-weight: 700; letter-spacing: 0.06em; }
 .rd-close { margin-left: auto; }
 
 .rd-body { padding: 16px; }
@@ -123,14 +123,14 @@
 }
 
 .rd-stage-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text);
 }
 
 .rd-stage-state {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 2px 8px;
@@ -182,7 +182,7 @@
 .rd-seat.is-empty { color: var(--text-dim); }
 
 .rd-seat-role {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-dim);
@@ -236,14 +236,14 @@
 }
 
 .rd-stat-k {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
 .rd-stat-v {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   overflow-wrap: anywhere;
@@ -280,7 +280,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -325,7 +325,7 @@
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--fill-faint);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .rd-list-count {
@@ -380,7 +380,7 @@
    closes the gap the group's own padding would otherwise double. */
 .rd-group {
   padding: 8px 8px 0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -403,7 +403,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   min-width: 0;

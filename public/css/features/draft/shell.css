@@ -198,11 +198,13 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
+/* Rest → hover is a step up the fill ladder plus the border, which is what every
+   other control on this page does (see the state ladder in `room/css.md`). The
+   `translateY` and the `brightness()` that used to be here are both named in
+   DESIGN.md §8 as things a button hover does not do. */
 .btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  background: var(--fill);
   border-color: var(--line-active);
-
-  filter: brightness(1.05);
 }
 
 .btn:active:not(:disabled) {
@@ -495,7 +497,7 @@
   border-radius: 0;
   padding: 10px 12px;
   cursor: default;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color var(--transition), background var(--transition);
   position: relative;
 }
 
@@ -648,8 +650,7 @@
   color: var(--text-muted);
   box-shadow: none;
   letter-spacing: 0;
-  transition:
-    width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+  transition: width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
     height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
     background 0.22s ease,
     border-color 0.22s ease,
@@ -953,7 +954,7 @@
   font-size: 12px;
   font-family: var(--font-body);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .chat-compose input::placeholder { color: var(--text-muted); }
@@ -1143,7 +1144,7 @@
   background: var(--text);
   color: var(--bg);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
 }
@@ -1237,7 +1238,7 @@
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
 }

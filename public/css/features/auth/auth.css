@@ -217,7 +217,7 @@ body {
 
 .card-title {
   font-family: var(--font-display);
-  font-size: 24.8px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text);
@@ -406,10 +406,10 @@ body {
   transition: background var(--transition);
 }
 
+/* Colour only. DESIGN.md §8: "Hover on a button: a colour change. No lift, no
+   shadow, no `filter: brightness()`." This carried all three. */
 .signin-btn:hover {
-  transform: translateY(-2px);
-
-  filter: brightness(1.05);
+  background: var(--accent-hover);
 }
 
 .signin-btn:active {
@@ -433,10 +433,6 @@ body {
   display: flex;
   align-items: center;
   transition: transform var(--transition);
-}
-
-.signin-btn:hover .btn-icon {
-  transform: translateX(4px);
 }
 
 /* ============================================================
@@ -604,7 +600,7 @@ body {
 .verify-notice[hidden] { display: none; }
 
 .verify-text {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text-dim);
   margin: 0;
@@ -618,7 +614,7 @@ body {
   border-radius: var(--radius-pill);
   color: var(--text);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   cursor: pointer;

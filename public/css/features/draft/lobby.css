@@ -497,7 +497,7 @@
   font-size: 20px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.14s ease;
+  transition: background var(--transition);
   line-height: 1;
 }
 
@@ -628,7 +628,7 @@
   display: none;
   flex: 1;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   user-select: none;

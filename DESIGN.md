@@ -304,9 +304,24 @@ converted and snapped to the nearest rung.
 | 20 | page and section headings |
 | 22 | logo / app name (weight 800, `letter-spacing: -0.02em`) |
 
-Above 22px is **display numerals only** — the turn clock at 32px. (The Start Match stat
-row used to be the other one; it is gone.)
-Those are deliberate one-offs, not a sixth rung; do not size body text there.
+Above 22px is **display numerals only**, and the list is closed. Those are
+deliberate one-offs, not a sixth rung; do not size body text there.
+
+| px | The one-off |
+| --- | --- |
+| 56 / 40 / 28 | `.rooms-code-display` — the room code on the home page, at its three rungs |
+| 34 / 30 | `.room-code-big` — the same code in the room lobby |
+| 32 / 28 | `.stat-value` — the console's dashboard numerals, and the turn clock |
+| 48 / 28 | `.player-popup-img.no-img`, `.pc-img-wrap.no-img::after` — art placeholders, not text |
+
+**There is no rung below 12px.** The app carried an undocumented 10/11px tier of
+micro-labels for a while — 18 declarations across the console and the draft
+board — and they are all on 12px now. If a label does not fit at 12, the box is
+too small, not the type.
+
+**Nothing is fractional.** `35.2px`, `24.8px`, `25.6px`, `24.32px` and `28.8px`
+survived the `rem` conversion unsnapped and are gone; a fractional font-size is
+always a leftover.
 
 **Weights.** 400 body · 500 nav links and captions · 600 emphasis and player names ·
 700 headings, buttons and the clock · 800 the logo.
@@ -507,6 +522,19 @@ Use `var(--transition)` and name the properties — never `transition: all`.
 Copy these rather than inventing a variant.
 
 ```css
+**Every button hover is a colour change** — §8 says so and it is worth repeating
+here, because five buttons had drifted into a lift: `translateY(-1px)`,
+`translateY(-2px)`, `scale(1.1)` and `filter: brightness(1.05)`, on the sign-in
+CTA, the catalog add button, the room page's base `.btn` and the shared modal
+CTA. A button that moves under the cursor is the one hover this app does not do.
+
+**Every transition is `var(--transition)`.** Twenty-five hand-written durations
+in the 120–160ms range had drifted off the token. Durations that are *not*
+150ms are deliberate and stay: the 80ms `:active` press, overlay and panel
+entrances at 0.2–0.35s, and progress sweeps at 0.4s/0.5s/1s. If you write a
+number, it should be because 150ms is wrong, not because you did not reach for
+the token.
+
 /* base button */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;

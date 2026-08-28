@@ -57,7 +57,7 @@
 .pc-img-wrap.no-img::after {
   content: attr(data-initial);
   font-family: var(--font-display);
-  font-size: 28.8px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--text-muted);
 }

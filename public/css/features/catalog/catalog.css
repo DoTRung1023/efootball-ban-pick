@@ -218,13 +218,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition), opacity var(--transition);
 }
 
+/* The two colour changes are the whole hover — the `scale(1.1)` that used to
+   ride with them is the lift DESIGN.md §8 rules out on a button. */
 .cr-add-btn:hover:not(:disabled) {
   background: var(--fill-strong);
   border-color: var(--line-active);
-  transform: scale(1.1);
 }
 
 .cr-add-btn.added {

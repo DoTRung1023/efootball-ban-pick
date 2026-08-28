@@ -99,7 +99,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition);
   padding: 0;
 }
 
@@ -307,7 +307,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 7px 12px;
-  transition: border-color 0.16s ease;
+  transition: border-color var(--transition);
 }
 
 .team-search-wrap:focus-within {
@@ -410,7 +410,7 @@
 }
 
 .dd-chevron {
-  transition: transform 0.16s ease;
+  transition: transform var(--transition);
   flex-shrink: 0;
   transform: rotate(180deg);
 }
@@ -432,7 +432,7 @@
   pointer-events: none;
   transform: translateY(6px) scale(0.97);
   transform-origin: top left;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition: opacity var(--transition), transform var(--transition);
   overflow: hidden;
 }
 
@@ -456,7 +456,7 @@
   font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease;
+  transition: background var(--transition), color var(--transition);
   border-bottom: 1px solid var(--line-faint);
 }
 
@@ -514,7 +514,7 @@
   font-size: 14px;
   padding: 7px 10px;
   outline: none;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .filter-input::placeholder { color: var(--text-muted); font-size: 12px; }
@@ -571,7 +571,7 @@
   font-size: 14px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  transition: border-color var(--transition), color var(--transition), background var(--transition), box-shadow var(--transition);
 }
 
 /* Same split as `.ap-dd-btn`, and it also gains a fill: this one moved nothing
@@ -593,7 +593,7 @@
 
 .pos-ms-btn svg {
   flex-shrink: 0;
-  transition: transform 0.16s ease;
+  transition: transform var(--transition);
   transform: rotate(180deg);
 }
 
@@ -627,7 +627,7 @@
   cursor: pointer;
   font-size: 14px;
   color: var(--text-dim);
-  transition: background 0.16s ease, color 0.16s ease;
+  transition: background var(--transition), color var(--transition);
   user-select: none;
 }
 
@@ -650,7 +650,7 @@
   border-radius: var(--radius-sm);
   flex-shrink: 0;
   position: relative;
-  transition: background 0.16s ease, border-color 0.16s ease;
+  transition: background var(--transition), border-color var(--transition);
 }
 
 /* Solid green fill, **no tick glyph**. The box used to carry a rotated
@@ -693,7 +693,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   cursor: pointer;
-  transition: background 0.16s ease, border-color 0.16s ease;
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .filter-clear-btn:hover {

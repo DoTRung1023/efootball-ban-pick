@@ -266,7 +266,7 @@ body {
   padding-left: 12px;
   border-left: 1px solid var(--border);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--text);
@@ -324,7 +324,7 @@ body {
   padding-left: 7px;
   border-left: 1px solid var(--line-hover);
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
 }
 
