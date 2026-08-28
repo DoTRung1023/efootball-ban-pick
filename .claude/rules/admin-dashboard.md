@@ -475,6 +475,32 @@ Verified by driving the real module with synthetic snapshots over a stubbed
 `fetch`: a READY toggle creates 0 new card nodes, a new pick creates exactly 1
 and every existing card survives, and an unchanged poll repaints nothing.
 
+### A room that ended has to say how, or the panel guesses
+
+`renderGone` can only print what the entry carries, and a **deleted** entry
+carries nothing: the route answers 404 and the panel shows *"That room is not in
+memory — it ended, or the server restarted"*, which cannot tell a host's close
+from a process restart. Every room-ending path was swept for this; the one that
+was wrong was a deliberate close by a host whose guest had already left, which
+deleted the entry instead of marking it closed. Fixed in `/leave` — see
+`room/presence-and-reconnect.md`.
+
+What the panel says for each ending now:
+
+| Ending | Panel |
+| --- | --- |
+| host closes (guest present, gone, or never joined) | `Host closed the room.` |
+| admin closes | `Closed by <admin>.` |
+| guest leaves | nothing — the room is still live |
+| lone host's tab dies (`disconnect`, no heir) | the 404, and it is accurate |
+
+**The closed panel is a panel, not a tooltip.** `.rd-card.is-brief` was
+`width: auto`, so it shrank to the longer of the sentence and the header, and a
+one-line close notice arrived in a box barely wider than the words. It is
+`min(520px, 100%)` with 44px of vertical padding on `.rd-gone` — measured at
+520 × 164 against the full panel's 880px, so the two states stay visibly
+different.
+
 ### The stage ladder must cover every phase `roomPhase` answers
 
 `STAGES` in `roomDetail.js` is `lobby · ban · pick · ready · done`, and
@@ -605,8 +631,12 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   quiet — nothing filters on it, and the table sorts by it so a quiet room sinks
   rather than vanishes. A `ROOM_LIST_QUIET_MS` (90 s) cutoff used to drop quiet
   rooms; nothing expires a room, so the ones it hid were the abandoned ones an
-  admin most wants to find and close. Closed rooms stay out — `GET /rooms/:code`
-  404s them, so a row would not open. See `room/presence-and-reconnect.md`.
+  admin most wants to find and close. Closed rooms stay out of the *list* —
+  "N LIVE" should not count rooms that have ended — but they open perfectly well
+  in the detail panel, which 404s only a **missing** entry and renders a closed
+  one as its `closeReason`. (An earlier draft of this line claimed the detail
+  route 404s a closed room. It does not; only `findRoomEntry` returning null
+  does.) See `room/presence-and-reconnect.md`.
 - `GET /rooms/:code` — one room in full: `serializeRoomEntry(entry,
   VIEW_UNRESTRICTED)` plus `code`, `phase`. **The viewer argument is what makes
   "in full" true.** The players' own snapshots are redacted by reveal mode now

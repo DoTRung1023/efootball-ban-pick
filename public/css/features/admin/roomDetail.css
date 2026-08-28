@@ -40,9 +40,15 @@
    here the card shrink-wraps it instead and the 880px becomes the cap rather
    than the width. Toggled by `setBrief` in roomDetail.js; the header keeps the
    card from ever getting narrower than the code, the pill and CLOSE. */
+/* **A panel, not a tooltip.** `width: auto` shrank the card to whichever was
+   wider, the one-sentence message or the header's own code + pill + CLOSE — so
+   "Host closed the room." arrived in a box barely longer than the words, which
+   reads as a hover hint rather than as the answer to "what happened to this
+   room". 520px is roughly the message's natural line length at this size with
+   room to breathe, and still well under the 880px the full panel uses, so the
+   two states stay visibly different. */
 .rd-card.is-brief {
-  width: auto;
-  max-width: min(880px, 100%);
+  width: min(520px, 100%);
 }
 
 /* `.rd-body`'s own 16px is gutter for a panel of stages. Under a single line it
@@ -77,8 +83,11 @@
    as a block of empty chrome and the message inside it as a footnote to it.
    No background, no rule: the text is the content, so it is centred in the
    space and set at the weight of something you are meant to read first. */
+/* The message owns the whole box — `.rd-card.is-brief .rd-body` drops its
+   padding — so this padding is the box's height. It was 22px, which left the
+   sentence pinned against the header above it. */
 .rd-gone {
-  padding: 22px 26px;
+  padding: 44px 32px;
   text-align: center;
   text-wrap: balance;
   font-size: 15px;

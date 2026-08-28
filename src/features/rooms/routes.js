@@ -368,11 +368,24 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
       entry.ready.guest = false;
       if (resetDraftToLobby(entry)) {
       }
-    } else if (heir?.id) {
-      /* Deliberate close, with somebody to tell. The entry has to outlive both
-         seats here — `closed` + `closeReason` is the only thing that puts the
-         guest on the "Room closed" screen, and deleting it would hand them an
-         empty snapshot instead. It is also what `reopenRoom` comes back to. */
+    } else if (!disconnected) {
+      /* **A deliberate close is a close, with or without a guest in the room.**
+         The entry has to outlive both seats — `closed` + `closeReason` is the
+         only thing that puts the guest on the "Room closed" screen, and deleting
+         it would hand them an empty snapshot instead. It is also what
+         `reopenRoom` comes back to.
+
+         This used to require an heir (`else if (heir?.id)`), on the reasoning
+         that a lone host closing has nobody to tell, so the room could simply be
+         deleted below. That is false while the **console** is watching: a guest
+         who left first, then a host who closed, took the entry with them and the
+         WATCH panel fell back to its 404 — "not in memory — it ended, or the
+         server restarted" — for a room whose host had just closed it in front of
+         the admin. The room now says how it ended, which is the one thing only
+         the entry can say.
+
+         A lone host whose *tab died* still falls through to the delete: nobody
+         chose to end anything there, so there is no close to report. */
       entry.closed = true;
       entry.closeReason = "Host closed the room.";
       entry.status = ROOM_STATUS.LOBBY;
@@ -382,10 +395,6 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
       entry.ready.guest = false;
       resetMatchSteps(entry);
     }
-    /* A lone host leaving deliberately sets no `closed` flag at all: there is
-       nobody to show it to, so the room is simply deleted below. Reopening the
-       same code makes a fresh lobby, which is what `reopenRoom` would have
-       produced anyway. */
   } else {
     entry.guest = null;
     /* The room survives its guest: the host drops back to the lobby with the

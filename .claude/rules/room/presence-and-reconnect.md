@@ -196,9 +196,21 @@ Two exceptions, both load-bearing:
   puts the remaining player on the "Room closed" screen; deleting it hands them
   an empty snapshot instead. Found by testing — the first version deleted it and
   the flag never reached the guest.
-- **A lone host leaving deliberately sets no `closed` flag at all.** There is
-  nobody to show it to, so the room is simply deleted. Reopening the code makes
-  a fresh lobby, which is what `reopenRoom` would have produced anyway.
+- **A deliberate close is a close, alone or not.** It used to require an heir —
+  a lone host closing had "nobody to show it to", so the room was simply deleted.
+  That is false while the **console** is watching: a guest who left first and a
+  host who then closed took the entry with them, and the WATCH panel fell back
+  to its 404, *"not in memory — it ended, or the server restarted"*, for a room
+  whose host had just closed it in front of the admin. The entry is the only
+  thing that can say how a room ended, so a close always keeps it.
+- **A lone host whose tab dies still deletes the room.** `reason: "disconnect"`
+  with no heir is nobody choosing anything, so there is no close to report and
+  nothing to keep. That is the one path that still ends with the 404, and the
+  404's wording is accurate for it.
+- The cost is that closed rooms accumulate for the life of the process. They
+  already did — a close *with* a guest has always kept the entry, and nothing
+  reaps them — so this widens an existing trade rather than making a new one.
+  They are out of `listActiveRooms`, so they cost memory and not screen space.
 
 ### The beacon is lobby-only
 
