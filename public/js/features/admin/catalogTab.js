@@ -7,8 +7,11 @@
    point — the TEST column says which ones a user's search will not return.
 
    The endpoint returns a page, never a count, so there is no total to show and
-   no last page to jump to: a full page means "there is probably more", which is
-   all NEXT needs to know.
+   no last page to jump *to*. Whether there is a next page is still answerable
+   exactly, without a count: the fetch asks for `PAGE_SIZE + 1` and throws the
+   extra row away, so a page that comes back over-full has a page after it and
+   one that does not is the last. PREV and NEXT are hidden at the ends rather
+   than disabled.
 
    Sort and filter are the **same** controls as My Players — `SORT_CATEGORIES`
    and `buildPlayerFilterPanel`, not console-local copies — so the two cannot
@@ -57,10 +60,13 @@ function sortValue() {
   return state.sortDir === "asc" ? cat.ascVal : cat.descVal;
 }
 
+/* **`PAGE_SIZE + 1`, not `PAGE_SIZE`.** The row past the page is never drawn; it
+   is asked for so that "is there a next page" is a fact rather than an
+   inference. See `loadCatalog`. */
 function catalogUrl(offset) {
   const params = playerFilterParams(
     state,
-    new URLSearchParams({ limit: PAGE_SIZE, offset, sortBy: sortValue() }),
+    new URLSearchParams({ limit: PAGE_SIZE + 1, offset, sortBy: sortValue() }),
   );
   if (state.search) params.set("q", state.search);
   return `/api/admin/catalog?${params}`;
@@ -114,11 +120,23 @@ export async function loadCatalog() {
 
   const offset = state.page * PAGE_SIZE;
   try {
-    const players = await fetchPlayers(offset);
-    const hasMore = players.length === PAGE_SIZE;
+    /* The fetch asks for one row more than the page shows. A full page used to
+       *mean* "there is probably more", which is a guess that is wrong exactly
+       when the catalog divides evenly by the page size — and on that catalog it
+       put NEXT on the last page, leading to an empty one. That was survivable
+       while NEXT only greyed out. It is not survivable now the button
+       disappears instead: a control that vanishes is making a claim, so it has
+       to be right. The extra row is discarded. */
+    const rows = await fetchPlayers(offset);
+    const hasMore = rows.length > PAGE_SIZE;
+    const players = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
-    el("catalogPrev").disabled = state.page === 0;
-    el("catalogNext").disabled = !hasMore;
+    /* Hidden, not disabled. A disabled PREV on page one is a control saying
+       "you could go back, but not from here"; there is no back, so there is
+       nothing to say. `.pagination-bar` reserves both slots either way, so the
+       count between them does not move when one appears. */
+    el("catalogPrev").hidden = state.page === 0;
+    el("catalogNext").hidden = !hasMore;
 
     if (!players.length) {
       const why = state.search || hasActivePlayerFilters(state)

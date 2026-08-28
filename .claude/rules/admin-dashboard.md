@@ -252,7 +252,20 @@ nothing. The active tab is mirrored into the URL hash.
 
 CATALOG reads the **public** `/api/players`, so those are the only fetches on
 the page that carry no token. The endpoint returns a page and never a count, so
-there is no total and no last page: a full page means NEXT stays enabled.
+there is no total to print and no last page to jump *to*.
+
+**Whether there is a next page is still exact, and it has to be.** The fetch asks
+for `PAGE_SIZE + 1` and throws the extra row away: a page that comes back
+over-full has a page after it, and one that does not is the last. It used to
+infer this from a full page meaning "there is probably more", which is wrong on
+any catalog that divides evenly by 25 — it put NEXT on the true last page and
+sent you to an empty one. That was survivable while NEXT merely greyed out; it
+is not, now that **PREV and NEXT are hidden at the ends rather than disabled**.
+A control that disappears is making a claim, so it has to be right.
+
+`.pagination-bar` is a three-column grid with each of PREV, the count and NEXT
+placed by `grid-column`, so a hidden button leaves its slot empty. As a centred
+flex row the count slid sideways every time you crossed page one.
 
 ### CATALOG's sort, filter and columns
 

@@ -58,14 +58,29 @@
 .search-input::placeholder { color: var(--text-dim); }
 
 /* ── Pagination ─────────────────────────────────────────────── */
+/* **A grid of three named columns, not a centred flex row.** PREV and NEXT are
+   `hidden` at the ends of the catalog rather than disabled, and a flex row
+   re-centres itself when one of them goes — so the count slid sideways every
+   time you crossed page one. Explicit `grid-column` keeps each of the three in
+   its own slot, and a `display: none` button leaves that slot empty instead of
+   letting the next item fall into it.
+
+   The outer `1fr` columns are what keep the trio grouped in the middle: the
+   buttons are pushed to the inside edge of their gutter, so the pair reads as
+   one control beside the count rather than as two things pinned to the panel's
+   corners. */
 .pagination-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   gap: 16px;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }
+
+.pagination-bar .page-prev { grid-column: 1; justify-self: end; }
+.pagination-bar .page-info { grid-column: 2; }
+.pagination-bar .page-next { grid-column: 3; justify-self: start; }
 
 .page-info {
   font-size: 12px;

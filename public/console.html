@@ -469,10 +469,13 @@
               </tbody>
             </table>
           </div>
+          <!-- Each of the three sits in a named grid column, so hiding a button
+               at either end leaves its slot empty instead of sliding the count
+               across. `catalogTab.js` sets `hidden`; page one starts with it. -->
           <div class="pagination-bar">
-            <button id="catalogPrev" class="btn btn--ghost btn--sm" disabled>‹ PREV</button>
+            <button id="catalogPrev" class="btn btn--ghost btn--sm page-prev" hidden>‹ PREV</button>
             <span id="catalogPageInfo" class="page-info">—</span>
-            <button id="catalogNext" class="btn btn--ghost btn--sm">NEXT ›</button>
+            <button id="catalogNext" class="btn btn--ghost btn--sm page-next">NEXT ›</button>
           </div>
         </div>
       </section>
