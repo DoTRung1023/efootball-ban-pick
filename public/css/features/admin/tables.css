@@ -261,6 +261,21 @@
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
+
+  /* **A click must not resize the button.** Every one of these swaps its own
+     label — to `CONFIRM?` when armed, then to `DELETING…` / `SENDING…` /
+     `CLOSING…` while the request is out — and a button that grows widens its
+     cell, which reflows the whole table around it. Measured at 12px/700:
+     CONFIRM? 89, DELETING… 93, SENDING… 88, CLOSING… 88; resting labels run
+     64 (CLOSE) to 114 (MAKE MASTER). So the floor is the widest thing any of
+     them can ever show, rounded up off 93, and a button wider than that by its
+     own label keeps its own width.
+
+     This belongs on the button, not on a slot around it. `.role-actions` does
+     reserve fixed slots, but only above 1200 — below that they collapse to
+     `auto` to make the table fit, and USERS had exactly this bug there. ROOMS
+     never had a slot grid at all. */
+  min-width: 96px;
 }
 
 /* `.link-btn` is worn by an `<a>` on CATALOG and a `<button>` on ROOMS; neither
@@ -352,8 +367,10 @@
    RESET PW landed at a different x in every row. A grid of equal slots is what
    makes a column of buttons read as a column.
 
-   The width is set here rather than on the button so that arming one — which
-   swaps its label to CONFIRM? — cannot resize it and shift the rest of the row. */
+   **The slot no longer carries the anti-reflow job** — `min-width` on the button
+   itself does, at every width, including the ones where these slots collapse to
+   `auto`. What a fixed slot still buys is *alignment*, which is a wide-screen
+   nicety and the first thing given up below 1200. */
 .role-actions {
   display: grid;
   grid-template-columns: repeat(4, 112px);

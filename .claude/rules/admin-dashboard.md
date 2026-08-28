@@ -687,13 +687,23 @@ Measured after both: **zero sideways scroll at 320 · 390 · 480 · 620 · 700 �
 · 1280**, where before this the USERS table needed 286px of drag at 320 and
 194px at 900.
 
-The ACTIONS column is three fixed 112px slots — promote · demote · password —
-and a row with nothing for a slot leaves it empty rather than closing the gap,
-so the buttons read as columns instead of a ragged run of pills. The width lives
-on the slot, not the button, so arming one (which swaps its label to `CONFIRM?`)
-cannot resize it and shift the row. Below 1000 the slots collapse to `auto` —
-336px of table whether or not a row fills it was the last 43px of overflow at
-900 — and below 600 they wrap.
+The ACTIONS column is four fixed 112px slots — promote · demote · password ·
+delete — and a row with nothing for a slot leaves it empty rather than closing
+the gap, so the buttons read as columns instead of a ragged run of pills. The
+slot width buys **alignment**: MAKE ADMIN on one row sits under MAKE MASTER on
+the next. Below 1200 the slots collapse to `auto` — 454px of table whether or not
+a row fills it — and below 600 they wrap.
+
+**Not resizing is a separate job, and it belongs to the button.** Every action
+button in a table swaps its own label — `CONFIRM?` when armed, then `DELETING…` /
+`SENDING…` / `CLOSING…` while the request is out — and a button that grows widens
+its cell and reflows the table around it. `.role-btn`/`.link-btn` therefore carry
+`min-width: 96px`, clear of the widest transient (measured at 12px/700: CONFIRM?
+89, DELETING… 93, SENDING… 88, CLOSING… 88; resting labels run 64 to 114). The
+slot grid could not do this job — it collapses to `auto` below 1200, so USERS
+reflowed there, and ROOMS has no slot grid at all. Verified by arming every
+table button through all four states at seven width/tab combinations: no cell
+changes width, height or x.
 
 Breakpoints: `1100 → 1000 → 860 → 700 → 620 → 600 → 480`. **At 1100** the stats row
 goes to two columns and the OVERVIEW panel pair stacks (see the half-width panel
