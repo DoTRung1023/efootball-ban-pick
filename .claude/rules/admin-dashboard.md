@@ -450,6 +450,23 @@ Keyed on `data-card-src`, not `src`: a card whose art 404s has had its `src`
 swapped to the anonymous placeholder, and matching on the live value would fail
 to recognise it and re-request the 404 on every repaint.
 
+**One queue per key, not one node.** The same card legitimately appears more
+than once in a stage: picks are per-side so both squads can hold the same
+player, both sides may ban the same player, and each stage draws *both* columns
+into one slot. Keyed to a single node, the first occurrence was kept and every
+later one found nothing and was rebuilt — so every duplicated card was destroyed
+and re-created on **every** repaint, including ones that changed nothing about
+the squads. A CONFIRM toggle blinked exactly the shared cards, which is what it
+was reported as: "the confirm button still re-renders player cards", and
+"removing and adding a player re-renders some cards" — the *some* being the
+duplicates.
+
+Measured with the real `pickStage` markup, two five-man columns sharing three
+players: before, a confirm toggle re-created 3 of 10 cards and a remove/add
+cycle re-created 3 where 1 was new; after, 10/10 survive a toggle and an add
+creates exactly the one new card. `shift()` hands the queued nodes out in
+document order so a card keeps roughly the slot it had.
+
 **The compare only works while nothing in the body varies with the clock.** The
 idle counter and the last-beat line are deliberately in the header for that
 reason — put an elapsed time in a stage and every poll repaints it silently.

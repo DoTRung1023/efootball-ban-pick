@@ -537,19 +537,32 @@ function headerPill(room) {
  * Keyed on `data-card-src` rather than `src` — see `playerCard`.
  */
 function patchStage(slot, html) {
+  /* **One queue per card, not one node.** The same card legitimately appears
+     more than once in a stage — picks are per-side, so both squads can hold the
+     same player, and the PICK stage draws both columns into this one slot.
+     Keyed to a single node, the first occurrence was kept and every later one
+     found nothing and was rebuilt, so every duplicated card was destroyed and
+     re-created on **every** repaint — including one that changed nothing about
+     the squads, like a CONFIRM toggle. Measured on two five-man columns sharing
+     three players: a confirm toggle re-created exactly those three.
+
+     Queueing means N occurrences reuse N nodes, and `shift()` hands them out in
+     document order so a card keeps roughly the slot it was in. */
   const live = new Map();
   slot.querySelectorAll("img.rd-pcard-img").forEach((img) => {
     const key = img.dataset.cardSrc;
-    if (key && !live.has(key)) live.set(key, img);
+    if (!key) return;
+    const queue = live.get(key);
+    if (queue) queue.push(img);
+    else live.set(key, [img]);
   });
 
   slot.innerHTML = html;
 
   slot.querySelectorAll("img.rd-pcard-img").forEach((fresh) => {
-    const kept = live.get(fresh.dataset.cardSrc);
-    /* `delete` so a player appearing twice in one stage gets its own node for
-       the second slot rather than the first one being moved into it. */
-    if (kept) { live.delete(fresh.dataset.cardSrc); fresh.replaceWith(kept); }
+    const queue = live.get(fresh.dataset.cardSrc);
+    const kept = queue && queue.length ? queue.shift() : null;
+    if (kept) fresh.replaceWith(kept);
     else armCardFallback(fresh);
   });
 }
