@@ -818,21 +818,33 @@ Key blocks:
   snapshot from an unchanged one.
   `.pick-opp-grid` is a card grid (`minmax(66px, 1fr)`, 60 px at ≤1100), **not**
   the old text feed.
-- **`.pick-opp-grid.is-concealed`** is the **`blur`** reveal mode: `filter:
-  blur(7px)` plus `user-select: none`, so the cards stay in the layout — the
-  count and progress bar above still show the opponent's progress — but the names
-  are not readable and cannot be recovered by dragging across the blur.
-  `pickView.js` also sets `aria-hidden`, or a screen reader reads out exactly what
-  the setting withholds.
+- **`.pick-opp-grid.is-concealed`** is the **`blur`** reveal mode: `opacity`,
+  `pointer-events: none` and `user-select: none` on the grid, plus
+  `filter: blur(6px)` + `transform: scale(1.12)` on `.pc-img-wrap img`. The cards
+  stay in the layout — the count and progress bar above still show the opponent's
+  progress — but the names are not readable and cannot be recovered by dragging
+  across the blur. `pickView.js` also sets `aria-hidden`, or a screen reader reads
+  out exactly what the setting withholds.
+  - **The filter is the half that was missing**, for long enough that this file
+    used to record it as a known leak. The rule set the three grid properties and
+    no filter at all, so `blur` mode rendered the opponent's whole squad at 75%
+    opacity with every name legible — the setting did nothing but dim. If you are
+    editing this rule, the blur *is* the feature; the opacity is decoration.
+  - **6px, against the ban strip's 4px**, and the difference is the card: this is
+    a 66px column (60px at ≤1100) where `.ban-phase-thumb` is ~40px, so the name
+    printed on the art is half again as tall and 4px left it readable. Both are
+    fixed px against a fluid card — re-measure either if its column changes.
+  - The blur goes on the **image**, not the grid, so it cannot touch the
+    scrollbar; `scale(1.12)` hides the halo the blur samples past the card edge,
+    and needs nothing else, because `.pc-img-wrap` is already `overflow: hidden`.
 - **`.pick-opp-locked`** is the **`hidden`** mode, a separate setting: `pickView`
   hides the grid, the count and `#pickOppProgressWrap` outright and shows this
   panel instead — lock icon, PICKS HIDDEN, and one line of status. Do not collapse
   the two modes into one rule; blur is not a weaker `display: none`, it is the
-  middle rung and both are user-selectable. `.sm-squad.is-concealed` in
-  `ready.css` carries the same mode onto Start Match — and **that one really does
-  blur** (`filter: blur(7px)`). Both rules used to set `opacity` alone with no
-  filter at all, so the "blur" leaked every name it exists to hide; only the Start
-  Match copy has been fixed.
+  middle rung and both are user-selectable. There is **no Start Match sibling to
+  keep in step** — `.sm-squad.is-concealed` is gone with the concealment on that
+  screen, which draws both squads in full whatever the room was set to
+  (`ready.css`, and `ready-phase.md`). This is the only pick-side conceal rule.
 - `.pick-plan-*` — the LOAD GAME PLAN dialog, which reuses `.confirm-overlay` /
   `.confirm-modal` from `shell.css` so the page has one modal shell.
   **`.pick-plan-overlay` sets `z-index: 110`, below the shell's 120**, and that

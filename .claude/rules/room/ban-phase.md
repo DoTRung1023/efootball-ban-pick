@@ -146,23 +146,45 @@ the pick board and Start Match; this governs `#draftBannedOnMeStrip` and
 `normalizeRevealMode`, and the lobby builds both card groups from one
 `REVEAL_GROUPS` table.
 
-It exists because the ban phase is **simultaneous** and `syncStagedBans` mirrors
-the opponent's staged bans on every 500 ms heartbeat — so without it you watch
-which of your players they are taking before they have confirmed, and can react
-while choosing your own.
+It exists because a ban reaches the opponent's screen **before it is final**. In
+a simultaneous phase `syncStagedBans` mirrors their staged bans on every 500 ms
+heartbeat, and in an alternating one each ban is posted the moment it is made —
+so without this you watch which of your players they are taking while you are
+still choosing your own.
 
 | Mode | Their strip | Their count |
 | --- | --- | --- |
 | `instant` | faces, live | live |
 | `blur` | `concealedBanThumbHtml` — the real card, blurred | live |
-| `hidden` | nothing; the slots read as un-banned | their **confirmed** count only |
+| `hidden` | nothing; the slots read as un-banned | their **final** count only |
 
-Three things that are easy to get wrong, all of them measured:
+Four things that are easy to get wrong, all of them measured:
 
-- **It only ever governs their *staged* bans.** `bans[theirSide]` does not fill
-  until they confirm, and once they have you need to know what you lost before
-  you pick — so `concealTheirs` is `""` the moment `theirConfirmed` is true.
-  Verified: under `hidden`, two confirmed bans render in full, with their ids.
+- **It governs whichever of their bans is not final, and which bucket that is
+  depends on the ban order.** `renderBanBoard` splits them into `theirSettled`
+  (no mode conceals these) and `theirPending` (every mode may), off `isSoloTurn`:
+
+  | Ban order | Pending | Settled | Concealment ends |
+  | --- | --- | --- | --- |
+  | simultaneous | `state.opponentStagedBans` | `bans[theirSide]` | they confirm |
+  | alternating | `bans[theirSide]` | — (nothing, while turns run) | the ban phase does |
+
+  **Reading only the staged bucket is why this setting used to do nothing at all
+  under `alternating`.** A ban is the turn there, so it lands committed in
+  `bans[theirSide]` and `bansConfirmed` is never set — nothing is ever staged, so
+  the strip drew every one of their bans in the clear at all three settings.
+  Verified both ways now: under `blur`, two alternating bans render concealed
+  with no `data-player-id`; under `hidden`, the strip is three empty slots and
+  the count reads `0/3`.
+- **Nothing has to move back to the settled bucket when an alternating phase
+  ends.** `isSoloTurn` goes false with the last ban turn, and `showBanBoard` in
+  `draftView.js` stops drawing the board on the same render. The pick board is
+  where you learn what you lost — it marks your own pool — so the reveal that
+  matters still happens, one screen over.
+- **Once a ban *is* final, no mode conceals it** — you need to know what you lost
+  before you pick, so `concealTheirs` is `""` the moment a simultaneous opponent
+  confirms. Verified: under `hidden`, two confirmed bans render in full, with
+  their ids.
 - **`hidden` has to give back the slots too.** Dropping the thumbs while still
   reserving their places left the strip two short of full, which says "they have
   banned two" as plainly as the faces would. `remaining` counts what is *shown*,

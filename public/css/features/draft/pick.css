@@ -1043,6 +1043,20 @@
   user-select: none;
 }
 
+/* The blur itself, and it has to be here — for a while this rule set only the
+   three properties above, so `blur` mode rendered the opponent's squad at 75%
+   opacity and every name on it stayed readable.
+   6px, not the ban strip's 4px: these cards are a 66px column against that
+   strip's ~40px thumb, so the printed name is half again as tall and 4px left
+   it legible. Re-measure if the column ever changes — the blur is a fixed px
+   against a fluid card. `.pc-img-wrap` is already `overflow: hidden`, so the
+   scale that hides the blur's edge halo needs nothing else. */
+
+.pick-opp-grid.is-concealed .pc-img-wrap img {
+  filter: blur(6px);
+  transform: scale(1.12);
+}
+
 /* `hidden` reveal mode: what is left when the cards, the count and the progress
    bar have all gone — their name at the top, and whether they are done. */
 
