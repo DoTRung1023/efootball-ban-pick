@@ -10,7 +10,12 @@ import { cb } from '@/features/draft/callbacks.js';
 import { showToast } from '@/features/draft/utils.js';
 import { state, applyPresenceSnapshot } from '@/features/draft/state.js';
 import { postAsMe } from '@/features/draft/api.js';
-import { normalizeFormation, pickCount } from '@/features/draft/players.js';
+import {
+  filledPicks,
+  getPlayerCardValue,
+  normalizeFormation,
+  pickCount,
+} from '@/features/draft/players.js';
 import {
   applyLocalBan,
   isSoloTurn,
@@ -332,6 +337,94 @@ export function submitPick(player) {
  * response is what makes a removal stick at all. Returns the number of picks the
  * server actually kept, so the caller can report what it dropped.
  */
+/* ── Running out of time on the pick board ───────────────────
+   The ban clock lets you through with whatever you banned, because a short ban
+   list costs you nothing but your own advantage. A short *lineup* is different:
+   Start Match needs a full squad on both sides, so a player who ran out of time
+   with 19 picks would strand the room — the draft is over and the match cannot
+   begin. Topping the lineup up is what keeps the clock from being able to
+   deadlock the draft. */
+
+/** A name, folded for comparison. Empty names are never equal to each other. */
+const nameKey = (player) => String(player?.name || "").trim().toLowerCase();
+
+/** `overall_max` and friends, as a number — the accessor can answer `"—"`. */
+const cardValue = (player) => Number(getPlayerCardValue(player)) || 0;
+
+/**
+ * This side's lineup with every empty slot filled from the rest of the squad,
+ * or `null` when there was nothing to do.
+ *
+ * Best first, by the same `overall_max` the pool's default sort uses, and
+ * **one card per player name**: a squad routinely holds several cards of the
+ * same footballer (two Gareth Bales at different ratings is ordinary), and a
+ * lineup that auto-filled itself with three of him would be a worse squad than
+ * the one the player was building. Names already in the lineup count, so a
+ * manual pick is never doubled either.
+ *
+ * Two exclusions beyond that: cards already in the lineup, and **anything the
+ * opponent banned** — `/picks` does not validate against the ban list, so
+ * filling from it would field a banned player and nothing downstream would
+ * notice.
+ *
+ * Slot order is preserved. Holes are filled front to back, so the strongest
+ * card left goes to the earliest empty slot — which for a lineup that is short
+ * at the back means the bench fills last.
+ */
+function autoFilledLineup(room) {
+  const mySide = state.mySide;
+  const theirSide = mySide === "host" ? "guest" : "host";
+  const limit = pickLimit(room.config);
+  const picks = [...(room.picks?.[mySide] || [])];
+  while (picks.length < limit) picks.push(null);
+
+  const holes = [];
+  for (let i = 0; i < picks.length; i += 1) if (!picks[i]) holes.push(i);
+  if (!holes.length) return null;
+
+  const chosen = filledPicks(picks);
+  const takenIds = new Set(chosen.map((p) => String(p.id)));
+  const takenNames = new Set(chosen.map(nameKey).filter(Boolean));
+  const bannedIds = new Set((room.bans?.[theirSide] || []).map((b) => String(b?.id)));
+
+  const candidates = (state.players || [])
+    .filter((p) => p && !takenIds.has(String(p.id)) && !bannedIds.has(String(p.id)))
+    /* Name breaks the tie so two clients reading the same squad fill it the
+       same way — nothing depends on that today, but a coin-flip here would be
+       a bad thing to discover later. */
+    .sort((a, b) => cardValue(b) - cardValue(a) || nameKey(a).localeCompare(nameKey(b)));
+
+  let placed = 0;
+  for (const candidate of candidates) {
+    if (placed >= holes.length) break;
+    const key = nameKey(candidate);
+    if (key && takenNames.has(key)) continue;
+    if (key) takenNames.add(key);
+    picks[holes[placed]] = candidate;
+    placed += 1;
+  }
+  /* Fewer candidates than holes leaves the rest empty rather than failing: the
+     squad-size gate at START makes that near-impossible, and confirming a short
+     lineup is still better than confirming none. */
+  return placed ? picks : null;
+}
+
+/**
+ * Pick-timer expiry: top the lineup up, then confirm it.
+ *
+ * The fill is skipped once this side has confirmed — `replaceMyPicks` refuses a
+ * locked lineup and would only toast about it.
+ */
+export async function autoFillAndConfirmPicks() {
+  const room = state.room;
+  if (!room) return;
+  if (!isLineupLocked(room)) {
+    const filled = autoFilledLineup(room);
+    if (filled) await replaceMyPicks(filled);
+  }
+  await confirmPicks(true);
+}
+
 export async function replaceMyPicks(players) {
   const room = state.room;
   if (!room) return null;

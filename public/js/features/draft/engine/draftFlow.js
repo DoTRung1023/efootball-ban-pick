@@ -202,11 +202,17 @@ function handleTurnExpiry() {
     void cb.confirmStagedBans();
     cb.renderDraftUi();
   } else if (stage === "pick") {
-    /* Time up confirms whatever you have, complete or not — the same shape as
-       the ban stage flushing what you staged. It does **not** jump to the ready
-       phase on its own any more: the server moves everyone once both sides are
-       confirmed, and both clocks run out together, so both confirmations land. */
-    void cb.confirmPicks(true);
+    /* Time up **fills** the lineup and then confirms it. A short ban list only
+       costs you your own advantage, but a short lineup strands the room: Start
+       Match needs a full squad on both sides, so a player who ran out of time
+       on 19 picks could not begin the match they had just drafted for. The rest
+       comes off their own squad, best card first, one per player name — see
+       `autoFilledLineup`.
+
+       It does **not** jump to the ready phase on its own: the server moves
+       everyone once both sides are confirmed, and both clocks run out together,
+       so both confirmations land. */
+    void cb.autoFillAndConfirmPicks();
     cb.renderDraftUi();
   }
 }

@@ -29,5 +29,5 @@ export const cb = {
   /** Timer expiry: post any staged bans without confirming the side. */
   confirmStagedBans: async () => {},
   /** Mark this side's squad final, or take it back. */
-  confirmPicks: async (_confirmed) => {},
+  autoFillAndConfirmPicks: async (_confirmed) => {},
 };

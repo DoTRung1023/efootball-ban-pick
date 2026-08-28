@@ -303,9 +303,38 @@ pool goes flat, grey and `not-allowed`, the slot rings and the × go, and a
 banner above the grid says which button undoes it. See `room/css.md` for the
 rules and what was measured.
 
-Pick-timer expiry now confirms whatever you have rather than jumping to the
-ready phase — the same shape as the ban stage flushing what you staged. Both
-sides share one `turnEndsAt`, so both confirmations land and the server advances.
+### Pick-timer expiry fills the lineup, then confirms it
+
+The ban clock lets you through with whatever you banned: a short ban list costs
+you your own advantage and nothing else. A short **lineup** is different — Start
+Match needs a full squad on both sides, so a player who ran out of time on 19
+picks could not begin the match they had just drafted for, and the room was
+stranded with the draft over. Topping the lineup up is what stops the clock
+deadlocking the draft.
+
+`autoFilledLineup` in `draftActions.js` builds it, from that side's own squad:
+
+- **best first**, by the same `overall_max` the pool's default sort uses
+  (`getPlayerCardValue`, coerced — it can answer `"—"`);
+- **one card per player name.** A squad routinely holds several cards of the
+  same footballer at different ratings, and a lineup auto-filled with three of
+  him is worse than the one the player was building. Names already in the lineup
+  count too, so a manual pick is never doubled;
+- **never a banned card.** `/picks` does not validate against the ban list, so
+  filling from it would field a banned player with nothing downstream to notice.
+  A ban takes one **card**, not a footballer — banning one Gareth Bale leaves
+  the other pickable, which is how `renderPickGrid` already marks the pool;
+- **slot order survives.** Holes fill front to back, so the strongest card left
+  goes to the earliest empty slot and the bench fills last.
+
+Fewer eligible cards than holes leaves the rest empty rather than failing — the
+squad-size gate at START makes that near-impossible, and a short lineup
+confirmed still beats none.
+
+It then confirms, and moves nobody: both sides share one `turnEndsAt`, so both
+clocks run out together, both confirmations land, and the server advances. The
+ban stage has the same shape — see "Nothing advances the room locally" in
+`ban-phase.md` for what happened when it did not.
 
 ## Reveal mode
 

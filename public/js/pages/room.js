@@ -12,7 +12,7 @@ import {
   showToast,
   getRoomCodeFromUrl,
   confirmStagedBans,
-  confirmPicks,
+  autoFillAndConfirmPicks,
   renderDraftUi,
   enterPostMatch,
   initDraftControls,
@@ -62,7 +62,7 @@ cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;
 cb.confirmStagedBans = confirmStagedBans;
-cb.confirmPicks = confirmPicks;
+cb.autoFillAndConfirmPicks = autoFillAndConfirmPicks;
 cb.renderRoomChat = renderRoomChat;
 
 // ── Boot ─────────────────────────────────────────────────────
