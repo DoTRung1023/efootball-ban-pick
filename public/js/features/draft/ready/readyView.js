@@ -33,8 +33,6 @@ import {
   LINEUP_SIZE,
 } from '@/features/draft/players.js';
 import { playerCardHtml } from '@/features/draft/playerCards.js';
-import { normalizeRevealMode } from '@/features/draft/state.js';
-import { REVEAL_MODE_BLUR, REVEAL_MODE_HIDDEN, ROOM_STATUS_DONE } from '@/features/draft/constants.js';
 import { stepForStatus } from './matchSteps.js';
 import { renderPostMatch } from './postMatch.js';
 
@@ -140,24 +138,25 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
   const ids = (picks) => picks.map((p) => (p ? String(p.id) : "-")).join(",");
 
   /**
-   * **The reveal modes reach this screen, and end at the final whistle.**
+   * **Both squads are drawn in full, whatever `revealMode` was.** `renderTeams`
+   * does not read it, and it is out of the diff key with it.
    *
-   * They used to stop at the draft: both squads were drawn in full here on the
-   * argument that concealment is a *drafting* mechanic — it exists so neither
-   * side can counter-pick — and by Start Match both lineups are locked, so
-   * there is nothing left to protect.
+   * Concealment is a *drafting* mechanic: it exists so neither side can
+   * counter-pick the other, and by the time this screen is up both lineups are
+   * confirmed and locked. This is the screen where you set the match up
+   * **against the squad you are about to play**, so withholding it here makes
+   * the lobby setting a promise about the whole room rather than about the
+   * draft, and leaves a player pressing READY at an empty column.
    *
-   * That is true of counter-picking and false of the thing a player actually
-   * bought: a room set to `hidden` said "nothing" and then showed the whole
-   * squad on the screen where you set the match up. Now the mode holds until
-   * the match is **done**, which is what the old `REVEALED AFTER MATCH` line
-   * used to promise, and `post` is where both squads finally open up.
+   * This has been round twice. It was concealed for one revision — `hidden`
+   * swapping the opponent's column for a locked panel, `blur` blurring their
+   * cards, both lifting at `done` — and taken out again. If it comes back a
+   * third time, the thing that wants changing is the **lobby copy**, which is
+   * what set the expectation that the mode covers the whole room.
    *
-   * Ban order has nothing to do with it — `renderTeams` never read it — so
-   * alternating and simultaneous behave identically here, as they always did.
+   * Ban order has never had anything to do with it: `renderTeams` does not read
+   * `banOrder` either, so alternating and simultaneous behave identically here.
    */
-  const over = String(room.status || "") === ROOM_STATUS_DONE;
-  const conceal = over ? "" : normalizeRevealMode(room.config?.revealMode);
 
   /* Both names are in the key because a name can arrive after the first paint —
      the old key left them out and the column kept saying "Opponent" for the
@@ -173,11 +172,6 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     step?.stage || "post",
     mine ? "1" : "0",
     theirs ? "1" : "0",
-    /* Back in the key. It was deliberately left out while this screen drew both
-       squads unconditionally; now that it decides what the opponent's column
-       shows, a mode change that arrived after the first paint would otherwise
-       repaint nothing. */
-    conceal,
   ].join("|");
   if (host.dataset.teamsKey === key) return;
   host.dataset.teamsKey = key;
@@ -190,9 +184,6 @@ function renderTeams({ room, mySide, theirSide, myPicks, theirPicks,
     step,
     done,
     isMe,
-    /* Only ever the other column. Concealing your own squad from you would be
-       nonsense, and `conceal` is computed once above for the key's sake. */
-    conceal: isMe ? "" : conceal,
   });
 
   host.innerHTML =
@@ -223,10 +214,9 @@ const stepChipHtml = (step, done) => {
  * shape is most of what the mode is withholding.
  */
 /**
- * The name, the subtitle and the ready/playing chip — the one part of a column
- * both shapes share. `subtitle` rather than `formation` because the concealed
- * column has no shape to name: withholding the squad and then printing
- * `OPPONENT · 4-3-3` above the lock would give away most of what it withholds.
+ * The name, the subtitle and the ready/playing chip. `subtitle` rather than
+ * `formation` so the caller decides what belongs next to the role — there is
+ * one caller today and it passes `ROLE · formation`.
  */
 function teamHeadHtml({ name, subtitle, step, done }) {
   return `
@@ -237,21 +227,6 @@ function teamHeadHtml({ name, subtitle, step, done }) {
         </div>
         ${stepChipHtml(step, done)}
       </header>`;
-}
-
-/** The opponent's column under `hidden`: a locked panel where the squad goes. */
-function lockedColumnHtml({ name, role, step, done }) {
-  return `
-    <section class="sm-team is-opp">
-      ${teamHeadHtml({ name, subtitle: role, step, done })}
-      <div class="sm-squad sm-squad--locked">
-        <div class="sm-locked">
-          <span class="sm-locked-mark" aria-hidden="true">${icon("lock", { size: 22 })}</span>
-          <p class="sm-locked-title">SQUAD HIDDEN</p>
-          <p class="sm-locked-note">Revealed when the match is finished</p>
-        </div>
-      </div>
-    </section>`;
 }
 
 /** The pitch rows for one formation, empty slots labelled with their position. */
@@ -270,25 +245,15 @@ function pitchRowsHtml(picks, formation) {
     .join("");
 }
 
-/**
- * One side's column. `conceal` is `""`, `blur` or `hidden`, and is only ever
- * non-empty for the *opponent's* column — see `renderTeams`.
- *
- * `hidden` draws no squad at all rather than an empty pitch: an empty pitch is
- * a lineup with nobody in it, which is a different thing from one you are not
- * being shown.
- */
-function teamColumnHtml({ name, role, picks, formation, step, done, isMe, conceal = "" }) {
-  if (conceal === REVEAL_MODE_HIDDEN) return lockedColumnHtml({ name, role, step, done });
-
-  const blurred = conceal === REVEAL_MODE_BLUR;
+/** One side's column: who they are, their pitch, and their bench. */
+function teamColumnHtml({ name, role, picks, formation, step, done, isMe }) {
   // `picks` is slot-addressed, so the holes go before anything counts.
   const bench = filledPicks(picks.slice(LINEUP_SIZE));
 
   return `
     <section class="sm-team ${isMe ? "is-me" : "is-opp"}">
       ${teamHeadHtml({ name, subtitle: `${role} · ${formation}`, step, done })}
-      <div class="sm-squad${blurred ? " is-concealed" : ""}"${blurred ? ' aria-hidden="true"' : ""}>
+      <div class="sm-squad">
         <div class="sm-pitch pitch-field">
           ${PITCH_MARKS_HTML}
           <div class="sm-pitch-rows">${pitchRowsHtml(picks, formation)}</div>

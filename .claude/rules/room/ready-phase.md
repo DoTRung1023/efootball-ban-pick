@@ -148,27 +148,6 @@ default for anything outside its fifteen-row table, so an unknown string can nev
 a pitch or a stat cell, and a third copy of the list (there are already two — see
 CLAUDE.md) would be one more thing to keep in step for no added safety.
 
-## Reveal mode carries onto this screen
-
-All three modes mean here what they meant during the draft — revealing at Start Match
-would make the lobby setting a draft-only promise:
-
-- `instant` — their squad and the full stats row.
-- `blur` — `.sm-squad.is-concealed`, which is `filter: blur(7px)` plus
-  `user-select: none`, with `aria-hidden` set in `readyView`. **The blur is the whole
-  mechanism**, and it was missing: the rule set `opacity` alone, so every name under a
-  mode whose only job is to hide them was perfectly legible. The team head stays outside
-  the blur on purpose — the name and the READY chip are what blur still promises you.
-  Stats stay live; blur conceals identities, not shape.
-- `hidden` — the column is replaced wholesale by `.sm-team.is-hidden`. The chip stays:
-  it says how far along the *step* the opponent is, not anything about their squad. Their ids and
-  their formation also stay out of `data-teams-key`, which is written to the DOM and
-  would otherwise publish exactly what the column refuses to draw. There is nothing else
-  left to mask now the stats row is gone — which is the point of the warning above.
-
-`.pick-opp-grid.is-concealed` on the pick board has the **same missing blur** and is not
-fixed here — see `pick-phase.md`.
-
 ## The one button
 
 `#draftStepBtn` → `setMatchStep(step, value)` → `POST /api/rooms/:code/match-step`.
@@ -347,45 +326,34 @@ screen at `opacity: .5` and `pointer-events: none` so the state is legible but s
 with the home page's Rooms tab. There is no create-room endpoint — a room exists as soon
 as somebody sends presence for its code.
 
-## The reveal modes reach this screen, and end at the final whistle
+## Nothing is concealed on this screen
 
-**Only the opponent's column is ever concealed, and only until `status` is
-`done`.** `renderTeams` reads `revealMode` and is back in the diff key with it,
-so a mode arriving after the first paint still repaints.
+**Both squads are drawn in full, whatever `revealMode` was.** `renderTeams` does
+not read it, and it is out of the diff key with it. It has never read `banOrder`
+either, so alternating and simultaneous behave identically here.
 
-| Mode | Opponent's column, before `done` | At `done` (`post`) |
-| --- | --- | --- |
-| `instant` | full squad | full squad |
-| `blur` | cards blurred (`.sm-squad.is-concealed`), pitch sharp | full squad |
-| `hidden` | `.sm-squad--locked` — lock, SQUAD HIDDEN, no cards, **no formation** | full squad |
+Concealment is a *drafting* mechanic — it exists so neither side can counter-pick
+the other. By the time Start Match is up both lineups are confirmed and locked,
+so there is nothing left to protect, and this is the screen where you set the
+match up **against the squad you are about to play**. A `hidden` room that
+arrives here still withholding makes the lobby setting a promise about the whole
+room rather than about the draft, and leaves a player pressing READY at a column
+with nothing in it.
 
-This has been round both ways, and the argument for each is worth keeping.
+**This has been round twice, and the second lap is worth recording.** The screen
+was made to honour the modes for one revision — `hidden` swapped the opponent's
+column for a `.sm-squad--locked` panel, `blur` blurred their cards, both lifting
+at `done` — and it was taken out again. Gone with it, for the second time:
+`lockedColumnHtml`, the `conceal` argument on `teamColumnHtml`, and
+`.sm-squad.is-concealed` / `.sm-squad--locked` / `.sm-locked-*` in `ready.css`.
+What survived is the decomposition that came with it — `teamHeadHtml` and
+`pitchRowsHtml` — which is worth keeping either way.
 
-**Why it was removed:** concealment is a *drafting* mechanic — it exists so
-neither side can counter-pick — and by Start Match both lineups are locked, so
-there is nothing left to protect. A `hidden` room arriving here still saying
-"Picks hidden" left both players staring at an empty column while they pressed
-READY.
+If it comes back a third time, **change the lobby copy instead**: PICK REVEAL
+reads as a promise about the room, and this screen is where that reading breaks.
 
-**Why it is back:** that is true of counter-picking and false of what the
-setting says. A room set to `hidden` promised "nothing" and then printed the
-whole squad on the screen where you set the match up. The mode now holds until
-the match is over, which is what the old `REVEALED AFTER MATCH` line promised
-before it was cut. If you are tempted to remove it a second time, the thing to
-change is the *lobby copy*, not this screen.
-
-**Ban order has nothing to do with it.** `renderTeams` has never read
-`banOrder`, so alternating and simultaneous behave identically here — worth
-stating because the change was reported as an alternating-only fault.
-
-**The server holds the picks back for exactly as long.** `concealedFrom` in
-`rooms/store.js` withholds `picks[theirSide]` under `hidden` until `done`,
-not just for the draft — a screen that refuses to draw them over a snapshot
-that carries them is a blur over readable data. `blur` still arrives in full and
-has to: the screen blurs the real cards. See `ban-phase.md` for the same split
-on the ban half, which reveals earlier and cannot do otherwise.
-
-`.sm-squad.is-concealed` is a 7px blur on `.player-card`, **not on the column** —
-a blurred pitch reads as a broken render, blurred cards on a crisp pitch read as
-withheld. 7px against the ban strip's 4px and the pick feed's 6px because these
-are the largest cards the app draws.
+**The server moved back with it.** `concealedFrom` in `rooms/store.js` withholds
+`picks[theirSide]` under `hidden` for `drafting` only. The two halves have to
+agree — a screen that draws the squad over a snapshot that withholds it is
+broken, and so is the reverse. Verified over the API: *Start Match draws the
+opponent in full, in every mode*, under both `hidden` and `blur`.

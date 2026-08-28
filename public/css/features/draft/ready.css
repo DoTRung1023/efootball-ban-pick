@@ -174,67 +174,15 @@
   min-height: 0;
 }
 
-/* ── Concealment ──────────────────────────────────────────────
-   The reveal modes reach this screen now and hold until the match is `done`;
-   `post` is where both squads open up. Only the opponent's column is ever
-   concealed. See `renderTeams` in `ready/readyView.js`.
+/* There is no concealment on this screen — neither `blur` nor `hidden` reaches
+   it. Both squads are drawn in full, whatever the room was set to: concealment
+   is a *drafting* mechanic, and by the time Start Match is up both lineups are
+   confirmed and locked. See `renderTeams` in `ready/readyView.js`.
 
-   `blur` blurs the **cards**, not the column, so the pitch markings underneath
-   stay sharp — a blurred field reads as a broken render, where blurred cards on
-   a crisp pitch read as withheld. 7px, not the ban strip's 4px or the pick
-   feed's 6px: these are the largest cards the app draws, and the printed name
-   survives both smaller radii at this size. `user-select: none` because the
-   names are otherwise recoverable by dragging across the blur, and
-   `readyView` sets `aria-hidden` so a screen reader does not read out what the
-   blur is withholding. */
-
-.sm-squad.is-concealed .player-card {
-  filter: blur(7px);
-  user-select: none;
-  pointer-events: none;
-}
-
-/* `hidden` draws no squad at all — see `teamColumnHtml`. The panel takes the
-   space the pitch and bench would have had, so the two columns keep the same
-   height and the VS divider stays centred between them. */
-
-.sm-squad--locked {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sm-locked {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px 16px;
-  width: 100%;
-  text-align: center;
-  border: 1px dashed var(--line-faint);
-  border-radius: var(--radius);
-  background: var(--fill-faint);
-}
-
-.sm-locked-mark {
-  color: var(--text-muted);
-  line-height: 0;
-}
-
-.sm-locked-title {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: var(--text-dim);
-}
-
-.sm-locked-note {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
+   `.sm-squad.is-concealed`, `.sm-squad--locked` and the `.sm-locked-*` family
+   lived here for one revision and are gone again with the behaviour. If they
+   come back a third time, so does `dead-css` shouting at whoever removes them
+   next — which is the check doing its job. */
 
 /* ── Pitch ───────────────────────────────────────────────────── */
 
