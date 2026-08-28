@@ -311,7 +311,25 @@ function lobbyStage(room, cfg) {
       isPast("lobby", room.phase), room.ready?.guest, STEP_WORDS.lobby)}</ul>`);
 }
 
-/** Only the guest readies in the lobby, so the host column is a hole. */
+/**
+ * **The confirm row belongs to a simultaneous phase only.**
+ *
+ * `bansConfirmed` is written by `/ban-confirm`, and an alternating phase never
+ * calls it — a ban *is* the turn there, so the client does not even draw a
+ * CONFIRM BANS button. The flags therefore sit at `false, false` for the whole
+ * phase, and the row printed `unconfirmed | unconfirmed` through every turn and
+ * then flipped to `confirmed | confirmed` on the `done ||` fallback the moment
+ * the phase ended — a confirmation nobody ever gave.
+ *
+ * So it is the one thing on this stage that did not move while the room did:
+ * the counts, the cards and the turn dot all repaint per turn (verified by
+ * diffing this function's own output across a whole alternating phase), and the
+ * row under them stayed put and then lied. Omitted rather than reworded,
+ * because there is no third state to report: whose turn it is, is what this
+ * stage has to say, and the dot beside the tag already says it.
+ */
+const BAN_ORDER_ALTERNATING = "alternating";
+
 function banStage(room) {
   const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
   const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
@@ -322,11 +340,12 @@ function banStage(room) {
      fact still has a `turnIndex`, and marking a side on a stage badged DONE
      would show a clock that stopped. */
   const turn = room.phase === "ban" ? sideOnTurn(room) : "";
+  const alternating = String(room.config?.banOrder || "") === BAN_ORDER_ALTERNATING;
   return stageBlock("ban", "2 · BAN", room.phase, `
     ${sideLists(
       sideList("host", countOf(host.length, "ban"), [["", host]], "", turn === "host"),
       sideList("guest", countOf(guest.length, "ban"), [["", guest]], "", turn === "guest"))}
-    ${confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
+    ${alternating ? "" : confirmRow(room.bansConfirmed, isPast("ban", room.phase))}`);
 }
 
 /**

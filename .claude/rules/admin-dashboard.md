@@ -458,6 +458,29 @@ Verified by driving the real module with synthetic snapshots over a stubbed
 `fetch`: a READY toggle creates 0 new card nodes, a new pick creates exactly 1
 and every existing card survives, and an unchanged poll repaints nothing.
 
+### The BAN stage's confirm row is simultaneous-only
+
+`bansConfirmed` is written by `/ban-confirm`, and an **alternating** phase never
+calls it — a ban *is* the turn there, so the room has no confirm step and the
+draft client does not even draw the button. The flags therefore sit at
+`false, false` for the whole phase, and `confirmRow`'s `done ||` fallback then
+flipped them to `confirmed | confirmed` the moment the phase ended. So the row
+read `unconfirmed` through every turn and finished by reporting a confirmation
+nobody had given.
+
+`banStage` omits it entirely when `config.banOrder` is `alternating`. Not
+reworded, because there is no third state to report: whose turn it is, is what
+that stage has to say, and the dot on the side tag already says it.
+
+**Everything else on that stage was fine**, which is worth recording because the
+symptom read as "the WATCH panel does not update". Diffing `banStage`'s own
+output across a whole alternating phase — the exact string `render()` compares —
+the stage repaints on all six turns, with the counts, the card list and the turn
+dot all moving; the confirm row was the only thing standing still. That test is
+the cheap way back in: import `banStage` in Node against real snapshots rather
+than driving the console in a browser, and **rebuild the copy from source before
+each run** — a stale copy reports the old behaviour perfectly convincingly.
+
 The detail route deliberately does **not** hide a room that has gone quiet, and
 `GET /rooms` no longer does either — the list used to, and the two disagreeing
 meant a room could be inspectable and unlistable at once, reachable only by a
