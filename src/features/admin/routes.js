@@ -406,10 +406,18 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
  * statement: a master who is not an admin could not open the console to use the
  * role, and would read as a bug rather than as a policy.
  *
- * Standing yourself down is allowed — unlike revoking your own access — because
- * it is how a master hands the role on and it cannot lock the console: the
- * account keeps `is_admin`, and the last-master check below keeps somebody in
- * the role. `ADMIN_EMAIL` restores itself on the next boot regardless.
+ * **Nobody changes their own master flag**, in either direction — the same rule
+ * that already refuses revoking your own access, and the USERS tab draws your
+ * own row with no buttons because of it. Standing yourself down used to be the
+ * exception, on the argument that it is how a master hands the role on; the way
+ * a master hands it on now is that another master takes it, which is one fewer
+ * account able to change what it is on its own say-so. The last-master check
+ * below still stands behind it, and `ADMIN_EMAIL` still restores itself on the
+ * next boot.
+ *
+ * The self-check sits *after* `requireMaster` so a plain admin reaching this
+ * route is told it is not theirs to call, rather than being told about a rule
+ * that was never going to apply to them.
  */
 router.patch("/users/:id/master", asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
@@ -418,6 +426,12 @@ router.patch("/users/:id/master", asyncHandler(async (req, res) => {
 
   try {
     if (!(await requireMaster(req, res, "designate a master admin"))) return;
+
+    if (targetId === Number(req.admin.uid)) {
+      return res.status(400).json({
+        error: "You cannot change your own master admin status.",
+      });
+    }
 
     if (!makeMaster) {
       const [[{ cnt }]] = await db.query(
@@ -462,6 +476,13 @@ router.patch("/users/:id/master", asyncHandler(async (req, res) => {
  * OAuth account — whose `password` column is NULL — a password at all. And
  * still worth naming: a master admin can take over any account on the
  * installation, which is why this is master-gated rather than admin-gated.
+ *
+ * **Not your own account.** The USERS tab has never offered it on your own row;
+ * the refusal is here so that is a rule rather than a missing button. Your own
+ * password is changed under Edit Profile, where you choose it and the old one
+ * has to be given first — this route neither asks for the old one nor tells you
+ * the new one, so aimed at yourself it is a way to lock yourself out and wait
+ * for an email.
  */
 router.patch("/users/:id/password", asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
@@ -469,6 +490,12 @@ router.patch("/users/:id/password", asyncHandler(async (req, res) => {
 
   try {
     if (!(await requireMaster(req, res, "reset an account password"))) return;
+
+    if (targetId === Number(req.admin.uid)) {
+      return res.status(400).json({
+        error: "Change your own password under Edit Profile.",
+      });
+    }
 
     const [[user]] = await db.query(
       "SELECT id, username, email FROM users WHERE id = ?",

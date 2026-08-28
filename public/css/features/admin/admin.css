@@ -620,6 +620,23 @@ body {
 }
 
 /* ── Access column ──────────────────────────────────────────── */
+/* **The same two rungs `.btn--ghost` uses** — `--text` on `--line-hover` — and
+   for the same reason: REFRESH, WATCH and UPDATE are the console's neutral
+   button, and this was the one control on the page a rung below them. It read
+   as disabled.
+
+   The rung it was on is not a matter of taste. `--text-dim` on a tinted row is
+   *below the 4.5 floor DESIGN.md §3.5 sets*: measured against the row washes
+   these buttons actually sit on, the label was 4.18 on a master's row and 4.51
+   on an admin's, and the `--border` edge was 1.10–1.47 against the row — a
+   hairline nobody can see. On `--text` the same labels measure 13.08 / 14.10 /
+   17.52 and the edge 1.53–2.05.
+
+   Still neutral, and still transparent: DESIGN.md §3 rule 3 is that a control
+   never takes the hue of the row it sits in, and white-on-hairline is how it
+   stays out of both role palettes. The rungs stay ordered — `--line-hover` at
+   rest, `--line-active` under the pointer, which is the ghost button's ladder
+   exactly. */
 .role-btn {
   font-family: var(--font-main);
   font-size: 12px;
@@ -627,14 +644,14 @@ body {
   letter-spacing: 0.05em;
   padding: 3px 9px;
   border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
+  color: var(--text);
+  border: 1px solid var(--line-hover);
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
-.role-btn:hover { color: var(--text); border-color: var(--line-active); background: var(--fill); }
+.role-btn:hover { border-color: var(--line-active); background: var(--fill); }
 .role-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* Armed: one more click removes access, so it stops looking neutral. */

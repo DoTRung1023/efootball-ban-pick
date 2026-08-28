@@ -31,10 +31,12 @@
    console's point of view — hence the same two-click arming as a role change.
 
    Lockouts the server refuses, and this table therefore does not offer:
-   demoting yourself, demoting the last admin, revoking access from a master
-   without standing them down first, and standing down the last master.
-   Anything destructive is a two-click action — the first click arms the
-   button, the second sends it.
+   demoting yourself, standing yourself down, resetting your own password,
+   demoting the last admin, revoking access from a master without standing them
+   down first, and standing down the last master. The first three are one rule —
+   **nobody acts on their own row** — and your own row renders its three action
+   slots empty. Anything destructive is a two-click action: the first click arms
+   the button, the second sends it.
    ============================================================ */
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
@@ -87,11 +89,17 @@ const revokeBtn = (id, attr, value, label) =>
  * RESET PW landed at a different x in every row. Read down a column now and it
  * is one kind of action.
  *
- * Which buttons exist at all is unchanged, and each absence is a rule the
- * server enforces: you can stand yourself down but never revoke your own
- * access; a master's access comes off only after the master flag does, so
- * losing the role is two deliberate steps; and your own password is changed
- * under Edit Profile, not from a table of other people's accounts.
+ * **Your own row carries no buttons at all** — three empty slots, and the YOU
+ * badge in the last column is what says why. This is a rule and not a layout:
+ * an account with console access does not act on itself from this table, so a
+ * role change and a password reset are both somebody else's to make. Standing
+ * yourself down used to be the one exception; it is not one any more, and a
+ * master hands the role on by having another master take it. The server refuses
+ * all three the same way, so hiding them here is only the courtesy.
+ *
+ * Each remaining absence is also a server rule: a master's access comes off
+ * only after the master flag does, so losing the role is two deliberate steps;
+ * and your own password is changed under Edit Profile.
  */
 function actionsCell(user, isSelf) {
   const id = Number(user.id);
@@ -102,11 +110,13 @@ function actionsCell(user, isSelf) {
       ? grantBtn(id, "make-master", "1", "MAKE MASTER")
       : grantBtn(id, "make-admin", "1", "MAKE ADMIN");
 
-  const demote = user.is_master_admin
-    ? revokeBtn(id, "make-master", "0", "STAND DOWN")
-    : !isSelf && user.is_admin
-      ? revokeBtn(id, "make-admin", "0", "REVOKE")
-      : "";
+  const demote = isSelf
+    ? ""
+    : user.is_master_admin
+      ? revokeBtn(id, "make-master", "0", "STAND DOWN")
+      : user.is_admin
+        ? revokeBtn(id, "make-admin", "0", "REVOKE")
+        : "";
 
   /* `data-revoke-label` is what `armConfirm` puts back when the arming times
      out — without it the button would disarm into reading "REVOKE". */

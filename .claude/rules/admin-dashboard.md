@@ -75,6 +75,13 @@ first — losing the role is always two deliberate steps), standing down the las
 master, and granting master without console access (it grants both in one
 statement, since a master who cannot open the console reads as a bug).
 
+**And one rule that is not about lockouts: nobody acts on their own row.** Every
+write in this table — the role, the master flag, a password reset — is refused
+against the caller's own account, so the USERS tab draws your own row with its
+three action slots empty and the YOU badge as the reason. Standing yourself down
+was the one self-write allowed; it is not any more, and a master hands the role
+on by having another master take it.
+
 ## Where the first admin comes from
 
 `bootstrap.js`, run once per boot from `server.js` — not awaited, so a slow or
@@ -328,15 +335,18 @@ out the token; everything below `router.use(requireAdmin)` needs one.
   a negative or NaN limit falls back to the default rather than reaching SQL.
 - `PATCH /users/:id/role` — `{ isAdmin }`. Master-only. **Ways to lock everyone
   out, all refused**: demoting yourself (you are standing on the page you would
-  lose), demoting the last admin, and revoking access from a master. The
+  lose — and see the self-write rule above), demoting the last admin, and
+  revoking access from a master. The
   last-admin one is not theoretical — a token stays valid for up to 8 hours after
   the account behind it is demoted, so a revoked admin can still reach this route,
   and without the check could take the last one with them.
 - `PATCH /users/:id/master` — `{ isMaster }`. Master-only. Granting sets `is_admin`
-  too. Standing *yourself* down is allowed, unlike revoking your own access: it is
-  how a master hands the role on, the account keeps console access, and the
-  last-master check keeps somebody in the role.
-- `PATCH /users/:id/password` — no body. Master-only. Generates the password,
+  too. **Refused against your own account in either direction**, alongside the
+  last-master check; the self-check sits after `requireMaster` so a plain admin
+  gets the 403 rather than a rule that was never going to apply to it.
+- `PATCH /users/:id/password` — no body. Master-only. **Refused against your own
+  account** — Edit Profile is where you choose your own, and this route neither
+  asks for the old password nor returns the new one. Generates the password,
   emails it, then writes it. See above.
 - `GET /console-password` → `{ configured }`, `PUT /console-password` —
   `{ currentPassword, newPassword }`. Master-only. See above.
