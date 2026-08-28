@@ -121,16 +121,21 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "You were removed from this room by host." });
   }
 
-  /* An admin's close is not the host's, and only the host's is undone by
-     walking back in. `adminClosed` is what tells the two apart — see
-     `closeRoomEntry`. Without it the host's next 500ms heartbeat would reopen
-     the room the console just ended. */
-  if (entry.closed && (role !== "host" || entry.adminClosed)) {
+  /* An admin's close is not the host's, and only the host's is undone by walking
+     back in. `adminClosed` is what tells the two apart — see `closeRoomEntry`.
+     Without it the host's next 500ms heartbeat would reopen the room the console
+     just ended.
+
+     `isRoomHost` is the other half, and it is about *which* host: a deliberate
+     close empties the seat, so `role === "host"` alone let anyone with the code
+     reopen somebody else's room and be its host. `hostId` outlives that seat and
+     is the only thing left that knows whose room it was. A closed room has
+     always had a host, so there is no blank case to allow through here. */
+  const reopenable = role === "host" && !entry.adminClosed && isRoomHost(entry, userId);
+  if (entry.closed && !reopenable) {
     return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry, resolveSide(entry, userId)) });
   }
-  if (entry.closed && role === "host") {
-    reopenRoom(entry);
-  }
+  if (entry.closed) reopenRoom(entry);
 
   const fallbackName = role === "host" ? "Host" : "Guest";
   const participant = {
@@ -186,10 +191,29 @@ function reopenRoom(entry) {
   resetMatchSteps(entry);
 }
 
+/** Whether `userId` is the id this room's host chair belongs to. */
+const isRoomHost = (entry, userId) => {
+  const id = String(userId ?? "");
+  return Boolean(id) && String(entry.hostId || "") === id;
+};
+
 function claimHostSeat(entry, participant) {
   const activeHostId = entry.host?.id ? String(entry.host.id) : "";
   if (activeHostId && activeHostId !== participant.id) {
     return { status: 409, error: "Room already has an active host." };
+  }
+  /* **An empty chair is not a free one.** A host who steps out — NEW MATCH, or a
+     close they can walk back into — leaves `host` null while `hostId` still
+     names them, and without this anyone holding the code could post
+     `role: "host"` and take over a room that is not theirs, in front of a guest
+     still sitting in it.
+
+     This is not what a dropped connection looks like: there is no presence TTL,
+     so a lapsed heartbeat leaves the seat exactly where it was and the branch
+     above lets its owner straight back in on an id match. This case is the
+     chair genuinely standing empty. */
+  if (!activeHostId && entry.hostId && entry.hostId !== participant.id) {
+    return { status: 403, error: "This room belongs to another host." };
   }
 
   const changed = activeHostId !== participant.id;
@@ -198,6 +222,7 @@ function claimHostSeat(entry, participant) {
      size was being wiped a beat after it was looked up. */
   participant.playerCount = changed ? null : (entry.host?.playerCount ?? null);
   entry.host = participant;
+  entry.hostId = participant.id;
   return { changed };
 }
 
@@ -332,8 +357,13 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
     if (disconnected && heir?.id) {
       /* Promotion. The guest's client discovers this from the next snapshot —
          see `adoptSeat` in presence.js; without that it would keep claiming the
-         guest seat and end up sitting in both. */
+         guest seat and end up sitting in both.
+
+         `hostId` moves with the chair, or the room would still be held for the
+         host who dropped out of it: the new one would be locked out the moment
+         their own seat emptied, and the old one could take it back. */
       entry.host = heir;
+      entry.hostId = String(heir.id);
       entry.guest = null;
       entry.ready.guest = false;
       if (resetDraftToLobby(entry)) {

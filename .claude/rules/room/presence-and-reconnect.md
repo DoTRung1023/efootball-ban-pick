@@ -242,6 +242,43 @@ The server rejects duplicate connections via HTTP 409:
   runs before the seat claim, so a kicked player cannot come back as host either.
   The list is never cleared; see `backend.md`.
 
+### An empty host chair is not a free one
+
+`entry.hostId` is who the room *belongs to*, and the point of it is that it
+outlives the seat. `entry.host` is who is sitting there; the two part company
+whenever the chair legitimately empties — NEW MATCH, or a deliberate close the
+host can walk back into — and while they are apart this is the only thing
+between the room and anyone else holding the code:
+
+- **`claimHostSeat`** → 403 "This room belongs to another host." when the chair
+  is empty and `hostId` names somebody else. Without it a stranger could post
+  `role: "host"` at a room whose host had stepped out and take it over, in front
+  of a guest still sitting in it — and the real host then met their own room
+  with a 409.
+- **Reopening a closed room** is the same rule. `role === "host"` alone used to
+  be enough, so a deliberate close (which empties the seat) left the room open
+  to whoever typed the code. It is `role === "host" && !adminClosed &&
+  isRoomHost(entry, userId)` now. A closed room has always had a host, so there
+  is no blank case to let through.
+
+**Blank until the first claim, and that blank is room creation** — a code nobody
+has ever hosted is open to whoever gets there first. It moves when the chair
+legitimately does: the guest promoted on a host disconnect becomes `hostId` too,
+or the new host would be locked out the moment their own seat emptied and the
+old one could take it back.
+
+**This is not the reconnect path, and it must not be confused with it.** A lost
+connection does not empty a seat — there is no presence TTL (see the top of this
+file), so `entry.host` still holds the dropped player's id and the *occupied*
+branch lets them straight back in on an id match. That is what makes a room
+survive a train tunnel, and it works whether or not any of the above exists.
+This rule only ever governs a chair that is genuinely standing empty.
+
+The cost is the one anonymous players already pay elsewhere: an anon id lives in
+`localStorage`, so a host who clears it, or comes back in another browser, is a
+different person to this check. Occupied, that was already a 409; empty, it is
+now a 403. Signing in is what makes a seat portable.
+
 **A terminal response must not be answered with a re-render.** The 403/409/410 branches
 of `registerPresence` paint `#viewError`, stop the polling and set `state.phase = "error"`,
 then return `undefined` — which is also what a plain network failure returns. Both callers

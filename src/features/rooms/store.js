@@ -94,6 +94,17 @@ function createRoomEntry() {
   return {
     host: null,
     guest: null,
+    /* **Who this room belongs to**, and the point of it is that it outlives the
+       seat. `host` is who is sitting there now; this is who is entitled to.
+       They part company whenever the chair legitimately empties — NEW MATCH, a
+       close the host can walk back into — and while they are apart it is the
+       only thing standing between the room and anyone else who has the code.
+
+       Blank until the first claim, because that blank *is* room creation: a
+       code nobody has ever hosted is open to whoever gets there first. It moves
+       when the chair does, which is once — the guest being promoted on a host
+       disconnect. See `claimHostSeat`. */
+    hostId: "",
     status: ROOM_STATUS.LOBBY,
     turnIndex: 0,
     turnEndsAt: null,
@@ -153,6 +164,7 @@ export function ensureRoomEntry(code) {
   if (entry.closed === undefined) entry.closed = false;
   if (entry.closeReason === undefined) entry.closeReason = "";
   if (!Array.isArray(entry.kickedGuestIds)) entry.kickedGuestIds = [];
+  if (typeof entry.hostId !== "string") entry.hostId = "";
   if (!Array.isArray(entry.chat)) entry.chat = [];
 
   return entry;
