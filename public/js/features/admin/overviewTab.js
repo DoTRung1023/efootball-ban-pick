@@ -168,6 +168,18 @@ export async function loadScrapeRuns() {
 }
 
 export function loadOverview() {
+  /* **The master-only buttons are settled here, not in `initOverviewTab`.**
+     `initConsole` runs every `init*` *before* `initGate`/`resume`, so at init
+     time no session exists and `isSessionMaster()` is still its initial `false`
+     — which hid CLEAR CATALOG and CLEAR HISTORY from everyone, masters
+     included, with nothing ever setting them back. `loadOverview` runs from
+     `startTabs()`, which `openDashboard` calls once the session is open, so by
+     here the answer is real. Same placement, same reason, as `consolePwBtn` in
+     `loadUsers`. */
+  const canManage = isSessionMaster();
+  document.getElementById("clearCatalogBtn").hidden = !canManage;
+  document.getElementById("clearLogsBtn").hidden = !canManage;
+
   loadStats();
   loadDataQuality();
   loadScrapeRuns();
@@ -236,13 +248,8 @@ export function initOverviewTab() {
     loadOverview();
   });
 
-  /* Master admins only. The endpoints re-read the database and refuse a plain
-     admin either way — hiding the buttons is the courtesy, not the check. */
-  const canManage = isSessionMaster();
   const clearCatalog = document.getElementById("clearCatalogBtn");
   const clearHistory = document.getElementById("clearLogsBtn");
-  clearCatalog.hidden = !canManage;
-  clearHistory.hidden = !canManage;
 
   clearCatalog.addEventListener("click", askClearCatalog);
   /* Not delegated — one button, never repainted. The armed label spends itself

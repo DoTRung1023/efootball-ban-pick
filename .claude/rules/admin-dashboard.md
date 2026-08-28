@@ -244,6 +244,17 @@ never reveal a half-wired dashboard. Panel wiring lives in the `init*` functions
 rather than at module top level; keep it that way, or that ordering guarantee is
 lost.
 
+**The corollary, and it has bitten once: an `init*` runs before any session
+exists, so it cannot ask who is signed in.** `isSessionMaster()` and
+`getSessionUserId()` are module state that `openSession`/`resumeSession` fill in,
+and both of those run *after* every `init*`. Reading either during init gets the
+initial `false`/`null`, not an answer. CLEAR CATALOG and CLEAR HISTORY were
+hidden in `initOverviewTab` on exactly that read, so they were hidden from
+masters too and nothing ever set them back — the feature was unreachable from
+the UI. Anything that depends on *who* is looking belongs in the tab's `load*`,
+which `startTabs()` calls once the dashboard opens. `loadUsers` had it right for
+`consolePwBtn`; `loadOverview` does now.
+
 ## Tabs
 
 One dataset, one place. The old dashboard showed rooms, scrape runs and signups on
