@@ -9,7 +9,7 @@ paths:
 
 # Admin console (`/console`)
 
-`console.html` + `public/js/pages/console.js` + the seven sheets in
+`console.html` + `public/js/pages/console.js` + the eight sheets in
 `public/css/features/admin/`. No build step.
 
 ## Getting in
@@ -92,6 +92,26 @@ against the caller's own account, so the USERS tab draws your own row with its
 three action slots empty and the YOU badge as the reason. Standing yourself down
 was the one self-write allowed; it is not any more, and a master hands the role
 on by having another master take it.
+
+## Routes are grouped by what they act on
+
+`routes.js` is one file and its only organising principle is that **a route sits
+next to the other routes for the same thing**. The four destructive ones were
+first appended to the end of the file, which put `POST /rooms/:code/close` 713
+lines from `GET /rooms` and the account delete 334 from the other user writes;
+they are now 26–40 lines from their nearest sibling. Express matches on
+method+path, so position carries no behaviour — it is purely whether the next
+reader can find the set.
+
+A helper used by exactly one route lives directly above it (`passwordConfirms`
+over `POST /catalog/clear`), not in the file's helper block. The helper block at
+the top is for what several routes share: `readLimit`, `sendAdminError`,
+`isMasterAdmin`, `requireMaster`.
+
+**The file is 958 lines and the next feature should split it**, by these same
+groups, into `session` · `stats` · `users` · `rooms` · `catalog` · `scrape` ·
+`settings` mounted from a composition root — the shape `public/js/features/admin/`
+already has on the client side.
 
 ## Destructive actions, and what each one costs
 
@@ -185,11 +205,12 @@ effect at the next sign-in, not mid-session.
 | `adminApi.js` | the token, `openSession`, `resumeSession`, and `apiFetch` (adds the header; a 401 clears the token and reloads to the gate) |
 | `authGate.js` | `initGate(onOpen)` wires the form and returns the signed-in user or null; `resume(onOpen)` is the silent re-auth |
 | `tabs.js` | the tab registry — which panel, what it loads, how often it refetches |
-| `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)` |
+| `format.js` | `fmt*`, the pills, `tableMessage(colspan, text)`, and `notice(id, message, isError)` — the one line a panel says out loud. Three tabs had a byte-identical private copy of that last one |
+| `confirmButton.js` | the two-click arm every irreversible button on this console uses. **A button confirms iff it carries `data-confirm-label`** — the attribute names what to disarm back to, and only destructive buttons have one, so no handler needs a "does this need arming" test. One armed button at a time, process-wide |
 | `overviewTab.js`, `roomsTab.js`, `usersTab.js`, `catalogTab.js` | one module per tab |
 | `roomDetail.js` | the read-only room inspection panel behind WATCH |
 | `catalogColumns.js` | which CATALOG columns are fixed, which optional, which on — and the per-account load/save behind it |
-| `passwordModal.js` | the console-password form. It carried a second form — a master typing a password for somebody else — until resets became generated-and-emailed and there was nothing left to type |
+| `passwordModal.js` | the password dialog. It takes a `fields` list and a `validate` — not mode booleans: rotating the console password asks for three fields, confirming a catalog wipe asks for one, and `open()` has no branch for the difference |
 | `topPlayersControl.js` | the SIGN-IN SHOWCASE panel — the REBUILD button and the ranked chips. Holds no ranking logic; the server owns what "top" means |
 | `index.js` | `initConsole()` |
 
@@ -479,7 +500,8 @@ of one page load. The shape to keep:
 
 ## CSS (`public/css/features/admin/`)
 
-**Seven sheets, and the `<link>` order in `console.html` is the cascade.** They
+**Eight sheets, one per component, and the `<link>` order in `console.html` is
+the cascade.** They
 were one 2080-line `admin.css`, cut on its own section boundaries with the order
 kept exactly — verified by reading `getComputedStyle` for 102 specimen elements
 at six viewport widths before and after: all 612 readings identical. Keep it that
@@ -494,11 +516,12 @@ base rule by source order alone.
 | `tables.css` | `.admin-table` and everything inside a cell — phase / status / role pills, ACCESS, the row tint, the action slots — then the data-quality bars |
 | `playerBrowser.css` | the SIGN-IN PAGE and TEST CARDS browser and the column beside it |
 | `catalog.css` | the catalog table, pagination, `.link-btn`, the column chooser |
-| `overlays.css` | the password form and the WATCH room panel |
-| `responsive.css` | every media query — **linked last of the seven** |
+| `passwordModal.css` | the scrim and card behind `passwordModal.js` |
+| `roomDetail.css` | the WATCH panel — every selector is `.rd-` |
+| `responsive.css` | every media query — **linked last of the eight** |
 
 Adding a file means deciding where its lines would have been, and linking it
-there. `controls.css` still comes after all seven, page-wide, because its focus
+there. `controls.css` still comes after all eight, page-wide, because its focus
 ring has to beat feature sheets that set `outline: none`.
 
 Colours come from `shared/tokens.css` like every other page — **including the
@@ -510,7 +533,7 @@ colour that is not one of those tokens. The one sheet this
 page does not own is `shared/filterPanel.css`, linked between tokens and
 these sheets: the sort/filter dropdown chrome moved there out of
 `features/catalog/catalog.css` when the CATALOG tab became a consumer on a second
-page — it is linked before all seven of these. Key blocks, wherever they now live: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
+page — it is linked before all eight of these. Key blocks, wherever they now live: `.gate-overlay` / `.gate-card`, `.admin-nav`, `.stats-row` (4-column grid),
 `.panel-grid-2`, `.admin-table` (sticky thead; **rows are 14px, the list-row rung
 in DESIGN.md §4, and the `th` above them is 12px, the label rung** — the two were
 both 12 and the header did not read as a header. Nothing inside a cell moves with

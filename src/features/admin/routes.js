@@ -249,6 +249,27 @@ router.get("/rooms/:code", asyncHandler(async (req, res) => {
   res.json({ room });
 }));
 
+/**
+ * POST — end a live room. Any admin, master or not.
+ *
+ * Not master-gated, unlike the three above: a room is in-memory and lasts
+ * minutes, so closing one is nearer to moderation than to administration, and
+ * nothing is destroyed that a new room does not replace.
+ *
+ * `closeRoomEntry` is where the mechanism lives, including why the entry has to
+ * survive its own seats and why the host's heartbeat must not undo this.
+ */
+router.post("/rooms/:code/close", asyncHandler(async (req, res) => {
+  const code = normalizeRoomCodeParam(req.params.code);
+  if (!isValidRoomCode(code)) return res.status(400).json({ error: "Unknown room." });
+
+  const entry = findRoomEntry(code);
+  if (!entry || entry.closed) return res.status(404).json({ error: "Room is not live." });
+
+  closeRoomEntry(entry, `Closed by ${req.admin.username}.`);
+  res.json({ code });
+}));
+
 router.get("/scrape-logs", asyncHandler(async (req, res) => {
   try {
     const [logs] = await db.query(
@@ -257,6 +278,32 @@ router.get("/scrape-logs", asyncHandler(async (req, res) => {
       [readLimit(req.query.limit)],
     );
     res.json({ logs });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
+/**
+ * DELETE — empty the scrape log. Master only.
+ *
+ * **This clears the incremental cutoff with it**, because the cutoff is not
+ * stored anywhere else: `scrape.js` reads the newest finished row's
+ * `max_pesdb_id`, and with no rows it has nothing to resume from and runs a
+ * full scrape. That is a real cost — the whole catalog, several hours — so the
+ * console says so on the confirm rather than letting an admin find out when the
+ * next UPDATE takes all afternoon.
+ *
+ * The catalog itself is untouched; a full run upserts over what is already
+ * there.
+ */
+router.delete("/scrape-logs", asyncHandler(async (req, res) => {
+  try {
+    if (!(await requireMaster(req, res, "clear the scrape history"))) return;
+
+    const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM scrape_logs");
+    await db.query("DELETE FROM scrape_logs");
+
+    res.json({ cleared: Number(cnt) || 0 });
   } catch (err) {
     sendAdminError(res, err);
   }
@@ -496,6 +543,51 @@ router.patch("/users/:id/password", asyncHandler(async (req, res) => {
       return res.status(400).json({
         error: "Change your own password under Edit Profile.",
       });
+
+/**
+ * DELETE — remove an account and everything it owns.
+ *
+ * **Who may delete whom** is the whole rule here, and it is two rules:
+ *
+ *   - a master may delete any account but their own;
+ *   - a plain admin may delete only an account with no console access. Removing
+ *     a colleague's account is removing their access, and access is a master's
+ *     to change (`PATCH /users/:id/role`) — a delete that reached an admin would
+ *     be that same power under a different button.
+ *
+ * Both are re-read from the database rather than taken from the token, for the
+ * reason `isMasterAdmin` states: a token outlives its account's role by up to
+ * eight hours.
+ *
+ * The last admin cannot go, for the same reason they cannot be demoted — it
+ * would leave a console nobody can open. Your own row is refused ahead of that,
+ * because it is the answer a self-delete actually wants.
+ *
+ * **The cascade is the schema's**, and it is wide: `ON DELETE CASCADE` from
+ * `users` takes the account's squad (`players`), its game plans and their rows,
+ * its saved settings and any outstanding email verification. Nothing here has
+ * to enumerate them, and nothing here can be half-done.
+ */
+router.delete("/users/:id", asyncHandler(async (req, res) => {
+  const targetId = Number(req.params.id);
+  if (!targetId) return res.status(400).json({ error: "Unknown user." });
+
+  if (targetId === Number(req.admin.uid)) {
+    return res.status(400).json({ error: "You cannot delete your own account." });
+  }
+
+  try {
+    const [[target]] = await db.query(
+      "SELECT id, username, is_admin, is_master_admin FROM users WHERE id = ?",
+      [targetId],
+    );
+    if (!target) return res.status(404).json({ error: "Unknown user." });
+
+    const callerIsMaster = await isMasterAdmin(req.admin.uid);
+    if (!callerIsMaster && target.is_admin) {
+      return res.status(403).json({
+        error: "Only a master admin can delete an account that has console access.",
+      });
     }
 
     const [[user]] = await db.query(
@@ -649,6 +741,81 @@ router.get("/catalog", asyncHandler(async (req, res) => {
   res.json({ players: rows });
 }));
 
+/**
+ * Re-checks the caller's password, the same way the gate does.
+ *
+ * The shared console password where one is configured, this account's own
+ * otherwise — `consolePassword.js` owns which, and mirroring the gate is the
+ * point: an admin should be re-typing the password they already know unlocks
+ * this console, not a second one they have to remember which of.
+ *
+ * Used only by the catalog wipe. Everything else destructive here arms on a
+ * first click and fires on a second, which is proportionate to something that
+ * can be redone; a catalog you have to re-scrape for hours is not.
+ */
+async function passwordConfirms(req, candidate) {
+  const supplied = String(candidate ?? "");
+  if (!supplied) return false;
+  if (usesConsolePassword()) return consolePasswordMatches(supplied);
+  const [[row]] = await db.query("SELECT password FROM users WHERE id = ?", [req.admin.uid]);
+  return bcrypt.compare(supplied, row?.password ?? "");
+}
+
+/**
+ * POST — empty the player catalog. Master only, and password-confirmed.
+ *
+ * **Three tables go, not one**, and the two extra ones are what stop this from
+ * leaving an install that cannot be put back:
+ *
+ *   - `players_catalog` — the ask.
+ *   - `top_players_snapshot` — every row in it names a `pesdb_id` that no longer
+ *     exists. It is the sign-in page's card backdrop *and* the ban pool an
+ *     anonymous opponent is drafted from, so leaving it would point both at
+ *     cards nothing can look up.
+ *   - `scrape_logs` — **the incremental cutoff lives here**, not in a config: the
+ *     scraper reads the newest finished row's `max_pesdb_id` and fetches only
+ *     what is newer. Emptying the catalog and keeping that bookmark would mean
+ *     `npm run scrape` never refetches one of the rows just deleted, and the
+ *     catalog could not be refilled from the console at all. Clearing it puts
+ *     the next run back to a full scrape, which is the only thing that refills
+ *     an empty catalog.
+ *
+ * **What is deliberately left alone: everybody's squads and game plans.**
+ * `players.pesdb_id` is a plain column with no foreign key to the catalog, so
+ * nothing cascades, and that is the right answer — a squad is a user's work, not
+ * a copy of the catalog. Those rows keep their name, position and card art
+ * (which is proxied by id, not read from the catalog); what they lose is being
+ * findable in a catalog search until a scrape refills it.
+ */
+router.post("/catalog/clear", asyncHandler(async (req, res) => {
+  try {
+    if (!(await requireMaster(req, res, "clear the player catalog"))) return;
+
+    if (!(await passwordConfirms(req, req.body?.password))) {
+      return res.status(401).json({
+        error: usesConsolePassword()
+          ? "Incorrect console password."
+          : "Incorrect password.",
+      });
+
+    }
+
+    if (target.is_admin) {
+      const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
+      if (cnt <= 1) {
+        return res.status(400).json({ error: "The last admin cannot be removed." });
+      }
+    }
+
+    const [result] = await db.query("DELETE FROM users WHERE id = ?", [targetId]);
+    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
+
+    res.json({ userId: targetId, username: target.username });
+  } catch (err) {
+    sendAdminError(res, err);
+  }
+}));
+
 /** Every card currently marked as test data. */
 router.get("/test-players", asyncHandler(async (_req, res) => {
   res.json({ players: await readTestPlayers() });
@@ -775,124 +942,6 @@ router.get("/data-quality", asyncHandler(async (_req, res) => {
   }
 }));
 
-/**
- * Re-checks the caller's password, the same way the gate does.
- *
- * The shared console password where one is configured, this account's own
- * otherwise — `consolePassword.js` owns which, and mirroring the gate is the
- * point: an admin should be re-typing the password they already know unlocks
- * this console, not a second one they have to remember which of.
- *
- * Used only by the catalog wipe. Everything else destructive here arms on a
- * first click and fires on a second, which is proportionate to something that
- * can be redone; a catalog you have to re-scrape for hours is not.
- */
-async function passwordConfirms(req, candidate) {
-  const supplied = String(candidate ?? "");
-  if (!supplied) return false;
-  if (usesConsolePassword()) return consolePasswordMatches(supplied);
-  const [[row]] = await db.query("SELECT password FROM users WHERE id = ?", [req.admin.uid]);
-  return bcrypt.compare(supplied, row?.password ?? "");
-}
-
-/**
- * DELETE — remove an account and everything it owns.
- *
- * **Who may delete whom** is the whole rule here, and it is two rules:
- *
- *   - a master may delete any account but their own;
- *   - a plain admin may delete only an account with no console access. Removing
- *     a colleague's account is removing their access, and access is a master's
- *     to change (`PATCH /users/:id/role`) — a delete that reached an admin would
- *     be that same power under a different button.
- *
- * Both are re-read from the database rather than taken from the token, for the
- * reason `isMasterAdmin` states: a token outlives its account's role by up to
- * eight hours.
- *
- * The last admin cannot go, for the same reason they cannot be demoted — it
- * would leave a console nobody can open. Your own row is refused ahead of that,
- * because it is the answer a self-delete actually wants.
- *
- * **The cascade is the schema's**, and it is wide: `ON DELETE CASCADE` from
- * `users` takes the account's squad (`players`), its game plans and their rows,
- * its saved settings and any outstanding email verification. Nothing here has
- * to enumerate them, and nothing here can be half-done.
- */
-router.delete("/users/:id", asyncHandler(async (req, res) => {
-  const targetId = Number(req.params.id);
-  if (!targetId) return res.status(400).json({ error: "Unknown user." });
-
-  if (targetId === Number(req.admin.uid)) {
-    return res.status(400).json({ error: "You cannot delete your own account." });
-  }
-
-  try {
-    const [[target]] = await db.query(
-      "SELECT id, username, is_admin, is_master_admin FROM users WHERE id = ?",
-      [targetId],
-    );
-    if (!target) return res.status(404).json({ error: "Unknown user." });
-
-    const callerIsMaster = await isMasterAdmin(req.admin.uid);
-    if (!callerIsMaster && target.is_admin) {
-      return res.status(403).json({
-        error: "Only a master admin can delete an account that has console access.",
-      });
-    }
-
-    if (target.is_admin) {
-      const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1");
-      if (cnt <= 1) {
-        return res.status(400).json({ error: "The last admin cannot be removed." });
-      }
-    }
-
-    const [result] = await db.query("DELETE FROM users WHERE id = ?", [targetId]);
-    if (!result.affectedRows) return res.status(404).json({ error: "Unknown user." });
-
-    res.json({ userId: targetId, username: target.username });
-  } catch (err) {
-    sendAdminError(res, err);
-  }
-}));
-
-/**
- * POST — empty the player catalog. Master only, and password-confirmed.
- *
- * **Three tables go, not one**, and the two extra ones are what stop this from
- * leaving an install that cannot be put back:
- *
- *   - `players_catalog` — the ask.
- *   - `top_players_snapshot` — every row in it names a `pesdb_id` that no longer
- *     exists. It is the sign-in page's card backdrop *and* the ban pool an
- *     anonymous opponent is drafted from, so leaving it would point both at
- *     cards nothing can look up.
- *   - `scrape_logs` — **the incremental cutoff lives here**, not in a config: the
- *     scraper reads the newest finished row's `max_pesdb_id` and fetches only
- *     what is newer. Emptying the catalog and keeping that bookmark would mean
- *     `npm run scrape` never refetches one of the rows just deleted, and the
- *     catalog could not be refilled from the console at all. Clearing it puts
- *     the next run back to a full scrape, which is the only thing that refills
- *     an empty catalog.
- *
- * **What is deliberately left alone: everybody's squads and game plans.**
- * `players.pesdb_id` is a plain column with no foreign key to the catalog, so
- * nothing cascades, and that is the right answer — a squad is a user's work, not
- * a copy of the catalog. Those rows keep their name, position and card art
- * (which is proxied by id, not read from the catalog); what they lose is being
- * findable in a catalog search until a scrape refills it.
- */
-router.post("/catalog/clear", asyncHandler(async (req, res) => {
-  try {
-    if (!(await requireMaster(req, res, "clear the player catalog"))) return;
-
-    if (!(await passwordConfirms(req, req.body?.password))) {
-      return res.status(401).json({
-        error: usesConsolePassword()
-          ? "Incorrect console password."
-          : "Incorrect password.",
-      });
     }
 
     const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM players_catalog");
@@ -904,53 +953,6 @@ router.post("/catalog/clear", asyncHandler(async (req, res) => {
   } catch (err) {
     sendAdminError(res, err);
   }
-}));
-
-/**
- * DELETE — empty the scrape log. Master only.
- *
- * **This clears the incremental cutoff with it**, because the cutoff is not
- * stored anywhere else: `scrape.js` reads the newest finished row's
- * `max_pesdb_id`, and with no rows it has nothing to resume from and runs a
- * full scrape. That is a real cost — the whole catalog, several hours — so the
- * console says so on the confirm rather than letting an admin find out when the
- * next UPDATE takes all afternoon.
- *
- * The catalog itself is untouched; a full run upserts over what is already
- * there.
- */
-router.delete("/scrape-logs", asyncHandler(async (req, res) => {
-  try {
-    if (!(await requireMaster(req, res, "clear the scrape history"))) return;
-
-    const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM scrape_logs");
-    await db.query("DELETE FROM scrape_logs");
-
-    res.json({ cleared: Number(cnt) || 0 });
-  } catch (err) {
-    sendAdminError(res, err);
-  }
-}));
-
-/**
- * POST — end a live room. Any admin, master or not.
- *
- * Not master-gated, unlike the three above: a room is in-memory and lasts
- * minutes, so closing one is nearer to moderation than to administration, and
- * nothing is destroyed that a new room does not replace.
- *
- * `closeRoomEntry` is where the mechanism lives, including why the entry has to
- * survive its own seats and why the host's heartbeat must not undo this.
- */
-router.post("/rooms/:code/close", asyncHandler(async (req, res) => {
-  const code = normalizeRoomCodeParam(req.params.code);
-  if (!isValidRoomCode(code)) return res.status(400).json({ error: "Unknown room." });
-
-  const entry = findRoomEntry(code);
-  if (!entry || entry.closed) return res.status(404).json({ error: "Room is not live." });
-
-  closeRoomEntry(entry, `Closed by ${req.admin.username}.`);
-  res.json({ code });
 }));
 
 export default router;

@@ -83,3 +83,21 @@ export function cardTypeBadge(type) {
 export function tableMessage(colspan, text) {
   return `<tr><td colspan="${colspan}" class="td-empty">${escapeHtml(text)}</td></tr>`;
 }
+
+/**
+ * The one line a panel is allowed to say out loud — a write that was refused, or
+ * one that went through.
+ *
+ * Three tabs had a byte-identical private copy of this, differing only in the id
+ * they wrote to. `tableMessage` above is the precedent: this module already owns
+ * the small pieces of DOM every tab needs to produce.
+ *
+ * Passing `""` hides the line, which is how a tab clears the last message before
+ * starting the next action.
+ */
+export function notice(id, message, isError = false) {
+  const el = document.getElementById(id);
+  el.textContent = message;
+  el.className = isError ? "panel-notice is-error" : "panel-notice";
+  el.hidden = !message;
+}

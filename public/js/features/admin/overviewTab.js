@@ -9,7 +9,8 @@
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, isSessionMaster } from "./adminApi.js";
 import { openConfirmPasswordForm } from "./passwordModal.js";
-import { fmtDate, fmtDuration, fmtNum, fmtRelative, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
+import { arm, isArmed, reset as resetBtn } from "./confirmButton.js";
+import { fmtDate, fmtDuration, fmtNum, fmtRelative, notice as panelNotice, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
 
 const SCRAPE_ROWS = 8;
 const SCRAPE_COLS = 6;
@@ -172,13 +173,9 @@ export function loadOverview() {
   loadScrapeRuns();
 }
 
-/** The one line this tab says out loud. Both wipes report through it. */
-function notice(message, isError = false) {
-  const el = document.getElementById("overviewNotice");
-  el.textContent = message;
-  el.className = isError ? "panel-notice is-error" : "panel-notice";
-  el.hidden = !message;
-}
+/** This tab's one spoken line. The writer is `notice` in `format.js`;
+    all this names is which element it writes to. */
+const notice = (message, isError) => panelNotice("overviewNotice", message, isError);
 
 /**
  * Emptying the catalog — the one action on this console that asks for a
@@ -220,22 +217,7 @@ function askClearCatalog() {
  * UPDATE into a full scrape. That is hours, and it is not guessable from a
  * button reading CLEAR HISTORY.
  */
-let logsTimer = null;
-
-function armClearLogs(btn) {
-  clearTimeout(logsTimer);
-  btn.dataset.armed = "1";
-  btn.textContent = "NEXT SCRAPE = FULL. CONFIRM?";
-  btn.classList.add("is-armed");
-  logsTimer = setTimeout(() => {
-    delete btn.dataset.armed;
-    btn.textContent = "CLEAR HISTORY";
-    btn.classList.remove("is-armed");
-  }, 6000);
-}
-
 async function clearLogs(btn) {
-  clearTimeout(logsTimer);
   btn.disabled = true;
   btn.textContent = "CLEARING…";
   try {
@@ -245,10 +227,7 @@ async function clearLogs(btn) {
   } catch (err) {
     notice(err.message, true);
   }
-  delete btn.dataset.armed;
-  btn.classList.remove("is-armed");
-  btn.disabled = false;
-  btn.textContent = "CLEAR HISTORY";
+  resetBtn(btn);
 }
 
 export function initOverviewTab() {
@@ -266,9 +245,11 @@ export function initOverviewTab() {
   clearHistory.hidden = !canManage;
 
   clearCatalog.addEventListener("click", askClearCatalog);
+  /* Not delegated — one button, never repainted. The armed label spends itself
+     naming what the second click costs, and gets longer to be read for it. */
   clearHistory.addEventListener("click", () => {
     notice("");
-    if (clearHistory.dataset.armed === "1") clearLogs(clearHistory);
-    else armClearLogs(clearHistory);
+    if (isArmed(clearHistory)) clearLogs(clearHistory);
+    else arm(clearHistory, { label: "NEXT SCRAPE = FULL. CONFIRM?", ms: 6000 });
   });
 }

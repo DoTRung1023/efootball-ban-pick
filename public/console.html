@@ -15,9 +15,9 @@
     <link rel="stylesheet" href="/css/shared/tokens.css" />
     <link rel="stylesheet" href="/css/shared/filterPanel.css" />
     <link rel="stylesheet" href="/css/shared/playerCard.css" />
-    <!-- admin.css was one 2080-line sheet; these seven are it, cut on section
+    <!-- admin.css was one 2080-line sheet; these eight are it, cut on section
          boundaries with the order kept exactly. **The order is the cascade** —
-         `responsive.css` last of the seven because a media query beats the rule
+         `responsive.css` last of the eight because a media query beats the rule
          it overrides by source order, and `shell.css` first because everything
          after it is drawn inside `.tab-panel`. `controls.css` still comes after
          all of them: its focus ring has to beat feature sheets that set
@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/css/features/admin/tables.css" />
     <link rel="stylesheet" href="/css/features/admin/playerBrowser.css" />
     <link rel="stylesheet" href="/css/features/admin/catalog.css" />
-    <link rel="stylesheet" href="/css/features/admin/overlays.css" />
+    <link rel="stylesheet" href="/css/features/admin/passwordModal.css" />
+    <link rel="stylesheet" href="/css/features/admin/roomDetail.css" />
     <link rel="stylesheet" href="/css/features/admin/responsive.css" />
     <link rel="stylesheet" href="/css/shared/controls.css" />
   </head>
@@ -139,7 +140,8 @@
                 <button id="scrapeUpdateBtn" class="btn btn--ghost btn--sm">UPDATE</button>
                 <button id="scrapeMissingBtn" class="btn btn--ghost btn--sm">REPAIR GAPS</button>
                 <!-- Master admins only; `overviewTab.js` unhides it. -->
-                <button id="clearLogsBtn" class="btn btn--ghost btn--sm btn--danger" hidden>CLEAR HISTORY</button>
+                <button id="clearLogsBtn" class="btn btn--ghost btn--sm btn--danger"
+                        data-confirm-label="CLEAR HISTORY" hidden>CLEAR HISTORY</button>
               </div>
             </div>
             <div id="scrapeStatus" class="scrape-status" hidden>

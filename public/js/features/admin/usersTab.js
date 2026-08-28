@@ -44,21 +44,17 @@
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, getSessionUserId, isSessionMaster } from "./adminApi.js";
-import { fmtDate, fmtNum, tableMessage } from "./format.js";
+import { fmtDate, fmtNum, notice as panelNotice, tableMessage } from "./format.js";
+import { onConfirmedClick, reset as resetBtn } from "./confirmButton.js";
 import { initPasswordModal, openConsolePasswordForm } from "./passwordModal.js";
 
 const USER_ROWS = 50;
 const COLS = 8;
-const CONFIRM_MS = 4000;
 
-let confirmTimer = null;
 
-function notice(message, isError = false) {
-  const el = document.getElementById("usersNotice");
-  el.textContent = message;
-  el.className = isError ? "panel-notice is-error" : "panel-notice";
-  el.hidden = !message;
-}
+/** This tab's one spoken line. The writer is `notice` in `format.js`;
+    all this names is which element it writes to. */
+const notice = (message, isError) => panelNotice("usersNotice", message, isError);
 
 /** What this account currently is, in one word. The third rung is a word rather
     than the em-dash it used to be: "—" reads as missing data in a column of real
@@ -77,7 +73,7 @@ const grantBtn = (id, attr, value, label) =>
 
 const revokeBtn = (id, attr, value, label) =>
   `<button class="role-btn is-revoke" data-user-id="${id}" data-${attr}="${value}"
-           data-revoke-label="${label}">${label}</button>`;
+           data-confirm-label="${label}">${label}</button>`;
 
 /**
  * The ACTIONS cell — **three fixed slots, always in the same order**.
@@ -135,7 +131,7 @@ function actionsCell(user, isSelf, canManage) {
   const resetPw = isSelf
     ? ""
     : `<button class="role-btn is-pw" data-reset-pw="${id}"
-               data-revoke-label="RESET PW"
+               data-confirm-label="RESET PW"
                data-username="${escapeHtml(user.username)}"
                title="Generates a new password and emails it to ${escapeHtml(user.email)}">RESET PW</button>`;
 
@@ -159,7 +155,7 @@ function deleteBtn(user, isSelf, canManage) {
   if (isSelf) return "";
   if (!canManage && user.is_admin) return "";
   return `<button class="role-btn is-revoke" data-delete-user="${Number(user.id)}"
-           data-revoke-label="DELETE"
+           data-confirm-label="DELETE"
            data-username="${escapeHtml(user.username)}"
            title="Deletes ${escapeHtml(user.username)} and everything on the account — squad, game plans, settings. This cannot be undone">DELETE</button>`;
 }
@@ -217,21 +213,6 @@ export async function loadUsers() {
   }
 }
 
-/** First click on a destructive button only arms it; it disarms itself if left
-    alone. The original label is carried on the element because there are two of
-    them now, and "REVOKE" was hardcoded here when there was only one. */
-function armConfirm(btn) {
-  clearTimeout(confirmTimer);
-  btn.dataset.armed = "1";
-  btn.textContent = "CONFIRM?";
-  btn.classList.add("is-armed");
-  confirmTimer = setTimeout(() => {
-    delete btn.dataset.armed;
-    btn.textContent = btn.dataset.revokeLabel || "REVOKE";
-    btn.classList.remove("is-armed");
-  }, CONFIRM_MS);
-}
-
 /** Which of the two role endpoints this button drives, and what to say after. */
 function roleRequest(btn) {
   const userId = Number(btn.dataset.userId);
@@ -253,7 +234,6 @@ function roleRequest(btn) {
 
 async function setRole(btn) {
   const { path, body, done } = roleRequest(btn);
-  clearTimeout(confirmTimer);
   btn.disabled = true;
   notice("");
   try {
@@ -277,7 +257,6 @@ async function setRole(btn) {
  * the account's password changed and where to read it.
  */
 async function resetPassword(btn) {
-  clearTimeout(confirmTimer);
   const username = btn.dataset.username;
   btn.disabled = true;
   btn.textContent = "SENDING…";
@@ -296,15 +275,12 @@ async function resetPassword(btn) {
   } catch (err) {
     /* The password is unchanged when the send fails — the server writes it only
        after the mail is away — so this really is "nothing happened", and the
-       button goes all the way back to disarmed. Restoring the label without
-       clearing `armed` would leave one reading RESET PW that fires on a single
-       click; the success path never notices because `loadUsers` replaces the
-       row underneath it. */
+       button goes all the way back — `resetBtn` is what does that, label and
+       armed state together, because one restored without the other would leave
+       a button reading RESET PW that fires on a single click. The success path
+       never notices: `loadUsers` replaces the row underneath it. */
     notice(err.message, true);
-    delete btn.dataset.armed;
-    btn.classList.remove("is-armed");
-    btn.disabled = false;
-    btn.textContent = "RESET PW";
+    resetBtn(btn);
   }
 }
 
@@ -316,12 +292,10 @@ async function resetPassword(btn) {
  * game plans and their rows, the saved settings and any pending email
  * verification. There is no undo and nothing is archived.
  *
- * On a refusal the button goes all the way back to disarmed rather than just
- * relabelled, for the reason `resetPassword` gives: a button reading DELETE
- * that still holds `armed` would fire on a single click.
+ * On a refusal the button goes all the way back rather than just relabelled,
+ * for the reason `resetPassword` gives.
  */
 async function deleteUser(btn) {
-  clearTimeout(confirmTimer);
   const username = btn.dataset.username;
   btn.disabled = true;
   btn.textContent = "DELETING…";
@@ -334,10 +308,7 @@ async function deleteUser(btn) {
        master admin can delete an account that has console access" are its rules
        to state. */
     notice(err.message, true);
-    delete btn.dataset.armed;
-    btn.classList.remove("is-armed");
-    btn.disabled = false;
-    btn.textContent = "DELETE";
+    resetBtn(btn);
   }
 }
 
@@ -363,38 +334,16 @@ export function initUsersTab() {
     openConsolePasswordForm({ hasExisting: configured, onDone: (msg) => notice(msg) });
   });
 
-  /* Delegated: the rows are replaced on every load. */
-  document.getElementById("usersBody").addEventListener("click", (e) => {
-    const del = e.target.closest("[data-delete-user]");
-    if (del) {
-      notice("");
-      if (del.dataset.armed !== "1") {
-        armConfirm(del);
-        return;
-      }
-      deleteUser(del);
-      return;
-    }
-
-    const reset = e.target.closest("[data-reset-pw]");
-    if (reset) {
-      notice("");
-      if (reset.dataset.armed !== "1") {
-        armConfirm(reset);
-        return;
-      }
-      resetPassword(reset);
-      return;
-    }
-
-    const btn = e.target.closest(".role-btn");
-    if (!btn) return;
-    /* Anything that takes a role away is armed first; granting one is not. */
-    const isDestructive = btn.classList.contains("is-revoke");
-    if (isDestructive && btn.dataset.armed !== "1") {
-      armConfirm(btn);
-      return;
-    }
-    setRole(btn);
-  });
+  /* One delegated listener; the rows are replaced on every load. Which of these
+     needs a second click is not decided here — `confirmButton.js` reads it off
+     the button, which is why there is no `.is-revoke` test left in this file. */
+  onConfirmedClick(
+    document.getElementById("usersBody"),
+    [
+      ["[data-delete-user]", deleteUser],
+      ["[data-reset-pw]", resetPassword],
+      [".role-btn", setRole],
+    ],
+    { before: () => notice("") },
+  );
 }

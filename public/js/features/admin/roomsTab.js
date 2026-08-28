@@ -12,19 +12,15 @@
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend } from "./adminApi.js";
-import { fmtSeconds, phasePill, tableMessage } from "./format.js";
+import { fmtSeconds, notice as panelNotice, phasePill, tableMessage } from "./format.js";
 import { initRoomDetail, openRoomDetail } from "./roomDetail.js";
+import { onConfirmedClick } from "./confirmButton.js";
 
 const COLS = 6;
-const CONFIRM_MS = 4000;
 
-/** The one line this tab says out loud: a room closed, or a close refused. */
-function notice(message, isError = false) {
-  const el = document.getElementById("roomsNotice");
-  el.textContent = message;
-  el.className = isError ? "panel-notice is-error" : "panel-notice";
-  el.hidden = !message;
-}
+/** This tab's one spoken line. The writer is `notice` in `format.js`;
+    all this names is which element it writes to. */
+const notice = (message, isError) => panelNotice("roomsNotice", message, isError);
 
 export async function loadRooms() {
   const tbody = document.getElementById("roomsBody");
@@ -43,37 +39,19 @@ export async function loadRooms() {
         <td data-label="GUEST">${escapeHtml(r.guest || "—")}</td>
         <td data-label="PHASE">${phasePill(r.phase)}</td>
         <td class="td-dim col-lo" data-label="IDLE">${fmtSeconds(r.idleSec)}</td>
-        <td data-label=""><div class="room-actions"><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}">WATCH</button><button type="button" class="link-btn is-close" data-close="${escapeHtml(r.code)}" data-revoke-label="CLOSE">CLOSE</button></div></td>
+        <td data-label=""><div class="room-actions"><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}">WATCH</button><button type="button" class="link-btn is-close" data-close="${escapeHtml(r.code)}" data-confirm-label="CLOSE">CLOSE</button></div></td>
       </tr>`).join("");
   } catch {
     tbody.innerHTML = tableMessage(COLS, "Failed to load");
   }
 }
 
-/* CLOSE arms on the first click and fires on the second, the same two-step the
-   USERS tab uses for anything it cannot take back. It disarms itself, because
-   this table is replaced every 10 s and a button left armed across a repaint
-   would come back looking innocent.
-
-   The armed state is held on the element rather than in module state so the
-   repaint clears it for free — a room that ends while the button is armed takes
-   the armed button with it. */
-let closeTimer = null;
-
-function armClose(btn) {
-  clearTimeout(closeTimer);
-  btn.dataset.armed = "1";
-  btn.textContent = "CONFIRM?";
-  btn.classList.add("is-armed");
-  closeTimer = setTimeout(() => {
-    delete btn.dataset.armed;
-    btn.textContent = btn.dataset.revokeLabel || "CLOSE";
-    btn.classList.remove("is-armed");
-  }, CONFIRM_MS);
-}
-
-async function closeRoom(btn, code) {
-  clearTimeout(closeTimer);
+/* CLOSE arms on the first click and fires on the second — `confirmButton.js`
+   owns that, and reads it off the button's `data-confirm-label`. Nothing here
+   restores the label on failure: this table is replaced every 10 s, so the
+   armed button goes with it. */
+async function closeRoom(btn) {
+  const code = btn.dataset.close;
   btn.disabled = true;
   btn.textContent = "CLOSING…";
   try {
@@ -91,14 +69,15 @@ export function initRoomsTab() {
   document.getElementById("refreshRooms").addEventListener("click", loadRooms);
   initRoomDetail();
   /* Delegated: the rows are replaced wholesale every 10 s, so a listener bound
-     to a button would be thrown away with the row it was bound to. */
-  document.getElementById("roomsBody").addEventListener("click", (ev) => {
-    const watch = ev.target.closest("[data-watch]")?.dataset.watch;
-    if (watch) return openRoomDetail(watch);
-
-    const btn = ev.target.closest("[data-close]");
-    if (!btn) return;
-    if (btn.dataset.armed) closeRoom(btn, btn.dataset.close);
-    else armClose(btn);
-  });
+     to a button would be thrown away with the row it was bound to. WATCH is in
+     the same table because it is the same click — it simply carries no
+     `data-confirm-label`, so it fires on the first one. */
+  onConfirmedClick(
+    document.getElementById("roomsBody"),
+    [
+      ["[data-watch]", (btn) => openRoomDetail(btn.dataset.watch)],
+      ["[data-close]", closeRoom],
+    ],
+    { before: () => notice("") },
+  );
 }

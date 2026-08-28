@@ -24,7 +24,7 @@ const el = (id) => document.getElementById(id);
     real rule; this is only so the form can answer without a round trip. */
 const PASSWORD_MIN = 6;
 
-/** The form currently on screen: `{ title, sub, needsCurrent, send }`. */
+/** The form currently on screen: `{ title, sub, fields, validate, send }`. */
 let active = null;
 
 function close() {
@@ -34,17 +34,25 @@ function close() {
   el("pwError").textContent = "";
 }
 
+/**
+ * Fields, not modes.
+ *
+ * This took `needsCurrent` and `confirmOnly`, two booleans that between them
+ * branched in three places — which field to hide, which validation to run, what
+ * to call the submit button. They were describing one thing badly: *which fields
+ * this form has*. Saying that directly deletes all three branches, and the
+ * module goes back to owning the chrome rather than knowing about its callers.
+ */
+const FIELDS = { current: "pwCurrentField", next: "pwNewField", confirm: "pwConfirmField" };
+
 function open(config) {
   active = config;
   el("pwTitle").textContent = config.title;
   el("pwSub").textContent = config.sub;
-  el("pwNewLabel").textContent = config.newLabel;
+  el("pwNewLabel").textContent = config.newLabel || "New password";
   el("pwCurrentLabel").textContent = config.currentLabel || "Current console password";
-  el("pwCurrentField").hidden = !config.needsCurrent;
-  /* `confirmOnly` re-uses this form to *prove* a password rather than set one:
-     the new/confirm pair goes, and the one remaining field is the check. */
-  el("pwNewField").hidden = Boolean(config.confirmOnly);
-  el("pwConfirmField").hidden = Boolean(config.confirmOnly);
+  for (const [name, id] of Object.entries(FIELDS)) el(id).hidden = !config.fields.includes(name);
+
   /* **`btn--primary` comes off when `btn--danger` goes on**, rather than both
      being worn at once: primary is the accent fill and danger is a red label,
      and together they drew red text on lime. They are two answers to the same
@@ -54,10 +62,11 @@ function open(config) {
   submit.textContent = config.submitLabel || "SAVE";
   submit.classList.toggle("btn--danger", Boolean(config.danger));
   submit.classList.toggle("btn--primary", !config.danger);
+
   el("pwError").textContent = "";
   el("pwForm").reset();
   el("pwModal").hidden = false;
-  (config.needsCurrent ? el("pwCurrent") : el("pwNew")).focus();
+  el(config.fields[0] === "current" ? "pwCurrent" : "pwNew").focus();
 }
 
 /**
@@ -73,18 +82,19 @@ export function openConfirmPasswordForm({ title, sub, submitLabel, send, done, o
     title,
     sub,
     currentLabel: "Console password",
-    needsCurrent: true,
-    confirmOnly: true,
+    fields: ["current"],
+    validate: ({ current }) => !current && "Enter your console password.",
     danger: true,
     submitLabel,
+    busyLabel: "WORKING…",
     send,
     done,
     onDone,
   });
 }
 
-/** Rotate the shared console password. `needsCurrent` is false on an install
-    that has none yet — there would be nothing to confirm against. */
+/** Rotate the shared console password. The `current` field is dropped on an
+    install that has none yet — there would be nothing to confirm against. */
 export function openConsolePasswordForm({ hasExisting, onDone }) {
   open({
     title: "Console password",
@@ -92,7 +102,11 @@ export function openConsolePasswordForm({ hasExisting, onDone }) {
       ? "Every admin unlocks the console with this. Changing it does not end sessions that are already open."
       : "No shared console password is set. Admins are unlocking with their own account passwords. Setting one switches that over.",
     newLabel: "New console password",
-    needsCurrent: hasExisting,
+    fields: hasExisting ? ["current", "next", "confirm"] : ["next", "confirm"],
+    validate: ({ current, next, confirm }) =>
+      (next.length < PASSWORD_MIN && `At least ${PASSWORD_MIN} characters.`)
+      || (next !== confirm && "The two passwords do not match.")
+      || (hasExisting && !current && "Enter the current console password."),
     send: (current, next) =>
       apiSend("/api/admin/console-password", "PUT", {
         currentPassword: current,
@@ -121,20 +135,15 @@ export function initPasswordModal() {
     const confirm = el("pwConfirm").value;
     const fail = (message) => { el("pwError").textContent = message; };
 
-    /* A confirm-only form has no new password to length-check or match; the one
-       field it does have still has to be filled. */
-    if (active.confirmOnly) {
-      if (!current) return fail("Enter your console password.");
-    } else {
-      if (next.length < PASSWORD_MIN) return fail(`At least ${PASSWORD_MIN} characters.`);
-      if (next !== confirm) return fail("The two passwords do not match.");
-      if (active.needsCurrent && !current) return fail("Enter the current console password.");
-    }
+    /* Each form owns what "valid" means for the fields it asked for; this only
+       reports the first thing wrong. */
+    const problem = active.validate({ current, next, confirm });
+    if (problem) return fail(problem);
 
     const submit = el("pwSubmit");
     const restore = submit.textContent;
     submit.disabled = true;
-    submit.textContent = active.confirmOnly ? "WORKING…" : "SAVING…";
+    submit.textContent = active.busyLabel || "SAVING…";
     fail("");
     try {
       await active.send(current, next);
