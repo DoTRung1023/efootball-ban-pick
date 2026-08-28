@@ -138,6 +138,46 @@ did not make, appearing in their strip. If that turns out to need explaining, a
 **toast** is the place for it, not the chat log: it is a one-off event addressed
 to one player, which is exactly what `announce` is for.
 
+## Nothing advances the room locally, and that is what stopped the blinking
+
+**The server owns every stage transition, and the client only reads
+`turnIndex`.** `applyPresenceSnapshot` is now the only thing on the client that
+writes `room.turnIndex` or `room.status` — grep for either and you should find
+nothing else. That is not tidiness; it is what makes a disagreement impossible.
+
+Two client-side advances used to exist and both produced the same fault. The
+poll runs every 500 ms and overwrites `turnIndex` from the server, so any local
+jump was reverted within half a second — and the reverted deadline was already
+in the past, so the timer fired again, jumped again, and the board flipped
+between the ban and pick screens about twice a second for the rest of the phase:
+
+- **the ban timer expiry** submitted the staged bans *without confirming*
+  (`flushAndSubmitStagedBans`) and then jumped to the pick turn. Not confirming
+  meant `bansConfirmed[mySide]` stayed false, so the server had no reason to
+  advance and never did — the local jump was the only thing "moving" the room,
+  and it was moving one client against the truth.
+- **`maybeAutoAdvanceFromBan`** moved on as soon as both ban lists were full.
+  A list fills on the `/ban` posts and the side is not confirmed until the
+  `/ban-confirm` right after them, so between the two the room looked finished
+  to that client and unfinished to the server.
+
+Time up now **confirms**, through the same `confirmStagedBans` the button uses,
+and moves nobody. Both sides share one `turnEndsAt`, so both clocks run out
+together, both confirmations land, and the server advances once. That is the
+shape the pick stage already had, and pick → Start Match was never affected.
+
+The contract, pinned over the API: with one side confirmed the server still
+reports `both:ban`; only the second confirmation moves it to `both:pick`. The
+half-confirmed window is real and lasts as long as the slower player takes —
+it is exactly where the old client used to blink.
+
+**The cost, stated plainly:** a *simultaneous* phase is ended only by both
+clients confirming. `maybeResolveExpiredBanTurn` covers alternating turns alone
+(it returns early unless `isSoloBanTurn`), and there is no pick-turn equivalent,
+so a backgrounded tab whose timer is throttled to roughly once a minute holds
+the phase open until it fires. The pick phase has always had this; the ban phase
+now shares it, which is strictly better than blinking through it.
+
 ## BAN REVEAL — what the opponent's strip shows
 
 `banRevealMode` is the second half of what MODE used to be. `revealMode` governs

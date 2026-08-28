@@ -204,11 +204,6 @@ export async function confirmPicks(confirmed) {
   cb.renderDraftUi();
 }
 
-/** Timer expiry path: submit whatever is staged without confirming the side. */
-export async function flushAndSubmitStagedBans() {
-  await submitBansToApi(flushStagedBansLocally());
-}
-
 /**
  * True while this side has confirmed and has not taken it back. Every write in
  * that phase goes through one of the two guards below; the server refuses them

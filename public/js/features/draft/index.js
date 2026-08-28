@@ -19,7 +19,7 @@
 export { cb } from "./callbacks.js";
 export { showToast, announce, getRoomCodeFromUrl } from "./utils.js";
 
-export { confirmPicks, flushAndSubmitStagedBans } from "@/features/draft/engine/draftActions.js";
+export { confirmPicks, confirmStagedBans } from "@/features/draft/engine/draftActions.js";
 export { startDraftFromLobby, tryEnterDraftFromRoomSnapshot } from "@/features/draft/engine/draftSession.js";
 
 export { renderDraftUi, enterPostMatch } from "@/features/draft/shell/draftView.js";

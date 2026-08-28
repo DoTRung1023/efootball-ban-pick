@@ -98,9 +98,11 @@ guard.
   by this — fixed presets could not express arbitrary durations.
 - `.lv-field-hint` — every field in `.lv-field-row` carries one so the three controls
   share a baseline. The durations state their range; `#banCountHint` is written by
-  `renderLobby()` as `"<2×count> bans in total"`. Note `banCountPerSide: 0` does **not**
-  skip the ban phase (`maybeAutoAdvanceFromBan` returns early on a falsy limit), so the
-  hint must not claim it does.
+  `renderLobby()` as `"<2×count> bans in total"`. `banCountPerSide: 0` **does** skip the ban
+  phase — `buildTurnSchedule` emits no ban turn at all, so `turnIndex: 0` is the
+  pick and the draft opens straight into it. (This said the opposite, on the
+  strength of a client-side `maybeAutoAdvanceFromBan` that has since been
+  deleted; the schedule moved to the server and decides this now.)
 - **Two reveal groups, built from one table.** `REVEAL_GROUPS` in `lobby.js`
   pairs `revealMode` (PICK REVEAL) with `banRevealMode` (BAN REVEAL); each row
   names its hidden input, its panel, and its `data-` attribute, and

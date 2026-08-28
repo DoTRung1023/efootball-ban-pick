@@ -27,7 +27,7 @@ export const cb = {
   /** Refresh the ban/pick/start stage indicator. */
   updateStageTabs: () => {},
   /** Timer expiry: post any staged bans without confirming the side. */
-  flushAndSubmitStagedBans: async () => {},
+  confirmStagedBans: async () => {},
   /** Mark this side's squad final, or take it back. */
   confirmPicks: async (_confirmed) => {},
 };

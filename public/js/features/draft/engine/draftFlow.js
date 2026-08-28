@@ -68,18 +68,6 @@ export function syncCurrentTurnFromIndex(room) {
   room.currentTurn = state.schedule[room.turnIndex] || null;
 }
 
-function advanceDraftStage(room, nextAction) {
-  if (!room) return;
-  const nextIdx = state.schedule.findIndex((t) => String(t?.action || "") === String(nextAction || ""));
-  if (nextIdx < 0) return;
-
-  state.stagedBans = [];
-  state.opponentStagedBans = [];
-  room.turnIndex = nextIdx;
-  syncCurrentTurnFromIndex(room);
-  room.turnEndsAt = Date.now() + getTurnDurationSec(state.schedule[nextIdx], room.config) * 1000;
-  startTurnTimer();
-}
 
 /**
  * True while the live turn belongs to one side alone — an alternating ban.
@@ -91,18 +79,6 @@ function advanceDraftStage(room, nextAction) {
 export function isSoloTurn(room = state.room) {
   const turn = room ? state.schedule[room.turnIndex] : null;
   return Boolean(turn) && turn.action === "ban" && turn.side !== "both";
-}
-
-/** Once both sides have used every ban, move on without waiting for the timer. */
-function maybeAutoAdvanceFromBan(room = state.room) {
-  if (!room || getDraftStage(room) !== "ban") return;
-  // Alternating turns are advanced by the server as each ban lands.
-  if (isSoloTurn(room)) return;
-  const target = banLimit(room.config);
-  if (!target) return;
-  const doneHost = (room.bans?.host || []).length >= target;
-  const doneGuest = (room.bans?.guest || []).length >= target;
-  if (doneHost && doneGuest) advanceDraftStage(room, "pick");
 }
 
 const asCount = (raw) => Math.max(0, Math.floor(Number(raw) || 0));
@@ -141,7 +117,12 @@ export function applyLocalBan(room, player) {
 
   room.bans[mySide].push(player);
   room.bannedPlayerIds.push(id);
-  maybeAutoAdvanceFromBan(room);
+  /* No local advance here either. `maybeAutoAdvanceFromBan` used to move the
+     room on as soon as **both** ban lists were full — but a list fills on the
+     `/ban` posts and the side is not confirmed until the `/ban-confirm` right
+     after them, so between the two the room looked finished to this client and
+     not to the server, and the next poll dragged it back. `ban-confirm` is what
+     ends the phase, and only the server can see both of them. */
   return true;
 }
 
@@ -202,8 +183,23 @@ function handleTurnExpiry() {
        left and hands over, resolved on the next snapshot. Advancing locally
        here would skip the whole rest of the ban phase. */
     if (isSoloTurn(room)) return;
-    void cb.flushAndSubmitStagedBans();
-    if (getDraftStage(room) === "ban") advanceDraftStage(room, "pick");
+    /* **Time up confirms whatever you staged, and moves nobody.** This used to
+       submit the staged bans *without* confirming and then jump the room to the
+       pick turn locally — two mistakes that compounded:
+
+       - not confirming meant `bansConfirmed[mySide]` stayed false, so the
+         server had no reason to advance and never did;
+       - advancing locally wrote `turnIndex` that the very next presence poll
+         overwrote from the server, which put the board back on the ban turn
+         with its deadline already in the past — so the timer fired again,
+         advanced again, and the board flipped between the ban and pick screens
+         roughly twice a second for as long as the phase lasted.
+
+       Confirming is what actually ends the phase: both sides share one
+       `turnEndsAt`, so both clocks run out together, both confirmations land,
+       and the server moves everyone. Exactly the shape the pick stage below
+       already had. */
+    void cb.confirmStagedBans();
     cb.renderDraftUi();
   } else if (stage === "pick") {
     /* Time up confirms whatever you have, complete or not — the same shape as

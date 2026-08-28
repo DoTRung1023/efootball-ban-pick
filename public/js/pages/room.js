@@ -11,7 +11,7 @@ import {
   announce,
   showToast,
   getRoomCodeFromUrl,
-  flushAndSubmitStagedBans,
+  confirmStagedBans,
   confirmPicks,
   renderDraftUi,
   enterPostMatch,
@@ -61,7 +61,7 @@ cb.onRematchAccepted = onRematchAccepted;
 cb.showRoomClosed = showRoomClosed;
 cb.startDraftFromLobby = startDraftFromLobby;
 cb.updateStageTabs = updateStageTabs;
-cb.flushAndSubmitStagedBans = flushAndSubmitStagedBans;
+cb.confirmStagedBans = confirmStagedBans;
 cb.confirmPicks = confirmPicks;
 cb.renderRoomChat = renderRoomChat;
 

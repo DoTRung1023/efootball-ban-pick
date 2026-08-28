@@ -32,7 +32,7 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   implementations on boot; until then every entry is a no-op. Keys: `renderDraftUi`,
   `renderLobby`, `tryEnterDraftFromRoomSnapshot`, `isBothMatchReady`, `enterMatchLive`,
   `onRematchAccepted`, `showRoomClosed`, `startDraftFromLobby`, `updateStageTabs`,
-  `flushAndSubmitStagedBans`, `confirmPicks`.
+  `confirmStagedBans`, `confirmPicks`.
 - `api.js` — `postAsMe(action, body)` (fills in `requesterId`) / `getJson(url)`. Both
   resolve; none throw. `postRoomAction(action, body, code)` backs `postAsMe` and is
   module-private — go through `postAsMe` so the identity is always attached.
@@ -119,13 +119,15 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   what the client knows about ban order), `isReadyPhase`, `banLimit` /
   `pickLimit`, `enterReadyPhase`, `isBothMatchReady`. `enterReadyPhase` replaced `beginPostDraftReadyPhase`: it
   moves **local** state only, because the server now owns the transition — see
-  `pick-phase.md`. The stage helpers `getDraftStage`, `advanceDraftStage`,
-  `maybeAutoAdvanceFromBan` and `getTurnDurationSec` drive the timer from inside this
-  module and are private to it.
+  `pick-phase.md`. The stage helpers `getDraftStage` and `getTurnDurationSec`
+  drive the timer from inside this module and are private to it.
+  **`advanceDraftStage` and `maybeAutoAdvanceFromBan` are gone**, and nothing on
+  the client moves a room between stages any more — see "Nothing advances
+  locally" in `ban-phase.md`.
   **There is no pick equivalent of `applyLocalBan`** — it was `applyLocalAction`
   until picks stopped being optimistic; see `pick-phase.md`.
 - `draftActions.js` — user actions: `submitBan` (stages only), `confirmStagedBans`,
-  `unconfirmBans`, `flushAndSubmitStagedBans` (timer-expiry path), `submitPick`,
+  `unconfirmBans` (`confirmStagedBans` is also the timer-expiry path), `submitPick`,
   `placePickInSlot`, `replaceMyPicks`, `confirmPicks`, `setGuestReady`,
   `setMatchReady`, plus the two read-only guards `areBansLocked` /
   `isLineupLocked`. `flushStagedBansLocally`,
