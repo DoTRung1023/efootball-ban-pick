@@ -157,6 +157,35 @@ body {
   border-color: var(--line-active);
 }
 
+/* A button that empties something. Red at rest rather than only when armed,
+   unlike the table buttons: those sit in a row of neutral controls where red
+   would shout, and these sit in a panel header beside REFRESH and UPDATE, where
+   the whole point is that they are not one of those. Still the ghost shape —
+   DESIGN.md §3 keeps a filled red for nothing at all.
+
+   **It declares background and border itself**, rather than leaning on
+   `.btn--ghost` the way the panel-header pair happens to. `.btn` sets
+   `border: none` and no background at all, so a `.btn--danger` worn alone — as
+   the confirm modal's submit wears it — fell back to the browser's own grey
+   button with red text on it. A variant that only works next to another variant
+   is not one. */
+.btn--danger {
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid var(--danger-line);
+}
+.btn--danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-fill);
+}
+/* Armed, and mid-flight: the label grows to name the consequence, so the button
+   cannot be allowed to hold its width and clip it. */
+.btn--danger.is-armed {
+  background: var(--danger-fill);
+  border-color: var(--danger);
+}
+
 .btn--sm { font-size: 12px; padding: 5px 10px; }
 
 /* ── Top Nav ────────────────────────────────────────────────── */
@@ -758,10 +787,16 @@ body {
    swaps its label to CONFIRM? — cannot resize it and shift the rest of the row. */
 .role-actions {
   display: grid;
-  grid-template-columns: repeat(3, 112px);
+  grid-template-columns: repeat(4, 112px);
   gap: 6px;
   align-items: center;
 }
+
+/* **A plain admin's row of actions is one slot wide, not four.** DELETE is the
+   only button they get, and three empty slots beside it would reserve 354px of
+   table for buttons that are never drawn — the dead width that had this whole
+   column hidden from them before DELETE existed. */
+.role-actions.is-slim { grid-template-columns: 112px; }
 
 .role-slot { display: block; min-width: 0; }
 .role-slot .role-btn { width: 100%; }
@@ -1236,6 +1271,24 @@ body {
   color: var(--text-dim);
   min-width: 160px;
   text-align: center;
+}
+
+/* WATCH and CLOSE sit on one line. A grid of fixed slots like `.role-actions`
+   would be wrong here: there are always exactly two, and every row has both. */
+.room-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* CLOSE arms before it fires, like every irreversible button on this console,
+   and the armed rung is the same one `.role-btn.is-armed` uses. `.link-btn` had
+   no destructive state until now because WATCH is read-only. */
+.link-btn.is-close:hover,
+.link-btn.is-armed {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--danger-fill);
 }
 
 /* ── Link button (WATCH, pesdb id) ──────────────────────────── */
@@ -1804,6 +1857,23 @@ body {
 .rd-none { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
 
 /* ── Responsive ─────────────────────────────────────────────── */
+/* **This rung exists for one rule**, and it is the fixed action slots. Four
+   112px slots are 454px of table whether or not a row fills them, and a
+   master's row still carries SQUAD and PLANS at this width — measured, the
+   USERS table ran 36px past its wrapper from 1101 down to 1136. It was three
+   slots and 336px until DELETE took a fourth, and the slot cannot give the
+   width back instead: `MAKE MASTER` measures 114px, so 112 is already under its
+   own content.
+
+   Below here the buttons take their own width and the empty slots collapse.
+   Alignment down the column is a wide-screen nicety; fitting is not. `auto`
+   catches the slim variant too, so a plain admin's single DELETE is not held
+   out at a full slot. */
+@media (max-width: 1200px) {
+  .role-actions,
+  .role-actions.is-slim { grid-template-columns: repeat(4, auto); }
+}
+
 @media (max-width: 1100px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 
@@ -1825,13 +1895,6 @@ body {
    900px wide. */
 @media (max-width: 1000px) {
   .col-lo { display: none; }
-  /* The fixed slots go with them. Three 112px slots are 336px of table whether
-     or not a row fills them, and at 900px that was the last 43px of sideways
-     scroll; below this the buttons take their own width and the empty slots
-     collapse. Alignment down the column is a wide-screen nicety — fitting is
-     not. */
-  .role-actions { grid-template-columns: repeat(3, auto); }
-
   /* A 248px panel beside a card grid stops paying for itself once the grid is
      down to three across. CHOSEN goes under the browser, and its strip takes a
      short cap — stacked, the two scrollers were fighting for the same

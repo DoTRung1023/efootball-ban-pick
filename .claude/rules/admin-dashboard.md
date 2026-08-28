@@ -93,6 +93,56 @@ three action slots empty and the YOU badge as the reason. Standing yourself down
 was the one self-write allowed; it is not any more, and a master hands the role
 on by having another master take it.
 
+## Destructive actions, and what each one costs
+
+Four, and they are gated three different ways. The gate is chosen by **how hard
+the thing is to undo**, not by how alarming it sounds.
+
+| Action | Who | Confirm | Undo |
+| --- | --- | --- | --- |
+| `DELETE /users/:id` | master: anyone but self · plain admin: non-admins only | two clicks | none |
+| `POST /catalog/clear` | master | **password** | a full scrape, hours |
+| `DELETE /scrape-logs` | master | two clicks | none needed; costs one full scrape |
+| `POST /rooms/:code/close` | any admin | two clicks | make a new room |
+
+**Deleting an account leans on the schema, not on code.** `ON DELETE CASCADE`
+from `users` takes the squad (`players`), the game plans and their rows,
+`user_settings` and any pending `email_verifications`. Nothing in the route
+enumerates them and nothing can be half-done. The guards are: never yourself,
+never the last admin, and a plain admin never reaches a row with console access —
+that last one because deleting a colleague *is* revoking their access, and access
+is a master's to change.
+
+**Clearing the catalog empties three tables, and the two extra ones are what stop
+it leaving an install that cannot be refilled.** `top_players_snapshot` names
+`pesdb_id`s that would no longer exist, and it is both the sign-in backdrop and
+the pool an anonymous opponent is drafted from. `scrape_logs` **is the
+incremental cutoff** — `scrape.js` reads the newest finished row's `max_pesdb_id`
+and fetches only what is newer, so keeping it would mean `npm run scrape` never
+refetches a single deleted row. Squads and game plans are deliberately untouched:
+`players.pesdb_id` has no foreign key to the catalog, so nothing cascades, and a
+squad is a user's work rather than a copy of the catalog.
+
+**That same cutoff is why clearing the scrape log is not a cosmetic wipe.** The
+next scrape becomes a full one — ~128k players, several hours — so the armed
+button says `NEXT SCRAPE = FULL. CONFIRM?` rather than making an admin find out
+afterwards.
+
+**Closing a room needs `adminClosed`, and that flag is load-bearing.** A host
+walking back into a closed room *reopens* it (`reopenRoom`), which is right for
+their own close and wrong for an administrator's: the host's heartbeat is a 500ms
+interval, so without the flag the console's close would be undone before the
+table finished repainting. `closeRoomEntry` in `rooms/store.js` sets it, and
+nothing clears it — the code is spent, which is the intended reading and costs
+nothing, since rooms are in-memory and a new room is a new code. The entry itself
+**survives its own seats**: `closed` + `closeReason` is the only thing that puts
+a player on the "Room closed" screen.
+
+The catalog wipe is the one action that asks for a password, and it is the one
+the *gate* took — shared console password where the install has one, the
+account's own otherwise, decided by `consolePassword.js`. `openConfirmPasswordForm`
+re-uses the console-password modal with its new/confirm pair hidden.
+
 ## Where the first admin comes from
 
 `bootstrap.js`, run once per boot from `server.js` — not awaited, so a slow or

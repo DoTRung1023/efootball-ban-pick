@@ -7,6 +7,7 @@
  */
 export { default as roomRoutes } from "./routes.js";
 export {
+  closeRoomEntry,
   findRoomEntry,
   isActiveDraft,
   isValidRoomCode,

@@ -39,11 +39,48 @@ function open(config) {
   el("pwTitle").textContent = config.title;
   el("pwSub").textContent = config.sub;
   el("pwNewLabel").textContent = config.newLabel;
+  el("pwCurrentLabel").textContent = config.currentLabel || "Current console password";
   el("pwCurrentField").hidden = !config.needsCurrent;
+  /* `confirmOnly` re-uses this form to *prove* a password rather than set one:
+     the new/confirm pair goes, and the one remaining field is the check. */
+  el("pwNewField").hidden = Boolean(config.confirmOnly);
+  el("pwConfirmField").hidden = Boolean(config.confirmOnly);
+  /* **`btn--primary` comes off when `btn--danger` goes on**, rather than both
+     being worn at once: primary is the accent fill and danger is a red label,
+     and together they drew red text on lime. They are two answers to the same
+     question — this is the button you press — and DESIGN.md §3 gives that
+     answer in one hue at a time. */
+  const submit = el("pwSubmit");
+  submit.textContent = config.submitLabel || "SAVE";
+  submit.classList.toggle("btn--danger", Boolean(config.danger));
+  submit.classList.toggle("btn--primary", !config.danger);
   el("pwError").textContent = "";
   el("pwForm").reset();
   el("pwModal").hidden = false;
   (config.needsCurrent ? el("pwCurrent") : el("pwNew")).focus();
+}
+
+/**
+ * Re-types a password to authorise something, rather than to change one.
+ *
+ * The only caller is the catalog wipe, and the password it asks for is the one
+ * the gate took — shared or per-account, whichever this install uses. The
+ * server decides which and says so on a mismatch; this form does not need to
+ * know, and deliberately does not say, so it cannot claim the wrong one.
+ */
+export function openConfirmPasswordForm({ title, sub, submitLabel, send, done, onDone }) {
+  open({
+    title,
+    sub,
+    currentLabel: "Console password",
+    needsCurrent: true,
+    confirmOnly: true,
+    danger: true,
+    submitLabel,
+    send,
+    done,
+    onDone,
+  });
 }
 
 /** Rotate the shared console password. `needsCurrent` is false on an install
@@ -84,13 +121,20 @@ export function initPasswordModal() {
     const confirm = el("pwConfirm").value;
     const fail = (message) => { el("pwError").textContent = message; };
 
-    if (next.length < PASSWORD_MIN) return fail(`At least ${PASSWORD_MIN} characters.`);
-    if (next !== confirm) return fail("The two passwords do not match.");
-    if (active.needsCurrent && !current) return fail("Enter the current console password.");
+    /* A confirm-only form has no new password to length-check or match; the one
+       field it does have still has to be filled. */
+    if (active.confirmOnly) {
+      if (!current) return fail("Enter your console password.");
+    } else {
+      if (next.length < PASSWORD_MIN) return fail(`At least ${PASSWORD_MIN} characters.`);
+      if (next !== confirm) return fail("The two passwords do not match.");
+      if (active.needsCurrent && !current) return fail("Enter the current console password.");
+    }
 
     const submit = el("pwSubmit");
+    const restore = submit.textContent;
     submit.disabled = true;
-    submit.textContent = "SAVING…";
+    submit.textContent = active.confirmOnly ? "WORKING…" : "SAVING…";
     fail("");
     try {
       await active.send(current, next);
@@ -103,7 +147,7 @@ export function initPasswordModal() {
       fail(err.message);
     } finally {
       submit.disabled = false;
-      submit.textContent = "SAVE";
+      submit.textContent = restore;
     }
   });
 }

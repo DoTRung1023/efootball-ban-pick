@@ -7,7 +7,8 @@
    ============================================================ */
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
-import { apiFetch } from "./adminApi.js";
+import { apiFetch, apiSend, isSessionMaster } from "./adminApi.js";
+import { openConfirmPasswordForm } from "./passwordModal.js";
 import { fmtDate, fmtDuration, fmtNum, fmtRelative, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
 
 const SCRAPE_ROWS = 8;
@@ -171,6 +172,103 @@ export function loadOverview() {
   loadScrapeRuns();
 }
 
+/** The one line this tab says out loud. Both wipes report through it. */
+function notice(message, isError = false) {
+  const el = document.getElementById("overviewNotice");
+  el.textContent = message;
+  el.className = isError ? "panel-notice is-error" : "panel-notice";
+  el.hidden = !message;
+}
+
+/**
+ * Emptying the catalog — the one action on this console that asks for a
+ * password rather than a second click.
+ *
+ * A second click is proportionate to something you can redo. This is not: the
+ * only way back is a full scrape of ~128k players over several hours, so the
+ * cost of an accidental press is an afternoon, and the confirmation is sized to
+ * that. The password is the one the gate took; the server decides whether that
+ * is the shared console password or this account's own.
+ *
+ * The subtitle names all three tables, because two of them are not what the
+ * button says and both matter — see the route's own note. Squads and game plans
+ * are named too, as the thing that is *not* touched: that is the first question
+ * anybody sensible asks before pressing this.
+ */
+function askClearCatalog() {
+  notice("");
+  openConfirmPasswordForm({
+    title: "Clear the player catalog",
+    sub: "Deletes every scraped card, the sign-in showcase built from them, and the "
+      + "scrape history — which is where the incremental cutoff lives, so the next scrape "
+      + "runs as a full one. Squads and game plans are not touched. The only way back is "
+      + "that full scrape: ~128k players, several hours.",
+    submitLabel: "CLEAR CATALOG",
+    send: (password) => apiSend("/api/admin/catalog/clear", "POST", { password }),
+    done: "Catalog cleared.",
+    onDone: (msg) => { notice(msg); loadOverview(); },
+  });
+}
+
+/**
+ * Emptying the scrape log.
+ *
+ * Two clicks, not a password — the rows are a record of past runs and nothing
+ * reads them but this panel. The **cutoff** is the exception and the reason the
+ * armed label says what it says: `scrape.js` takes the newest finished row's
+ * `max_pesdb_id` as its resume point, so clearing the log turns the next
+ * UPDATE into a full scrape. That is hours, and it is not guessable from a
+ * button reading CLEAR HISTORY.
+ */
+let logsTimer = null;
+
+function armClearLogs(btn) {
+  clearTimeout(logsTimer);
+  btn.dataset.armed = "1";
+  btn.textContent = "NEXT SCRAPE = FULL. CONFIRM?";
+  btn.classList.add("is-armed");
+  logsTimer = setTimeout(() => {
+    delete btn.dataset.armed;
+    btn.textContent = "CLEAR HISTORY";
+    btn.classList.remove("is-armed");
+  }, 6000);
+}
+
+async function clearLogs(btn) {
+  clearTimeout(logsTimer);
+  btn.disabled = true;
+  btn.textContent = "CLEARING…";
+  try {
+    const { cleared } = await apiSend("/api/admin/scrape-logs", "DELETE");
+    notice(`${cleared} scrape run${cleared === 1 ? "" : "s"} cleared. The next scrape will be a full one.`);
+    loadOverview();
+  } catch (err) {
+    notice(err.message, true);
+  }
+  delete btn.dataset.armed;
+  btn.classList.remove("is-armed");
+  btn.disabled = false;
+  btn.textContent = "CLEAR HISTORY";
+}
+
 export function initOverviewTab() {
-  document.getElementById("refreshOverview").addEventListener("click", loadOverview);
+  document.getElementById("refreshOverview").addEventListener("click", () => {
+    notice("");
+    loadOverview();
+  });
+
+  /* Master admins only. The endpoints re-read the database and refuse a plain
+     admin either way — hiding the buttons is the courtesy, not the check. */
+  const canManage = isSessionMaster();
+  const clearCatalog = document.getElementById("clearCatalogBtn");
+  const clearHistory = document.getElementById("clearLogsBtn");
+  clearCatalog.hidden = !canManage;
+  clearHistory.hidden = !canManage;
+
+  clearCatalog.addEventListener("click", askClearCatalog);
+  clearHistory.addEventListener("click", () => {
+    notice("");
+    if (clearHistory.dataset.armed === "1") clearLogs(clearHistory);
+    else armClearLogs(clearHistory);
+  });
 }

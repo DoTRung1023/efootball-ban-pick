@@ -78,6 +78,8 @@
       <!-- ── OVERVIEW ────────────────────────────────────────── -->
       <section class="tab-panel" data-panel="overview">
 
+        <p id="overviewNotice" class="panel-notice" hidden></p>
+
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-label">PLAYERS IN CATALOG</div>
@@ -106,7 +108,11 @@
           <div class="panel">
             <div class="panel-header">
               <span class="panel-title">CATALOG HEALTH</span>
-              <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
+              <div class="panel-actions">
+                <!-- Master admins only; `overviewTab.js` unhides it. -->
+                <button id="clearCatalogBtn" class="btn btn--ghost btn--sm btn--danger" hidden>CLEAR CATALOG</button>
+                <button id="refreshOverview" class="btn btn--ghost btn--sm">REFRESH</button>
+              </div>
             </div>
             <div id="dataQualityBody" class="dq-list">
               <div class="dq-row dq-empty">Loading…</div>
@@ -119,6 +125,8 @@
               <div class="panel-actions">
                 <button id="scrapeUpdateBtn" class="btn btn--ghost btn--sm">UPDATE</button>
                 <button id="scrapeMissingBtn" class="btn btn--ghost btn--sm">REPAIR GAPS</button>
+                <!-- Master admins only; `overviewTab.js` unhides it. -->
+                <button id="clearLogsBtn" class="btn btn--ghost btn--sm btn--danger" hidden>CLEAR HISTORY</button>
               </div>
             </div>
             <div id="scrapeStatus" class="scrape-status" hidden>
@@ -328,6 +336,7 @@
             <span class="panel-title">LIVE ROOMS <span id="roomsCount" class="live-badge">0 LIVE</span></span>
             <button id="refreshRooms" class="btn btn--ghost btn--sm">REFRESH</button>
           </div>
+          <p id="roomsNotice" class="panel-notice" hidden></p>
           <div class="table-wrap">
             <table class="admin-table">
               <thead>
@@ -465,14 +474,16 @@
         <h2 class="adm-modal-title" id="pwTitle">—</h2>
         <p class="adm-modal-sub" id="pwSub"></p>
         <label class="adm-field" id="pwCurrentField">
-          <span>Current console password</span>
+          <span id="pwCurrentLabel">Current console password</span>
           <input type="password" id="pwCurrent" class="gate-input" autocomplete="off" />
         </label>
-        <label class="adm-field">
+        <!-- Both hidden when the form is proving a password rather than setting
+             one — see `openConfirmPasswordForm`. -->
+        <label class="adm-field" id="pwNewField">
           <span id="pwNewLabel">New password</span>
           <input type="password" id="pwNew" class="gate-input" autocomplete="new-password" />
         </label>
-        <label class="adm-field">
+        <label class="adm-field" id="pwConfirmField">
           <span>Confirm</span>
           <input type="password" id="pwConfirm" class="gate-input" autocomplete="new-password" />
         </label>

@@ -107,7 +107,11 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "You were removed from this room by host." });
   }
 
-  if (entry.closed && role !== "host") {
+  /* An admin's close is not the host's, and only the host's is undone by
+     walking back in. `adminClosed` is what tells the two apart — see
+     `closeRoomEntry`. Without it the host's next 500ms heartbeat would reopen
+     the room the console just ended. */
+  if (entry.closed && (role !== "host" || entry.adminClosed)) {
     return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry) });
   }
   if (entry.closed && role === "host") {

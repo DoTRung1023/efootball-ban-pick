@@ -104,8 +104,17 @@ const revokeBtn = (id, attr, value, label) =>
  * only after the master flag does, so losing the role is two deliberate steps;
  * and your own password is changed under Edit Profile.
  */
-function actionsCell(user, isSelf) {
+function actionsCell(user, isSelf, canManage) {
   const id = Number(user.id);
+
+  /* **A plain admin gets one slot, not four.** They can delete a plain account
+     and nothing else, so three empty slots would be 336px of table reserved for
+     buttons that are never drawn — the same dead width that got the whole
+     column hidden from them before DELETE existed. */
+  const del = deleteBtn(user, isSelf, canManage);
+  if (!canManage) {
+    return `<div class="role-actions is-slim"><span class="role-slot">${del}</span></div>`;
+  }
 
   const promote = isSelf || user.is_master_admin
     ? ""
@@ -131,7 +140,28 @@ function actionsCell(user, isSelf) {
                title="Generates a new password and emails it to ${escapeHtml(user.email)}">RESET PW</button>`;
 
   const slot = (html) => `<span class="role-slot">${html}</span>`;
-  return `<div class="role-actions">${slot(promote)}${slot(demote)}${slot(resetPw)}</div>`;
+  return `<div class="role-actions">${slot(promote)}${slot(demote)}${slot(resetPw)}${slot(del)}</div>`;
+}
+
+/**
+ * DELETE, in the fourth slot — **the only button a plain admin ever gets**.
+ *
+ * Who may delete whom is the server's rule and this only draws it: a master
+ * reaches any row but their own, a plain admin only a row with no console
+ * access. Drawing DELETE on an admin's row for a plain admin would be offering
+ * a 403.
+ *
+ * It says DELETE and not REMOVE because of what it takes with it. The `title`
+ * spells that out, since the cascade is not visible from this table: the
+ * account's squad, its game plans, its saved settings.
+ */
+function deleteBtn(user, isSelf, canManage) {
+  if (isSelf) return "";
+  if (!canManage && user.is_admin) return "";
+  return `<button class="role-btn is-revoke" data-delete-user="${Number(user.id)}"
+           data-revoke-label="DELETE"
+           data-username="${escapeHtml(user.username)}"
+           title="Deletes ${escapeHtml(user.username)} and everything on the account — squad, game plans, settings. This cannot be undone">DELETE</button>`;
 }
 
 export async function loadUsers() {
@@ -141,7 +171,11 @@ export async function loadUsers() {
      appear for a frame over "Loading…" and then be taken away. */
   const canManage = isSessionMaster();
   document.getElementById("consolePwBtn").hidden = !canManage;
-  document.getElementById("usersActionsHead").hidden = !canManage;
+  /* **Shown to a plain admin too, now that DELETE is in it.** It is hidden only
+     when the column would be entirely empty, which it no longer is for anyone
+     with console access — see `actionsCell`, which gives a plain admin one slot
+     rather than the master's four. */
+  document.getElementById("usersActionsHead").hidden = false;
 
   tbody.innerHTML = tableMessage(COLS, "Loading…");
   try {
@@ -174,7 +208,7 @@ export async function loadUsers() {
         <td class="col-lo" data-label="PLANS">${fmtNum(u.planCount)}</td>
         <td class="td-dim col-mid" data-label="JOINED">${fmtDate(u.created_at)}</td>
         <td data-label="ACCESS"><span class="access-role ${ROLE_CLASS[role]}">${role}</span></td>
-        <td data-label="ACTIONS"${canManage ? "" : " hidden"}>${canManage ? actionsCell(u, isSelf) : ""}</td>
+        <td data-label="ACTIONS">${actionsCell(u, isSelf, canManage)}</td>
         <td class="col-you" data-label="">${isSelf ? `<span class="role-pill is-you">YOU</span>` : ""}</td>
       </tr>`;
     }).join("");
@@ -274,6 +308,39 @@ async function resetPassword(btn) {
   }
 }
 
+/**
+ * Deletes one account, and everything the schema cascades with it.
+ *
+ * Two clicks, like every other irreversible button here — and this is the most
+ * irreversible of them: `ON DELETE CASCADE` from `users` takes the squad, the
+ * game plans and their rows, the saved settings and any pending email
+ * verification. There is no undo and nothing is archived.
+ *
+ * On a refusal the button goes all the way back to disarmed rather than just
+ * relabelled, for the reason `resetPassword` gives: a button reading DELETE
+ * that still holds `armed` would fire on a single click.
+ */
+async function deleteUser(btn) {
+  clearTimeout(confirmTimer);
+  const username = btn.dataset.username;
+  btn.disabled = true;
+  btn.textContent = "DELETING…";
+  try {
+    await apiSend(`/api/admin/users/${Number(btn.dataset.deleteUser)}`, "DELETE");
+    notice(`${username} deleted, with their squad and game plans.`);
+    loadUsers();
+  } catch (err) {
+    /* The server owns these — "the last admin cannot be removed" and "only a
+       master admin can delete an account that has console access" are its rules
+       to state. */
+    notice(err.message, true);
+    delete btn.dataset.armed;
+    btn.classList.remove("is-armed");
+    btn.disabled = false;
+    btn.textContent = "DELETE";
+  }
+}
+
 export function initUsersTab() {
   initPasswordModal();
 
@@ -298,6 +365,17 @@ export function initUsersTab() {
 
   /* Delegated: the rows are replaced on every load. */
   document.getElementById("usersBody").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-delete-user]");
+    if (del) {
+      notice("");
+      if (del.dataset.armed !== "1") {
+        armConfirm(del);
+        return;
+      }
+      deleteUser(del);
+      return;
+    }
+
     const reset = e.target.closest("[data-reset-pw]");
     if (reset) {
       notice("");

@@ -375,6 +375,35 @@ export function resetDraftToLobby(entry) {
   return wasDrafting;
 }
 
+/**
+ * Ends a room from outside it — the console's CLOSE, not the host's.
+ *
+ * Shaped like the host's own close in `rooms/routes.js`: the entry has to
+ * **outlive both seats**, because `closed` + `closeReason` is the only thing
+ * that puts a player on the "Room closed" screen, and deleting the entry would
+ * hand them an empty snapshot instead.
+ *
+ * `adminClosed` is the part the host's close does not have, and it is
+ * load-bearing. A host re-entering a closed room *reopens* it (`reopenRoom`),
+ * which is right when they closed it themselves and wrong here: the host's
+ * heartbeat is a 500ms interval, so without this flag an admin's close would be
+ * undone before the console finished repainting. Nothing clears it, so the code
+ * is spent — which is the intended reading of an administrator ending a room,
+ * and costs nothing, since a new room is a new code and these live in memory
+ * only.
+ */
+export function closeRoomEntry(entry, reason) {
+  entry.closed = true;
+  entry.adminClosed = true;
+  entry.closeReason = String(reason || "Closed by an administrator.");
+  entry.host = null;
+  entry.guest = null;
+  entry.ready = { host: false, guest: false };
+  resetDraftToLobby(entry);
+  entry.updatedAt = Date.now();
+  return entry;
+}
+
 /** Returns "host", "guest", or null for the participant matching `requesterId`. */
 export function resolveSide(entry, requesterId) {
   const id = String(requesterId || "");
