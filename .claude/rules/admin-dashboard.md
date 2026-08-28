@@ -458,6 +458,32 @@ Verified by driving the real module with synthetic snapshots over a stubbed
 `fetch`: a READY toggle creates 0 new card nodes, a new pick creates exactly 1
 and every existing card survives, and an unchanged poll repaints nothing.
 
+### The stage ladder must cover every phase `roomPhase` answers
+
+`STAGES` in `roomDetail.js` is `lobby · ban · pick · ready · done`, and
+`stageState` badges each block from where the room is. `roomPhase` in
+`rooms/store.js` folds `await-ready` and `await-start` into `ready`, resolves
+`drafting` through the turn schedule — and then **falls through to the raw
+status**, so a match being played answers `live`.
+
+`live` was not on the ladder. `indexOf` gave −1, `stageState` took its
+"phase means nothing" guard, and **every block badged `not reached`** — a room
+with a finished draft, two full squads drawn and one side already pressing
+FINISH read as though nothing had happened, for the whole length of the match.
+The guard was firing on the value that means *furthest along*.
+
+`PHASE_STAGE = { live: "ready" }` maps it, because `live` is not a stage of its
+own here: block 4 (START MATCH) carries the whole ready → started → finished
+handshake, so a live room is **on** that block rather than past it. The pill
+still says LIVE, which is the split a dashboard wants and the reason `roomPhase`
+answers `live` at all.
+
+**These two are a client/server pair with no shared module**, like the ones
+CLAUDE.md lists. Add a status to `roomPhase` and this ladder needs it the same
+day, or the panel silently reports a room as untouched. Verified by rendering
+all four blocks against every phase `roomPhase` can return — the cheap test is
+to import the stage functions in Node (see below) rather than open the console.
+
 ### The BAN stage's confirm row is simultaneous-only
 
 `bansConfirmed` is written by `/ban-confirm`, and an **alternating** phase never

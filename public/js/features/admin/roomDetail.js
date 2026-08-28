@@ -253,9 +253,33 @@ function sideOnTurn(room) {
    your head. */
 const STAGES = ["lobby", "ban", "pick", "ready", "done"];
 
+/**
+ * **This ladder has to cover everything `roomPhase` can answer.** It did not,
+ * and the gap was `live`.
+ *
+ * `roomPhase` in `rooms/store.js` folds `await-ready` and `await-start` into
+ * `ready` and then falls through to the raw status, so a match being played
+ * answers `live` — deliberately, because the dashboard pill wants to say LIVE
+ * and "is a match being played" is the split that matters there. But `live` is
+ * not a *stage* on this panel: block 4 (START MATCH) carries the whole
+ * ready → started → finished handshake, so a live room is **on** that block,
+ * not past it.
+ *
+ * Missing from the ladder, `indexOf` answered −1 and `stageState`'s guard
+ * badged **every** block "not reached" — a room with a finished draft, two full
+ * squads on screen and one side already pressing FINISH read as though nothing
+ * had happened, for the entire length of the match. The guard is meant for a
+ * value that means nothing; it was firing on one that means "furthest along".
+ *
+ * Keep this map in step with `roomPhase`. They are a client/server pair with no
+ * shared module, like the others CLAUDE.md lists.
+ */
+const PHASE_STAGE = { live: "ready" };
+
 /** done · now · not reached, from where the room actually is. */
 function stageState(id, phase) {
-  const at = STAGES.indexOf(String(phase || "lobby"));
+  const raw = String(phase || "lobby");
+  const at = STAGES.indexOf(PHASE_STAGE[raw] || raw);
   const here = STAGES.indexOf(id);
   if (at < 0) return { cls: "is-ahead", label: "not reached" };
   if (here < at) return { cls: "is-done", label: "done" };
