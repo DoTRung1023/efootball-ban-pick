@@ -73,13 +73,21 @@ function countOf(n, noun) {
   return `${n} ${noun}${Number(n) === 1 ? "" : "s"}`;
 }
 
-function seatCard(label, seat, side) {
+function seatCard(label, seat, side, newMatch) {
   const tone = sideClass(side);
   if (!seat) {
+    /* An empty seat has two meanings and they are not close: nobody has taken
+       it, or somebody had it and left for a room of their own. The second ends
+       the room — whoever is left can leave or open their own, but there is
+       nobody to rematch — while the room itself keeps heartbeating and stays on
+       the console's live list. Naming the leaver is the difference between a
+       lobby waiting for a guest and a match that is over. */
+    const left = newMatch?.by === side;
     return `
       <div class="rd-seat is-empty ${tone}">
         <div class="rd-seat-role">${escapeHtml(label)}</div>
-        <div class="rd-seat-name">empty</div>
+        <div class="rd-seat-name">${left ? escapeHtml(newMatch.username || "—") : "empty"}</div>
+        ${left ? `<div class="rd-seat-note">left for a new room</div>` : ""}
       </div>`;
   }
   return `
@@ -286,8 +294,8 @@ function stageBlock(id, title, phase, body) {
 function lobbyStage(room, cfg) {
   return stageBlock("lobby", "1 · LOBBY", room.phase, `
     <div class="rd-grid">
-      ${seatCard("HOST", room.host, "host")}
-      ${seatCard("GUEST", room.guest, "guest")}
+      ${seatCard("HOST", room.host, "host", room.newMatch)}
+      ${seatCard("GUEST", room.guest, "guest", room.newMatch)}
     </div>
     ${statBand([
       ["ban per side", `${cfg.banCountPerSide ?? "—"}${

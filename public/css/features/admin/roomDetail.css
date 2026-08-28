@@ -186,6 +186,15 @@
   overflow-wrap: anywhere;
 }
 
+/* Why an empty seat is empty, under the name of whoever vacated it. Only drawn
+   for a seat left by NEW MATCH — a seat nobody ever took says "empty" in
+   `.rd-seat-name` and has nothing to add. It sits where `.rd-facts` would be on
+   an occupied seat, so the two cards keep the same shape. */
+.rd-seat-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 /* Label/value pairs. Two columns so the values line up down the panel. */
 .rd-facts {
   display: grid;

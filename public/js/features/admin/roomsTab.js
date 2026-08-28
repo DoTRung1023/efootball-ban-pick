@@ -35,8 +35,8 @@ export async function loadRooms() {
     tbody.innerHTML = d.rooms.map((r) => `
       <tr>
         <td class="td-mono" data-label="CODE">${escapeHtml(r.code)}</td>
-        <td data-label="HOST">${escapeHtml(r.host || "—")}</td>
-        <td data-label="GUEST">${escapeHtml(r.guest || "—")}</td>
+        <td data-label="HOST">${seatCell(r, "host")}</td>
+        <td data-label="GUEST">${seatCell(r, "guest")}</td>
         <td data-label="PHASE">${phasePill(r.phase)}</td>
         <td class="td-dim col-lo" data-label="IDLE">${fmtSeconds(r.idleSec)}</td>
         <td data-label=""><div class="room-actions"><button type="button" class="link-btn" data-watch="${escapeHtml(r.code)}" title="Inspect this room read-only. It does not take a seat in it">WATCH</button><button type="button" class="link-btn is-close" data-close="${escapeHtml(r.code)}" data-confirm-label="CLOSE" title="End this room for both players. The code cannot be reopened">CLOSE</button></div></td>
@@ -44,6 +44,24 @@ export async function loadRooms() {
   } catch {
     tbody.innerHTML = tableMessage(COLS, "Failed to load");
   }
+}
+
+/**
+ * One seat, and what happened to it.
+ *
+ * A seat vacated by NEW MATCH is not the same as one nobody ever took, and the
+ * table used to print `—` for both. The room the leaver left behind keeps its
+ * heartbeat — the other player is still sitting on the post-match screen — so it
+ * stays on this list looking healthy, and `—` reads as "waiting for a guest"
+ * rather than "this one is over". The name is what makes it legible: the leaver
+ * is usually the host, and the host is who an admin would go looking for.
+ */
+function seatCell(room, side) {
+  const name = room[side];
+  if (name) return escapeHtml(name);
+  if (room.newMatch?.by !== side) return "—";
+  const who = room.newMatch.username;
+  return `<span class="td-dim">${escapeHtml(who || "—")} · left for a new room</span>`;
 }
 
 /* CLOSE arms on the first click and fires on the second — `confirmButton.js`

@@ -24,7 +24,7 @@
 import { askConfirm, showToast } from '@/features/draft/utils.js';
 import { state } from '@/features/draft/state.js';
 import { postMatchAction } from '@/features/draft/engine/draftActions.js';
-import { clearRoomPhaseCache } from '@/features/draft/engine/presence.js';
+import { clearRoomPhaseCache, stopPresencePolling } from '@/features/draft/engine/presence.js';
 import { allowLeave } from '@/features/draft/shell/leaveGuard.js';
 import { genRoomCode } from '@/shared/lib/roomCode.js';
 import { setPendingToast } from '@/shared/ui/pendingToast.js';
@@ -115,6 +115,12 @@ export function bindPostMatchOnce() {
  */
 function leaveTo(url, note) {
   allowLeave();
+  /* **Before the navigation, and it has to be.** `window.location.href` does not
+     stop a running `setInterval` — the page keeps living until the next document
+     commits, and the heartbeat is a 500 ms one. `new-match` vacates this seat
+     server-side, so one more beat out of a page on its way out re-claims the
+     chair we just left and puts the room back to looking occupied. */
+  stopPresencePolling();
   clearRoomPhaseCache(state.room?.code);
   if (note) setPendingToast(note);
   window.location.href = url;
@@ -139,7 +145,13 @@ export function renderPostMatch() {
   const stage = theirs ? "incoming" : mine ? "pending" : "none";
   if (row.dataset.rematch !== stage) row.dataset.rematch = stage;
 
-  const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username || "Your opponent";
+  /* Their seat is gone the moment they leave for a new match, so the name comes
+     off `newMatch` in that case — it is recorded there for exactly this. Without
+     the fallback every line below degrades to "Your opponent" the instant the
+     thing they describe happens. */
+  const them = state.room?.[state.mySide === "host" ? "guest" : "host"]?.username
+    || state.room?.newMatch?.username
+    || "Your opponent";
 
   /* The other player has left for a room of their own. They are not coming
      back, so there is nobody to offer a rematch to — but the room is still here

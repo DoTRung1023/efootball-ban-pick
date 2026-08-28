@@ -173,6 +173,16 @@ next scrape becomes a full one — ~128k players, several hours — so the armed
 button says `NEXT SCRAPE = FULL. CONFIRM?` rather than making an admin find out
 afterwards.
 
+**An empty seat has two meanings, and the console distinguishes them.** Nobody
+took it, or somebody had it and pressed NEW MATCH — which ends the room for
+practical purposes: whoever is left can leave or open their own, but there is
+nobody to rematch. The room keeps heartbeating while they sit there, so it stays
+on this list looking healthy. `GET /rooms` carries `newMatch: { by, username }`
+for that reason and the row prints `Name · left for a new room` in the seat's own
+cell; the detail panel's seat card says the same under the name. Before this the
+seat was never vacated at all and the row showed a full house — see
+`room/ready-phase.md`.
+
 **Closing a room needs `adminClosed`, and that flag is load-bearing.** A host
 walking back into a closed room *reopens* it (`reopenRoom`), which is right for
 their own close and wrong for an administrator's: the host's heartbeat is a 500ms

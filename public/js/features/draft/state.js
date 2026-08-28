@@ -188,7 +188,9 @@ export function applyPresenceSnapshot(sr) {
   /* Which side, if either, has left this room for a different one. Same
      every-snapshot rule as `rematch` above. */
   room.newMatch = sr.newMatch?.by === "host" || sr.newMatch?.by === "guest"
-    ? { by: sr.newMatch.by }
+    /* `username` rides along because the seat it named is already empty — the
+       server vacates it as they leave, so this is the only copy of who left. */
+    ? { by: sr.newMatch.by, username: String(sr.newMatch.username || "") }
     : null;
   /* The ban ceiling both squads can absorb, computed server-side so the lobby
      needs no copy of the arithmetic. Null while the sizes are unknown. */

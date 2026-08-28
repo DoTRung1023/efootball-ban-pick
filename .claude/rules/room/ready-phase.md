@@ -215,21 +215,45 @@ All three actions go to `POST /api/rooms/:code/post-match`, and the route **409s
 
 | Action | Server effect | Where each client ends up |
 | --- | --- | --- |
-| `new-match` | `entry.newMatch = { by: side }`, any offer cleared. **Nothing else** | initiator → `/room/<fresh code>?mode=host`; other side **stays on this screen** with REMATCH disabled |
+| `new-match` | `entry.newMatch = { by, username }`, **the initiator's seat vacated**, any offer cleared. Room deleted if that empties it | initiator → `/room/<fresh code>?mode=host`; other side **stays on this screen** with REMATCH disabled |
 | `rematch-propose` | `entry.rematch = { by: side }` | offer appears in the other side's next poll |
 | `rematch-cancel` | clears the offer; **proposer only** | offer disappears from both screens |
 | `rematch-accept` | `resetDraftToLobby(entry)`, seats kept | both reload into the lobby (ban settings), both told `Rematch with X` |
 | `rematch-decline` | clears the offer | footer returns to its resting state |
 
-## NEW MATCH does not end the room
+## NEW MATCH ends it for the leaver, and only for the leaver
 
-It sets a flag and stops. The room stays open, the status stays `done`, both seats stay
-put, the squads stay on screen — the player who did not press it keeps looking at the
-match they just played, now told that nobody is coming back.
+The room stays open, the status stays `done`, and the squads stay on screen — the player
+who did not press it keeps looking at the match they just played, now told that nobody is
+coming back. **The leaver's seat goes**, because they have gone.
 
 It used to set `closed`, clear both seats and reset the draft, which put the other player
 on the "Room closed" countdown and then on the home page. Being left behind is not the
 same as being thrown out, and only one of those is a thing the other player did to you.
+That is why `closed` is still not set here — it is the only thing that puts a player on
+that screen, and the one still in the room is meant to stay in it.
+
+**The seat used to be kept too, and that was the part that was wrong.** It was held purely
+so the other player's screen could keep the leaver's *name* on it, and the price was paid
+by everyone outside the room: the admin console listed a live two-player room whose host
+was already hosting somewhere else, and it stayed listed for as long as the remaining
+player's heartbeat kept it warm. Both players pressing NEW MATCH left a room in memory
+with two full seats and nobody in it.
+
+So the name moves onto the flag — `newMatch = { by, username }` — which is now the only
+copy of who left, and is read by three places: `renderPostMatch` for its `them`, and the
+console's room list and detail panel for the seat that is empty. `applyPresenceSnapshot`
+carries `username` through its whitelist or none of them see it.
+
+Two consequences worth keeping:
+
+- **The heartbeat has to stop before the navigation.** `leaveTo` calls
+  `stopPresencePolling()`, because `window.location.href` does not stop a `setInterval` —
+  the page lives until the next document commits, and one more 500 ms beat re-claims the
+  seat the server just vacated.
+- **Last one out deletes the room**, same rule as `/leave`. Only reachable when the other
+  seat was already empty, and without it that room has no heartbeat left to age it out of
+  the console's list.
 
 `newMatch.by` is read off **every** snapshot (`applyPresenceSnapshot`), same rule as
 `rematch`. When it names the *other* side, `renderPostMatch`:
@@ -244,17 +268,16 @@ same as being thrown out, and only one of those is a thing the other player did 
 Nothing clears the flag but `resetDraftToLobby`. There is no way back into a room whose
 other seat has walked out, and pretending otherwise would be the offer failing silently.
 
-**The leaver keeps their seat, and two routes have to know that.** The seat is held so the
-player left behind still has their opponent's *name* on screen — but its owner is not in
-the room any more, so:
+**The leaver is out of the room, and two routes still have to know it.**
 
 - `GET /rooms/mine` skips a room whose `newMatch.by` is this user's side. The home page
-  redirects into whatever that route answers, so without the skip the leaver was pulled
-  back into the room they had just left the moment they went home from the new one.
-- `POST /:code/leave` vacates the *other* side's seat first when that side has left for a
-  new match. The name has no reader once this player goes too, and leaving the seat there
-  meant `resetDraftToLobby` handed it back to an absent player: the room survived as a
-  lobby nobody was in, and claimed its old host forever after.
+  redirects into whatever that route answers, and the flag outlives the seat, so this is
+  still what stops the leaver being pulled back into the room they just left.
+- `POST /:code/leave` only clears the flag now. It used to vacate the other side's seat
+  here as well — the deferred half of a departure that had already happened — which is
+  what left the room looking occupied in the meantime, and let the host branch below hand
+  the room to an "heir" who was not in it. `post-match` vacates at the moment of leaving,
+  so by the time anyone reaches `/leave` the seat is already gone.
 
 ## An offer can be withdrawn, and every answer is announced
 

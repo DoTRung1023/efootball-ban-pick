@@ -314,19 +314,16 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
   const side = resolveSide(entry, req.requesterId);
   if (!side) return sendRoom(req, res, entry);
 
-  /* The other side already left for a new match. Their seat was kept only so
-     this player's screen could keep their name on it — and this player is now
-     leaving too, so there is nobody left to read it. Vacating it here is what
-     lets everything below see the room as it really is: the host branch finds
-     no heir and takes the lone-host path, and the "last one out" delete at the
-     bottom fires instead of leaving a lobby with a seat nobody is sitting in.
-     Without this the departed player was handed their old seat back by
-     `resetDraftToLobby` and dragged into it the next time they went home. */
+  /* The other side already left for a new match, and `post-match` vacated their
+     seat when they did — so there is nothing to clear here any more, only the
+     flag, whose only reader was the screen this player is now leaving.
+
+     The vacating used to happen here instead, deferred until somebody else
+     moved. That is what made the room look occupied in the meantime, and it is
+     why the branches below could find an heir who had already gone: the host
+     path would hand the room to a guest who was not in it. */
   const other = side === "host" ? "guest" : "host";
-  if (entry.newMatch?.by === other) {
-    entry[other] = null;
-    entry.newMatch = null;
-  }
+  if (entry.newMatch?.by === other) entry.newMatch = null;
 
   if (side === "host") {
     const heir = entry.guest;
@@ -745,12 +742,33 @@ router.post(
     }
 
     if (action === "new-match") {
-      /* A flag, and that is deliberately all. Closing the room, clearing the
-         seats or resetting the draft would each take the screen out from under
-         the other player; they are staying on it. Any pending offer goes,
-         because the side it was aimed at has just left. */
-      entry.newMatch = { by: side };
+      /* **The seat goes, because you are leaving.** It used to be kept, and the
+         flag was deliberately all this did — but the seat was held purely so
+         the other player's screen could keep your name on it, and the price was
+         that everyone outside the room saw one nobody had left: the admin
+         console listed a live two-player room whose host was already hosting
+         somewhere else, and it stayed that way for as long as the remaining
+         player kept it warm with heartbeats.
+
+         The name moves onto the flag, which is where both the other player's
+         screen and the console read it from now. Everything else still stands
+         still: no `closed`, no seat reset, no draft reset. They are staying on
+         this screen and are meant to. Any pending offer goes, because the side
+         it was aimed at has just left. */
+      entry.newMatch = { by: side, username: entry[side]?.username || "" };
+      entry[side] = null;
+      if (side === "guest") entry.ready.guest = false;
       entry.rematch = null;
+
+      /* Same rule as `/leave`: the last one out takes the room with them. Only
+         reachable when the other seat was already empty — their opponent left
+         first — and without it that room sits in memory with nobody in it and
+         no heartbeat left to age it out of the console's list. */
+      if (!entry.host?.id && !entry.guest?.id) {
+        roomPresence.delete(req.roomCode);
+        return sendEmptyRoom(res);
+      }
+
       entry.updatedAt = Date.now();
       return sendRoom(req, res, entry);
     }

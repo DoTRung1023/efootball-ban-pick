@@ -172,6 +172,14 @@ router.get("/rooms", (_req, res) => {
     host: entry.host?.username || null,
     guest: entry.guest?.username || null,
     phase: roomPhase(entry),
+    /* Who walked out to open a room of their own, and under which name — their
+       seat is already empty, so without this the row is a bare `—` and the
+       console cannot tell "left for a new match" from "never sat down". The
+       room is over either way: the one still in it can leave or start their
+       own, but there is nobody left to rematch. */
+    newMatch: entry.newMatch?.by
+      ? { by: entry.newMatch.by, username: entry.newMatch.username || "" }
+      : null,
     idleSec: Math.floor((now - entry.updatedAt) / 1000),
   }));
   rooms.sort((a, b) => a.idleSec - b.idleSec);
