@@ -421,6 +421,21 @@ they answer different questions:
    their already-decoded nodes are reused rather than recreated. A pick landing
    creates exactly one new node.
 
+**A closed room collapses to one line**, and this is a reversal — the panel used
+to keep its four stages on the argument that they read as the record of a room
+that is over. They do not: the seats are empty, every count is zero, and nothing
+in four panels of that says "this ended", so it read as a live room everyone had
+walked out of. The body is now the close reason, which also moves that sentence
+out of the pill's `title` and onto the screen. The CLOSED pill stays in the
+header.
+
+`GET /rooms/:code` is why this needed handling at all: it 404s only once the
+entry has left memory, and a *closed* room is still in the map and still
+serialises, so nothing was throwing. Polling continues while closed, because a
+host who closed their own room can walk back into it and the next snapshot
+rebuilds the panel; an admin's close sets `adminClosed` and stays on the line.
+`renderGone` is idempotent for that reason — a closed room reaches it every 3 s.
+
 Keyed on `data-card-src`, not `src`: a card whose art 404s has had its `src`
 swapped to the anonymous placeholder, and matching on the live value would fail
 to recognise it and re-request the 404 on every repaint.

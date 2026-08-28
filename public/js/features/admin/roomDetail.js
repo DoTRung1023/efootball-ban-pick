@@ -31,6 +31,10 @@ let painted = {};
 /** The four stages, in the order they are drawn. */
 const STAGE_ORDER = ["lobby", "ban", "pick", "ready"];
 
+/* What `renderGone` last wrote, or "" while the body is a panel. Kept so a
+   closed room does not rewrite the same sentence every 3 s. */
+let goneMessage = "";
+
 const el = (id) => document.getElementById(id);
 
 // ── Field formatting ─────────────────────────────────────────
@@ -451,8 +455,13 @@ function readyStage(room) {
  *
  * The phase it stopped in is not a state it is still in, so drawing `LOBBY`
  * beside a "Room closed" notice put the panel's two most prominent things in
- * disagreement, and left the reader to work out which one was current. One
- * pill, and the four stages below it read as the record of a room that is over.
+ * disagreement, and left the reader to work out which one was current.
+ *
+ * The four stages below it used to stay, on the argument that they read as the
+ * record of a room that is over. In practice they read as a live room that had
+ * lost both its players — the seats are empty, the counts are zero, and nothing
+ * in four panels of that says "this ended". The body collapses now; see
+ * `render`.
  *
  * The reason rides in the `title` rather than in a line of its own: it is the
  * follow-up question, not the headline, and every room that is *not* closed was
@@ -528,7 +537,24 @@ function render(room) {
     ready: readyStage(room),
   };
 
+  /* **A closed room collapses to one line.** `GET /rooms/:code` answers 404 only
+     once the entry has left memory; a room that was *closed* is still there and
+     still serialises, so the panel used to keep drawing four stages of a room
+     with no host, no guest and no picks — which reads as a live room everyone
+     walked out of, not as one that ended. The reason moves into the body, where
+     the sentence is, rather than staying only in the pill's `title`.
+
+     Polling continues on purpose: a host closing their own room can walk back
+     into it (`reopenRoom`), and the next snapshot rebuilds the panel. An
+     admin's close sets `adminClosed` and never reopens, so that one simply
+     stays on this line. */
+  if (room.closed) {
+    renderGone(room.closeReason || "This room is closed.");
+    return;
+  }
+
   const body = el("roomDetailBody");
+  goneMessage = "";
 
   /* First paint of this room, or the first after a "Loading…"/"gone" message
      replaced the body: build the four slots the patches will land in. */
@@ -556,6 +582,10 @@ function setBrief(on) {
 
 /** The room went away mid-watch — a restart, or the host closing it. */
 function renderGone(message) {
+  /* Idempotent: a closed room reaches this every 3 s, and rewriting the same
+     sentence would be the repaint this panel spent two guards avoiding. */
+  if (goneMessage === message) return;
+  goneMessage = message;
   painted = {};
   setBrief(true);
   el("roomDetailBody").innerHTML = `<p class="rd-gone">${escapeHtml(message)}</p>`;
@@ -586,6 +616,7 @@ export function openRoomDetail(code) {
   openCode = String(code || "");
   if (!openCode) return;
   painted = {};
+  goneMessage = "";
   setBrief(false);
   el("roomDetailTitle").textContent = openCode;
   el("roomDetailPhase").innerHTML = "";
