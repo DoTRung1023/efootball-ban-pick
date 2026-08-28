@@ -501,6 +501,36 @@ day, or the panel silently reports a room as untouched. Verified by rendering
 all four blocks against every phase `roomPhase` can return — the cheap test is
 to import the stage functions in Node (see below) rather than open the console.
 
+### The BAN stage reads staged bans, or a simultaneous phase looks empty
+
+**A simultaneous ban does not exist server-side until CONFIRM.** It is staged on
+the client and mirrored to `entry.stagedBans[side]` by the 500 ms presence
+heartbeat; only `confirmStagedBans` moves it into `bans[side]`. Reading `bans`
+alone, the panel showed an empty column for the whole phase and then three cards
+at once — while the PICK stage felt live purely because a pick lands
+immediately. `bansWithStaged(room, side)` reads both, so the ban stage behaves
+the same way.
+
+Two details in that helper:
+
+- **Deduped by id.** The two lists are normally disjoint for a side — staging
+  clears on confirm, un-confirming moves them back — but they overlap for one
+  heartbeat, while `confirmStagedBans` posts each `/ban` ahead of the beat that
+  empties the staged copy. Without the dedupe the column briefly doubles.
+- **Confirmed first, staged after**, so a card does not jump position when it
+  moves between the two lists.
+
+What the admin sees before a confirm is **provisional** — a staged ban can still
+be taken back off the player's own strip. That is the same deal the PICK stage
+already offers, and the confirm row underneath is what says whether the side has
+locked in. Alternating is unaffected: bans commit as they are made and nothing is
+ever staged.
+
+This makes the ban stage repaint on every staged ban rather than only on
+confirm, so `patchStage`'s node reuse now matters there far more often — see
+above, and note that both sides may ban the same player, which is exactly the
+duplicate case that reuse had to be fixed for.
+
 ### The BAN stage's confirm row is simultaneous-only
 
 `bansConfirmed` is written by `/ban-confirm`, and an **alternating** phase never

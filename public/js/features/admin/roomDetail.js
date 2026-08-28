@@ -354,9 +354,37 @@ function lobbyStage(room, cfg) {
  */
 const BAN_ORDER_ALTERNATING = "alternating";
 
+/**
+ * Confirmed bans plus the ones still staged, in that order and without repeats.
+ *
+ * **A simultaneous ban does not exist server-side until CONFIRM.** It is staged
+ * on the client and mirrored to `entry.stagedBans[side]` by the 500 ms presence
+ * heartbeat, and only moves into `bans[side]` when the player confirms — so a
+ * panel reading `bans` alone showed an empty column for the whole phase and then
+ * three cards at once. Picks land immediately, which is the only reason that
+ * stage already felt live. Reading both makes the ban stage behave the same.
+ *
+ * The two are normally disjoint for a side — staging clears on confirm, and
+ * un-confirming moves them back — but they overlap for one heartbeat while
+ * `confirmStagedBans` posts each ban ahead of the beat that empties the staged
+ * copy. Deduped by id so that window does not double the column.
+ *
+ * What the admin sees before a confirm is therefore *provisional*: a staged ban
+ * can still be taken back off the player's own strip. That is the same deal the
+ * PICK stage already offers, and the confirm row underneath is what says whether
+ * the side has locked it in.
+ */
+function bansWithStaged(room, side) {
+  const confirmed = Array.isArray(room.bans?.[side]) ? room.bans[side] : [];
+  const staged = Array.isArray(room.stagedBans?.[side]) ? room.stagedBans[side] : [];
+  if (!staged.length) return confirmed;
+  const seen = new Set(confirmed.map((p) => String(p?.id)));
+  return [...confirmed, ...staged.filter((p) => p && !seen.has(String(p.id)))];
+}
+
 function banStage(room) {
-  const host = Array.isArray(room.bans?.host) ? room.bans.host : [];
-  const guest = Array.isArray(room.bans?.guest) ? room.bans.guest : [];
+  const host = bansWithStaged(room, "host");
+  const guest = bansWithStaged(room, "guest");
   /* No settings band: order, timer and reveal are shown under LOBBY, where they
      were chosen. Repeating them here said the same thing twice and made the two
      draft stages look like they configured themselves. */
