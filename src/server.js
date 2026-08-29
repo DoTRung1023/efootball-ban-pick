@@ -71,7 +71,9 @@ app.listen(PORT, async () => {
   console.log(`Server listening on http://localhost:${PORT}`);
   reportUnsetConfig();
   /* Not awaited by the listener's caller: a database that is slow or down
-     delays these two, not the server. Both handle their own failures.
+     delays these four, not the server. Each handles its own failure — two of
+     them did not, and an unreachable database at boot took the whole process
+     down with an unhandled rejection rather than logging a line.
 
      The order between them is load-bearing, though — the seeder writes
      `email_verified` on the account it restores, and that column may not exist

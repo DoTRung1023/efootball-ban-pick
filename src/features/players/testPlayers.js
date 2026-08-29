@@ -23,6 +23,7 @@
  */
 
 import db from "#lib/db.js";
+import { describeError } from "#lib/http.js";
 
 /**
  * The two cards this codebase already knew about, seeded once so an existing
@@ -39,6 +40,16 @@ const SEED_TEST_IDS = [8554053, 8554076];
  * same bargain as the other schema healers in this codebase.
  */
 export async function ensureTestPlayerColumn() {
+  try {
+    await ensureTestPlayerColumnOrThrow();
+  } catch (err) {
+    /* Swallowed like the other boot tasks — an unreachable database must not
+       take the server down with it. See `ensureAuthSchema`. */
+    console.error("test-player column check skipped:", describeError(err));
+  }
+}
+
+async function ensureTestPlayerColumnOrThrow() {
   const [[{ cnt }]] = await db.query(
     `SELECT COUNT(*) AS cnt FROM information_schema.columns
      WHERE table_schema = DATABASE() AND table_name = 'players_catalog'

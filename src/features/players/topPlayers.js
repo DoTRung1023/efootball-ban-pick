@@ -22,6 +22,7 @@
  */
 
 import db from "#lib/db.js";
+import { describeError } from "#lib/http.js";
 
 /**
  * Two placeholder cards this ranking has always skipped.
@@ -98,6 +99,18 @@ const CATALOG_NAME_INDEX = "idx_catalog_name_overall";
 /** Runs on every boot and does nothing on all but one of them — the same
     bargain as the other schema healers in this codebase. */
 export async function ensureTopPlayersSchema() {
+  try {
+    await ensureTopPlayersSchemaOrThrow();
+  } catch (err) {
+    /* Same bargain as `ensureAuthSchema`: a database that is down delays this
+       feature, not the server. It ran unguarded until a wrong password at boot
+       crashed the process instead of logging — on a host that is a crash loop
+       with a stack trace where "Server listening" and one error line belong. */
+    console.error("top-players schema check skipped:", describeError(err));
+  }
+}
+
+async function ensureTopPlayersSchemaOrThrow() {
   await db.query(
     `CREATE TABLE IF NOT EXISTS top_players_snapshot (
        rank_no      TINYINT UNSIGNED NOT NULL,
