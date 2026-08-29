@@ -1,10 +1,31 @@
 -- ============================================================
 -- Ban-Pick EFB  –  Database Schema (MySQL)
--- Run once to set up all tables.
+--
+-- Safe to run against a database that already has data in it. Every
+-- statement is CREATE ... IF NOT EXISTS, so a re-run adds whatever is
+-- missing and leaves everything already there alone.
+--
+-- This file used to open with DROP DATABASE, which made running it a
+-- second time delete every account, squad and game plan. Harmless on the
+-- laptop it was written on; a live grenade on a deployment — and a schema
+-- file nobody dares point at a deployment is not much of a schema file.
+-- To reset a *local* database, drop it explicitly first:
+--
+--   mysql -u root -e "DROP DATABASE IF EXISTS ban_pick_efb"
+--   mysql -u root < database/schema.sql
+--
+-- It creates tables; it does not migrate them. A table whose *shape*
+-- changed since is handled by the ALTERs noted beside it below, and the
+-- ones that matter are applied by the server itself on boot — see
+-- .claude/rules/database.md.
+--
+-- On a managed host that hands you a database you did not create, drop the
+-- CREATE DATABASE / USE pair below and name the database on the command
+-- line instead. The rest of the file is portable as it stands.
+--
 -- To refresh player data run:  npm run scrape
 -- ============================================================
 
-DROP DATABASE IF EXISTS ban_pick_efb;
 CREATE DATABASE IF NOT EXISTS ban_pick_efb
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;

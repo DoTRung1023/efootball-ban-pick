@@ -45,6 +45,20 @@ an existing database would otherwise serve a broken console until somebody ran t
 `src/features/admin/consolePassword.js`). Both are idempotent and run on every boot.
 `schema.sql` still declares them, so a fresh install needs neither.
 
+**`schema.sql` is idempotent and no longer destructive.** It used to open with
+`DROP DATABASE IF EXISTS`, so running it twice deleted every account, squad and game
+plan — which meant it could never be pointed at anything but an empty local database.
+The drop is gone; resetting a local database means dropping it by hand first, and the
+file itself can now be run against a deployment to add a table that is missing.
+
+**TLS lives in `src/lib/db.js`, behind `DB_SSL`.** Every managed MySQL requires it and a
+local socket has none, so the switch is explicit rather than inferred from the host name
+— "not localhost" is a different question and gets this one wrong on a LAN. `DB_CA`
+carries a provider's own root where there is one (Aiven ships a `ca.pem`); TiDB Cloud and
+most others are publicly signed and need nothing. `rejectUnauthorized: false` is the
+usual first result for a certificate error and is not an option here: it keeps the
+handshake and throws away the only thing the handshake proves.
+
 ## Running a scrape
 
 `npm run scrape` (new cards since the last cutoff) and `npm run scrape:missing`

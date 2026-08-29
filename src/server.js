@@ -20,6 +20,22 @@ const PORT = Number(process.env.PORT) || 3000;
 const TRUST_PROXY = process.env.TRUST_PROXY;
 if (TRUST_PROXY) app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
 
+/* Settings that are silent when they are missing and expensive on a deployment:
+   mail that goes to this log instead of an inbox, console sessions signed with a
+   key that changes every restart, emailed links built from the request's own
+   host, a rate limiter that sees the proxy as the whole internet. Every one of
+   them is the right answer on a laptop, which is why this is a single line at
+   boot and not a refusal to start. */
+const DEPLOY_CONFIG = ["SMTP_HOST", "ADMIN_SECRET", "APP_BASE_URL", "TRUST_PROXY"];
+
+function reportUnsetConfig() {
+  const missing = DEPLOY_CONFIG.filter((key) => !process.env[key]);
+  if (!missing.length) return;
+  console.log(
+    `config: unset — ${missing.join(", ")}. Right on a dev machine; each is its own kind of broken on a deployment (README § Getting started).`,
+  );
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -46,6 +62,7 @@ app.use(errorHandler);
 
 app.listen(PORT, async () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  reportUnsetConfig();
   /* Not awaited by the listener's caller: a database that is slow or down
      delays these two, not the server. Both handle their own failures.
 

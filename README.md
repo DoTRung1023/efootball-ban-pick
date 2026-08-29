@@ -150,6 +150,8 @@ DB_PORT=3306
 DB_USER=banpick
 DB_PASSWORD=
 DB_NAME=ban_pick_efb
+DB_SSL=                          # any value = require TLS; every managed MySQL does, a local socket cannot
+DB_CA=                           # the provider's own root, PEM and all, where it uses one (Aiven ships a ca.pem)
 PORT=3000
 
 # ── Console ─────────────────────────────────────────────────
@@ -173,6 +175,10 @@ ADMIN_CONSOLE_PASSWORD_RESET=
 password a master admin generates from the console. Leave `SMTP_HOST` unset and both are
 printed to the server log instead, which is a working dev mode: the flow runs end to end
 and every screen says plainly that no mail went out.
+
+**On a deployment it stops being a mode and becomes a gap.** `/api/signin` refuses an
+account whose address is unconfirmed, so with no SMTP host the only way anyone gets in is
+the host reading their link out of the server log.
 
 ```
 SMTP_HOST=                       # e.g. smtp.gmail.com — unset means "print to the log"
@@ -214,6 +220,10 @@ mysql -u root -e "
 "
 mysql -u root < database/schema.sql
 ```
+
+`schema.sql` is safe to run again: every statement is `CREATE … IF NOT EXISTS` and it no
+longer drops the database first, so it can also be pointed at a deployment to add a table
+that is missing. To start a local database over, drop it yourself first.
 
 **Player data** — the first `npm run scrape` is a full ~41 k-player run and takes a
 while; later runs are incremental and take seconds.
