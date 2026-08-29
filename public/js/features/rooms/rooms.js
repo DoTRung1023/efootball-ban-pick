@@ -55,7 +55,7 @@ async function goToRoom({ code, mode, btn: btnEl }) {
 export async function redirectToActiveRoom(userId) {
   if (!userId) return false;
   try {
-    const res = await fetch(`/api/rooms/mine?userId=${encodeURIComponent(userId)}`);
+    const res = await fetch("/api/rooms/mine");
     if (!res.ok) return false;
     const room = (await res.json())?.room;
     if (!room?.code) return false;

@@ -2,8 +2,11 @@
 /* ============================================================
    probe — measure a real page at exact viewport widths
 
-     node .claude/skills/verify-layout/probe.mjs --path /players --user 1
-     node .claude/skills/verify-layout/probe.mjs --path /room/ABC234 --anon harness-host \
+     node .claude/skills/verify-layout/probe.mjs --path /players --signin me@example.com:secret
+
+   `--user` only seeds the account menu's nameplate. Anything the server answers
+   needs `--signin`, because identity is an httpOnly cookie now — see auth.md.
+     node .claude/skills/verify-layout/probe.mjs --path /room/ABC234 --anon anon-harness-host \
           --w 320,390,620,900,1440 --cta "#confirmPicksBtn"
 
    Serves the harness from `public/__probe.html` (same origin, so identity can be
@@ -34,8 +37,9 @@ const PATH   = opt("path", "/players");
 const WIDTHS = opt("w", "320,390,768,1440").split(",").map((n) => Number(n.trim())).filter(Boolean);
 const HEIGHT = Number(opt("h", 844));
 const SETTLE = Number(opt("settle", 1500));
-const USER   = opt("user", null);     // efb_user id, or a full JSON object
-const ANON   = opt("anon", null);     // efb_room_anon_id
+const USER   = opt("user", null);     // efb_user id, or a full JSON object — display only
+const SIGNIN = opt("signin", null);   // "username:password" — what actually authenticates
+const ANON   = opt("anon", null);     // efb_visitor cookie, for an unauthenticated room seat
 const SCROLL = opt("scroll", null);
 const CTA    = opt("cta", null);
 const SEL    = opt("sel", null);      // pipe-separated selectors
@@ -58,6 +62,7 @@ function hashFor(w) {
     p.set("user", encodeURIComponent(val));
   }
   if (ANON)   p.set("anon", ANON);
+  if (SIGNIN) p.set("signin", encodeURIComponent(SIGNIN));
   if (SCROLL) p.set("scroll", SCROLL);
   if (CTA)    p.set("cta", CTA);
   if (SEL)    p.set("sel", encodeURIComponent(SEL));

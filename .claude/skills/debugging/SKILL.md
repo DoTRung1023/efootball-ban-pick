@@ -62,8 +62,10 @@ It proves nothing about behaviour. Everything below is about getting the code to
   a live feature once: a heartbeat racing a server-side TTL lost, and switching
   tabs mid-pick killed the room ~40 s later. If a bug only reproduces when the
   tab is not focused, suspect throttling before logic.
-- **Identity lives in `localStorage`** (`efb_user`, `efb_room_anon_id`). Two tabs
-  in the same profile are therefore **the same player** — see §5.
+- **Identity is a cookie**, `efb_session` (signed in) or `efb_visitor` (not), both
+  httpOnly and both set by the server. Two tabs in the same profile share the cookie
+  jar and are therefore **the same player** — see §5. `efb_user` in localStorage is
+  only the name in the account menu; changing it changes nothing the server believes.
 - **`sessionStorage` caches the room phase** as `efb_room_<code>_phase`, written
   by `draftSession.js` and cleared by `clearRoomPhaseCache`. A room that reloads
   into the wrong screen is usually a stale key; clear it and reload before

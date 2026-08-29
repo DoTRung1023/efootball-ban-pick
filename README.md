@@ -155,6 +155,8 @@ DB_CA=                           # the provider's own root, PEM and all, where i
 PORT=3000
 
 # ── Console ─────────────────────────────────────────────────
+SESSION_SECRET=                  # signs sign-in cookies; random per boot if unset, which
+                                 # means every restart signs everyone out
 ADMIN_SECRET=                    # signs console session tokens; random per boot if unset
 
 # The built-in master admin. Enforced on every boot, which is how you get back
@@ -399,12 +401,9 @@ serving a broken console until someone runs the `ALTER` by hand.
 - Card art occasionally missing playing style / region — a scraper data-cleaning issue.
 - `npm run scrape:missing` doesn't write to `scrape_logs`.
 - Ban room: toggling player info shifts the grid as the scrollbar appears.
-- A shared `ADMIN_CONSOLE_PASSWORD` is not bound to an identity — see the note in the
-  Console section above.
-- **Request `userId` is trusted, never verified.** There is no session middleware and
-  no signed token outside the admin console: `userId` arrives in a query string or body
-  and is taken at face value, so any client can act as any user by changing a number.
-  The largest correctness gap in the project. See `DECISIONS.md` §1.
+- A shared `ADMIN_CONSOLE_PASSWORD` is still one secret with no identity behind it, so
+  anyone holding it can open the console as themselves — but no longer as *another*
+  admin: the console session is opened for whoever the session cookie says is signed in.
 - **No runtime tests.** `npm run check` is a static gate (imports, bindings, cycles, DOM
   ids, dead CSS, icons, layer boundaries), not a test suite: it cannot tell you a draft
   still works. No analytics

@@ -571,12 +571,11 @@ function bindLobbyExit() {
       cancelText: "Cancel",
     });
     if (!yes) return;
-    const me = getCurrentIdentity();
     try {
       const res = await fetch(`/api/rooms/${encodeURIComponent(state.room.code)}/kick-guest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requesterId: me.id }),
+        body: "{}",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

@@ -10,13 +10,37 @@ paths:
 
 # Auth
 
-## The session is one localStorage key
+## The session is a signed cookie; localStorage is the nameplate
 
-`efb_user` holds the whole signed-in identity. `signInForm.js` writes it, every other
-page reads it back through `@/shared/lib/session.js` (`getUser`, `requireAuth`), and
-`userMenu.js` removes it on sign out. There is no cookie, no token and no server-side
-session — an API call that needs the caller's identity takes a `userId` in the body or
-the query string.
+**`src/features/auth/session.js` owns identity.** `/api/signin` mints an HMAC-signed
+token — `{ uid, exp }`, base64url, detached signature, timing-safe compare, exactly the
+shape `admin/adminSession.js` uses — and sets it as the httpOnly `efb_session` cookie.
+`attachIdentity` is installed app-wide in `server.js` ahead of every router and puts two
+things on the request:
+
+| | |
+|---|---|
+| `req.userId` | the signed-in account, or `null` |
+| `req.identityId` | what a room seat is keyed by — the account id as a string, or a server-minted `efb_visitor` id for a signed-out player |
+
+`requireSession` is the gate; it answers **401** with `signedOut: true`, which the client
+turns into a bounce to `/signin` rather than an error toast.
+
+**No route reads an id out of a request.** `userId` in a query string or a body is
+ignored wherever old clients still send it, and `requesterId` in a room body likewise.
+This was the project's largest correctness gap — see DECISIONS.md §1 for what it cost
+and `room/ban-phase.md` for the read path it changed.
+
+The visitor cookie is minted on the *page* request, not lazily inside `/api/rooms`:
+the room page fires parallel calls at boot and lazy minting would hand two of them
+different ids to fight over one seat.
+
+`efb_user` in localStorage survives as **display state** — the username in the account
+menu and the `isAdmin` hint that reveals the console link. `signInForm.js` writes it,
+`@/shared/lib/session.js` reads it (`getUser`, `requireAuth`), and `signOut()` clears it
+after `POST /api/signout` clears the cookie. It is not credentials and nothing is sent
+from it; the two can disagree when a cookie expires, which is what `bounceIfSignedOut`
+handles.
 
 `requireAuth()` redirects to `/signin` and returns `null`; callers must bail on `null`
 rather than continuing with an undefined user.

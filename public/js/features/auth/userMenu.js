@@ -4,6 +4,7 @@
 
 import { openEditProfile } from "./editProfile.js";
 import { setPendingToast } from "@/shared/ui/pendingToast.js";
+import { signOut } from "@/shared/lib/session.js";
 
 export function initUserMenu(user) {
   const name     = document.getElementById("userName");
@@ -37,8 +38,10 @@ export function initUserMenu(user) {
     }
   });
 
-  document.getElementById("signOutBtn")?.addEventListener("click", () => {
-    localStorage.removeItem("efb_user");
+  document.getElementById("signOutBtn")?.addEventListener("click", async () => {
+    /* Awaited: the cookie is the session now, and leaving it set while the page
+       navigates away would sign the next visitor straight back in. */
+    await signOut();
     setPendingToast("Signed out.");
     window.location.href = "/signin";
   });

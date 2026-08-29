@@ -33,7 +33,7 @@ export async function loadDraftGamePlans() {
 
   state.draftGamePlansLoading = true;
   try {
-    const data = await getJson(`/api/game-plans?userId=${encodeURIComponent(user.id)}`);
+    const data = await getJson("/api/game-plans");
     state.draftGamePlans = Array.isArray(data.plans) ? data.plans : [];
 
     /* Nothing is selected — the list is a menu of one-shot actions, and the
@@ -70,7 +70,7 @@ export async function loadGamePlanIntoPicks(planId) {
 
   const plan = state.draftGamePlans.find((p) => String(p.id) === String(planId));
   const data = await getJson(
-    `/api/game-plans/${encodeURIComponent(planId)}/players?userId=${encodeURIComponent(user.id)}`,
+    `/api/game-plans/${encodeURIComponent(planId)}/players`,
   );
   const rows = Array.isArray(data.players) ? data.players : [];
 

@@ -41,17 +41,20 @@ export function clearToken() {
  * Resolves `{ ok: true, username }`, or `{ ok: false, error }` with the
  * server's own message — 403 not an admin, 401 wrong password, 429 locked out.
  */
-export async function openSession(userId, password) {
+export async function openSession(password) {
   try {
     const r = await fetch("/api/admin/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, password }),
+      body: JSON.stringify({ password }),
     });
     const data = await r.json();
     if (!r.ok) return { ok: false, error: data.error || "Could not open the console." };
     token = data.token;
-    sessionUserId = userId;
+    /* From the answer, not from what we asked for. The account is whoever the
+       session cookie resolves to — this used to send an id from localStorage,
+       which with a shared console password opened a session as any admin. */
+    sessionUserId = data.userId;
     sessionIsMaster = Boolean(data.isMaster);
     sessionStorage.setItem(TOKEN_STORE, token);
     return { ok: true, username: data.username };

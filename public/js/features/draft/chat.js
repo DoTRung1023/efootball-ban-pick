@@ -244,7 +244,7 @@ export function renderRoomChat() {
     if (!messages.length) {
       log.innerHTML = '<div class="chat-empty">No messages yet. Agree rules here before starting.</div>';
     } else {
-      const myId = getCurrentIdentity().id;
+      const myId = state.room?.you?.id || "";
       log.innerHTML = messages.map((m) => messageHtml(m, myId)).join("");
       /* Only follow the log when the reader was already at the bottom —
          yanking it down mid-scroll is how a chat loses an argument. */

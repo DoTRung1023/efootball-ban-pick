@@ -5,7 +5,7 @@ import { PUBLIC_DIR } from "#lib/paths.js";
 import { errorHandler, notFoundHandler } from "#lib/http.js";
 import { cardImageLimiter } from "#lib/rateLimit.js";
 import { adminRoutes, ensureConsoleAdmin } from "#features/admin/index.js";
-import { authRoutes, ensureAuthSchema, verifyEmailPage } from "#features/auth/index.js";
+import { attachIdentity, authRoutes, ensureAuthSchema, verifyEmailPage } from "#features/auth/index.js";
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
 import pageRoutes from "./pages.js";
 import { ensureTestPlayerColumn, ensureTopPlayersSchema, playerRoutes } from "#features/players/index.js";
@@ -21,12 +21,13 @@ const TRUST_PROXY = process.env.TRUST_PROXY;
 if (TRUST_PROXY) app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
 
 /* Settings that are silent when they are missing and expensive on a deployment:
-   mail that goes to this log instead of an inbox, console sessions signed with a
-   key that changes every restart, emailed links built from the request's own
-   host, a rate limiter that sees the proxy as the whole internet. Every one of
+   mail that goes to this log instead of an inbox, sign-ins and console sessions
+   signed with a key that changes every restart — so every deploy signs everyone
+   out — emailed links built from the request's own host, and a rate limiter that
+   sees the proxy as the whole internet. Every one of
    them is the right answer on a laptop, which is why this is a single line at
    boot and not a refusal to start. */
-const DEPLOY_CONFIG = ["SMTP_HOST", "ADMIN_SECRET", "APP_BASE_URL", "TRUST_PROXY"];
+const DEPLOY_CONFIG = ["SMTP_HOST", "SESSION_SECRET", "ADMIN_SECRET", "APP_BASE_URL", "TRUST_PROXY"];
 
 function reportUnsetConfig() {
   const missing = DEPLOY_CONFIG.filter((key) => !process.env[key]);
@@ -38,6 +39,12 @@ function reportUnsetConfig() {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+/* Ahead of every router, so a page load is what mints an anonymous
+   visitor's cookie and the API calls behind it all agree about who they
+   are. Sets req.userId and req.identityId; nothing downstream reads an id
+   out of a query string or a body any more. */
+app.use(attachIdentity);
 
 // Card image proxy + R2 cache (frontend uses /img/card/:id.png)
 app.get("/img/card/:id.png", cardImageLimiter, handleCardImage);

@@ -1,7 +1,6 @@
 /** Thin wrappers over the room HTTP API. All calls resolve; none throw. */
 
 import { state } from './state.js';
-import { getCurrentIdentity } from './utils.js';
 
 /**
  * POST to /api/rooms/:code/<action>.
@@ -22,9 +21,16 @@ async function postRoomAction(action, body = {}, code = state.room?.code) {
   }
 }
 
-/** Same as postRoomAction but fills in the current user's id as requesterId. */
+/**
+ * The same, as whoever this browser's session cookie says we are.
+ *
+ * It used to put `requesterId` in the body, read out of localStorage. The
+ * server ignores that now and takes the caller from its own signed cookie, so
+ * there is nothing left to fill in — the name stays because the *guarantee*
+ * did: this is the call that acts as you.
+ */
 export function postAsMe(action, body = {}, code = state.room?.code) {
-  return postRoomAction(action, { requesterId: getCurrentIdentity().id, ...body }, code);
+  return postRoomAction(action, body, code);
 }
 
 /** GET helper returning a parsed body, or {} on any failure. */

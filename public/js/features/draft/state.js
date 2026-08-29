@@ -153,6 +153,14 @@ export function applyPresenceSnapshot(sr) {
      connected from reconnecting from gone. Both come down on every snapshot and
      used to be dropped here, which is why an opponent who closed their browser
      read as "· is choosing…" forever. See `opponentLiveness` in presence.js. */
+  /* Who the server decided we are, and which seat that is. Copied like the
+     pairs below rather than defaulted, so a snapshot that omits it leaves the
+     last answer standing instead of blanking our own identity mid-draft. It is
+     the only place the client learns its id — the session cookie is httpOnly
+     and this page cannot read it. */
+  if (sr.you && typeof sr.you === "object") {
+    room.you = { id: String(sr.you.id || ""), side: sr.you.side || null };
+  }
   if (sr.host?.username) {
     room.host = participantFromSnapshot(sr.host);
   }

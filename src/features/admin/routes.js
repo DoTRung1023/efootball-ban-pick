@@ -66,7 +66,12 @@ function sendAdminError(res, err) {
 // hands out the token the others require.
 
 router.post("/session", asyncHandler(async (req, res) => {
-  const userId = Number(req.body?.userId);
+  /* The account is whoever is signed in, not whoever the body names. With a
+     shared `ADMIN_CONSOLE_PASSWORD` configured, taking the id from the request
+     meant that one password opened a console session as *any* admin, master
+     admins included — the trade `adminSession.js` used to have to warn about.
+     It is a real session cookie now, so there is nothing left to name. */
+  const userId = Number(req.userId);
   const password = String(req.body?.password || "");
   if (!userId || !password) {
     return res.status(400).json({ error: "Sign in again to open the console." });
@@ -108,6 +113,10 @@ router.post("/session", asyncHandler(async (req, res) => {
     clearFailures(user.id);
     res.json({
       token: mintAdminToken(user),
+      /* Whose session this is, from the database row the cookie resolved to.
+         The USERS tab refuses to demote this row, and it must not be able to
+         disagree with the server about which row that is. */
+      userId: user.id,
       username: user.username,
       isMaster: Boolean(user.is_master_admin),
     });

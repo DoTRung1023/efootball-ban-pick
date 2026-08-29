@@ -242,10 +242,12 @@ are posted straight back into the room you just left. Declare the route **before
 `/:code`** — Express matches in order and `mine` is a valid room code as far as
 that route is concerned.
 
-**Signed-out players get this too**, because `getAnonId` now writes to
-`localStorage`. It was `sessionStorage`, so a signed-out player who closed the
-tab came back as a new person and their old id sat in the seat forever — with no
-TTL, that made the room permanently unusable.
+**Signed-out players get this too**, because the server mints them an
+`efb_visitor` cookie and it outlives the tab. The client used to choose that id
+itself in `localStorage` (and `sessionStorage` before that, which is why a
+signed-out player who closed the tab came back as a new person and their old id
+sat in the seat forever). Both problems are the same fix: the id is issued, not
+asserted — see `auth.md`.
 
 ## Room security
 

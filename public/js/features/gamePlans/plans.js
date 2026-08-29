@@ -116,7 +116,7 @@ export async function loadGamePlans(userId) {
   if (!grid) return;
   grid.innerHTML = "";
   try {
-    const res  = await fetch(`/api/game-plans?userId=${userId}`);
+    const res  = await fetch("/api/game-plans");
     const data = await res.json();
     gamePlans.plans = data.plans ?? [];
     renderPlansGrid(userId);
@@ -201,7 +201,7 @@ async function createPlan(userId) {
     const res  = await fetch("/api/game-plans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, name }),
+      body: JSON.stringify({ name }),
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || "Could not create plan.", "error"); return; }
@@ -217,7 +217,7 @@ async function createPlan(userId) {
 
 async function deletePlan(userId, planId) {
   try {
-    const res = await fetch(`/api/game-plans/${planId}?userId=${userId}`, { method: "DELETE" });
+    const res = await fetch(`/api/game-plans/${planId}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
       showToast(data.error || "Could not delete plan.", "error");
@@ -269,7 +269,7 @@ async function openPlanDetail(userId, plan) {
   document.body.style.overflow = "hidden";
 
   try {
-    const res  = await fetch(`/api/game-plans/${planId}/players?userId=${userId}`);
+    const res  = await fetch(`/api/game-plans/${planId}/players`);
     const data = await res.json();
     gamePlans.slots = {};
     (data.players ?? []).forEach((p) => { gamePlans.slots[p.slot] = p; });
@@ -566,7 +566,7 @@ async function swapSlots(slotA, slotB) {
     const res = await fetch(`/api/game-plans/${gamePlans.currentId}/swap`, {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user.id, slotA, slotB }),
+      body:    JSON.stringify({ slotA, slotB }),
     });
 
     if (!res.ok) {
@@ -839,7 +839,7 @@ async function removeFromSlot(slot) {
     const res = await fetch(`/api/game-plans/${gamePlans.currentId}/players/${slot}`, {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user.id, playerId: null }),
+      body:    JSON.stringify({ playerId: null }),
     });
     if (!res.ok) { showToast((await res.json()).error || "Could not remove player.", "error"); return; }
     delete gamePlans.slots[slot];
@@ -862,7 +862,7 @@ async function assignToSlot(slot, player) {
     const res = await fetch(`/api/game-plans/${gamePlans.currentId}/players/${slot}`, {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user.id, playerId: player.id }),
+      body:    JSON.stringify({ playerId: player.id }),
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || "Could not assign player.", "error"); return; }
@@ -908,7 +908,7 @@ async function savePlanFormation(userId, formation) {
     const res = await fetch(`/api/game-plans/${gamePlans.currentId}`, {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user.id, formation: f }),
+      body:    JSON.stringify({ formation: f }),
     });
     if (!res.ok) {
       showToast((await res.json()).error || "Could not save formation.", "error");
@@ -974,7 +974,7 @@ async function deleteSelectedPlans(userId) {
   let failed = 0;
   for (const id of ids) {
     try {
-      const res = await fetch(`/api/game-plans/${id}?userId=${userId}`, { method: "DELETE" });
+      const res = await fetch(`/api/game-plans/${id}`, { method: "DELETE" });
       if (res.ok) gamePlans.plans = gamePlans.plans.filter((p) => p.id !== id);
       else failed++;
     } catch { failed++; }
@@ -1032,7 +1032,7 @@ export function initGamePlans(userId) {
       const res = await fetch(`/api/game-plans/${gamePlans.currentId}`, {
         method:  "PUT",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ userId: user.id, name: newName }),
+        body:    JSON.stringify({ name: newName }),
       });
       if (!res.ok) {
         showToast((await res.json()).error || "Could not rename plan.", "error");

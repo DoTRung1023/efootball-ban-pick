@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "#lib/http.js";
+import { readSquad } from "#features/players/index.js";
 import { maybeRefreshSquadSizes, refreshSquadSizes } from "./squads.js";
 import { isSoloBanTurn, normalizeBanOrder, turnAt } from "./schedule.js";
 import { advanceBanTurnIfSolo, enterPickTurn, maybeResolveExpiredBanTurn } from "./turns.js";
@@ -25,7 +26,6 @@ import {
   roomPhase,
   roomPresence,
   serializeRoomEntry,
-  shortId,
 } from "./store.js";
 
 const router = Router({ mergeParams: true });
@@ -36,9 +36,10 @@ const MAX_STAGED_BANS_FALLBACK = 10;
  * The caller's seat, or `null` for a stranger — `serializeRoomEntry` conceals a
  * draft in flight from anyone it is not being played by.
  *
- * `req.side` is set by `requireParticipant`; the rest resolve from the
- * `requesterId` every other route already requires. Both are the id the client
- * sent, trusted and unverified (DECISIONS.md §1).
+ * `req.side` is set by `requireParticipant`; the rest resolve from
+ * `req.requesterId`, which is `req.identityId` — the id in the caller's own
+ * signed cookie, never one the request asked to be. Sending the other seat's id
+ * used to be all it took to read a concealed board.
  */
 const viewerOf = (req, entry) => req.side || resolveSide(entry, req.requesterId);
 
@@ -46,7 +47,8 @@ const viewerOf = (req, entry) => req.side || resolveSide(entry, req.requesterId)
  * Takes `req`, and that is the point: the viewer is derived here rather than
  * passed, so a route cannot leak a concealed room by forgetting an argument.
  */
-const sendRoom = (req, res, entry) => res.json({ room: serializeRoomEntry(entry, viewerOf(req, entry)) });
+const sendRoom = (req, res, entry) =>
+  res.json({ room: serializeRoomEntry(entry, viewerOf(req, entry), req.requesterId) });
 const sendEmptyRoom = (res) => res.json({ room: emptyRoomSnapshot() });
 
 const asCount = (raw) => Math.max(0, Math.floor(Number(raw) || 0));
@@ -61,12 +63,19 @@ function withRoomCode(req, res, next) {
   next();
 }
 
-function requireRequesterId(req, res, next) {
-  const requesterId = String(req.body?.requesterId || "");
-  if (!requesterId) {
-    return res.status(400).json({ error: "requesterId is required." });
+/**
+ * Who is acting, from the cookie `attachIdentity` put on the request.
+ *
+ * The body may still carry a `requesterId` — every client before this change
+ * sent one — and it is ignored. That parameter was the draft's way in: the room
+ * conceals each side's board from the other, and a caller who could name the
+ * other seat could read it, or confirm its bans, or hand it a lineup.
+ */
+function attachRequester(req, res, next) {
+  req.requesterId = String(req.identityId || "");
+  if (!req.requesterId) {
+    return res.status(401).json({ error: "No session. Reload the page." });
   }
-  req.requesterId = requesterId;
   next();
 }
 
@@ -108,9 +117,16 @@ function requireDrafting(message) {
 
 // ── Presence ─────────────────────────────────────────────────
 
-/** POST body: { role: "host"|"guest", userId?, username?, stagedBans?, hidden? } */
+/**
+ * POST body: { role: "host"|"guest", username?, stagedBans?, hidden? }
+ *
+ * `userId` in the body is ignored: the seat belongs to whoever's cookie made
+ * the request. `username` is not — it is a display name, and an anonymous
+ * player has no other way to offer one.
+ */
 router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
-  const { role, userId, username, stagedBans, hidden } = req.body || {};
+  const { role, username, stagedBans, hidden } = req.body || {};
+  const userId = req.identityId;
   if (!["host", "guest"].includes(role)) {
     return res.status(400).json({ error: "role must be host or guest." });
   }
@@ -133,15 +149,16 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
      always had a host, so there is no blank case to allow through here. */
   const reopenable = role === "host" && !entry.adminClosed && isRoomHost(entry, userId);
   if (entry.closed && !reopenable) {
-    return res.status(410).json({ error: "Room is closed.", room: serializeRoomEntry(entry, resolveSide(entry, userId)) });
+    return res.status(410).json({
+      error: "Room is closed.",
+      room: serializeRoomEntry(entry, resolveSide(entry, userId), userId),
+    });
   }
   if (entry.closed) reopenRoom(entry);
 
   const fallbackName = role === "host" ? "Host" : "Guest";
   const participant = {
-    id: userId != null && userId !== ""
-      ? String(userId)
-      : `anon-${shortId()}`,
+    id: String(userId),
     username: String(username || fallbackName).trim().slice(0, 50) || fallbackName,
     lastSeenAt: Date.now(),
     /* Whether that heartbeat came from a backgrounded tab. It expires nobody —
@@ -174,8 +191,7 @@ router.post("/:code/presence", withRoomCode, asyncHandler(async (req, res) => {
 
   syncStagedBans(entry, role, stagedBans);
   roomPresence.set(req.roomCode, entry);
-  /* This route identifies by `role` + `userId` rather than `requesterId`, so
-     `viewerOf` has nothing to resolve from until we say who called. The seat
+  /* `viewerOf` has nothing to resolve from until we say who called. The seat
      claim above has already succeeded, so this id is in a chair. */
   req.requesterId = participant.id;
   sendRoom(req, res, entry);
@@ -281,7 +297,7 @@ function syncStagedBans(entry, role, stagedBans) {
  *   for.
  */
 router.get("/mine", (req, res) => {
-  const userId = String(req.query?.userId || "");
+  const userId = String(req.identityId || "");
   if (!userId) return res.json({ room: null });
 
   for (const [code, entry] of roomPresence.entries()) {
@@ -295,28 +311,52 @@ router.get("/mine", (req, res) => {
 });
 
 /**
- * `?userId=` is optional, and what it buys is the room as *your* seat sees it.
+ * The room as *your seat* sees it.
  *
  * **This is the draft's main read path** — `fetchRoomSnapshot` polls it twice a
- * second — so it is also where concealment is won or lost. Without an id the
- * answer conceals both sides, which is right for the two callers that have
- * none (the home page's join check, which reads `room.host` and nothing else)
- * and would have made a concealed room readable in one anonymous fetch if this
- * route had been left as it was. Same trusted-not-verified id as everywhere
- * else; see `serializeRoomEntry`.
+ * second — so it is also where concealment is won or lost. The viewer is the
+ * cookie's identity: a caller holding no seat gets both sides concealed, which
+ * is right for the home page's join check (it reads `room.host` and nothing
+ * else), and `?userId=` no longer buys anybody the other seat's view. See
+ * `serializeRoomEntry`.
  */
 router.get("/:code", (req, res) => {
   const code = normalizeRoomCodeParam(req.params.code);
   const entry = roomPresence.get(code);
   if (!entry) return sendEmptyRoom(res);
 
-  req.requesterId = String(req.query?.userId || "");
+  req.requesterId = String(req.identityId || "");
   // A plain read: nothing here can change the seats, so `updatedAt` stands.
   sendRoom(req, res, entry);
 });
 
 /**
- * POST body: { requesterId, reason? }
+ * The other seat's collection — what this side bans out of.
+ *
+ * The ban board used to load it straight from `/api/my-players?userId=<them>`,
+ * reading the id off the room snapshot. That worked because that route served
+ * any account's squad to anybody who named it; it is a room's question, so the
+ * room answers it now, and only for somebody sitting in the other chair.
+ *
+ * An anonymous opponent has no account and therefore no squad: `players: []`
+ * with `anonymous: true`, which is the client's cue to fall back to the demo
+ * pool exactly as it always has.
+ */
+router.get("/:code/opponent-squad", withRoomCode, attachRequester, asyncHandler(async (req, res) => {
+  const entry = roomPresence.get(req.roomCode);
+  const side = entry && resolveSide(entry, req.requesterId);
+  if (!side) return res.status(403).json({ error: "Join room before loading the opponent squad." });
+
+  const opponent = entry[side === "host" ? "guest" : "host"];
+  const opponentId = Number(opponent?.id);
+  if (!Number.isFinite(opponentId) || opponentId <= 0) {
+    return res.json({ players: [], anonymous: true });
+  }
+  res.json({ players: await readSquad(opponentId) });
+}));
+
+/**
+ * POST body: { reason? }
  *
  * `reason: "disconnect"` marks a departure the user did **not** choose — the
  * `pagehide` beacon, sent only from the lobby. It is the difference between
@@ -331,7 +371,7 @@ router.get("/:code", (req, res) => {
  * process ever removed an entry, so every code ever visited stayed in memory
  * until a restart.
  */
-router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
+router.post("/:code/leave", withRoomCode, attachRequester, (req, res) => {
   const entry = roomPresence.get(req.roomCode);
   if (!entry) return sendEmptyRoom(res);
 
@@ -418,8 +458,8 @@ router.post("/:code/leave", withRoomCode, requireRequesterId, (req, res) => {
 
 // ── Draft lifecycle ──────────────────────────────────────────
 
-/** POST body: { requesterId } — host starts the draft once the guest is ready. */
-router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async (req, res) => {
+/** POST body: {} — host starts the draft once the guest is ready. */
+router.post("/:code/start", withRoomCode, attachRequester, asyncHandler(async (req, res) => {
   const entry = ensureRoomEntry(req.roomCode);
 
   if (resolveSide(entry, req.requesterId) !== "host") {
@@ -461,7 +501,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async
 }));
 
 /**
- * POST body: { requesterId, player }
+ * POST body: { player }
  *
  * Bans are per-side: each user bans from the opponent's squad, so both sides
  * may ban the same player. Only a repeat ban by the same user is rejected.
@@ -469,7 +509,7 @@ router.post("/:code/start", withRoomCode, requireRequesterId, asyncHandler(async
 router.post(
   "/:code/ban",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requirePlayer,
   requireParticipant("banning"),
   requireDrafting("Bans are only allowed during drafting."),
@@ -507,11 +547,11 @@ router.post(
   },
 );
 
-/** POST body: { requesterId } — marks a side's bans final; both sides advance the draft. */
+/** POST body: {} — marks a side's bans final; both sides advance the draft. */
 router.post(
   "/:code/ban-confirm",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requireParticipant("confirming bans"),
   requireDrafting("Ban confirm only during drafting."),
   (req, res) => {
@@ -550,7 +590,7 @@ router.post(
 );
 
 /**
- * POST body: { requesterId, confirmed } — this side's lineup is final, or is not.
+ * POST body: { confirmed } — this side's lineup is final, or is not.
  *
  * The pick-phase twin of `/ban-confirm`, and it exists for the same reason: a
  * side confirming must **not** move that player on alone. The draft advances to
@@ -561,7 +601,7 @@ router.post(
 router.post(
   "/:code/picks-confirm",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requireParticipant("confirming picks"),
   requireDrafting("Pick confirm only during drafting."),
   (req, res) => {
@@ -591,7 +631,7 @@ router.post(
 );
 
 /**
- * POST body: { requesterId, players } — replaces this side's lineup wholesale.
+ * POST body: { players } — replaces this side's lineup wholesale.
  *
  * **This is the only way a pick is written.** There was a `/:code/pick` beside
  * it that appended one player into the first free slot, but nothing that
@@ -615,7 +655,7 @@ router.post(
 router.post(
   "/:code/picks",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requireParticipant("picking"),
   requireDrafting("Picks are only allowed during drafting."),
   (req, res) => {
@@ -657,8 +697,8 @@ router.post(
 
 // ── Room management ──────────────────────────────────────────
 
-/** POST body: { requesterId } */
-router.post("/:code/kick-guest", withRoomCode, requireRequesterId, (req, res) => {
+/** POST body: {} */
+router.post("/:code/kick-guest", withRoomCode, attachRequester, (req, res) => {
   const entry = ensureRoomEntry(req.roomCode);
 
   if (resolveSide(entry, req.requesterId) !== "host") {
@@ -695,11 +735,11 @@ const MATCH_STEPS = {
   finish: { flag: "matchFinished", from: ROOM_STATUS.LIVE,        to: ROOM_STATUS.DONE,        undoable: false },
 };
 
-/** POST body: { requesterId, step, value } — one side's answer to one handshake. */
+/** POST body: { step, value } — one side's answer to one handshake. */
 router.post(
   "/:code/match-step",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requireParticipant("updating the match"),
   (req, res) => {
     const { entry, side } = req;
@@ -737,7 +777,7 @@ router.post(
 );
 
 /**
- * POST body: { requesterId, action } — what happens once the match is over.
+ * POST body: { action } — what happens once the match is over.
  *
  * Two ways out of a finished room. **Neither ends it for the other player** —
  * that is what the header's Close room / Leave is for, and it is on screen here
@@ -769,7 +809,7 @@ router.post(
 router.post(
   "/:code/post-match",
   withRoomCode,
-  requireRequesterId,
+  attachRequester,
   requireParticipant("ending the match"),
   (req, res) => {
     const { entry, side } = req;
@@ -847,8 +887,8 @@ router.post(
   },
 );
 
-/** POST body: { requesterId, ready } — lobby ready flag, guest only. */
-router.post("/:code/ready", withRoomCode, requireRequesterId, (req, res) => {
+/** POST body: { ready } — lobby ready flag, guest only. */
+router.post("/:code/ready", withRoomCode, attachRequester, (req, res) => {
   const entry = ensureRoomEntry(req.roomCode);
 
   if (resolveSide(entry, req.requesterId) !== "guest") {
@@ -860,10 +900,9 @@ router.post("/:code/ready", withRoomCode, requireRequesterId, (req, res) => {
   sendRoom(req, res, entry);
 });
 
-/** POST body: { requesterId, clientSeq?, banCountPerSide?, banDurationSec?, … } */
-router.post("/:code/config", withRoomCode, (req, res) => {
+/** POST body: { clientSeq?, banCountPerSide?, banDurationSec?, … } */
+router.post("/:code/config", withRoomCode, attachRequester, (req, res) => {
   const {
-    requesterId,
     clientSeq,
     banCountPerSide,
     banDurationSec,
@@ -874,7 +913,7 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   } = req.body || {};
 
   const entry = ensureRoomEntry(req.roomCode);
-  if (resolveSide(entry, requesterId) !== "host") {
+  if (resolveSide(entry, req.requesterId) !== "host") {
     return res.status(403).json({ error: "Only host can update room settings." });
   }
 
@@ -900,14 +939,14 @@ router.post("/:code/config", withRoomCode, (req, res) => {
   sendRoom(req, res, entry);
 });
 
-/** POST body: { requesterId, username, message } */
-router.post("/:code/chat", withRoomCode, (req, res) => {
-  const { requesterId, username, message } = req.body || {};
+/** POST body: { username, message } */
+router.post("/:code/chat", withRoomCode, attachRequester, (req, res) => {
+  const { username, message } = req.body || {};
   const text = String(message || "").trim();
   if (!text) return res.status(400).json({ error: "Message is required." });
 
   const entry = ensureRoomEntry(req.roomCode);
-  const senderId = String(requesterId || "");
+  const senderId = req.requesterId;
   if (!resolveSide(entry, senderId)) {
     return res.status(403).json({ error: "Join room before chatting." });
   }

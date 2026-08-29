@@ -178,7 +178,7 @@ export function bindPickPhaseUiOnce() {
 async function fetchPlayers() {
   const user = getUser();
   if (!user?.id) return [];
-  const res = await fetch(`/api/my-players?userId=${encodeURIComponent(user.id)}`);
+  const res = await fetch("/api/my-players");
   if (!res.ok) throw new Error("Players unavailable");
   const data = await res.json();
   const rows = Array.isArray(data.players) ? data.players : [];

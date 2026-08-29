@@ -48,24 +48,36 @@ in `.claude/rules/room/` are all about this one problem.
 
 ## Phase 1 decisions
 
-### 1. Identity and ownership — **DECIDED, WITH A KNOWN HOLE**
+### 1. Identity and ownership — **DECIDED AND ENFORCED**
 
 There are real accounts: `users` in MySQL, bcrypt password hashes, and email
 confirmation through the `mail` feature.
 
-**Authorisation is not enforced.** There is no session middleware, no signed token, and
-no cookie. `userId` arrives in a query string or a request body and is trusted
-(`requireUserIdQuery` in `src/lib/http.js` checks that a userId is *present*, never that
-it is *yours*). Any client can act as any user by changing a number in a URL.
+**Authorisation used to be missing entirely**, and that is worth keeping in the record
+because it shaped the code that is here. `userId` arrived in a query string or a request
+body and was trusted — `requireUserIdQuery` checked that an id was *present*, never that
+it was *yours* — so changing one number in a URL read and wrote anybody's squad, game
+plans and profile, and sending the other seat's id read a concealed draft board.
 
-The one exception is the admin console, which does have a real signed session
-(`features/admin/adminSession.js`).
+It is now a signed httpOnly cookie, minted by `src/features/auth/session.js` and
+installed app-wide as `attachIdentity` in the composition root. Three rules:
 
-This was never a decision so much as an accretion, and it is the single largest
-correctness gap in the project. It is recorded here rather than fixed here because
-closing it touches every route. The skill's default (an opaque token in an httpOnly
-cookie, checked by middleware, with the user id read from the token and never from the
-request) is the right shape and the accounts already exist to hang it on.
+  1. **Every route takes the caller from `req.userId` / `req.identityId`.** A `userId`
+     in a query string or a body is ignored wherever it still arrives.
+  2. **A room seat belongs to a cookie**, account or not. A signed-out player gets a
+     server-minted `efb_visitor` id rather than choosing one in localStorage, because a
+     snapshot carries both seats' ids and a self-asserted id is a seat anybody can take.
+  3. **`/api/my-players` serves your squad only.** The ban phase needs the *opponent's*,
+     which is a room's question: `GET /api/rooms/:code/opponent-squad` answers it for
+     whoever holds the other chair.
+
+Stateless, like the console token beside it: no sessions table, survives a restart, and
+cannot be revoked before `SESSION_TTL_MS`. `SESSION_SECRET` is what keeps sign-ins alive
+across a deploy.
+
+What is **not** closed: nothing rate-limits or audits an authenticated user, and the
+console's shared-password mode still has no identity of its own beyond the account it is
+opened for.
 
 ### 2. Persistence and hosting — **UNRESOLVED**
 
@@ -171,7 +183,8 @@ turns it into a hole any stranger can reach, and the accounts it exposes have re
 password hashes and email addresses behind them. Deploying first would be the single
 most damaging order to do these in.
 
-1. **Close authorisation** (§1). Ships: an account that actually belongs to somebody.
+1. ~~**Close authorisation** (§1).~~ Done — signed session cookie, identity from the
+   cookie on every route, room seats included.
    An opaque token in an httpOnly cookie, checked by middleware, with the user id read
    from the token and never from the request. The accounts already exist to hang it on.
 2. **Deploy** (§2). Ships: *the product*. This is not hardening or polish. The whole

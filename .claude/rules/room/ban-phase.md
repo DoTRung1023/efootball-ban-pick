@@ -281,11 +281,17 @@ opposite sides of that line for a reason worth keeping straight:
   player and not from their devtools, and that is the mode working as designed
   rather than an unfixed leak.
 
-**Neither is authentication.** The viewer is resolved from a `requesterId` /
-`?userId=` the server trusts and never verifies (DECISIONS.md §1), so anyone
-willing to send the other seat's id reads the room as that seat. This raises the
-cost of peeking from "open the network tab" to "forge a request"; closing it
-properly is a login this codebase does not have.
+**The viewer behind it is now authenticated.** Concealment is resolved from
+`req.identityId` — the caller's own signed cookie — so sending the other seat's
+id buys nothing: `?userId=` is ignored and a caller holding no seat reads the
+room with both sides concealed. That was DECISIONS.md §1 and it is closed; what
+`blur` still concedes is only what the paragraphs above describe, a card whose
+art the browser has to fetch.
+
+The pool this phase bans out of comes from `GET /api/rooms/:code/opponent-squad`,
+which answers for whoever holds the *other* chair in this room. It used to be
+`/api/my-players?userId=<them>`, read off the snapshot — which worked because
+that route served any account's squad to anyone who could name it.
 
 ## Interaction
 

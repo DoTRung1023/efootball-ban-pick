@@ -1,6 +1,7 @@
 import { Router } from "express";
 import db from "#lib/db.js";
-import { asyncHandler, requireUserIdQuery, describeError } from "#lib/http.js";
+import { asyncHandler, describeError } from "#lib/http.js";
+import { requireSession } from "#features/auth/index.js";
 import { catalogLimiter } from "#lib/rateLimit.js";
 import {
   CATALOG_COLUMNS,
@@ -12,6 +13,7 @@ import {
   resolveSortOrder,
 } from "./catalogQuery.js";
 import { readTopPlayers } from "./topPlayers.js";
+import { readSquad } from "./squad.js";
 
 const router = Router();
 
@@ -96,33 +98,30 @@ router.get("/players", catalogLimiter, async (req, res) => {
 
 // ── My Squad ────────────────────────────────────────────────
 
-router.get("/my-players", async (req, res) => {
-  const userId = requireUserIdQuery(req, res, { players: [] });
-  if (!userId) return;
-
+/**
+ * Your squad — and only ever yours.
+ *
+ * This route used to take `?userId=`, which is how the ban phase read the
+ * opponent's collection and also how anybody could read anybody's. The draft
+ * asks `rooms` for that now, where holding the other seat is checked; here the
+ * id comes from the session cookie and there is no parameter to point
+ * somewhere else.
+ */
+router.get("/my-players", requireSession, async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT p.id, p.name, p.position, p.overall, p.club, p.pesdb_id,
-              c.league, c.nationality, c.height, c.weight, c.age,
-              c.overall_max, c.card_type, c.region, c.foot, c.playing_style
-       FROM   players p
-       LEFT JOIN players_catalog c ON c.pesdb_id = p.pesdb_id
-       WHERE  p.user_id = ?
-       ORDER  BY p.overall DESC, p.name ASC`,
-      [userId],
-    );
-    res.json({ players: rows });
+    res.json({ players: await readSquad(req.userId) });
   } catch (err) {
     console.error("my-players error:", describeError(err));
     res.status(503).json({ error: "Database unavailable", players: [] });
   }
 });
 
-router.post("/my-players", asyncHandler(async (req, res) => {
-  const { userId, name, position, club, overall, pesdbId } = req.body;
+router.post("/my-players", requireSession, asyncHandler(async (req, res) => {
+  const { name, position, club, overall, pesdbId } = req.body;
+  const userId = req.userId;
 
-  if (!userId || !name || !position) {
-    return res.status(400).json({ error: "userId, name, and position are required." });
+  if (!name || !position) {
+    return res.status(400).json({ error: "name and position are required." });
   }
 
   try {
@@ -141,11 +140,12 @@ router.post("/my-players", asyncHandler(async (req, res) => {
   }
 }));
 
-router.delete("/my-players", asyncHandler(async (req, res) => {
-  const { userId, playerIds } = req.body;
+router.delete("/my-players", requireSession, asyncHandler(async (req, res) => {
+  const { playerIds } = req.body;
+  const userId = req.userId;
 
-  if (!userId || !Array.isArray(playerIds) || !playerIds.length) {
-    return res.status(400).json({ error: "userId and playerIds[] required." });
+  if (!Array.isArray(playerIds) || !playerIds.length) {
+    return res.status(400).json({ error: "playerIds[] required." });
   }
 
   try {

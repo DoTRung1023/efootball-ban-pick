@@ -43,19 +43,24 @@ every harness room is gone.
 ## 2. Then take a seat in the browser
 
 The seat belongs to an **identity**, not a URL, so opening the room in a fresh
-tab gets you a 409 rather than the host chair. Set the id the harness used
-*before* loading the page:
+tab gets you a 409 rather than the host chair. Identity is a cookie the server
+issues now, so adopt the harness's *before* loading the page:
 
 ```js
-localStorage.removeItem("efb_user");                       // drop any signed-in identity
-localStorage.setItem("efb_room_anon_id", "harness-host");  // or harness-guest
+document.cookie = "efb_visitor=anon-harness-host; path=/";   // or anon-harness-guest
 ```
 
-then open `/room/<CODE>` (host) or `/room/<CODE>?mode=join` (guest) — the URL
-decides which role the client *posts*, the server decides what it *gets*.
+Sign out first — a signed-in `efb_session` cookie wins over `efb_visitor`, and
+you would take the seat as yourself instead. Then open `/room/<CODE>` (host) or
+`/room/<CODE>?mode=join` (guest) — the URL decides which role the client *posts*,
+the server decides what it *gets*.
 
-Signed in and want to stay that way? Pass your own id instead:
-`--host-id <efb_user.id>`.
+Want to play a seat as your own account? Don't hand the harness your id — it
+cannot sign in. Sign in in the browser, open the room, claim that side yourself,
+and let the harness drive the other one.
+
+The ids must look server-minted (`anon-` + 6–64 of `[A-Za-z0-9_-]`) or
+`attachIdentity` throws them away and mints its own.
 
 ## 3. What the script cannot do for you
 

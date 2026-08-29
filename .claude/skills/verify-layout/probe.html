@@ -28,8 +28,29 @@
   try {
     if (q.user) localStorage.setItem("efb_user", decodeURIComponent(q.user));
     else localStorage.removeItem("efb_user");
-    if (q.anon) localStorage.setItem("efb_room_anon_id", q.anon);
+    /* A room seat with no account. Set before signing in, because a session
+       cookie wins over this one and the two together would seat the account. */
+    if (q.anon) document.cookie = `efb_visitor=${q.anon}; path=/`;
   } catch (err) { /* storage disabled */ }
+
+  /* The real credential. `efb_user` above is the nameplate in the account menu;
+     every API call the page makes is authorised by the cookie this sets, so a
+     probe of a signed-in page without --signin measures a signed-out one. */
+  if (q.signin) {
+    const [username, ...rest] = decodeURIComponent(q.signin).split(":");
+    try {
+      const res = await fetch("/api/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: rest.join(":") }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return report({ fail: [`--signin failed: ${data.error || res.status}`] });
+      localStorage.setItem("efb_user", JSON.stringify(data));
+    } catch (err) {
+      return report({ fail: [`--signin failed: ${String(err)}`] });
+    }
+  }
 
   const R = { path, viewport: { asked: w, actual: null }, fail: [], warn: [], info: {} };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

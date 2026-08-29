@@ -30,7 +30,8 @@ if any width fails.
 | `--path` | the page under test (`/players`, `/game-plans`, `/rooms`, `/room/CODE`) |
 | `--w` | comma-separated widths (default `320,390,768,1440`) · `--h` height |
 | `--user` | seeds `efb_user` — home/admin redirect to `/signin` without it |
-| `--anon` | seeds `efb_room_anon_id` — the room seat is held by identity |
+| `--signin` | `user:password` — signs in for real. Identity is an httpOnly cookie, so this is the only thing that authenticates an API call |
+| `--anon` | seeds the `efb_visitor` cookie — an unauthenticated room seat (`anon-…`) |
 | `--cta` | selector that must stay on screen (START DRAFT, CONFIRM PICKS, Send…) |
 | `--scroll` | scroll container to test for reachability |
 | `--sel` | pipe-separated selectors to report rects for |

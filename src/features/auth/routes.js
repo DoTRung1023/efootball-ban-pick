@@ -8,6 +8,7 @@ import {
   mailConfigured,
   sendVerificationEmail,
 } from "./verification.js";
+import { clearSessionCookie, requireSession, setSessionCookie } from "./session.js";
 
 const router = Router();
 
@@ -75,9 +76,15 @@ router.post("/signin", authLimiter, asyncHandler(async (req, res) => {
       return res.status(403).json({ error: UNVERIFIED, needsVerification: true });
     }
 
-    /* `isAdmin` rides along in the session so the account menu knows whether to
-       offer the console. It is display only — the console re-checks the column
-       and the password before it hands out a token. */
+    /* The password is proved and the address is confirmed: this is the one
+       place a session begins. Everything the client gets back below is for
+       drawing the account menu — the id it needs to *act* is in the cookie,
+       and no route reads the copy in the response. */
+    setSessionCookie(req, res, user);
+
+    /* `isAdmin` rides along so the account menu knows whether to offer the
+       console. It is display only — the console re-checks the column and the
+       password before it hands out a token. */
     res.json({
       id: user.id,
       username: user.username,
@@ -145,6 +152,18 @@ router.post("/signup", authLimiter, asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * Ends the session.
+ *
+ * Answers 200 whether or not there was one to end: the client's next move is
+ * the sign-in page either way, and an error here would only ever strand
+ * somebody on a page they are trying to leave.
+ */
+router.post("/signout", (req, res) => {
+  clearSessionCookie(req, res);
+  res.json({ message: "Signed out." });
+});
+
 // ── Confirming an address ────────────────────────────────────
 
 /**
@@ -203,9 +222,12 @@ router.post("/verify-email/resend", emailLimiter, asyncHandler(async (req, res) 
 
 // ── Edit Profile ─────────────────────────────────────────────
 
-router.put("/profile", asyncHandler(async (req, res) => {
-  const { userId, username, email, password } = req.body;
-  if (!userId) return res.status(400).json({ error: "userId required." });
+router.put("/profile", requireSession, asyncHandler(async (req, res) => {
+  /* The account being edited is the one that is signed in, full stop. This
+     route used to take `userId` from the body, which made "edit my profile"
+     mean "edit anyone's" — including their password. */
+  const userId = req.userId;
+  const { username, email, password } = req.body;
 
   const [[current]] = await db.query("SELECT email FROM users WHERE id = ?", [userId]);
   if (!current) return res.status(404).json({ error: "Unknown user." });

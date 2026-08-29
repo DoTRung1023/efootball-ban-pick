@@ -220,7 +220,7 @@ async function addPlayerToSquad(player, btn) {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({
-        userId: user.id, name: player.name, position: player.position,
+        name: player.name, position: player.position,
         club: player.club, overall: player.overall, pesdbId: player.id,
       }),
     });
@@ -288,7 +288,7 @@ async function removePlayerFromCatalog(player, btn) {
     const res = await fetch("/api/my-players", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user.id, playerIds: [squadPlayer.id] }),
+      body:    JSON.stringify({ playerIds: [squadPlayer.id] }),
     });
     if (!res.ok) {
       showToast("Could not remove player.", "error");

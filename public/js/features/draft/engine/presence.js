@@ -8,7 +8,7 @@ import {
 import { cb } from '@/features/draft/callbacks.js';
 import { state } from '@/features/draft/state.js';
 import { applyPresenceSnapshot } from '@/features/draft/state.js';
-import { getUser, getAnonId, getCurrentIdentity, announce, showView } from '@/features/draft/utils.js';
+import { getUser, announce, showView } from '@/features/draft/utils.js';
 import { paintErrorView } from '@/features/draft/errorView.js';
 import { clearTurnTimer } from './draftFlow.js';
 
@@ -34,31 +34,23 @@ export function clearRoomPhaseCache(code) {
  * to change mid-session.
  */
 function adoptSeat(room) {
-  if (!room) return;
-  const me = String(getCurrentIdentity().id || "");
-  if (!me) return;
-  const side = String(room.host?.id || "") === me
-    ? "host"
-    : String(room.guest?.id || "") === me
-      ? "guest"
-      : null;
+  /* `you.side` is the server's own answer — the same one it used to decide how
+     much of this snapshot to conceal. Comparing ids here instead would be
+     guessing at a question already answered, and the client no longer knows its
+     own id to guess with. */
+  const side = room?.you?.side;
   if (side && side !== state.mySide) state.mySide = side;
 }
 
 /**
- * The room snapshot URL for *this* player.
+ * The room snapshot URL.
  *
- * The id decides how much of the room comes back: the server conceals a draft
- * in flight from anyone it cannot seat, so an anonymous read answers with the
- * opponent's bans and picks withheld. Both readers below need a seated answer —
- * one to find out which seat is ours, the other to draw the board.
- *
- * Same identity `postAsMe` puts in every write body, and trusted the same way
- * (DECISIONS.md §1): this hides the draft from a curious opponent, not from one
- * willing to send the other seat's id.
+ * There is no id in it. The server conceals a draft in flight from anyone it
+ * cannot seat, and who is asking comes from their session cookie — which is
+ * what makes the concealment worth anything: this used to hide the draft from a
+ * curious opponent but not from one willing to send the other seat's id.
  */
-const roomSnapshotUrl = (code) =>
-  `/api/rooms/${encodeURIComponent(code)}?userId=${encodeURIComponent(getCurrentIdentity().id)}`;
+const roomSnapshotUrl = (code) => `/api/rooms/${encodeURIComponent(code)}`;
 
 /**
  * The same, before the first heartbeat goes out.
@@ -97,14 +89,15 @@ async function registerPresence() {
   const code = state.room?.code;
   if (!code) return;
   const user = getUser();
-  const userId = user?.id ?? getAnonId();
   const username = user?.username ?? (state.mySide === "host" ? "You" : "Guest");
   const role = state.mySide === "host" ? "host" : "guest";
   const res = await fetch(`/api/rooms/${encodeURIComponent(code)}/presence`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      role, userId, username,
+      /* No id: the seat goes to whoever's cookie made this request. `username`
+         is still ours to offer — it is a label, not a claim. */
+      role, username,
       stagedBans: state.stagedBans.map((p) => ({ id: String(p.id), name: p.name || "" })),
       /* Lets the other side tell a backgrounded tab from a departing one. A
          hidden tab's heartbeat is throttled to about once a minute, so without
@@ -195,12 +188,11 @@ export async function leavePresence() {
   const code = state.room?.code;
   if (!code) return;
   clearRoomPhaseCache(code);
-  const me = getCurrentIdentity();
   try {
     await fetch(`/api/rooms/${encodeURIComponent(code)}/leave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requesterId: me.id }),
+      body: "{}",
       keepalive: true,
     });
   } catch {

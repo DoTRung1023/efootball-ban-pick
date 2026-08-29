@@ -1,8 +1,15 @@
 import { Router } from "express";
 import db from "#lib/db.js";
-import { asyncHandler, requireUserIdQuery, describeError } from "#lib/http.js";
+import { asyncHandler, describeError } from "#lib/http.js";
+import { requireSession } from "#features/auth/index.js";
 
 const router = Router();
+
+/* Every route here reads or writes one account's plans, so the gate is the
+   router's rather than repeated on each of them. The owner is `req.userId`
+   throughout: `userId` used to arrive in the query string or the body, which
+   made every plan in the database editable by anyone who could count. */
+router.use(requireSession);
 
 const MAX_PLANS_PER_USER = 20;
 const LINEUP_SLOTS = 11;
@@ -37,8 +44,7 @@ async function planIsOwnedBy(planId, userId) {
 }
 
 router.get("/", async (req, res) => {
-  const userId = requireUserIdQuery(req, res, { plans: [] });
-  if (!userId) return;
+  const userId = req.userId;
 
   try {
     const [plans] = await db.query(
@@ -60,9 +66,10 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", asyncHandler(async (req, res) => {
-  const { userId, name } = req.body;
-  if (!userId || !name?.trim()) {
-    return res.status(400).json({ error: "userId and name required." });
+  const { name } = req.body;
+  const userId = req.userId;
+  if (!name?.trim()) {
+    return res.status(400).json({ error: "name required." });
   }
 
   try {
@@ -92,8 +99,8 @@ router.post("/", asyncHandler(async (req, res) => {
 
 router.put("/:id", asyncHandler(async (req, res) => {
   const planId = Number(req.params.id);
-  const { userId, name, formation } = req.body;
-  if (!userId) return res.status(400).json({ error: "userId required." });
+  const { name, formation } = req.body;
+  const userId = req.userId;
 
   const sets = [];
   const vals = [];
@@ -130,8 +137,7 @@ router.put("/:id", asyncHandler(async (req, res) => {
 
 router.delete("/:id", asyncHandler(async (req, res) => {
   const planId = Number(req.params.id);
-  const userId = requireUserIdQuery(req, res);
-  if (!userId) return;
+  const userId = req.userId;
 
   try {
     const [result] = await db.query(
@@ -148,8 +154,7 @@ router.delete("/:id", asyncHandler(async (req, res) => {
 
 router.get("/:id/players", asyncHandler(async (req, res) => {
   const planId = Number(req.params.id);
-  const userId = requireUserIdQuery(req, res);
-  if (!userId) return;
+  const userId = req.userId;
 
   try {
     const [rows] = await db.query(
@@ -174,9 +179,9 @@ router.get("/:id/players", asyncHandler(async (req, res) => {
 /** Swaps the occupants of two slots, re-deriving each player's role from its new slot. */
 router.put("/:id/swap", asyncHandler(async (req, res) => {
   const planId = Number(req.params.id);
-  const { userId, slotA, slotB } = req.body;
+  const { slotA, slotB } = req.body;
+  const userId = req.userId;
 
-  if (!userId) return res.status(400).json({ error: "userId required." });
   if (!isValidSlot(slotA) || !isValidSlot(slotB)) {
     return res.status(400).json({ error: `Invalid slot (1–${MAX_SLOT}).` });
   }
@@ -224,9 +229,9 @@ router.put("/:id/swap", asyncHandler(async (req, res) => {
 router.put("/:id/players/:slot", asyncHandler(async (req, res) => {
   const planId = Number(req.params.id);
   const slot = Number(req.params.slot);
-  const { userId, playerId } = req.body;
+  const { playerId } = req.body;
+  const userId = req.userId;
 
-  if (!userId) return res.status(400).json({ error: "userId required." });
   if (!isValidSlot(slot)) return res.status(400).json({ error: `Invalid slot (1–${MAX_SLOT}).` });
 
   try {

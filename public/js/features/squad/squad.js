@@ -145,7 +145,7 @@ export async function loadSquad(userId) {
   grid.innerHTML = "";
 
   try {
-    const res  = await fetch(`/api/my-players?userId=${userId}`);
+    const res  = await fetch("/api/my-players");
     const data = await res.json();
     squad.players = data.players ?? [];
   } catch {
@@ -497,7 +497,7 @@ async function deletePlayers(playerIds, userId) {
     const res = await fetch("/api/my-players", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ userId: user, playerIds }),
+      body:    JSON.stringify({ playerIds }),
     });
 
     if (!res.ok) {

@@ -3,8 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 `DESIGN.md` owns how it looks. `DECISIONS.md` owns why it is shaped this way, and what
-is still open — read it before proposing anything architectural, and note §1: **request
-`userId` is trusted, never verified.**
+is still open — read it before proposing anything architectural, and note §1: **identity
+is a signed httpOnly cookie the server mints; a `userId` in a request is ignored.**
 
 ## Commands
 

@@ -130,32 +130,21 @@ export function parseQuery() {
 }
 
 /**
- * Stable id for signed-out users, so presence does not churn every request.
+ * Who the server says we are, and what to call us.
  *
- * **`localStorage`, not `sessionStorage`** — and the difference is a seat. A
- * signed-out player who closes the tab used to come back as a brand-new person:
- * the room has no presence TTL, so their old id sat in the seat forever and the
- * room was unusable from then on. `efb_user` is already localStorage for signed-in
- * players; this is the same promise for everyone else.
+ * The id is **not** ours to choose any more. A signed-out player used to mint
+ * an `anon-…` id in localStorage and post it as their identity, which is what
+ * made a seat stealable: the room snapshot carries both seats' ids, so an
+ * opponent could send yours and act as you. Identity is now a cookie this page
+ * cannot read, and `room.you.id` is the server telling us what it decided.
  *
- * The old sessionStorage value is adopted if it is still there, so a tab open
- * across this change keeps its seat instead of losing it on the next reload.
+ * Empty before the first snapshot lands. Every caller either compares it (chat)
+ * or draws it, and both are correct with "".
  */
-export function getAnonId() {
-  try {
-    let id = localStorage.getItem("efb_room_anon_id") || sessionStorage.getItem("efb_room_anon_id");
-    if (!id) {
-      id = `anon-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
-    }
-    localStorage.setItem("efb_room_anon_id", id);
-    return id;
-  } catch {
-    return `anon-${Date.now()}`;
-  }
-}
-
 export function getCurrentIdentity() {
   const user = getUser();
-  if (user?.id) return { id: String(user.id), username: user.username || "User" };
-  return { id: getAnonId(), username: state.mySide === "host" ? "Host" : "Guest" };
+  return {
+    id: String(state.room?.you?.id || ""),
+    username: user?.username || (state.mySide === "host" ? "Host" : "Guest"),
+  };
 }

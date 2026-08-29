@@ -43,8 +43,10 @@ too, or a reload on it 404s.
 Supporting modules:
 
 - `lib/db.js` — mysql2 connection pool, exported as default.
-- `lib/http.js` — `asyncHandler`, `requireUserIdQuery`, `requestBaseUrl`,
-  `duplicateUserField`, `describeError`, `errorHandler`, `notFoundHandler`.
+- `lib/http.js` — `asyncHandler`, `requestBaseUrl`, `duplicateUserField`,
+  `describeError`, `errorHandler`, `notFoundHandler`. It used to export
+  `requireUserIdQuery`, which read the caller's id out of the query string; the
+  id comes from a signed cookie now and that helper has no callers left.
   `requestBaseUrl(req)` builds the origin for a link that will be read outside the
   browser; **set `APP_BASE_URL` behind a proxy**, or `req.protocol` reports the hop
   into it and every emailed link comes out `http://`.
@@ -157,5 +159,11 @@ ingestion barrel re-exports them. **Both files must therefore run `main()` behin
 a side effect. `scrapeMissing.js` was missing this guard until it was added alongside
 `lib/cli.js`; keep any future script in `src/` to the same pattern.
 
-**Auth is stateless.** There is no session middleware — `userId` is passed in request
-bodies/query params and trusted client-side.
+**Auth is stateless but enforced.** `attachIdentity` from
+`#features/auth/index.js` is installed app-wide in `server.js`, ahead of every
+router, and puts `req.userId` (the signed-in account, or null) and
+`req.identityId` (that, or a server-minted visitor id) on the request.
+`requireSession` gates everything that touches one account's data. Stateless
+means *no sessions table* — the cookie is an HMAC-signed token, like the console
+one beside it — not *unauthenticated*: no route reads an id out of a query string
+or a body any more. See `auth.md`.

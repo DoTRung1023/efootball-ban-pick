@@ -10,16 +10,6 @@ export function asyncHandler(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-/** Reads `userId` from the query string, or responds 400 and returns null. */
-export function requireUserIdQuery(req, res, extra = {}) {
-  const userId = Number(req.query.userId);
-  if (!userId) {
-    res.status(400).json({ error: "userId required", ...extra });
-    return null;
-  }
-  return userId;
-}
-
 /**
  * Absolute origin to build a link that will be read outside the browser.
  *
@@ -57,6 +47,14 @@ export function describeError(err) {
 }
 
 export function errorHandler(err, _req, res, _next) {
+  /* A body that is not valid JSON throws from `express.json()`, and its message
+     quotes the fragment it choked on — which is the request body, which on
+     `/api/signin` is somebody's password. Log that it happened, never what it
+     said. */
+  if (err?.type === "entity.parse.failed") {
+    console.error("unhandled route error: malformed request body");
+    return res.status(400).json({ error: "Malformed request body." });
+  }
   console.error("unhandled route error:", describeError(err));
   if (res.headersSent) return;
   res.status(500).json({ error: "Something went wrong." });

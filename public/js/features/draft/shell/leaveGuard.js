@@ -32,7 +32,7 @@
  */
 
 import { state } from '@/features/draft/state.js';
-import { askConfirm, getCurrentIdentity } from '@/features/draft/utils.js';
+import { askConfirm } from '@/features/draft/utils.js';
 import { leavePresence } from '@/features/draft/engine/presence.js';
 
 /** Phases where the seat is live and walking out costs the other player. */
@@ -92,7 +92,7 @@ function initDisconnectBeacon() {
     const code = state.room?.code;
     if (!code || !navigator.sendBeacon) return;
 
-    const body = JSON.stringify({ requesterId: getCurrentIdentity().id, reason: "disconnect" });
+    const body = JSON.stringify({ reason: "disconnect" });
     navigator.sendBeacon(
       `/api/rooms/${encodeURIComponent(code)}/leave`,
       new Blob([body], { type: "application/json" }),

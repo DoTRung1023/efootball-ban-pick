@@ -64,7 +64,7 @@ export function initGate(user, onOpen) {
     submit.textContent = "CHECKING…";
     showError("");
 
-    const result = await openSession(user.id, password);
+    const result = await openSession(password);
 
     submit.disabled = false;
     submit.textContent = "UNLOCK CONSOLE";

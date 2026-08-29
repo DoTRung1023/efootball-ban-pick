@@ -341,10 +341,16 @@ function squadCompleteFor(entry) {
  * other seat's id reads the room as that seat. Closing that is authentication,
  * which this codebase does not have and this change does not add.
  */
-export function serializeRoomEntry(entry, viewer = null) {
+export function serializeRoomEntry(entry, viewer = null, viewerId = "") {
   const hide = concealedFrom(entry, viewer);
   const bans = withoutConcealed(entry.bans, hide.bans);
   return {
+    /* Who the server decided the reader is, published back to them.
+       The client no longer knows its own id — identity is a cookie it cannot
+       read — so this is what `adoptSeat` compares against the two seats and
+       what the chat uses to tell your messages from theirs. `side` is the same
+       answer already used to conceal the rest of this object. */
+    you: { id: String(viewerId || ""), side: viewer || null },
     host: serializeParticipant(entry.host),
     bans,
     picks: withoutConcealed(entry.picks, hide.picks),
@@ -391,6 +397,7 @@ export function serializeRoomEntry(entry, viewer = null) {
 /** Snapshot shape returned for a room code that has no entry in memory. */
 export function emptyRoomSnapshot() {
   return {
+    you: { id: "", side: null },
     host: null,
     guest: null,
     status: ROOM_STATUS.LOBBY,

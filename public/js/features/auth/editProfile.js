@@ -105,7 +105,7 @@ export function initEditProfile() {
     submit.textContent = "SAVING…";
 
     try {
-      const body = { userId: user.id, username, email };
+      const body = { username, email };
       if (password) body.password = password;
 
       const res  = await fetch("/api/profile", {

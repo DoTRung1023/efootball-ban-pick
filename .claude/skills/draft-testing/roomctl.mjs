@@ -29,16 +29,29 @@ const flag = (name) => argv.includes(`--${name}`);
 
 const BASE     = opt("base", "http://localhost:3000").replace(/\/$/, "");
 const CODE     = (opt("code", Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * 32)]).join(""))).toUpperCase();
-const HOST_ID  = opt("host-id", "harness-host");
-const GUEST_ID = opt("guest-id", "harness-guest");
+/* A seat belongs to whoever's cookie claimed it — the server reads identity
+   from `efb_visitor` (or a signed-in `efb_session`) and ignores any id in the
+   body, which is what stops one player acting as the other. So the harness
+   holds two cookies rather than sending two ids, and they are fixed strings so
+   a browser can adopt one: see the handover printed at the end.
+
+   They must look like a server-minted visitor id (`anon-` + 6–64 of
+   [A-Za-z0-9_-]) or `attachIdentity` discards them and mints its own. */
+const HOST_ID  = opt("host-id", "anon-harness-host");
+const GUEST_ID = opt("guest-id", "anon-harness-guest");
 const BANS     = Number(opt("bans", 3));
 const PICKS    = Number(opt("picks", 11));
 const BAN_CAP  = opt("ban-count", null);
 
-async function api(path, body) {
+/** `as` is the identity cookie to send — one of HOST_ID / GUEST_ID, or none
+    for the reads that do not need a seat. */
+async function api(path, body, as) {
+  const headers = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (as) headers.Cookie = `efb_visitor=${as}`;
   const res = await fetch(`${BASE}${path}`, {
     method: body ? "POST" : "GET",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
   let json = null;
@@ -93,7 +106,7 @@ function printRoom(room) {
 }
 
 async function presence(role, id, username, hidden = false) {
-  return api(`/api/rooms/${CODE}/presence`, { role, userId: id, username, hidden });
+  return api(`/api/rooms/${CODE}/presence`, { role, username, hidden }, id);
 }
 
 async function main() {
@@ -118,15 +131,15 @@ async function main() {
 
   if (BAN_CAP != null) {
     step(`config banCountPerSide=${BAN_CAP}`);
-    await api(`/api/rooms/${CODE}/config`, { requesterId: HOST_ID, banCountPerSide: Number(BAN_CAP) });
+    await api(`/api/rooms/${CODE}/config`, { banCountPerSide: Number(BAN_CAP) }, HOST_ID);
   }
 
   let room = null;
   if (goal >= PHASES.indexOf("ban")) {
     step("guest ready");
-    await api(`/api/rooms/${CODE}/ready`, { requesterId: GUEST_ID, ready: true });
+    await api(`/api/rooms/${CODE}/ready`, { ready: true }, GUEST_ID);
     step("host starts draft");
-    room = await api(`/api/rooms/${CODE}/start`, { requesterId: HOST_ID });
+    room = await api(`/api/rooms/${CODE}/start`, {}, HOST_ID);
   }
 
   if (goal >= PHASES.indexOf("pick")) {
@@ -134,28 +147,34 @@ async function main() {
     step(`${BANS} bans per side`);
     for (const side of [[HOST_ID, "host"], [GUEST_ID, "guest"]]) {
       for (let i = 0; i < BANS; i++) {
-        await api(`/api/rooms/${CODE}/ban`, { requesterId: side[0], player: pool[i % pool.length] });
+        await api(`/api/rooms/${CODE}/ban`, { player: pool[i % pool.length] }, side[0]);
       }
     }
     step("both sides confirm bans → pick phase");
-    await api(`/api/rooms/${CODE}/ban-confirm`, { requesterId: HOST_ID, confirmed: true });
-    room = await api(`/api/rooms/${CODE}/ban-confirm`, { requesterId: GUEST_ID, confirmed: true });
+    await api(`/api/rooms/${CODE}/ban-confirm`, { confirmed: true }, HOST_ID);
+    room = await api(`/api/rooms/${CODE}/ban-confirm`, { confirmed: true }, GUEST_ID);
   }
 
   if (goal >= PHASES.indexOf("ready")) {
     const squad = await fetchPlayers(PICKS);
     step(`${PICKS} picks per side (slot-addressed)`);
-    await api(`/api/rooms/${CODE}/picks`, { requesterId: HOST_ID, players: squad });
-    await api(`/api/rooms/${CODE}/picks`, { requesterId: GUEST_ID, players: squad });
+    await api(`/api/rooms/${CODE}/picks`, { players: squad }, HOST_ID);
+    await api(`/api/rooms/${CODE}/picks`, { players: squad }, GUEST_ID);
     step("both sides confirm picks → await-ready");
-    await api(`/api/rooms/${CODE}/picks-confirm`, { requesterId: HOST_ID, confirmed: true, formation: "4-3-3" });
-    room = await api(`/api/rooms/${CODE}/picks-confirm`, { requesterId: GUEST_ID, confirmed: true, formation: "4-3-3" });
+    await api(`/api/rooms/${CODE}/picks-confirm`, { confirmed: true, formation: "4-3-3" }, HOST_ID);
+    room = await api(`/api/rooms/${CODE}/picks-confirm`, { confirmed: true, formation: "4-3-3" }, GUEST_ID);
   }
 
   if (goal >= PHASES.indexOf("done")) {
-    step("both sides match-ready → done");
-    await api(`/api/rooms/${CODE}/match-ready`, { requesterId: HOST_ID, ready: true });
-    room = await api(`/api/rooms/${CODE}/match-ready`, { requesterId: GUEST_ID, ready: true });
+    /* Three handshakes, not one, and each is only answerable in its own status:
+       await-ready →(ready)→ await-start →(start)→ live →(finish)→ done. This
+       used to post a single `/match-ready`, which stopped existing when the
+       sequence replaced it — the route 404'd and `done` never reached done. */
+    for (const name of ["ready", "start", "finish"]) {
+      step(`both sides ${name}`);
+      await api(`/api/rooms/${CODE}/match-step`, { step: name, value: true }, HOST_ID);
+      room = await api(`/api/rooms/${CODE}/match-step`, { step: name, value: true }, GUEST_ID);
+    }
   }
 
   printRoom((room ?? await api(`/api/rooms/${CODE}`))?.room ?? room);
@@ -163,10 +182,12 @@ async function main() {
   if (!flag("quiet")) {
     console.log(`\n  Open as HOST:   ${BASE}/room/${CODE}`);
     console.log(`  Open as GUEST:  ${BASE}/room/${CODE}?mode=join`);
-    console.log(`\n  The seat is held by identity, so run this in that tab's console BEFORE loading:`);
-    console.log(`    localStorage.removeItem("efb_user"); localStorage.setItem("efb_room_anon_id", "${HOST_ID}")   // host`);
-    console.log(`    localStorage.removeItem("efb_user"); localStorage.setItem("efb_room_anon_id", "${GUEST_ID}")  // guest`);
-    console.log(`  Signed in instead? Re-run with --host-id <your efb_user.id>.`);
+    console.log(`\n  A seat belongs to a cookie now. Sign out first (a session cookie wins over`);
+    console.log(`  this one), then run in that tab's console BEFORE loading the room:`);
+    console.log(`    document.cookie = "efb_visitor=${HOST_ID}; path=/"    // host`);
+    console.log(`    document.cookie = "efb_visitor=${GUEST_ID}; path=/"   // guest`);
+    console.log(`  To play a seat as your own account instead, just sign in and open the room —`);
+    console.log(`  claim that side yourself and let the harness drive the other one.`);
     console.log(`\n  Re-inspect:  node .claude/skills/draft-testing/roomctl.mjs status --code ${CODE}\n`);
   }
 }

@@ -1,5 +1,6 @@
 /** Players feature — the catalog and the user's own squad. */
 export { default as playerRoutes } from "./routes.js";
+export { readSquad } from "./squad.js";
 export {
   CATALOG_COLUMNS,
   DEFAULT_SORT,

@@ -47,7 +47,8 @@ Imports inside a folder stay relative (`./state.js`); anything crossing a folder
   `buildTurnSchedule` is **gone from here** — the server owns the schedule now;
   see `draft-shell.md`.
 - `utils.js` — `escapeHtml`, `showToast`, `announce`, `askConfirm`, `showView`,
-  `getRoomCodeFromUrl`, `getUser`, `getAnonId`, `getCurrentIdentity`.
+  `getRoomCodeFromUrl`, `getUser`, `getCurrentIdentity` (which reads `room.you`,
+  the server's answer, not a locally chosen id).
   `escapeHtml` is re-exported from `shared/players/playerMeta.js`; `showToast` is **not**
   shared — the room toast is a different component from the home one (it uses a
   `toast--warn` modifier and a 2.4 s timeout, vs `toast show ${type}` at 3.5 s).
