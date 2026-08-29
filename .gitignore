@@ -1,6 +1,9 @@
 node_modules/
 .env
-.env.local
+# Every other .env — .env.production carries live deployment secrets and is
+# meant to be pasted into a host's env editor, never committed. The example
+# is the one that stays, because it holds placeholders and nothing else.
+.env.*
 *.log
 .DS_Store
 .scrape-state.json
