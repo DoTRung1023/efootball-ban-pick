@@ -29,6 +29,7 @@
  */
 
 import crypto from "node:crypto";
+import db from "#lib/db.js";
 
 const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 
@@ -74,9 +75,34 @@ export function readAdminToken(token) {
 }
 
 /** Admin gate for /api/admin/*, except the route that opens a session. */
-export function requireAdmin(req, res, next) {
+/**
+ * Every `/api/admin` route except `POST /session`.
+ *
+ * **The token's word is not enough**, and the master-only routes in `routes.js`
+ * already said so — they re-read `is_master_admin` on every call because a
+ * token outlives a demotion by up to eight hours. The same is true one rung
+ * down and was not being checked: a deleted account, or one whose console
+ * access was revoked, kept every read route on this router until its token
+ * expired. Both now end at the next request.
+ *
+ * `is_admin` comes from the row, never from the claims, for the same reason.
+ */
+export async function requireAdmin(req, res, next) {
   const claims = readAdminToken(req.headers["x-admin-token"]);
   if (!claims) return res.status(401).json({ error: "Unauthorized" });
+
+  let row;
+  try {
+    [[row]] = await db.query("SELECT is_admin FROM users WHERE id = ?", [Number(claims.uid)]);
+  } catch {
+    /* Unknown, not refused — a 401 here would drop the console back to its
+       password gate over a database blip. See the note on `requireSession`. */
+    return res.status(503).json({ error: "Could not verify this console session." });
+  }
+
+  if (!row?.is_admin) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   req.admin = claims;
   next();
 }

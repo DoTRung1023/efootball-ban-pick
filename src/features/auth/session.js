@@ -39,6 +39,7 @@
  */
 
 import crypto from "node:crypto";
+import db from "#lib/db.js";
 
 const SESSION_COOKIE = "efb_session";
 const VISITOR_COOKIE = "efb_visitor";
@@ -162,10 +163,45 @@ export function attachIdentity(req, res, next) {
  * 401 rather than 403: the caller is not forbidden, they are unidentified, and
  * the client turns exactly this status into "your session ended, sign in
  * again" rather than into an error toast nobody can act on.
+ *
+ * **It also asks whether the account still exists, and that is not redundant.**
+ * A token is signed once and then believed for `SESSION_TTL_MS` — thirty days —
+ * so deleting an account from the console did nothing to the browser holding
+ * its cookie. Measured before this check: the deleted user kept getting 200s
+ * from `/api/my-players`, stayed "signed in" as far as the UI was concerned,
+ * and only discovered otherwise when a write hit the foreign key and came back
+ * as an opaque 500. Being deleted has to mean being signed out.
+ *
+ * One primary-key lookup per request, uncached. Every route behind this gate
+ * queries the database anyway, so it is one more round trip on a connection
+ * that is already open — and a cache here would be a second place that has to
+ * learn about a deletion, which is the bug this is fixing.
+ *
+ * `/api/rooms/*` is deliberately not behind this gate and so does not pay for
+ * it: a room seat belongs to a cookie rather than an account, and its presence
+ * heartbeat runs every 500 ms.
  */
-export function requireSession(req, res, next) {
+export async function requireSession(req, res, next) {
   if (!req.userId) {
     return res.status(401).json({ error: "Sign in to continue.", signedOut: true });
+  }
+
+  let exists;
+  try {
+    const [[row]] = await db.query("SELECT id FROM users WHERE id = ?", [req.userId]);
+    exists = Boolean(row);
+  } catch {
+    /* The difference matters. "Your account is gone" is a 401, which the client
+       turns into clearing localStorage and bouncing to sign-in — the right end
+       for a deleted account and the wrong one for a database blip. An unknown
+       answer is a 503 instead, so a momentary outage cannot sign everybody out
+       of a session that is still perfectly valid. */
+    return res.status(503).json({ error: "Could not verify your session. Try again." });
+  }
+
+  if (!exists) {
+    clearSessionCookie(req, res);
+    return res.status(401).json({ error: "This account no longer exists.", signedOut: true });
   }
   next();
 }

@@ -297,8 +297,11 @@ All routes are JSON, under `/api`. Read them from the routers in `src/features/*
 > through `GET /api/rooms/:code/opponent-squad`, which answers only for whoever holds the
 > other chair.
 
-Sessions are stateless — no sessions table, they survive a restart, and cannot be revoked
-before `SESSION_TTL_MS` (30 days). `SESSION_SECRET` keeps sign-ins alive across a deploy.
+Sessions are stateless — no sessions table, and they survive a restart. An individual
+token cannot be revoked before `SESSION_TTL_MS` (30 days), but the account behind it can:
+`requireSession` confirms the row still exists on every call, so a deleted account is
+signed out at its next request rather than lingering for a month. `requireAdmin` does the
+same for `is_admin`. `SESSION_SECRET` keeps sign-ins alive across a deploy.
 `src/lib/rateLimit.js` fronts auth (15 / 15 min), email (5 / hr), catalog and the signed-in
 app surface (300 / min each), room routes (600 / min), card images (1200 / min) and client
 error reports (30 / min). The one deliberate exemption is `POST /api/rooms/:code/presence`:

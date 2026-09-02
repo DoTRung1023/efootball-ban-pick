@@ -27,6 +27,7 @@ import {
 } from "@/features/draft/index.js";
 import { takePendingToast } from "@/shared/ui/pendingToast.js";
 import { installErrorReporter } from "@/shared/lib/errorReporter.js";
+import { installSignedOutGuard } from "@/shared/lib/session.js";
 
 // ── Global error surfacing ───────────────────────────────────
 
@@ -35,6 +36,10 @@ import { installErrorReporter } from "@/shared/lib/errorReporter.js";
    not merged (see the note atop shared/ui/toast.js). Injecting it is what lets
    one reporter serve four pages that each say things differently. */
 installErrorReporter({ notify: (message) => announce(message, "warn") });
+
+/* The draft reads squads and game plans through `requireSession` too, so a
+   deleted account has to leave this page the same way it leaves the home one. */
+installSignedOutGuard();
 
 // ── Callback wiring ──────────────────────────────────────────
 

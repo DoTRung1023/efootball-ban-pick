@@ -1,4 +1,4 @@
-import { requireAuth } from '@/shared/lib/session.js';
+import { installSignedOutGuard, requireAuth } from '@/shared/lib/session.js';
 import { initUserMenu, initEditProfile } from '@/features/auth/index.js';
 import { loadSquad, initSquadSearchSortFilter, initSquadControls } from '@/features/squad/index.js';
 import { initAddPlayerModal, initPlayerPopup } from '@/features/catalog/index.js';
@@ -10,6 +10,11 @@ import { installErrorReporter } from '@/shared/lib/errorReporter.js';
 
 /* `error`, not `warn` — this page's toast has no warn variant. */
 installErrorReporter({ notify: (message) => showToast(message, "error") });
+
+/* Before anything fetches. Every call below is behind `requireSession`, and an
+   account deleted from the console 401s all of them — this is what turns that
+   into a sign-out instead of a page that keeps drawing around the failures. */
+installSignedOutGuard();
 
 /** Nav tab ↔ URL. `src/pages.js` serves `home.html` on all three, so a reload
     or a shared link lands on the tab named by the path rather than always on

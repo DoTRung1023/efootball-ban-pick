@@ -72,8 +72,16 @@ installed app-wide as `attachIdentity` in the composition root. Three rules:
      whoever holds the other chair.
 
 Stateless, like the console token beside it: no sessions table, survives a restart, and
-cannot be revoked before `SESSION_TTL_MS`. `SESSION_SECRET` is what keeps sign-ins alive
-across a deploy.
+`SESSION_SECRET` is what keeps sign-ins alive across a deploy.
+
+**A token still cannot be revoked one at a time — but the account behind it can.** Being
+stateless was read as "the cookie is the whole answer", and it was not: deleting an
+account left its browser signed in for the rest of `SESSION_TTL_MS`, thirty days, because
+`requireSession` only checked the signature. Measured, the deleted user kept getting 200s
+and only met the deletion as an opaque 500 from a foreign key. `requireSession` now
+confirms the row exists and `requireAdmin` confirms `is_admin` still does — one
+primary-key lookup on a connection the route was about to use anyway. Signing one person
+out of one device is still not possible; removing their access is.
 
 Both halves of what used to be open here are now closed. `appLimiter` and `roomLimiter`
 in `src/lib/rateLimit.js` cover the signed-in surface — being authenticated was previously
