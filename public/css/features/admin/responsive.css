@@ -30,6 +30,19 @@
 @media (max-width: 1200px) {
   .role-actions,
   .role-actions.is-slim { grid-template-columns: repeat(4, auto); }
+
+  /* **`auto` tracks only take the button's width if the slot lets them.**
+     `.role-slot` sets `min-width: 0`, which is what lets a 112px fixed slot
+     hold the 114px `MAKE MASTER` above this rung — but it also cancels the grid
+     item's automatic minimum, so once the tracks are `auto` they shrink to
+     nothing under pressure while each button holds its own 96px floor. The
+     buttons then overflow their slots and sit on top of one another: measured,
+     13px of overlap at 900 and 61px at 756.
+
+     Restoring the automatic minimum here is what makes "the buttons take their
+     own width" true, which is what the rule above already says it does. It is
+     scoped to this rung because above it the 112px slot still needs the 0. */
+  .role-slot { min-width: auto; }
 }
 
 @media (max-width: 1100px) {
