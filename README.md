@@ -301,3 +301,4 @@ writes an `audit:` line to the server log naming the acting admin and the target
 password reset or a demotion leaves a trace rather than only an effect.
 
 `GET /api/health` is the only CORS-enabled route; the wake page is why it has one.
+
