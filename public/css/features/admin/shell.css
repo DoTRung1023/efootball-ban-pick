@@ -85,10 +85,17 @@ body {
   flex-shrink: 0;
 }
 
+/* Left-aligned, not centred. `align-items: center` is what this stack had when
+   it *was* the whole lockup and had to centre itself in the card — with the mark
+   beside it that becomes centring the two lines against each other, so
+   `eFOOTBALL` floated in from the logo while the longer `BAN & PICK · CONSOLE`
+   set the width. Both lines start at the same x now, 12px from the mark, which
+   is how the lockup reads on every other page. `.gate-logo` still centres the
+   pair as a whole. */
 .gate-logo .brand-text {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
 }
 
