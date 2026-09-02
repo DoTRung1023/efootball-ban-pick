@@ -30,7 +30,7 @@ and impossible to cheat by peeking.
 
 ## Features
 
-**Squad building** (`/`) — a catalog of ~41 k eFootball players scraped from
+**Squad building** (`/players`) — a catalog of ~41 k eFootball players scraped from
 [pesdb.net](https://pesdb.net/efootball/), searchable and filterable on position, overall,
 club, league, region, nationality, foot, playing style, height, weight and age. Build a
 personal squad from it, and up to 20 game plans of 23 players each (11 starters + 12 subs)
@@ -48,6 +48,12 @@ menu. Catalog and user stats, live rooms with a read-only WATCH panel that canno
 draft, user/role management, a catalog browser with CSV export, and scrape controls (UPDATE
 for new cards, REPAIR GAPS to diff every site id against the DB) with live output and a STOP
 button. Stopping is safe — the run resumes where it left off.
+
+`/` is the entry point and serves the **sign-in page**. The server decides there
+— it holds the signed session cookie, so a signed-in visitor is redirected straight
+to `/players` without the sign-in page ever being fetched. `/signin` itself always
+serves the page rather than redirecting, which is what a client whose localStorage
+has been cleared needs in order to identify itself again.
 
 All three are responsive down to 320 px.
 
