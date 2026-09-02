@@ -195,6 +195,18 @@
 
   .admin-table:not(.catalog-table) td[data-label="EMAIL"] { max-width: none; }
 
+  /* **"No scrape runs yet" is not a field, so it gets no label gutter either.**
+     `.td-empty` carries no `data-label`, so the rule above gave it an *empty*
+     84px `::before` — a gutter with nothing in it, shoving the sentence right by
+     that much. And `text-align: center` on the base rule stops meaning anything
+     the moment the cell becomes a flex container, so nothing put it back.
+     Measured before this: off-centre by 131px at 620 and 24px at 390.
+
+     Same two lines as `.col-you` below, for the same reason: a cell that holds a
+     message rather than a labelled value wants the whole width. */
+  .admin-table:not(.catalog-table) td.td-empty { justify-content: center; }
+  .admin-table:not(.catalog-table) td.td-empty::before { content: none; }
+
   /* A card is one account, so the badge is a corner mark on it rather than a
      labelled field: no 84px label gutter, and the cell is dropped entirely on
      the rows that are not yours instead of leaving an empty line in each. */
