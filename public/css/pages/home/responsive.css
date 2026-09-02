@@ -98,8 +98,6 @@
   .cr-img     { width: 56px; height: 76px; }
   .cr-info    { flex: 1 1 120px; }
   .cr-add-btn { order: 3; }
-  .cr-pos     { order: 5; margin-left: auto; }
-  .cr-ovr     { order: 6; }
 }
 
 /* ============================================================

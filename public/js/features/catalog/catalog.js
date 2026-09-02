@@ -1,8 +1,6 @@
 import { escapeHtml, CARD_IMG, ANON_PLAYER_IMG, makePlayerImg,
          playerDetailSublineHtml } from '@/shared/players/playerMeta.js';
-import { hasFullOvrPair, ovrPairInnerHtml } from './ovr.js';
 import { icon } from '@/shared/icons/icon.js';
-import { posClass } from '@/shared/players/positions.js';
 import { SORT_CATEGORIES } from '@/shared/players/sort.js';
 import { buildPlayerFilterPanel, createPlayerFilterState, resetPlayerFilterState,
          getPlayerFilterOptions, hasActivePlayerFilters,
@@ -173,14 +171,6 @@ function makeCatalogRow(player) {
     <div class="cr-detail">${playerDetailSublineHtml(player)}</div>
   `;
 
-  const pos = document.createElement("span");
-  pos.className   = `cr-pos ${posClass(player.position)}`;
-  pos.textContent = player.position || "?";
-
-  const ovr = document.createElement("span");
-  ovr.className = `cr-ovr${hasFullOvrPair(player) ? " cr-ovr-dual" : ""}`;
-  ovr.innerHTML = ovrPairInnerHtml(player);
-
   const addBtn = document.createElement("button");
   addBtn.className = `cr-add-btn ${isAdded ? "added" : ""}`;
   addBtn.title     = isAdded ? "Remove from team" : "Add to team";
@@ -202,8 +192,6 @@ function makeCatalogRow(player) {
 
   row.appendChild(imgWrap);
   row.appendChild(info);
-  row.appendChild(pos);
-  row.appendChild(ovr);
   row.appendChild(addBtn);
   return row;
 }
