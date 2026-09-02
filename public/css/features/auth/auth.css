@@ -157,6 +157,19 @@ body {
   user-select: none;
 }
 
+/* The shield beside the wordmark. `.brand-header` was already a flex row with a
+   12px gap and nothing in the first slot — this fills it.
+
+   48px against a text block that measures 36px (22px name, 2px, 12px sub): the
+   mark overhangs the type slightly on both sides, which is what stops it
+   reading as a third line of text. Width is declared in the markup as well so
+   the row does not reflow when the SVG arrives. */
+.brand-logo {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;
