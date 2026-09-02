@@ -151,12 +151,6 @@
   font-weight: 400;
 }
 
-.pos-gk,
-.pos-def,
-.pos-mid,
-.pos-fwd,
-.pos-other { background: var(--fill-strong); color: var(--text); }
-
 .cr-add-btn {
   width: 32px;
   height: 32px;

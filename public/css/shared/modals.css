@@ -283,14 +283,6 @@
   display: none;
 }
 
-.player-popup-ovr .ovr-pair {
-  font-size: 22px;
-}
-
-.player-popup-ovr .ovr-max {
-  color: var(--text);
-}
-
 .player-popup-name {
   font-size: 20px;
   font-weight: 700;
