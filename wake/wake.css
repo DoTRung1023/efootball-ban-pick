@@ -1,0 +1,224 @@
+/* ============================================================
+   WAKE PAGE — the whole stylesheet.
+
+   Linked from index.html, served by Vercel. See the comment block in
+   index.html for why this page exists and why it may not touch Render.
+
+   The tokens below are COPIED from public/css/shared/tokens.css, not
+   imported: importing would mean fetching from the server this page is
+   waiting on. They can therefore drift, which is a real cost — the block
+   is kept to nine values to keep that cost small, and a change here that
+   needs a tenth is a sign this page is doing more than it should.
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* From public/css/shared/tokens.css — see the note above. */
+  --bg: #0f1118;
+  --bg-elevated: #171922;
+  --border: #31364b;
+  --accent: #c6f135;
+  --accent-hover: #d0fe05;
+  --on-accent: #0f1118;
+  --text: #ffffff;
+  --text-muted: #8b91a8;
+  --fill-strong: rgba(255, 255, 255, 0.08);
+
+  --radius: 8px;
+  --radius-pill: 999px;
+  --font-body: "Geist", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --transition: 150ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+
+/* Hidden until the probe has had REVEAL_DELAY_MS to come back. A warm
+   server answers in ~200ms, and flashing a loading screen for 200ms reads
+   as a broken page — so a warm hit shows nothing at all. */
+.shell {
+  width: 100%;
+  max-width: 420px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.shell[data-visible="true"] {
+  opacity: 1;
+}
+
+/* ============================================================
+   BRAND — the sign-in page's lockup, in text. /logo/logo.svg lives on
+   Render and so cannot be used here.
+   ============================================================ */
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  margin-bottom: 20px;
+  user-select: none;
+}
+
+.brand-game {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.brand-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   CARD
+   ============================================================ */
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.headline {
+  margin: 0 0 10px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.blurb {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   PROGRESS
+
+   The one accent element on this screen (DESIGN.md: at most one). Width is
+   an ESTIMATE against TYPICAL_WAKE_MS and is labelled as one by the copy —
+   the honest number is the elapsed clock beside it, and the bar stops at
+   92% rather than pretending to finish.
+   ============================================================ */
+
+.track {
+  height: 4px;
+  margin-top: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-strong);
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  width: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transition: width 400ms linear;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   FAILED STATE — the bar is swapped for the button rather than joined by
+   it, so the accent is still worn exactly once.
+   ============================================================ */
+
+.retry {
+  display: none;
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.retry:hover {
+  background: var(--accent-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[data-state="failed"] .track,
+[data-state="failed"] .meta {
+  display: none;
+}
+
+[data-state="failed"] .retry {
+  display: block;
+}
+
+.noscript {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.noscript a {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .bar,
+  .retry {
+    transition: none;
+  }
+}
