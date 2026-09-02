@@ -219,6 +219,7 @@ hand out the Vercel URL as the address people visit.
 | `npm start` | Production server |
 | `npm run check` | Static gate — import paths and casing, unused/undeclared bindings, cycles, missing DOM ids, dead CSS, icons, layer boundaries, stray debug code |
 | `npm run check:self` | Proves those checks can still fail — a gate that cannot fail is not a gate |
+| `npm test` | Unit tests (`node --test`, no dependency). Covers the pure rules both clients depend on: the turn schedule, the `0`-means-unlimited duration sentinel, the catalog WHERE builder and the base-URL helper |
 | `npm run icons` | Regenerates `public/icons/svg/` from `sprite.svg`. Generated output: never edit it |
 | `npm run scrape` | Full on first run, incremental after. Backs up the catalog first and resumes from `.scrape-state.json` if interrupted. `SCRAPE_SHOW_LOGS=1` prints the last 5 runs |
 | `npm run scrape:missing` | Repair gaps — diff every pesdb list page against the DB and fetch only the missing IDs |
@@ -226,7 +227,11 @@ hand out the Vercel URL as the address people visit.
 > [!IMPORTANT]
 > **Run `npm run check` before committing.** With no bundler and no type checker it is the
 > only thing that catches a bad import path — and a casing mistake works on macOS and 404s in
-> production. CI runs it on Linux for exactly that reason.
+> production. CI runs it on Linux for exactly that reason, then runs `npm test`.
+
+Between them they cover different things and neither covers the draft end to end: the gate is
+static, and the tests are unit tests over pure modules. Two browsers in a room is still a
+manual check.
 
 ---
 
@@ -270,34 +275,18 @@ All routes are JSON, under `/api`. Read them from the routers in `src/features/*
 
 Sessions are stateless — no sessions table, they survive a restart, and cannot be revoked
 before `SESSION_TTL_MS` (30 days). `SESSION_SECRET` keeps sign-ins alive across a deploy.
-`src/lib/rateLimit.js` fronts auth (15 / 15 min), email (5 / hr), catalog (300 / min) and card
-images (1200 / min).
+`src/lib/rateLimit.js` fronts auth (15 / 15 min), email (5 / hr), catalog and the signed-in
+app surface (300 / min each), room routes (600 / min) and card images (1200 / min). The one
+deliberate exemption is `POST /api/rooms/:code/presence`: it is a 500 ms heartbeat, so any
+threshold low enough to mean something would end the draft it is meant to protect.
 
 The console is separate: `POST /api/admin/session` trades a password for a signed, expiring
 token carried in an `x-admin-token` header, and `router.use(requireAdmin)` guards everything
 else under `/api/admin`. The master-only routes — granting console access, designating a
 master, resetting a password, changing the console password, clearing the catalog or the
 scrape history — re-read `is_master_admin` from the database on every call rather than
-trusting the token, because a token outlives a demotion by up to eight hours.
+trusting the token, because a token outlives a demotion by up to eight hours. Each of them
+writes an `audit:` line to the server log naming the acting admin and the target, so a
+password reset or a demotion leaves a trace rather than only an effect.
 
 `GET /api/health` is the only CORS-enabled route; the wake page is why it has one.
-
----
-
-## Known gaps
-
-- **The REGION filter does nothing.** Every filter panel offers it and the client sends
-  `region=…`, but `buildCatalogFilter` in `src/features/players/catalogQuery.js` never
-  destructures or applies it, so the parameter is silently ignored. (`league`, the filter
-  beside it, works.)
-- Card art occasionally missing playing style / region — a scraper data-cleaning issue.
-- `npm run scrape:missing` doesn't write to `scrape_logs`.
-- Ban room: toggling player info shifts the grid as the scrollbar appears.
-- Nothing rate-limits or audits an *authenticated* user; the limiters guard unauthenticated
-  surface only. A shared `ADMIN_CONSOLE_PASSWORD` is still one secret with no identity of its
-  own.
-- Nothing backs up the live database beyond the scraper's `players_catalog_backup`, which
-  covers the catalog and none of the accounts, squads or game plans.
-- **No runtime tests.** `npm run check` is a static gate, not a test suite: it cannot tell you
-  a draft still works. No analytics or error monitoring either, and the free Render instance
-  sleeps — which `wake/` covers up rather than fixes.

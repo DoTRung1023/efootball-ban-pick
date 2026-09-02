@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import db from "#lib/db.js";
 import { asyncHandler, duplicateUserField, describeError, requestBaseUrl } from "#lib/http.js";
-import { authLimiter, emailLimiter } from "#lib/rateLimit.js";
+import { appLimiter, authLimiter, emailLimiter } from "#lib/rateLimit.js";
 import {
   consumeVerificationToken,
   mailConfigured,
@@ -222,7 +222,7 @@ router.post("/verify-email/resend", emailLimiter, asyncHandler(async (req, res) 
 
 // ── Edit Profile ─────────────────────────────────────────────
 
-router.put("/profile", requireSession, asyncHandler(async (req, res) => {
+router.put("/profile", requireSession, appLimiter, asyncHandler(async (req, res) => {
   /* The account being edited is the one that is signed in, full stop. This
      route used to take `userId` from the body, which made "edit my profile"
      mean "edit anyone's" — including their password. */

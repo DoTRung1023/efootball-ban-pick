@@ -403,11 +403,45 @@ async function fetchMissingIds(ids) {
   return new Set(ids.filter((id) => !existing.has(id)));
 }
 
+/**
+ * Adds the 'missing' enum member to a `scrape_logs` created before gap-repair
+ * runs were logged. Same bargain as the other boot-time healers in this repo:
+ * MySQL has no `ADD VALUE IF NOT EXISTS`, and an install that must find an
+ * `ALTER` in `schema.sql` before `npm run scrape:missing` can record anything
+ * is an install that is quietly broken. Runs on every scrape; does nothing on
+ * all but one of them.
+ */
+export async function ensureScrapeLogSchema() {
+  try {
+    const [[col]] = await db.query(
+      `SELECT COLUMN_TYPE AS type FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
+         AND column_name = 'scrape_type'`,
+    );
+    if (col && !String(col.type).includes("'missing'")) {
+      await db.query(
+        `ALTER TABLE scrape_logs MODIFY scrape_type
+         ENUM('full','incremental','missing') NOT NULL DEFAULT 'full'`,
+      );
+      console.log("scrape schema: added 'missing' to scrape_logs.scrape_type");
+    }
+  } catch (err) {
+    /* A repair run that cannot widen the enum should still repair. It just
+       will not be able to log itself, which `startLog` degrades to on its own. */
+    console.error("scrape schema check skipped:", err.message);
+  }
+}
+
 async function getLastLog() {
   const [rows] = await db.query(
+    /* `scrape_type <> 'missing'` is load-bearing, not tidiness. This row picks
+       the cutoff for the next incremental run, and a gap-repair run backfills
+       *old* ids — it reaches no new high-water mark and stores NULL. Counting
+       one here would read as "no cutoff known" and silently turn the next
+       `npm run scrape` into a full ~41 k re-scrape. */
     `SELECT max_pesdb_id, finished_at
      FROM scrape_logs
-     WHERE finished_at IS NOT NULL
+     WHERE finished_at IS NOT NULL AND scrape_type <> 'missing'
      ORDER BY id DESC
      LIMIT 1`,
   );
@@ -422,6 +456,7 @@ async function startLog(type) {
   return result.insertId;
 }
 
+/** `maxId` is null for a gap-repair run, which sets no cutoff — see getLastLog. */
 async function finishLog(id, upserted, maxId) {
   await db.query(
     `UPDATE scrape_logs
@@ -429,7 +464,7 @@ async function finishLog(id, upserted, maxId) {
          players_upserted = ?,
          max_pesdb_id = ?
      WHERE id = ?`,
-    [upserted, maxId.toString(), id],
+    [upserted, maxId == null ? null : maxId.toString(), id],
   );
 }
 
@@ -715,6 +750,8 @@ async function main() {
 }
 
 export {
+  startLog,
+  finishLog,
   fetchHTML,
   parsePlayers,
   detectTotal,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import db from "#lib/db.js";
 import { asyncHandler, describeError } from "#lib/http.js";
 import { requireSession } from "#features/auth/index.js";
+import { appLimiter } from "#lib/rateLimit.js";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
    throughout: `userId` used to arrive in the query string or the body, which
    made every plan in the database editable by anyone who could count. */
 router.use(requireSession);
+router.use(appLimiter);
 
 const MAX_PLANS_PER_USER = 20;
 const LINEUP_SLOTS = 11;

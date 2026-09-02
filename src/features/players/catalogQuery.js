@@ -124,7 +124,7 @@ export function buildCatalogFilter(query, { includeTest = false } = {}) {
   const {
     q, position, positions, posGroup,
     club, nationality,
-    foot, playingStyle, cardType, league,
+    foot, playingStyle, cardType, league, region,
     overallMin, overallMax, maxOverallMin, maxOverallMax,
     heightMin, heightMax,
     weightMin, weightMax,
@@ -144,6 +144,12 @@ export function buildCatalogFilter(query, { includeTest = false } = {}) {
   qb.anyOf("playing_style", playingStyle);
   qb.anyOf("card_type", cardType);
   qb.anyOf("league", league);
+  /* `region` was declared in FILTER_OPTION_COLUMNS and offered by every filter
+     panel, but never destructured here — so the client sent it, this builder
+     dropped it, and `?region=NOT_A_REGION` came back with a full page while
+     `?league=NOT_A_LEAGUE` correctly came back empty. Same shape as `league`
+     because it is the same kind of column: a short closed set, any-of. */
+  qb.anyOf("region", region);
 
   qb.compare("overall", ">=", overallMin);
   qb.compare("overall", "<=", overallMax);

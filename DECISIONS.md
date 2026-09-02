@@ -75,9 +75,17 @@ Stateless, like the console token beside it: no sessions table, survives a resta
 cannot be revoked before `SESSION_TTL_MS`. `SESSION_SECRET` is what keeps sign-ins alive
 across a deploy.
 
-What is **not** closed: nothing rate-limits or audits an authenticated user, and the
-console's shared-password mode still has no identity of its own beyond the account it is
-opened for.
+Both halves of what used to be open here are now closed. `appLimiter` and `roomLimiter`
+in `src/lib/rateLimit.js` cover the signed-in surface — being authenticated was previously
+the cheapest way to hammer the database — with one deliberate exemption, the 500 ms
+`/presence` heartbeat, written in exactly one place. And the six master-only console
+actions log an `audit:` line naming the actor and target, so a password reset or a
+demotion leaves a trace. The log is the store on purpose: a table would need a schema, a
+retention policy and a screen to read it, and would still be deletable by the accounts it
+exists to watch.
+
+What is **not** closed: the console's shared-password mode still has no identity of its
+own beyond the account it is opened for.
 
 ### 2. Persistence and hosting — **DECIDED, LATE**
 
@@ -107,8 +115,10 @@ answers. It is the one part of the system deliberately hosted somewhere else, an
 exists because a sleeping server cannot draw its own loading screen. Paying for an
 instance removes both the sleep and that page.
 
-Still open: CI runs the static gate only, and there is no deploy step — a push to `main`
-does not ship anything, and Render's own auto-deploy is what actually publishes. Nothing
+Still open: there is no deploy step — a push to `main` does not ship anything, and
+Render's own auto-deploy is what actually publishes. CI now runs `npm test` beside the
+static gate, but those are unit tests over pure modules; two browsers in a room is still
+a manual check. Nothing
 backs up TiDB beyond the scraper's `players_catalog_backup` table, which covers the
 catalog and none of the accounts, squads or game plans.
 

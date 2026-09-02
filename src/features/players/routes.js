@@ -2,7 +2,7 @@ import { Router } from "express";
 import db from "#lib/db.js";
 import { asyncHandler, describeError } from "#lib/http.js";
 import { requireSession } from "#features/auth/index.js";
-import { catalogLimiter } from "#lib/rateLimit.js";
+import { appLimiter, catalogLimiter } from "#lib/rateLimit.js";
 import {
   CATALOG_COLUMNS,
   DEFAULT_SORT,
@@ -107,7 +107,7 @@ router.get("/players", catalogLimiter, async (req, res) => {
  * id comes from the session cookie and there is no parameter to point
  * somewhere else.
  */
-router.get("/my-players", requireSession, async (req, res) => {
+router.get("/my-players", requireSession, appLimiter, async (req, res) => {
   try {
     res.json({ players: await readSquad(req.userId) });
   } catch (err) {
@@ -116,7 +116,7 @@ router.get("/my-players", requireSession, async (req, res) => {
   }
 });
 
-router.post("/my-players", requireSession, asyncHandler(async (req, res) => {
+router.post("/my-players", requireSession, appLimiter, asyncHandler(async (req, res) => {
   const { name, position, club, overall, pesdbId } = req.body;
   const userId = req.userId;
 
@@ -140,7 +140,7 @@ router.post("/my-players", requireSession, asyncHandler(async (req, res) => {
   }
 }));
 
-router.delete("/my-players", requireSession, asyncHandler(async (req, res) => {
+router.delete("/my-players", requireSession, appLimiter, asyncHandler(async (req, res) => {
   const { playerIds } = req.body;
   const userId = req.userId;
 

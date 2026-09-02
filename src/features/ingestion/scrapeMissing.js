@@ -9,6 +9,9 @@ import {
   enrichBatch,
   upsertPlayers,
   backupCatalog,
+  ensureScrapeLogSchema,
+  startLog,
+  finishLog,
 } from "./scrape.js";
 
 const PAGE_DELAY         = 1500;
@@ -84,6 +87,13 @@ async function fetchDbIds() {
 async function main() {
   const startedAt = Date.now();
 
+  /* Logged like a full or incremental run, so the console's scrape history
+     shows every run rather than all but this one. The type is its own
+     ('missing') because a gap-repair run must never be read as the cutoff for
+     the next incremental — see getLastLog in scrape.js. */
+  await ensureScrapeLogSchema();
+  const logId = await startLog("missing");
+
   await backupCatalog();
 
   const { ids: siteIds, total: siteTotal } = await fetchAllSiteIds();
@@ -99,12 +109,17 @@ async function main() {
 
   if (missing.length === 0) {
     console.log("DONE  Nothing to do.");
+    /* Finished with zero upserted, not left dangling: "ran, found no gaps" is
+       a result worth seeing in the history, and an unfinished row reads as a
+       run that crashed. */
+    await finishLog(logId, 0, null);
     await db.end();
     return;
   }
 
   let buffer    = [];
   let done      = 0;
+  let upserted  = 0;
   const startTime = Date.now();
 
   console.log("FILL  Enriching missing players…\n");
@@ -120,6 +135,7 @@ async function main() {
 
     if (buffer.length >= FLUSH_EVERY) {
       await upsertPlayers(buffer);
+      upserted += buffer.length;
       buffer = [];
     }
 
@@ -127,11 +143,18 @@ async function main() {
     process.stdout.write(`\r  ${bar(done, missing.length)}  ${elapsed}s   `);
   }
 
-  if (buffer.length > 0) await upsertPlayers(buffer);
+  if (buffer.length > 0) {
+    await upsertPlayers(buffer);
+    upserted += buffer.length;
+  }
+
+  /* null cutoff on purpose: this run filled holes below the high-water mark
+     and did not raise it. */
+  await finishLog(logId, upserted, null);
 
   process.stdout.write("\n");
   const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`\nDONE  Missing players processed: ${missing.length.toLocaleString()}  (${elapsed}s)`);
+  console.log(`\nDONE  Missing players processed: ${missing.length.toLocaleString()}, upserted: ${upserted.toLocaleString()}  (${elapsed}s)`);
 
   await db.end();
 }

@@ -12,6 +12,7 @@ is a signed httpOnly cookie the server mints; a `userId` in a request is ignored
 npm run dev          # start dev server with auto-reload (node --watch)
 npm start            # start production server
 npm run check        # static gate: imports, path casing, bindings, cycles, dom ids, dead CSS
+npm test             # unit tests (node --test) over the pure modules — no DB needed
 npm run icons        # regenerate public/icons/svg/ from sprite.svg (check fails if stale)
 npm run check:self   # prove those checks can still fail
 npm run scrape       # full or incremental player catalog update

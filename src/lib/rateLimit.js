@@ -12,8 +12,9 @@
    becomes per-process and the counts want moving into MySQL or Redis; that is
    noted in DECISIONS.md rather than pre-built.
 
-   Imported by `server.js` and the auth and players routers. Nothing else, and
-   nothing outside `src/` — importing it must stay free of side effects.
+   Imported by `server.js` and the auth, players, gamePlans and rooms routers.
+   Nothing else, and nothing outside `src/` — importing it must stay free of
+   side effects.
 
    **Behind a proxy, set `TRUST_PROXY`.** Otherwise `req.ip` is the proxy for
    every request, all callers share one bucket, and the first busy minute locks
@@ -96,7 +97,31 @@ export const catalogLimiter = rateLimit({ name: "catalog", windowMs: 60_000, max
  */
 export const cardImageLimiter = rateLimit({ name: "cardImage", windowMs: 60_000, max: 1200 });
 
+/**
+ * The signed-in app surface: the squad, game plans, the profile.
+ *
+ * Being authenticated used to mean being unlimited, which made an account the
+ * cheapest way to hammer the database. 300/min is the same rung as the catalog
+ * because the traffic is the same shape — a person clicking a UI — and a real
+ * session never comes close.
+ */
+export const appLimiter = rateLimit({ name: "app", windowMs: 60_000, max: 300 });
+
+/**
+ * Room routes **other than presence**, which `routes.js` exempts explicitly.
+ *
+ * Deliberately loose, because two of these are bursty by design and a limit
+ * that interrupts a draft is worse than no limit at all. Confirming a ban
+ * phase posts one request *per staged ban* (`submitBansToApi` sends them
+ * singly so one rejection cannot discard the rest), so a full side is ~23 in a
+ * few seconds; and the lobby's config push is debounced at 300 ms, so dragging
+ * a stepper can sustain ~200/min on its own. Both players can share one IP.
+ * 600 leaves all of that room and still caps a runaway loop.
+ */
+export const roomLimiter = rateLimit({ name: "room", windowMs: 60_000, max: 600 });
+
 /* Deliberately not limited: `/api/rooms/:code/presence`. It is a 500 ms
    heartbeat by design, which is 120 requests a minute per client before anyone
    has done anything. Any threshold low enough to mean something would end the
-   draft it is meant to protect. */
+   draft it is meant to protect. `roomLimiter` skips it by path for that reason,
+   and that exemption is the single place the rule lives. */

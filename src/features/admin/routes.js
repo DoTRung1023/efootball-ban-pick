@@ -422,7 +422,21 @@ async function isMasterAdmin(userId) {
  * about roles.
  */
 async function requireMaster(req, res, action = "do that") {
-  if (await isMasterAdmin(req.admin.uid)) return true;
+  if (await isMasterAdmin(req.admin.uid)) {
+    /* The audit trail, such as it is: the six master-only actions are the ones
+       that change who can get in and what they can reach, and until now they
+       happened silently — a password reset or a demotion left nothing behind
+       but its effect. One line to the server log names the actor, the target
+       (it is in the URL) and, by the log's own timestamp, when.
+
+       The log is the store on purpose. A table would need a schema, a retention
+       policy and a console screen to read it, and would still be deletable by
+       exactly the accounts it exists to watch. The platform's log is append-only
+       from the app's point of view, which is the property that matters. */
+    console.log(`audit: admin ${req.admin.uid} → ${req.method} ${req.originalUrl} (${action})`);
+    return true;
+  }
+  console.warn(`audit: admin ${req.admin.uid} DENIED ${req.method} ${req.originalUrl} (${action})`);
   res.status(403).json({ error: `Only a master admin can ${action}.` });
   return false;
 }

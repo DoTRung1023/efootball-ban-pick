@@ -36,3 +36,10 @@ jobs:
 
       - name: Prove the checks can still fail
         run: npm run check:self
+
+      # The static gate cannot tell you a draft still works. These can — they
+      # cover the pure rules the two clients both depend on (turn schedule,
+      # the 0-means-unlimited duration sentinel, the catalog WHERE builder) and
+      # need no database, which is why they can run here at all.
+      - name: Unit tests
+        run: npm test

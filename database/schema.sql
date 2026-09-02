@@ -37,7 +37,10 @@ USE ban_pick_efb;
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS scrape_logs (
   id               INT UNSIGNED        NOT NULL AUTO_INCREMENT,
-  scrape_type      ENUM('full','incremental') NOT NULL DEFAULT 'full',
+  -- 'missing' is a gap-repair run (`npm run scrape:missing`). It backfills old
+  -- ids rather than reaching a new high-water mark, so it never sets a cutoff
+  -- and getLastLog() in scrape.js skips it when choosing the next run's mode.
+  scrape_type      ENUM('full','incremental','missing') NOT NULL DEFAULT 'full',
   started_at       TIMESTAMP           NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finished_at      TIMESTAMP           NULL,
   players_upserted INT UNSIGNED        NULL,

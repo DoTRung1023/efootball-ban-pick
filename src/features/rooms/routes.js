@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "#lib/http.js";
+import { roomLimiter } from "#lib/rateLimit.js";
 import { readSquad } from "#features/players/index.js";
 import { maybeRefreshSquadSizes, refreshSquadSizes } from "./squads.js";
 import { isSoloBanTurn, normalizeBanOrder, turnAt } from "./schedule.js";
@@ -29,6 +30,15 @@ import {
 } from "./store.js";
 
 const router = Router({ mergeParams: true });
+
+/* Every room route is limited except the heartbeat, and this is the one place
+   that exemption is written. `/presence` fires every 500 ms by design — 120/min
+   per client before anyone has clicked anything — so any threshold low enough to
+   mean something would end the draft it is meant to protect. Everything else
+   here is driven by a person, and `roomLimiter` is sized for the burstiest of
+   them (see the note on it in lib/rateLimit.js). */
+router.use((req, res, next) =>
+  req.path.endsWith("/presence") ? next() : roomLimiter(req, res, next));
 
 const MAX_STAGED_BANS_FALLBACK = 10;
 

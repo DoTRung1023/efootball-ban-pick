@@ -64,6 +64,14 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Reserve the scrollbar's track whether or not it is showing. SHOW INFO adds a
+     footer to every card, which makes the content taller, which makes the bar
+     appear — and without this the bar's width comes out of the content, so the
+     whole grid reflows sideways as a side effect of opening a footer. The
+     `info-toggle` check in `npm run check` guards the other half of this (rules
+     that resize the cards themselves); it cannot see a scrollbar.
+     No-op where scrollbars already overlay the content, as on macOS. */
+  scrollbar-gutter: stable;
   overflow-x: hidden;
 }
 
