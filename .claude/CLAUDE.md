@@ -89,6 +89,19 @@ Code is grouped **by feature, not by file type**.
   what a file should contain. Node-only tooling; it is not served, and the checks
   scan `public/js` and `src` but not themselves.
 - `database/schema.sql` — MySQL schema.
+- `wake/` — **not part of the app, and not served by Render.** One static page
+  deployed to Vercel (root directory `wake/`), which is what a visitor hits
+  first: Render spins a free service down after 15 minutes idle and takes ~23s
+  to boot, and during those 23s the app cannot draw its own loading screen
+  because it is not running. So this one is hosted somewhere always warm. It
+  polls `/api/health` across origins — the one route in `src/` carrying a CORS
+  header, and the reason it has one — and hands off with `location.replace`
+  once the app answers. **Everything it needs is inline**: a `<link>` to
+  `/css/shared/tokens.css` or an `<img>` from `/logo/` would be a request to
+  the very server it is waiting for. That is why its nine design tokens are
+  copied from `tokens.css` rather than imported, and the copy is kept small so
+  the drift stays cheap. `APP_ORIGIN` at the top of its script is the only
+  place the app's host is named.
 
 **Do not create a new top-level folder, or a new `public/js/shared/` module, without
 asking.** Left alone this grows a `helpers/`, a `types/`, a `constants/` and a

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Starting up — eFootball Ban &amp; Pick</title>
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="Waking the eFootball Ban &amp; Pick server." />
+
+    <!-- Google Fonts is the app's own source for Geist, and it is a third party
+         to both hosts — so it is up while Render is still asleep. Everything
+         else on this page is inline BY RULE: see the comment block below. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Warms the DNS/TLS handshake to Render while the user reads this page,
+         so the probe below spends its time on the cold start and not on
+         connecting. -->
+    <link rel="preconnect" href="https://efootball-ban-pick.onrender.com" crossorigin />
+
+    <!--
+      ============================================================
+      THE WAKE PAGE — served by Vercel, not by Render.
+
+      Render spins a free web service down after 15 minutes idle and takes
+      ~23s to boot it again (measured). For those 23s the app cannot say
+      anything about itself, because it is not running — which is exactly
+      why Render's own holding page is what visitors see today, and why
+      this page cannot live in `public/`. It has to be served by a host
+      that is always warm.
+
+      **Every byte this page needs is inline or on Google Fonts.** A
+      `<link>` to /css/shared/tokens.css or an <img> from /logo/ would be
+      a request to the very server we are waiting for: the page would sit
+      unstyled for the whole cold start, which is worse than what it
+      replaces. That is the one rule here, and it is why the tokens below
+      are copied rather than imported.
+
+      The values ARE DESIGN.md's — surfaces, the volt accent, the neutral
+      ladder, Geist. Copied, so they can drift; the block is deliberately
+      small (nine tokens) to keep that cheap, and anything this page needs
+      beyond them should make it wonder whether it is doing too much.
+      ============================================================
+    -->
+    <style>
+      :root {
+        color-scheme: dark;
+
+        /* From public/css/shared/tokens.css — see the note above. */
+        --bg: #0f1118;
+        --bg-elevated: #171922;
+        --border: #31364b;
+        --accent: #c6f135;
+        --on-accent: #0f1118;
+        --text: #ffffff;
+        --text-muted: #8b91a8;
+        --fill-strong: rgba(255, 255, 255, 0.08);
+        --radius: 8px;
+        --radius-pill: 999px;
+        --font-body: "Geist", -apple-system, "Segoe UI", sans-serif;
+        --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        --transition: 150ms ease;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Hidden until the probe has had REVEAL_DELAY_MS to come back. A warm
+         server answers in ~200ms, and flashing a loading screen for 200ms
+         reads as a broken page — so a warm hit shows nothing at all. */
+      .shell {
+        width: 100%;
+        max-width: 420px;
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+      .shell[data-visible="true"] { opacity: 1; }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        line-height: 1;
+        margin-bottom: 20px;
+        user-select: none;
+      }
+      .brand-game {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+      }
+      .brand-sub {
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+
+      .card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+      }
+
+      .kicker {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .headline {
+        margin: 0 0 10px;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .blurb {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-muted);
+      }
+
+      /* The one accent element on this screen (DESIGN.md: at most one).
+         Width is an ESTIMATE against TYPICAL_WAKE_MS and is labelled as one
+         by the copy — the honest number is the elapsed clock beside it, and
+         the bar stops at 92% rather than pretending to finish. */
+      .track {
+        height: 4px;
+        margin-top: 20px;
+        border-radius: var(--radius-pill);
+        background: var(--fill-strong);
+        overflow: hidden;
+      }
+      .bar {
+        height: 100%;
+        width: 0;
+        border-radius: var(--radius-pill);
+        background: var(--accent);
+        transition: width 400ms linear;
+      }
+
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-top: 10px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Replaces the bar on give-up, so the accent is still worn once. */
+      .retry {
+        display: none;
+        width: 100%;
+        margin-top: 20px;
+        padding: 10px 16px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--on-accent);
+        background: var(--accent);
+        border: 0;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .retry:hover { background: #d0fe05; }
+      .retry:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      [data-state="failed"] .track,
+      [data-state="failed"] .meta { display: none; }
+      [data-state="failed"] .retry { display: block; }
+
+      .noscript {
+        margin-top: 20px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .noscript a { color: var(--accent); }
+
+      @media (prefers-reduced-motion: reduce) {
+        .shell, .bar, .retry { transition: none; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="shell" id="shell">
+      <div class="brand">
+        <span class="brand-game">eFOOTBALL</span>
+        <span class="brand-sub">BAN &amp; PICK</span>
+      </div>
+
+      <div class="card" id="card" data-state="waking">
+        <p class="kicker" id="kicker">Starting up</p>
+        <h1 class="headline" id="headline">Waking the server</h1>
+        <!-- One live region for the whole status, so a screen reader hears the
+             copy change once rather than hearing the clock tick every second. -->
+        <p class="blurb" id="blurb" role="status" aria-live="polite">
+          This app sleeps when nobody is using it. Starting it takes about half a
+          minute — you will be sent through the moment it answers.
+        </p>
+
+        <div class="track" aria-hidden="true">
+          <div class="bar" id="bar"></div>
+        </div>
+        <div class="meta" aria-hidden="true">
+          <span id="elapsed">0:00</span>
+          <span id="estimate">usually ~30s</span>
+        </div>
+
+        <button class="retry" id="retry" type="button">Try again</button>
+
+        <noscript>
+          <p class="noscript">
+            This page needs JavaScript to know when the server is ready.
+            <a href="https://efootball-ban-pick.onrender.com/">Go to the app directly</a>
+            — it may take about 30 seconds to load.
+          </p>
+        </noscript>
+      </div>
+    </div>
+
+    <script>
+      /* The one thing to change if the app moves — a custom domain, a paid
+         Render instance, somewhere else entirely. Nothing else on this page
+         names the host. */
+      const APP_ORIGIN = "https://efootball-ban-pick.onrender.com";
+
+      /* Measured, not guessed: a cold boot answered /api/health in 23s. 30s is
+         that with room, and it is what the "usually" copy promises — so if the
+         boot gets slower, change both or neither. */
+      const TYPICAL_WAKE_MS = 30_000;
+      /* Render holds the connection open through a cold start rather than
+         refusing it, so one probe usually just takes ~23s. This cap exists for
+         the other case: a 502 from the proxy mid-boot, which comes back fast
+         and needs retrying. */
+      const PROBE_TIMEOUT_MS = 12_000;
+      const RETRY_GAP_MS = 1_000;
+      const GIVE_UP_MS = 120_000;
+      /* A warm server answers in ~200ms. Under this, nobody sees a loader. */
+      const REVEAL_DELAY_MS = 600;
+
+      const shell = document.getElementById("shell");
+      const card = document.getElementById("card");
+      const kicker = document.getElementById("kicker");
+      const headline = document.getElementById("headline");
+      const blurb = document.getElementById("blurb");
+      const bar = document.getElementById("bar");
+      const elapsedEl = document.getElementById("elapsed");
+      const estimateEl = document.getElementById("estimate");
+      const retry = document.getElementById("retry");
+
+      /* Where to land after the hand-off. `?to=/room?code=ABC` lets a shared
+         link survive the wait instead of dumping everyone on the home page.
+         Only a path is accepted: the `(?!\/)` rejects `//evil.com`, which is a
+         protocol-relative URL and would otherwise be an open redirect. */
+      function destination() {
+        const raw = new URLSearchParams(location.search).get("to") || "/";
+        return /^\/(?!\/)/.test(raw) ? raw : "/";
+      }
+
+      const startedAt = Date.now();
+      let settled = false;
+
+      /* One probe. Resolves true only on a real 2xx from the app itself —
+         `/api/health` answers {ok:true} and sends the CORS header that lets us
+         read it, so a Render holding page or a 502 can never be mistaken for
+         the app being up. */
+      async function probe() {
+        const abort = new AbortController();
+        const timer = setTimeout(() => abort.abort(), PROBE_TIMEOUT_MS);
+        try {
+          const res = await fetch(APP_ORIGIN + "/api/health", {
+            signal: abort.signal,
+            cache: "no-store",
+            mode: "cors",
+          });
+          return res.ok;
+        } catch {
+          return false;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function handOff() {
+        settled = true;
+        bar.style.width = "100%";
+        location.replace(APP_ORIGIN + destination());
+      }
+
+      function fail() {
+        settled = true;
+        card.dataset.state = "failed";
+        kicker.textContent = "No answer";
+        headline.textContent = "The server is not responding";
+        blurb.textContent =
+          "It has been two minutes with no reply, which is longer than a cold start. " +
+          "The service may be down rather than asleep.";
+        retry.focus();
+      }
+
+      function tick() {
+        if (settled) return;
+        const elapsed = Date.now() - startedAt;
+
+        const secs = Math.floor(elapsed / 1000);
+        elapsedEl.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+
+        /* Stops at 92%: the remaining 8% is the part we genuinely cannot
+           predict, and a bar that sits full while nothing happens is the
+           thing people learn not to trust. */
+        bar.style.width = `${Math.min(elapsed / TYPICAL_WAKE_MS, 1) * 92}%`;
+
+        if (elapsed > TYPICAL_WAKE_MS && kicker.textContent === "Starting up") {
+          kicker.textContent = "Still starting";
+          estimateEl.textContent = "longer than usual";
+          blurb.textContent =
+            "This one is taking longer than the usual half minute. It is still " +
+            "starting — leave the page open and it will go through on its own.";
+        }
+      }
+
+      async function run() {
+        setTimeout(() => {
+          if (!settled) shell.dataset.visible = "true";
+        }, REVEAL_DELAY_MS);
+
+        const clock = setInterval(tick, 250);
+
+        while (!settled && Date.now() - startedAt < GIVE_UP_MS) {
+          if (await probe()) {
+            clearInterval(clock);
+            handOff();
+            return;
+          }
+          await new Promise((r) => setTimeout(r, RETRY_GAP_MS));
+        }
+
+        clearInterval(clock);
+        if (!settled) fail();
+      }
+
+      retry.addEventListener("click", () => location.reload());
+      run();
+    </script>
+  </body>
+</html>

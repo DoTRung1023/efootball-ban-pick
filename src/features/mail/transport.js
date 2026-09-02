@@ -33,6 +33,14 @@ import { describeError } from "#lib/http.js";
 let transport;
 
 const TLS_ONLY_PORT = 465;
+/* Nodemailer waits two minutes for a TCP connection by default, and a blocked
+   port is exactly the case that runs it out: Render blocks outbound 25, 465 and
+   587 on free web services, so the socket is never refused, it just never
+   answers. Two minutes of that is a sign-up form that appears to have hung
+   before it reports the failure. Ten seconds is far longer than a reachable
+   relay needs and short enough that the error arrives while somebody is still
+   looking at the page. */
+const CONNECT_TIMEOUT_MS = 10_000;
 
 /** Whether real mail is configured. The console and the sign-in page both say
     so out loud when it is not, rather than reporting a delivery that was a
@@ -61,6 +69,8 @@ function getTransport() {
     /* An open relay on a LAN has no credentials to send, and passing empty
        strings makes nodemailer attempt AUTH with them and get refused. */
     auth: user || pass ? { user, pass } : undefined,
+    connectionTimeout: CONNECT_TIMEOUT_MS,
+    greetingTimeout: CONNECT_TIMEOUT_MS,
   });
   return transport;
 }

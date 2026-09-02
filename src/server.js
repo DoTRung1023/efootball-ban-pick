@@ -49,7 +49,20 @@ app.use(attachIdentity);
 // Card image proxy + R2 cache (frontend uses /img/card/:id.png)
 app.get("/img/card/:id.png", cardImageLimiter, handleCardImage);
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+/* The wake page (`wake/`, served by Vercel) polls this across origins while
+   this server is still cold-booting, and has to be able to READ the answer to
+   tell "the app is up" from "Render's proxy replied 502 mid-boot". Hence the
+   one CORS header in this codebase.
+
+   `*` is safe on this route and nowhere else: the body is the literal
+   {ok:true}, the request carries no credentials, and there is nothing here an
+   attacker could not learn by loading the site. Do NOT lift this line onto a
+   route that reads the session cookie — with credentials in play `*` is
+   rejected by browsers anyway, and an origin echo would be the real hole. */
+app.get("/api/health", (_req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.json({ ok: true });
+});
 
 /* The confirmation link from a sign-up email. Not under /api because a person
    reads it in a mail client; it redirects to /signin either way. */
