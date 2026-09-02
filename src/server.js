@@ -30,6 +30,29 @@ if (TRUST_PROXY) app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST
    boot and not a refusal to start. */
 const DEPLOY_CONFIG = ["SMTP_HOST", "SESSION_SECRET", "ADMIN_SECRET", "APP_BASE_URL", "TRUST_PROXY"];
 
+/**
+ * Which database this process is about to write to, in one line.
+ *
+ * The env split — `.env` local, `.env.production` for the host's editor — is
+ * what keeps a local run off the live data. This is how you *check* it, because
+ * the two files look alike at a glance and the expensive mistake is silent: a
+ * console DELETE or a scrape is already done by the time anything looks wrong.
+ *
+ * Host, port and database name only. The password is not printed, and neither
+ * is the user on a remote host — a log line is somewhere a screenshot goes.
+ */
+function reportDatabaseTarget() {
+  const host = process.env.DB_HOST || "localhost";
+  const local = host === "localhost" || host === "127.0.0.1" || host === "::1";
+  const target = `${host}:${process.env.DB_PORT || 3306}/${process.env.DB_NAME || "ban_pick_efb"}`;
+  const tls = process.env.DB_SSL ? " over TLS" : "";
+  console.log(
+    local
+      ? `db: ${target} — local`
+      : `db: ${target}${tls} — REMOTE. Writes here are real; .env is the file that decides this.`,
+  );
+}
+
 function reportUnsetConfig() {
   const missing = DEPLOY_CONFIG.filter((key) => !process.env[key]);
   if (!missing.length) return;
@@ -91,6 +114,7 @@ app.use(errorHandler);
 
 app.listen(PORT, async () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  reportDatabaseTarget();
   reportUnsetConfig();
   /* Not awaited by the listener's caller: a database that is slow or down
      delays these four, not the server. Each handles its own failure — two of

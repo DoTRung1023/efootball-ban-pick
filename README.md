@@ -102,7 +102,26 @@ table. Later scrapes are incremental and take seconds.
 
 ### Environment
 
-Create a `.env` in the project root. Only the `DB_*` block is needed to boot.
+Three files, and **only the first is ever loaded** — `dotenv/config` reads `.env` and
+nothing else:
+
+| file | what it is | committed |
+|---|---|---|
+| `.env` | what runs on your machine. Copy `.env.example` to it | no |
+| `.env.production` | the deployment's values, pasted into Render's env editor. Never loaded by the app | no |
+| `.env.example` | every variable with a placeholder and a note | **yes** |
+
+On Render there is no `.env` at all: the platform supplies the variables, and dotenv never
+overwrites one that is already set. So a value that exists only in `.env.production` has no
+effect locally, and a local value cannot leak into the deployment.
+
+> [!IMPORTANT]
+> Keep `.env` pointed at a **local** database. It once held the TiDB connection, which
+> meant every local run — a console DELETE, a scrape — read and wrote live production data.
+> The server prints which database it is about to use on every boot, so you can check:
+> `db: localhost:3306/ban_pick_efb — local`, or a line that says `REMOTE` in capitals.
+
+`cp .env.example .env` and fill in the `DB_*` block; nothing else is needed to boot.
 
 ```ini
 DB_HOST=localhost
@@ -186,9 +205,8 @@ on every boot, so a database can never end up with admins and nobody able to cha
 ## Deployment
 
 The live app runs on **Render** (Node web service) against **TiDB Cloud**, with **Brevo** for
-mail and **Cloudflare R2** for card images. Paste your deployment `.env` into Render's *Add
-from .env* — minus `PORT`, which Render provides and which binds the wrong port if you set
-it. Set `APP_BASE_URL`, `TRUST_PROXY=1` and `DB_SSL`; TiDB is publicly signed, so no `DB_CA`.
+mail and **Cloudflare R2** for card images. Paste `.env.production` into Render's *Add from
+.env* — minus `PORT`, which Render provides and which binds the wrong port if you set it. Set `APP_BASE_URL`, `TRUST_PROXY=1` and `DB_SSL`; TiDB is publicly signed, so no `DB_CA`.
 
 > [!WARNING]
 > **Render blocks outbound SMTP on ports 25, 465 and 587 for free web services**

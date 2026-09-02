@@ -4,6 +4,7 @@ node_modules/
 # meant to be pasted into a host's env editor, never committed. The example
 # is the one that stays, because it holds placeholders and nothing else.
 .env.*
+!.env.example
 *.log
 .DS_Store
 .scrape-state.json
