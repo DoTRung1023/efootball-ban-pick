@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
+import { showToast } from "@/shared/ui/toast.js";
 
 export function fmtNum(n) {
   return n == null ? "—" : Number(n).toLocaleString();
@@ -85,19 +86,23 @@ export function tableMessage(colspan, text) {
 }
 
 /**
- * The one line a panel is allowed to say out loud — a write that was refused, or
- * one that went through.
+ * What a panel says out loud — a write that was refused, or one that went
+ * through.
  *
- * Three tabs had a byte-identical private copy of this, differing only in the id
- * they wrote to. `tableMessage` above is the precedent: this module already owns
- * the small pieces of DOM every tab needs to produce.
+ * **This was an inline line per tab and is now the app's toast.** Each of the
+ * three tabs owned a `<p class="panel-notice">` in its own corner of the
+ * layout, so the same sentence appeared in a different place depending on which
+ * tab you were on, and it stayed there until the next action cleared it — long
+ * after it had stopped being news. The toast is bottom-centre on every screen
+ * and times itself out of the way, which is how the rest of the app already
+ * announces things.
  *
- * Passing `""` hides the line, which is how a tab clears the last message before
- * starting the next action.
+ * `id` is gone with the elements. Passing `""` is still how a tab says "clear
+ * the last message before starting the next action", and it is now a no-op:
+ * there is nothing to clear, and showing an empty toast would be worse than
+ * showing nothing.
  */
-export function notice(id, message, isError = false) {
-  const el = document.getElementById(id);
-  el.textContent = message;
-  el.className = isError ? "panel-notice is-error" : "panel-notice";
-  el.hidden = !message;
+export function notice(message, isError = false) {
+  if (!message) return;
+  showToast(message, isError ? "error" : "success");
 }

@@ -3,8 +3,9 @@
 
    The card every tab draws its content inside (`.panel` and its header), the
    four-tile stats row above them, the two-column grid that pairs them, and the
-   scrape-run status block. `.panel-notice` is the one line any tab is allowed
-   to say out loud.
+   scrape-run status block. What a tab says out loud is no longer here: three
+   `.panel-notice` lines, one per tab, became the app's bottom-centre toast
+   (`shared/toast.css`, driven by `notice()` in `features/admin/format.js`).
 
    **The `<link>` order in `console.html` is this sheet's cascade**, and these
    seven were cut from one file on section boundaries with the order kept

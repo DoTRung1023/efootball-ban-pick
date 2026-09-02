@@ -44,7 +44,7 @@
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, getSessionUserId, isSessionMaster } from "./adminApi.js";
-import { fmtDate, fmtNum, notice as panelNotice, tableMessage } from "./format.js";
+import { fmtDate, fmtNum, notice, tableMessage } from "./format.js";
 import { onConfirmedClick, reset as resetBtn } from "./confirmButton.js";
 import { initPasswordModal, openConsolePasswordForm } from "./passwordModal.js";
 
@@ -54,8 +54,6 @@ const COLS = 8;
 
 /** This tab's one spoken line. The writer is `notice` in `format.js`;
     all this names is which element it writes to. */
-const notice = (message, isError) => panelNotice("usersNotice", message, isError);
-
 /** What this account currently is, in one word. The third rung is a word rather
     than the em-dash it used to be: "—" reads as missing data in a column of real
     values, when what it means is an account with no console access. */

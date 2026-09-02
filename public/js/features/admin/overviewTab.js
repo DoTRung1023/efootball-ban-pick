@@ -10,7 +10,7 @@ import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend, isSessionMaster } from "./adminApi.js";
 import { openConfirmPasswordForm } from "./passwordModal.js";
 import { arm, isArmed, reset as resetBtn } from "./confirmButton.js";
-import { fmtDate, fmtDuration, fmtNum, fmtRelative, notice as panelNotice, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
+import { fmtDate, fmtDuration, fmtNum, fmtRelative, notice, scrapeRunState, scrapeStatusPill, tableMessage } from "./format.js";
 
 const SCRAPE_ROWS = 8;
 const SCRAPE_COLS = 6;
@@ -187,8 +187,6 @@ export function loadOverview() {
 
 /** This tab's one spoken line. The writer is `notice` in `format.js`;
     all this names is which element it writes to. */
-const notice = (message, isError) => panelNotice("overviewNotice", message, isError);
-
 /**
  * Emptying the catalog — the one action on this console that asks for a
  * password rather than a second click.

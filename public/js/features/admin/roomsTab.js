@@ -12,7 +12,7 @@
 
 import { escapeHtml } from "@/shared/players/playerMeta.js";
 import { apiFetch, apiSend } from "./adminApi.js";
-import { fmtSeconds, notice as panelNotice, phasePill, tableMessage } from "./format.js";
+import { fmtSeconds, notice, phasePill, tableMessage } from "./format.js";
 import { initRoomDetail, openRoomDetail } from "./roomDetail.js";
 import { onConfirmedClick } from "./confirmButton.js";
 
@@ -20,8 +20,6 @@ const COLS = 6;
 
 /** This tab's one spoken line. The writer is `notice` in `format.js`;
     all this names is which element it writes to. */
-const notice = (message, isError) => panelNotice("roomsNotice", message, isError);
-
 export async function loadRooms() {
   const tbody = document.getElementById("roomsBody");
   try {

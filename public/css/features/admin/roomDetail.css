@@ -77,10 +77,11 @@
 }
 
 /* The whole body when there is no room to draw — a dead end, not a note in the
-   margin of something else. It wore `.panel-notice`, which is the USERS tab's
-   banner idiom: a tinted strip with a rule under it, sized to sit *above* a
-   table that is still there. Here there is nothing under it, so the fill read
-   as a block of empty chrome and the message inside it as a footnote to it.
+   margin of something else. It wore `.panel-notice` — the tinted strip with a
+   rule under it that every tab used to announce things with, sized to sit
+   *above* a table that is still there. Here there is nothing under it, so the
+   fill read as a block of empty chrome and the message inside it as a footnote
+   to it. (That class is gone entirely now; tabs announce through the toast.)
    No background, no rule: the text is the content, so it is centred in the
    space and set at the weight of something you are meant to read first. */
 /* The message owns the whole box — `.rd-card.is-brief .rd-body` drops its

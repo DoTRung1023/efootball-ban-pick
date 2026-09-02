@@ -330,34 +330,8 @@
   box-shadow: none;
 }
 
-/* Bottom centre, matching the room page: an announcement reads the same way on
-   every screen, and the corner is where floating furniture lives. */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translate(-50%, 12px);
-  text-align: center;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 14px;
-  padding: 11px 16px;
-  border-radius: var(--radius);
-  z-index: 9999;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition), transform var(--transition);
-  white-space: nowrap;
-  max-width: calc(100vw - 48px);
-}
-
-/* Restates the centring: a bare `translateY` here slides the toast left by half
-   its width on the way in. */
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
-.toast.error   { border-color: var(--danger-line); color: var(--danger); }
-.toast.success { border-color: var(--line-active); color: var(--text); }
+/* The toast moved to `shared/toast.css` when the console became a second
+   consumer — link that sheet, not this one, to get it. */
 
 /* ============================================================
    CONFIRM DIALOG
