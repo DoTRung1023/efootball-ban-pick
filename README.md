@@ -64,7 +64,7 @@ All three are responsive down to 320 px.
 | Scraper | `cheerio` + native `fetch` |
 | Auth | `bcryptjs`, HMAC-signed httpOnly cookies |
 | Mail | `nodemailer` |
-| Image cache | Cloudflare R2 (optional) |
+| Image cache | Cloudflare R2 |
 
 Real-time sync is **polling**, not WebSockets — a ~500 ms presence heartbeat during the draft.
 
