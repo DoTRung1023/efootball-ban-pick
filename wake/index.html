@@ -6,6 +6,10 @@
     <title>Starting up — eFootball Ban &amp; Pick</title>
     <meta name="robots" content="noindex" />
     <meta name="description" content="Waking the eFootball Ban &amp; Pick server." />
+    <!-- `/logo.svg`, not `/logo/logo.svg`: this is Vercel's copy sitting beside
+         this file. Pointing at the app's would be a request to the very server
+         the page is waiting for — see the rule in the comment below. -->
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
 
     <!--
       ============================================================
@@ -23,13 +27,15 @@
       a request to the very server we are waiting for — the page would sit
       unstyled for the whole cold start, which is worse than what it
       replaces. That is why `wake.css` re-declares nine tokens instead of
-      importing them, and why the branding here is the sign-in page's text
-      lockup rather than /logo/logo.svg.
+      importing them, and why `logo.svg` is **copied into this folder**
+      rather than linked from /logo/ — the mark and the favicon are served
+      by Vercel, so they cost nothing while Render is asleep.
 
-      Its own sibling files are NOT that: Vercel serves wake.css and
-      wake.js from the same always-warm edge as this HTML. Google Fonts is
-      third party to both hosts and up regardless. The rule is about the
-      origin, not about being one file.
+      Its own sibling files are NOT that: Vercel serves wake.css, wake.js
+      and logo.svg from the same always-warm edge as this HTML. Google
+      Fonts is third party to both hosts and up regardless. The rule is
+      about the origin, not about being one file — a copy of an asset is
+      fine, a request to Render for it is not.
       ============================================================
     -->
 
@@ -60,8 +66,11 @@
   <body>
     <div class="shell" id="shell">
       <div class="brand">
-        <span class="brand-game">eFOOTBALL</span>
-        <span class="brand-sub">BAN &amp; PICK</span>
+        <img class="brand-logo" src="/logo.svg" alt="" width="37" height="48" />
+        <div class="brand-text">
+          <span class="brand-game">eFOOTBALL</span>
+          <span class="brand-sub">BAN &amp; PICK</span>
+        </div>
       </div>
 
       <div class="card" id="card" data-state="waking">

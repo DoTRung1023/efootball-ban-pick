@@ -72,12 +72,26 @@ body {
    Render and so cannot be used here.
    ============================================================ */
 
+/* A row now: the mark, then the wordmark stacked beside it — the same lockup
+   the sign-in page draws. */
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  user-select: none;
+}
+
+.brand-logo {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1;
-  margin-bottom: 20px;
-  user-select: none;
 }
 
 .brand-game {

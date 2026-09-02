@@ -69,12 +69,27 @@ body {
   text-align: center;
 }
 
+/* A row, and still centred as a whole: the mark sits left of the wordmark the
+   way it does everywhere else, and the pair is what the card centres. */
 .gate-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gate-logo .brand-logo {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.gate-logo .brand-text {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-bottom: 20px;
 }
 
 .gate-identity {
@@ -233,6 +248,13 @@ body {
   display: flex;
   flex-direction: column;
   line-height: 1;
+}
+
+/* 32px, matching the home topbar — this bar is the same furniture. */
+.admin-nav-brand .brand-logo {
+  height: 32px;
+  width: auto;
+  flex-shrink: 0;
 }
 
 .admin-nav-brand .brand-game {

@@ -91,11 +91,27 @@ body {
   z-index: 100;
 }
 
+/* A row: the mark, then the wordmark stacked beside it. 32px against a 64px
+   topbar — half its height, which is what keeps it furniture rather than a
+   headline. The sign-in page runs the same lockup at 48px because there it *is*
+   the headline. */
 .topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.topbar-brand .brand-logo {
+  height: 32px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.topbar-brand .brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1;
-  flex-shrink: 0;
 }
 
 .brand-game {

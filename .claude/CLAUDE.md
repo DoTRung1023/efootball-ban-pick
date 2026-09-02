@@ -107,12 +107,13 @@ Code is grouped **by feature, not by file type**.
   it imports nothing and this page's whole job is to be instant.
 
   **The rule is that it never requests anything from Render** — not that it is
-  one file. A `<link>` to `/css/shared/tokens.css` or an `<img>` from `/logo/`
-  would be a request to the very server it is waiting for, so `wake.css`
-  re-declares nine tokens instead, and the brand is the sign-in page's text
-  lockup rather than `logo.svg`. Keep that copy small: it can drift, and nine
-  values is what makes the drift cheap. `APP_ORIGIN` at the top of `wake.js` is
-  the only place the app's host is named.
+  one file, and not that it goes without. A `<link>` to `/css/shared/tokens.css`
+  or an `<img>` from `/logo/` would be a request to the very server it is waiting
+  for, so `wake.css` re-declares nine tokens and `logo.svg` is **copied into
+  `wake/`** — Vercel serves that copy, so the mark and the favicon cost nothing
+  while Render is asleep. Both copies can drift; nine values and one file is what
+  makes that cheap. `APP_ORIGIN` at the top of `wake.js` is the only place the
+  app's host is named.
 
 **Do not create a new top-level folder, or a new `public/js/shared/` module, without
 asking.** Left alone this grows a `helpers/`, a `types/`, a `constants/` and a

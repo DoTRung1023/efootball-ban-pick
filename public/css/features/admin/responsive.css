@@ -66,6 +66,14 @@
    900px wide. */
 @media (max-width: 1000px) {
   .col-lo { display: none; }
+
+  /* **The mark goes before the header does.** This bar already runs past the
+     viewport between roughly 700 and 960 — `.admin-nav-right` is what pushes it,
+     and that is a separate bug — so the 32px mark plus its gap is 42px this row
+     cannot spare: measured, it turned 0px of overflow at 1000 into 6px, and 72
+     into 106 at 900. The wordmark alone says the same thing, and it is what the
+     bar carried before. Same reasoning as `.admin-brand-mark` going at 480. */
+  .admin-nav-brand .brand-logo { display: none; }
   /* A 248px panel beside a card grid stops paying for itself once the grid is
      down to three across. CHOSEN goes under the browser, and its strip takes a
      short cap — stacked, the two scrollers were fighting for the same
