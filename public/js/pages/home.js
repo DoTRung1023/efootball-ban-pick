@@ -6,6 +6,10 @@ import { loadGamePlans, initGamePlans } from '@/features/gamePlans/index.js';
 import { initRoomHost, initRoomHub, redirectToActiveRoom } from '@/features/rooms/index.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { takePendingToast } from '@/shared/ui/pendingToast.js';
+import { installErrorReporter } from '@/shared/lib/errorReporter.js';
+
+/* `error`, not `warn` — this page's toast has no warn variant. */
+installErrorReporter({ notify: (message) => showToast(message, "error") });
 
 /** Nav tab ↔ URL. `src/pages.js` serves `home.html` on all three, so a reload
     or a shared link lands on the tab named by the path rather than always on

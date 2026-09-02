@@ -11,6 +11,11 @@ import { initSignupModal } from '@/features/auth/signUpModal.js';
 import { applyVerifyStatus, initVerifyNotice } from '@/features/auth/verifyNotice.js';
 import { showToast } from '@/shared/ui/toast.js';
 import { takePendingToast } from '@/shared/ui/pendingToast.js';
+import { installErrorReporter } from '@/shared/lib/errorReporter.js';
+
+/* Outside the DOMContentLoaded listener below, so an error thrown while the
+   page is still parsing is caught too. */
+installErrorReporter({ notify: (message) => showToast(message, "error") });
 
 document.addEventListener("DOMContentLoaded", () => {
   /* Why you are looking at a sign-in form — signing out is the only way here

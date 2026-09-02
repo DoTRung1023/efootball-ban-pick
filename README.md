@@ -276,9 +276,20 @@ All routes are JSON, under `/api`. Read them from the routers in `src/features/*
 Sessions are stateless — no sessions table, they survive a restart, and cannot be revoked
 before `SESSION_TTL_MS` (30 days). `SESSION_SECRET` keeps sign-ins alive across a deploy.
 `src/lib/rateLimit.js` fronts auth (15 / 15 min), email (5 / hr), catalog and the signed-in
-app surface (300 / min each), room routes (600 / min) and card images (1200 / min). The one
-deliberate exemption is `POST /api/rooms/:code/presence`: it is a 500 ms heartbeat, so any
-threshold low enough to mean something would end the draft it is meant to protect.
+app surface (300 / min each), room routes (600 / min), card images (1200 / min) and client
+error reports (30 / min). The one deliberate exemption is `POST /api/rooms/:code/presence`:
+it is a 500 ms heartbeat, so any threshold low enough to mean something would end the draft
+it is meant to protect.
+
+`POST /api/client-error` puts browser errors in the same log as the server's own. All four
+pages install `shared/lib/errorReporter.js`, whose global `error` and `unhandledrejection`
+handlers post to it fire-and-forget, capped at five per page load so a page stuck in a loop
+stays one bug rather than a flood. How the *user* is told differs per page and is injected,
+not imported — the room has its own `warn` toast, home and sign-in take `error`, and the
+console has no toast element, so there it logs and reports without showing anything. It is a
+log line and nothing more — no third party, no dependency, no error data leaving the box —
+and it treats its body as hostile: every field is truncated and newlines are collapsed, so
+a report cannot forge a second log entry.
 
 The console is separate: `POST /api/admin/session` trades a password for a signed, expiring
 token carried in an `x-admin-token` header, and `router.use(requireAdmin)` guards everything

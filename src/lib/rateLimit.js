@@ -120,6 +120,22 @@ export const appLimiter = rateLimit({ name: "app", windowMs: 60_000, max: 300 })
  */
 export const roomLimiter = rateLimit({ name: "room", windowMs: 60_000, max: 600 });
 
+/**
+ * `POST /api/client-error`. Tight, because this one writes to the log.
+ *
+ * The threat is not cost, it is volume: an unauthenticated endpoint that
+ * appends a line per call is a way to bury a real error under thousands of
+ * fake ones, and a page stuck in an error loop would do the same by accident.
+ * 30 a minute is far more than a genuine burst — the client also caps itself
+ * per page load — and turns a loop into a trickle.
+ *
+ * Note the body is still parsed by the app-wide `express.json()` and its
+ * default 100 kB limit before it reaches here. That is deliberate rather than
+ * overlooked: the caps that matter are on what gets *written*, and those live
+ * in `clientErrors.js`. A big body is parsed and thrown away.
+ */
+export const clientErrorLimiter = rateLimit({ name: "clientError", windowMs: 60_000, max: 30 });
+
 /* Deliberately not limited: `/api/rooms/:code/presence`. It is a 500 ms
    heartbeat by design, which is 120 requests a minute per client before anyone
    has done anything. Any threshold low enough to mean something would end the

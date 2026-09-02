@@ -57,7 +57,12 @@ Code is grouped **by feature, not by file type**.
   `players/`, `ui/`, `lib/`, `icons/`. Two things not to undo: `filterPanel.js` owns
   the panel *and* `playerFilterParams`, so the filter to query-string mapping has one
   copy; and `positions.js` looks like it has a single feature consumer, but
-  `shared/players/sort.js` is a second, so it cannot move down. Import these **directly** — `shared/` deliberately has no barrels, because
+  `shared/players/sort.js` is a second, so it cannot move down. `lib/errorReporter.js`
+  is the one member that earns its place from the **pages** rather than from two
+  features — all four entry files install it, and the alternative was the room page's
+  copy of the handlers plus three pages with none. It takes `notify` as an argument
+  rather than importing a toast, which is what keeps it dependency-free: the room's
+  toast and the home page's are deliberately not merged, and the console has none. Import these **directly** — `shared/` deliberately has no barrels, because
   with no bundler a barrel makes the browser fetch every module it re-exports.
 - `public/css/` — mirrors `public/js/`: `pages/home/`, `features/<name>/`, `shared/`.
   `shared/filterPanel.css` is the chrome for the sort and filter dropdowns, the other

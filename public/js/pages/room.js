@@ -26,31 +26,15 @@ import {
   renderRoomChat,
 } from "@/features/draft/index.js";
 import { takePendingToast } from "@/shared/ui/pendingToast.js";
+import { installErrorReporter } from "@/shared/lib/errorReporter.js";
 
 // ── Global error surfacing ───────────────────────────────────
 
-/** Reports an error to the user without letting the reporter itself throw. */
-function reportError(label, error, message) {
-  try {
-    console.error(label, error);
-    /* Unprompted by definition — nobody clicks their way into an
-       unhandled rejection, and this toast is the only sign anything
-       broke at all. */
-    announce(String(message || "An unexpected error occurred"), "warn");
-  } catch (err) {
-    console.error(`Error in ${label} handler:`, err);
-  }
-}
-
-window.addEventListener("unhandledrejection", (ev) => {
-  const reason = ev.reason;
-  reportError("Unhandled promise rejection:", reason, reason?.message ?? String(reason ?? "Unexpected error"));
-  ev.preventDefault?.();
-});
-
-window.addEventListener("error", (ev) => {
-  reportError("Runtime error:", ev.error || ev.message, ev.message || ev.error?.message);
-});
+/* `announce` rather than the home page's `showToast`: this page has its own
+   toast with a `warn` variant and a longer dwell, and the two are deliberately
+   not merged (see the note atop shared/ui/toast.js). Injecting it is what lets
+   one reporter serve four pages that each say things differently. */
+installErrorReporter({ notify: (message) => announce(message, "warn") });
 
 // ── Callback wiring ──────────────────────────────────────────
 

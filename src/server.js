@@ -3,7 +3,8 @@ import express from "express";
 import { handleCardImage } from "#features/media/index.js";
 import { PUBLIC_DIR } from "#lib/paths.js";
 import { errorHandler, notFoundHandler } from "#lib/http.js";
-import { cardImageLimiter } from "#lib/rateLimit.js";
+import { cardImageLimiter, clientErrorLimiter } from "#lib/rateLimit.js";
+import { handleClientError } from "#lib/clientErrors.js";
 import { adminRoutes, ensureConsoleAdmin } from "#features/admin/index.js";
 import { attachIdentity, authRoutes, ensureAuthSchema, verifyEmailPage } from "#features/auth/index.js";
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
@@ -48,6 +49,14 @@ app.use(attachIdentity);
 
 // Card image proxy + R2 cache (frontend uses /img/card/:id.png)
 app.get("/img/card/:id.png", cardImageLimiter, handleCardImage);
+
+/* Browser errors, into the same log as the server's own. Mounted here rather
+   than in a feature because it belongs to no feature — every page can report,
+   and what it reports is about the app rather than about squads or rooms.
+   Unauthenticated on purpose: the sign-in page is exactly where a first-time
+   visitor's errors happen, and `attachIdentity` above has already put a
+   server-minted id on the request either way. */
+app.post("/api/client-error", clientErrorLimiter, handleClientError);
 
 /* The wake page (`wake/`, served by Vercel) polls this across origins while
    this server is still cold-booting, and has to be able to READ the answer to
