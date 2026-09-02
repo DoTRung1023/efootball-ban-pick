@@ -79,18 +79,38 @@ What is **not** closed: nothing rate-limits or audits an authenticated user, and
 console's shared-password mode still has no identity of its own beyond the account it is
 opened for.
 
-### 2. Persistence and hosting — **UNRESOLVED**
+### 2. Persistence and hosting — **DECIDED, LATE**
 
-MySQL 8 via `mysql2`, running locally. There is no host, no deploy configuration and
-no deployed environment. The app has never run anywhere but a developer machine.
+MySQL 8 via `mysql2`, now against **TiDB Cloud**, with the app on **Render** as a free
+web service. It is live at `efootball-ban-pick.onrender.com`.
 
-The skill would have deployed an empty app on day one and preferred managed Postgres,
-so dev and prod share a dialect. Neither happened. The dialect risk is real but not yet
-paid: nothing in the schema is MySQL-only in an interesting way, so a move is still
-cheap. It gets more expensive every month.
+This section used to read UNRESOLVED, and the record is worth keeping: the app ran
+nowhere but a developer machine for most of its life. The skill would have deployed an
+empty app on day one and preferred managed Postgres so dev and prod share a dialect.
+Neither happened — but the dialect risk was never paid, because the host that was
+eventually chosen speaks MySQL. Deploying late cost the usual things instead: every
+environment assumption baked in on a laptop had to be found in production, one at a
+time.
 
-CI runs the static gate only. There is no deploy step because there is nothing to
-deploy to.
+**Three of those were real, and each is a thing a day-one deploy would have surfaced
+for free.** A proxy in front of the app makes `req.ip` the proxy for every request, so
+the rate limiter bucketed the whole internet together until `TRUST_PROXY` was set, and
+emailed links were built from the request's own host as `http://` until `APP_BASE_URL`
+was. Render blocks outbound SMTP on ports 25, 465 and 587 for free services, so mail
+worked on the laptop and timed out in production; the fix was Brevo's port 2525 and a
+10s connect timeout, so the next such block fails loudly instead of hanging.
+
+**The free tier sleeps after 15 minutes idle and takes ~23s to wake.** That is not
+fixed, it is covered: `wake/` is a static page on Vercel — a host that does not sleep —
+which shows a real loading screen, polls `/api/health`, and hands off when the app
+answers. It is the one part of the system deliberately hosted somewhere else, and it
+exists because a sleeping server cannot draw its own loading screen. Paying for an
+instance removes both the sleep and that page.
+
+Still open: CI runs the static gate only, and there is no deploy step — a push to `main`
+does not ship anything, and Render's own auto-deploy is what actually publishes. Nothing
+backs up TiDB beyond the scraper's `players_catalog_backup` table, which covers the
+catalog and none of the accounts, squads or game plans.
 
 ### 3. External paid dependencies — **PARTIALLY DECIDED**
 
