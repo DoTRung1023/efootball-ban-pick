@@ -6,7 +6,7 @@
 
 **A draft system for eFootball — ban out of your opponent's collection, then build a squad from what survived.**
 
-[Live app](https://efootball-ban-pick.onrender.com) · [Design system](DESIGN.md) · [Decisions](DECISIONS.md) · [Working rules](.claude/CLAUDE.md)
+[Live app](https://efootball-ban-pick.vercel.app/) · [Design system](DESIGN.md) · [Decisions](DECISIONS.md) · [Working rules](.claude/CLAUDE.md)
 
 </div>
 
