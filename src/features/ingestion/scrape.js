@@ -347,10 +347,25 @@ async function enrichBatch(players) {
   );
 }
 
+/**
+ * The snapshot taken before a full run overwrites the catalog.
+ *
+ * **Two statements, not `CREATE TABLE … AS SELECT`.** That is MySQL-only: TiDB
+ * has never implemented it and answers `'CREATE TABLE ... SELECT' is not
+ * implemented yet`, which killed the first full scrape run against the
+ * deployment four seconds in — before a single player was fetched. It worked on
+ * a laptop for exactly as long as the laptop was the only place this ran.
+ *
+ * `LIKE` then `INSERT … SELECT` is the portable form and runs on both. It is
+ * also the better backup: `AS SELECT` copies columns and data but drops the
+ * primary key and every index, so the table this used to leave behind was a
+ * heap that happened to hold the right rows.
+ */
 async function backupCatalog() {
   console.log("BACKUP  Backing up players_catalog → players_catalog_backup…");
   await db.query("DROP TABLE IF EXISTS players_catalog_backup");
-  await db.query("CREATE TABLE players_catalog_backup AS SELECT * FROM players_catalog");
+  await db.query("CREATE TABLE players_catalog_backup LIKE players_catalog");
+  await db.query("INSERT INTO players_catalog_backup SELECT * FROM players_catalog");
   const [[{ cnt }]] = await db.query("SELECT COUNT(*) AS cnt FROM players_catalog_backup");
   console.log(`   ${cnt.toLocaleString()} rows backed up.\n`);
 }

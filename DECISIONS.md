@@ -103,10 +103,17 @@ web service. It is live at `efootball-ban-pick.onrender.com`.
 This section used to read UNRESOLVED, and the record is worth keeping: the app ran
 nowhere but a developer machine for most of its life. The skill would have deployed an
 empty app on day one and preferred managed Postgres so dev and prod share a dialect.
-Neither happened — but the dialect risk was never paid, because the host that was
-eventually chosen speaks MySQL. Deploying late cost the usual things instead: every
-environment assumption baked in on a laptop had to be found in production, one at a
-time.
+Neither happened. The dialect risk was **mostly** avoided, because the host eventually
+chosen speaks MySQL — but not entirely: the scraper's `backupCatalog` used
+`CREATE TABLE … AS SELECT`, which TiDB has never implemented, and the first full scrape
+run against the deployment died on it four seconds in, before fetching a single player.
+That is the whole bill for the dialect, and it came due the first time the code ran
+somewhere that was not a laptop. It is now `CREATE TABLE … LIKE` plus `INSERT … SELECT`,
+which both dialects accept and which keeps the primary key that `AS SELECT` silently
+dropped.
+
+Deploying late cost the usual things besides: every environment assumption baked in on a
+laptop had to be found in production, one at a time.
 
 **Three of those were real, and each is a thing a day-one deploy would have surfaced
 for free.** A proxy in front of the app makes `req.ip` the proxy for every request, so
