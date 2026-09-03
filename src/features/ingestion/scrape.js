@@ -30,6 +30,7 @@ import db from "#lib/db.js";
 import path from "node:path";
 import { isMainModule } from "#lib/cli.js";
 import { ROOT_DIR } from "#lib/paths.js";
+import { ensureScrapeLogSchema } from "./schema.js";
 
 const BASE       = "https://pesdb.net/efootball/";
 const STATE_FILE = path.join(ROOT_DIR, ".scrape-state.json");
@@ -418,47 +419,6 @@ async function fetchMissingIds(ids) {
   return new Set(ids.filter((id) => !existing.has(id)));
 }
 
-/**
- * Adds the 'missing' enum member to a `scrape_logs` created before gap-repair
- * runs were logged. Same bargain as the other boot-time healers in this repo:
- * MySQL has no `ADD VALUE IF NOT EXISTS`, and an install that must find an
- * `ALTER` in `schema.sql` before `npm run scrape:missing` can record anything
- * is an install that is quietly broken. Runs on every scrape; does nothing on
- * all but one of them.
- */
-export async function ensureScrapeLogSchema() {
-  try {
-    const [[col]] = await db.query(
-      `SELECT COLUMN_TYPE AS type FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
-         AND column_name = 'scrape_type'`,
-    );
-    if (col && !String(col.type).includes("'missing'")) {
-      await db.query(
-        `ALTER TABLE scrape_logs MODIFY scrape_type
-         ENUM('full','incremental','missing') NOT NULL DEFAULT 'full'`,
-      );
-      console.log("scrape schema: added 'missing' to scrape_logs.scrape_type");
-    }
-
-    const [[failedCol]] = await db.query(
-      `SELECT COUNT(*) AS cnt FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
-         AND column_name = 'failed'`,
-    );
-    if (!failedCol.cnt) {
-      await db.query(
-        "ALTER TABLE scrape_logs ADD COLUMN failed TINYINT(1) NOT NULL DEFAULT 0",
-      );
-      console.log("scrape schema: added scrape_logs.failed");
-    }
-  } catch (err) {
-    /* A repair run that cannot widen the enum should still repair. It just
-       will not be able to log itself, which `startLog` degrades to on its own. */
-    console.error("scrape schema check skipped:", err.message);
-  }
-}
-
 /** The row the current process opened, for the fatal handler. */
 let runningLogId = null;
 
@@ -808,6 +768,7 @@ async function main() {
 }
 
 export {
+  ensureScrapeLogSchema,
   startLog,
   finishLog,
   fetchHTML,

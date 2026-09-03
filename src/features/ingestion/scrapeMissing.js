@@ -9,11 +9,11 @@ import {
   enrichBatch,
   upsertPlayers,
   backupCatalog,
-  ensureScrapeLogSchema,
   startLog,
   finishLog,
   failLog,
 } from "./scrape.js";
+import { ensureScrapeLogSchema } from "./schema.js";
 
 const PAGE_DELAY         = 1500;
 const FLUSH_EVERY        = 50;

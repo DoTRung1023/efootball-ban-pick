@@ -10,6 +10,7 @@ import { attachIdentity, authRoutes, ensureAuthSchema, verifyEmailPage } from "#
 import { gamePlanRoutes } from "#features/gamePlans/index.js";
 import pageRoutes from "./pages.js";
 import { ensureTestPlayerColumn, ensureTopPlayersSchema, playerRoutes } from "#features/players/index.js";
+import { ensureScrapeLogSchema } from "#features/ingestion/index.js";
 import { roomRoutes } from "#features/rooms/index.js";
 
 const app = express();
@@ -127,5 +128,9 @@ app.listen(PORT, async () => {
   await ensureAuthSchema();
   await ensureTopPlayersSchema();
   await ensureTestPlayerColumn();
+  /* The console reads every column of `scrape_logs`, so a database missing one
+     fails the whole OVERVIEW tab rather than degrading. Healing it here means
+     that never waits on somebody running a scrape first. */
+  await ensureScrapeLogSchema();
   ensureConsoleAdmin();
 });

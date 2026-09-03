@@ -44,8 +44,13 @@ Code is grouped **by feature, not by file type**.
   their public surface through an `index.js` barrel (`admin`, `auth`, `gamePlans`,
   `mail`, `media`, `players`, `rooms`); `lib/` holds `db.js`, `http.js`, `paths.js`,
   `cli.js`.
-  `ingestion` has **no** barrel — both its files are npm-script entry points that nothing
-  imports, so a barrel there would have no consumer. `src/pages.js` is the one router
+  `ingestion` now has a barrel, exporting exactly one thing: `ensureScrapeLogSchema`.
+  It had none, and the reason was that both its files are npm-script entry points
+  nothing imports — which stopped being true when the console began SELECTing a
+  column only the scraper knew how to add, and the whole OVERVIEW tab 500'd on a
+  database that lacked it. The healer lives in `schema.js` rather than `scrape.js`
+  so the web process can boot it without loading cheerio; the two scripts are
+  still imported by nothing. `src/pages.js` is the one router
   outside `features/` — it maps every page URL to one of four static HTML files and
   belongs to the composition root.
 - `public/` — four pages: `home.html` (squad / game plans / rooms), `room.html` (the
