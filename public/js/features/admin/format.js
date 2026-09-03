@@ -65,7 +65,19 @@ const STALE_RUN_MS = 60 * 60 * 1000;
  * `finished_at`, so the dashboard reported a run that died in April as still
  * running, forever. An hour is far longer than any real run takes.
  */
+/**
+ * `failed` · `done` · `stalled` · `running`, in that order of certainty.
+ *
+ * `failed` is checked first because a run that threw sets `finished_at` on its
+ * way out — it has to, or it would hold the console's start lock for an hour —
+ * and without this line that would read as a success.
+ *
+ * `stalled` is still the backstop for the deaths no handler sees: a kill -9, an
+ * out-of-memory, a container that went away. Those leave the row open and only
+ * the clock can tell.
+ */
 export function scrapeRunState(log) {
+  if (log.failed) return "failed";
   if (log.finished_at) return "done";
   return Date.now() - new Date(log.started_at).getTime() > STALE_RUN_MS ? "stalled" : "running";
 }

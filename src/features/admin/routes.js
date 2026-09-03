@@ -154,7 +154,7 @@ router.get("/stats", asyncHandler(async (_req, res) => {
       db.query("SELECT COUNT(*) AS cnt FROM users"),
       db.query("SELECT COUNT(*) AS cnt FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
       db.query(
-        `SELECT id, scrape_type, started_at, finished_at, players_upserted
+        `SELECT id, scrape_type, started_at, finished_at, players_upserted, failed
          FROM scrape_logs ORDER BY id DESC LIMIT 1`,
       ),
     ]);
@@ -301,7 +301,7 @@ router.post("/rooms/:code/close", asyncHandler(async (req, res) => {
 router.get("/scrape-logs", asyncHandler(async (req, res) => {
   try {
     const [logs] = await db.query(
-      `SELECT id, scrape_type, started_at, finished_at, players_upserted
+      `SELECT id, scrape_type, started_at, finished_at, players_upserted, failed
        FROM scrape_logs ORDER BY id DESC LIMIT ?`,
       [readLimit(req.query.limit)],
     );

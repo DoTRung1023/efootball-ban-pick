@@ -440,12 +440,27 @@ export async function ensureScrapeLogSchema() {
       );
       console.log("scrape schema: added 'missing' to scrape_logs.scrape_type");
     }
+
+    const [[failedCol]] = await db.query(
+      `SELECT COUNT(*) AS cnt FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
+         AND column_name = 'failed'`,
+    );
+    if (!failedCol.cnt) {
+      await db.query(
+        "ALTER TABLE scrape_logs ADD COLUMN failed TINYINT(1) NOT NULL DEFAULT 0",
+      );
+      console.log("scrape schema: added scrape_logs.failed");
+    }
   } catch (err) {
     /* A repair run that cannot widen the enum should still repair. It just
        will not be able to log itself, which `startLog` degrades to on its own. */
     console.error("scrape schema check skipped:", err.message);
   }
 }
+
+/** The row the current process opened, for the fatal handler. */
+let runningLogId = null;
 
 async function getLastLog() {
   const [rows] = await db.query(
@@ -469,6 +484,31 @@ async function startLog(type) {
     [type],
   );
   return result.insertId;
+}
+
+/**
+ * Closes a run that died, so it stops looking like one still going.
+ *
+ * A crash used to leave `finished_at` NULL for ever. The console reads that as
+ * RUNNING for an hour and then STALLED, and `foreignRunInProgress` refuses to
+ * start anything new for that same hour — so one failure locked the button that
+ * would have retried it. Both readings key off `finished_at`, so setting it here
+ * releases both, and `failed` is what stops the row then claiming success.
+ *
+ * Best-effort by definition: this runs while something is already going wrong,
+ * and a database that is unreachable is one of the ways a run dies. If it cannot
+ * write, the hour-long stale rule is still there underneath as the backstop.
+ */
+export async function failLog(id) {
+  if (!id) return;
+  try {
+    await db.query(
+      "UPDATE scrape_logs SET finished_at = CURRENT_TIMESTAMP, failed = 1 WHERE id = ?",
+      [id],
+    );
+  } catch (err) {
+    console.error("could not mark the run failed:", err.message);
+  }
 }
 
 /** `maxId` is null for a gap-repair run, which sets no cutoff — see getLastLog. */
@@ -720,6 +760,9 @@ async function main() {
 
   const isResume = !!savedState?.logId;
   const logId    = savedState?.logId ?? (await startLog(mode));
+  /* Module scope so the fatal handler at the bottom can close this row. It is
+     the only thing down there that needs to know which run was ours. */
+  runningLogId = logId;
 
   if (!isResume) await backupCatalog();
 
@@ -782,6 +825,7 @@ if (isMainModule(import.meta.url)) {
   main().catch(async (err) => {
     console.error("\nFatal:", err.message);
     console.error("Run `npm run scrape` again to resume.");
+    await failLog(runningLogId);
     await db.end().catch(() => {});
     process.exit(1);
   });

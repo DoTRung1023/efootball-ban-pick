@@ -148,6 +148,9 @@
 .status-pill.is-running  { background: var(--hue-blue-fill);  color: var(--hue-blue);  border: 1px solid var(--hue-blue-line); }
 .status-pill.is-done     { background: var(--hue-green-fill); color: var(--hue-green); border: 1px solid var(--hue-green-line); }
 .status-pill.is-stalled  { background: var(--danger-fill);    color: var(--danger);    border: 1px solid var(--danger-line); }
+/* Same red as stalled: both are a run that did not finish, and the difference
+   between them is how we know, not how bad it is. */
+.status-pill.is-failed   { background: var(--danger-fill);    color: var(--danger);    border: 1px solid var(--danger-line); }
 
 /* ── Card type badge ────────────────────────────────────────── */
 .card-type-badge {

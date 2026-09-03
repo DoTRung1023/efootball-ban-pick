@@ -12,6 +12,7 @@ import {
   ensureScrapeLogSchema,
   startLog,
   finishLog,
+  failLog,
 } from "./scrape.js";
 
 const PAGE_DELAY         = 1500;
@@ -84,6 +85,9 @@ async function fetchDbIds() {
   return new Set(rows.map((r) => String(r.pesdb_id)));
 }
 
+/** The row this process opened, for the fatal handler at the bottom. */
+let runningLogId = null;
+
 async function main() {
   const startedAt = Date.now();
 
@@ -93,6 +97,7 @@ async function main() {
      the next incremental — see getLastLog in scrape.js. */
   await ensureScrapeLogSchema();
   const logId = await startLog("missing");
+  runningLogId = logId;
 
   await backupCatalog();
 
@@ -162,6 +167,7 @@ async function main() {
 if (isMainModule(import.meta.url)) {
   main().catch(async (err) => {
     console.error("\nFatal:", err.message);
+    await failLog(runningLogId);
     await db.end().catch(() => {});
     process.exit(1);
   });

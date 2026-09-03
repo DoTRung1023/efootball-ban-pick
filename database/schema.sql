@@ -46,6 +46,10 @@ CREATE TABLE IF NOT EXISTS scrape_logs (
   players_upserted INT UNSIGNED        NULL,
   -- highest pesdb_id seen in this run; used as the cutoff for the next run
   max_pesdb_id     BIGINT UNSIGNED     NULL,
+  -- Set when a run ends by throwing rather than finishing. `finished_at` alone
+  -- cannot say it: a crashed run that leaves it NULL is indistinguishable from
+  -- one still going, and one that sets it looks like a success.
+  failed           TINYINT(1)          NOT NULL DEFAULT 0,
 
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
