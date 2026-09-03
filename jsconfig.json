@@ -6,18 +6,23 @@
     "At runtime those aliases are resolved by:",
     "  @/  -> the <script type='importmap'> in each public/*.html  -> /js/",
     "  #   -> the `imports` field in package.json                  -> ./src/",
-    "Keep all three in sync when adding a mapping."
+    "Keep all three in sync when adding a mapping.",
+    "",
+    "No `baseUrl`: TypeScript 6 reports it as deprecated (TS5101) and drops it",
+    "in 7.0. Removing it is why every path below starts with `./` — without a",
+    "baseUrl, TypeScript rejects bare paths (TS5090) and resolves relative ones",
+    "against this file's own directory. The two go together; changing one",
+    "without the other trades one error for another."
   ],
   "compilerOptions": {
     "checkJs": false,
     "module": "esnext",
     "target": "esnext",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["public/js/*"],
-      "#features/*": ["src/features/*"],
-      "#lib/*": ["src/lib/*"]
+      "@/*": ["./public/js/*"],
+      "#features/*": ["./src/features/*"],
+      "#lib/*": ["./src/lib/*"]
     }
   },
   "include": ["public/js/**/*.js", "src/**/*.js"],
