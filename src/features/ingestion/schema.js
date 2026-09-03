@@ -16,42 +16,61 @@
 import db from "#lib/db.js";
 
 /**
- * Adds the 'missing' enum member to a `scrape_logs` created before gap-repair
- * runs were logged. Same bargain as the other boot-time healers in this repo:
- * MySQL has no `ADD VALUE IF NOT EXISTS`, and an install that must find an
- * `ALTER` in `schema.sql` before `npm run scrape:missing` can record anything
- * is an install that is quietly broken. Runs on every scrape; does nothing on
- * all but one of them.
+ * One migration, guarded on its own.
+ *
+ * **Each step gets its own try, and that is the point.** They were in one
+ * block, which meant a failure in the first — an `ALTER` a given engine will
+ * not take — swallowed the second as well, so the column the console needs
+ * would never appear and the only trace would be a log line. They are
+ * unrelated changes to the same table; one being impossible here says nothing
+ * about the other.
+ */
+async function step(what, needed, apply) {
+  try {
+    if (!(await needed())) return;
+    await apply();
+    console.log(`scrape schema: added ${what}`);
+  } catch (err) {
+    /* Never fatal. A scrape that cannot widen the enum should still scrape, and
+       a server that cannot add a column should still boot and say why. */
+    console.error(`scrape schema: could not add ${what} — ${err.message}`);
+  }
+}
+
+/**
+ * Brings `scrape_logs` up to date on a database created before either change.
+ *
+ * MySQL has no `ADD COLUMN IF NOT EXISTS` and no `ADD VALUE IF NOT EXISTS`, so
+ * each step asks `information_schema` first. Runs at server boot and at the
+ * start of every scrape; does nothing on all but the one boot that needs it.
  */
 export async function ensureScrapeLogSchema() {
-  try {
-    const [[col]] = await db.query(
-      `SELECT COLUMN_TYPE AS type FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
-         AND column_name = 'scrape_type'`,
-    );
-    if (col && !String(col.type).includes("'missing'")) {
-      await db.query(
-        `ALTER TABLE scrape_logs MODIFY scrape_type
-         ENUM('full','incremental','missing') NOT NULL DEFAULT 'full'`,
+  await step(
+    "'missing' to scrape_logs.scrape_type",
+    async () => {
+      const [[col]] = await db.query(
+        `SELECT COLUMN_TYPE AS type FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
+           AND column_name = 'scrape_type'`,
       );
-      console.log("scrape schema: added 'missing' to scrape_logs.scrape_type");
-    }
+      return col && !String(col.type).includes("'missing'");
+    },
+    () => db.query(
+      `ALTER TABLE scrape_logs MODIFY scrape_type
+       ENUM('full','incremental','missing') NOT NULL DEFAULT 'full'`,
+    ),
+  );
 
-    const [[failedCol]] = await db.query(
-      `SELECT COUNT(*) AS cnt FROM information_schema.columns
-       WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
-         AND column_name = 'failed'`,
-    );
-    if (!failedCol.cnt) {
-      await db.query(
-        "ALTER TABLE scrape_logs ADD COLUMN failed TINYINT(1) NOT NULL DEFAULT 0",
+  await step(
+    "the scrape_logs.failed column",
+    async () => {
+      const [[row]] = await db.query(
+        `SELECT COUNT(*) AS cnt FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'scrape_logs'
+           AND column_name = 'failed'`,
       );
-      console.log("scrape schema: added scrape_logs.failed");
-    }
-  } catch (err) {
-    /* A repair run that cannot widen the enum should still repair. It just
-       will not be able to log itself, which `startLog` degrades to on its own. */
-    console.error("scrape schema check skipped:", err.message);
-  }
+      return !row.cnt;
+    },
+    () => db.query("ALTER TABLE scrape_logs ADD COLUMN failed TINYINT(1) NOT NULL DEFAULT 0"),
+  );
 }
